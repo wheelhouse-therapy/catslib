@@ -175,7 +175,7 @@ function DownloadMaterials( SEEDAppSessionAccount $oApp )
     $s .= $o->Style();
 
     // default "action" is to show the PreviewDoc
-    $sRight = "";
+    $sRight = $sRightClass = "";
     switch( ($pTab = $oApp->sess->SmartGPC( 'tab' )) ) {
         case "rename0":
             $sRight = $o->oDocMan->Rename0();

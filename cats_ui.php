@@ -4,8 +4,8 @@
  */
 class CATS_UI
 {
-    private $oApp;
-    private $screen = "";
+    protected $oApp;
+    protected $screen = "";
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -147,79 +147,90 @@ class CATS_MainUI extends CATS_UI
         parent::__construct( $oApp );
     }
 
+    function Screen( $screen ) {
+        $this->SetScreen( $screen );
+
+        $s = "";
+
+        if( substr( $screen, 0, 5 ) == 'admin' ) {
+            $s = $this->DrawAdmin();
+        } else if( substr( $screen, 0, 9 ) == "therapist" ) {
+            $s = $this->DrawTherapist();
+        } else if( $screen == "logout" ) {
+            $s = $this->DrawLogout();
+        } else {
+            $s = $this->DrawHome();
+        }
+
+        return( $s );
+    }
+
+
     function DrawHome()
     {
-        return( drawHome( $this->oApp ) );
+        $s = $this->Header()."<h2>Home</h2>"
+            .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
+            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>" : "");
+
+        return( $s );
+    }
+
+    function DrawTherapist()
+    {
+        return( drawTherapist( $this->screen, $this->oApp ) );
+    }
+
+    function DrawAdmin()
+    {
+        return( drawAdmin( $this->oApp ) );
+    }
+
+    function DrawLogout()
+    {
+        $this->oApp->sess->LogoutSession();
+        header( "Location: ".CATSDIR );
     }
 }
 
 
 
-function  drawLogout($oApp){
-    $oApp->sess->LogoutSession();
-    return("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>");
-}
-
-function drawHome($oApp)
-{
-    global $oUI;
-
-    $s = $oUI->Header()."<h2>Home</h2>";
-    $s .= ($oApp->sess->CanRead('therapist')?"<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>":"").($oApp->sess->CanRead('admin')?"<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>":"");
-    $s .= (!$oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist-calendar' class='toCircle catsCircle1'>Calendar</a>":"");
-    return( $s );
-}
 function drawTherapist( $screen, $oApp )
 {
+    $raTherapistScreens = array(
+        array( 'home',                      "Home" ),
+        array( 'therapist-handouts',        "Print Handouts" ),
+        array( 'therapist-formscharts',     "Print Forms for Charts" ),
+        array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
+        array( 'therapist-entercharts',     "Enter Charts" ),
+        array( 'therapist-ideas',           "Get Ideas" ),
+        array( 'therapist-materials',       "Download Marketable Materials" ),
+        array( 'therapist-team',            "Meet the Team" ),
+        array( 'therapist-submitresources', "Submit Resources to Share" ),
+        array( 'therapist-clientlist',      "Clients and Providers" ),
+        array( 'therapist-calendar',        "Calendar" ),
+    );
+
+
     global $oUI;
     $s = $oUI->Header()."<h2>Therapist</h2>";
     switch( $screen ) {
         case "therapist":
         default:
-            $s .= "<p>What would you like to do?</p>"
-                ."<div class='container-fluid'>"
-                ."<div class='row'>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=home' class='toCircle catsCircle1'>Home</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-materials' class='toCircle catsCircle2'>Print Handouts</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-formscharts' class='toCircle catsCircle1'>Print Forms for Charts</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-linedpapers' class='toCircle catsCircle2'>Print Different Lined Papers</a>"
-                ."</div>"
-                ."</div>"
-                ."<div class='row'>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-entercharts' class='toCircle catsCircle2'>Enter Clients</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-ideas' class='toCircle catsCircle2'>Get Ideas</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-downloadcustommaterials' class='toCircle catsCircle1'>Download Marketable Materials</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-team' class='toCircle catsCircle1'>Meet the Team</a>"
-                ."</div>"
-                ."</div>"
-                ."<div class='row'>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-submitresources' class='toCircle catsCircle2'>Submit Resources to Share</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-clientlist' class='toCircle catsCircle1'>Clients and Providers</a>"
-                ."</div>"
-                ."<div class='col-md-3'>"
-                ."<a href='?screen=therapist-calendar' class='toCircle catsCircle1'>Calendar</a>"
-                ."</div>"
-                ."</div>"
-                ."</div>";
-                break;
-        case "therapist-materials":
+            $s .= "<div class='container-fluid'>";
+            $i = 0;
+            foreach( $raTherapistScreens as $ra ) {
+                $circle = "catsCircle".($i % 2 + 1);
+
+                if( $i % 4 == 0 ) $s .= "<div class='row'>";
+                $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
+                if( $i % 4 == 3 ) $s .= "</div>";   // row
+                ++$i;
+            }
+            if( $i && $i % 4 != 0 ) $s .= "</div>"; // end row if it didn't complete in the loop
+
+            break;
+
+        case "therapist-handouts":
             $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
             $s .= "PRINT HANDOUTS";
             break;
@@ -239,7 +250,7 @@ function drawTherapist( $screen, $oApp )
             $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
             $s .= "GET IDEAS";
             break;
-        case "therapist-downloadcustommaterials":
+        case "therapist-materials":
             $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
             $s .= DownloadMaterials( $oApp );
             break;
