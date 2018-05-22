@@ -43,7 +43,7 @@ $dirImg = CATSDIR_IMG;
 
 
 // Create oApp for all files to use
-$oApp = new SEEDAppSessionAccount(
+$oApp = new SEEDAppConsole(
                 array_merge( $catsDefKFDB,
                              array( 'sessPermsRequired' => array(),
                                     'sessParms' => array( 'logfile' => CATSDIR_LOG."seedsession.log"))

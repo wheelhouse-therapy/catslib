@@ -1,24 +1,11 @@
 <?php
-require_once '_config.php';
-require_once "cats_ui.php" ;
+
+require_once '_start.php';
+
 $dir_name = "pending_resources";
 $dir_accept = "accepted_resources";
 
-if( !($kfdb = new KeyframeDatabase( "ot", "ot" )) ||
-    !$kfdb->Connect( "ot" ) )
-{
-    die( "Cannot connect to database<br/><br/>You probably have to execute these two MySQL commands<br/>"
-        ."CREATE DATABASE ot;<br/>GRANT ALL ON ot.* to 'ot'@'localhost' IDENTIFIED BY 'ot'" );
-}
-
-$sess = new SEEDSessionAccount( $kfdb, array(), array( 'logfile' => "seedsession.log") );
-if(!$sess->IsLogin()){
-    echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
-    exit;
-}
-
-$oUI = new CATS_UI();
-echo "<head><link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'></head>";
+$oUI = new CATS_UI( $oApp );
 echo $oUI->Header();
 echo "<a href='".CATSDIR."?screen=admin'><button>Back</button></a><br />";
 $cmd = SEEDInput_Str( 'cmd' );
@@ -49,3 +36,5 @@ foreach ($dir as $fileinfo) {
         <br />";
     }
 }
+
+?>
