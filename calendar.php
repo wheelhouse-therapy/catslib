@@ -39,6 +39,10 @@ class Calendar
             echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
             die();
         }
+        if( $cmd == 'delete'){
+            $this->deleteAppt($calendarIdCurrent,$apptId);
+            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
+        }
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -140,7 +144,7 @@ class Calendar
         /* Get the list of appointments known in CATS
          */
         $sAppts = "<h3>CATS appointments</h3>";
-        $raAppts = $oApptDB->GetList( "eStatus in ('NEW','REVIEWED')" );
+        $raAppts = $oApptDB->GetList( "eStatus in ('REVIEWED')" );
         foreach( $raAppts as $ra ) {
             $eventId = $ra['google_event_id'];
             $eStatus = $ra['eStatus'];
@@ -301,7 +305,11 @@ class Calendar
                 }
                 $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'><img src='".CATSDIR_IMG."invoice.png' style='max-width:20px;'/></a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>";
+                           ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                           ."&nbsp;&nbsp;"
+                           ."<a href='?cmd=delete&apptId=$event->id$invoice'>Delete Appointment</a>"
+                           ."&nbsp;&nbsp;"
+                           ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick ><div class='row'><div class='col-md-3'>$sAppt</div><div class='col-md-9'>$sInvoice</div></div></div>";
@@ -350,6 +358,16 @@ class Calendar
             $kfr->PutDBRow();
         }
     }
+    
+    public function deleteAppt($calendarId, $apptId){
+        $oApptDB = new AppointmentsDB( $this->oApp );
+        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$apptId."'");
+        $kfrAppt->StatusSet("Deleted");
+        $kfrAppt->PutDBRow();
+        $oGC = new CATS_GoogleCalendar();
+        $oGC->deleteEvent($calendarId, $apptId);
+    }
+    
 }
 
 
@@ -434,6 +452,11 @@ class CATS_GoogleCalendar
     function getEventByID($calendarID,$id){
         return( $this->service ? $this->service->events->get($calendarID, $id) : null );
     }
+    
+    function deleteEvent($calendarID, $id){
+        $this->service->events->delete($calendarID,$id);
+    }
+    
 }
 
 
