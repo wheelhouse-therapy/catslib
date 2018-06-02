@@ -192,7 +192,7 @@ class Calendar
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
-           height: 150px;
+           height: 300px;
         }
         .collapsed .appointment {
 	       height: 0;
@@ -205,35 +205,14 @@ class Calendar
         }
     </style>
     <script>
-        var x = document.createElement('img');
-        x.src = 'https://cdn1.iconfinder.com/data/icons/pixel-perfect-at-16px-volume-2/16/5001-128.png';
-        x.className = 'drop-arrow';
-        var z = document.getElementsByClassName('day');
-        for(y = 0; y < z.length; y++) {
-	       var w = x.cloneNode();
-           var e = z[y].firstChild;
-	       z[y].insertBefore(w, e);
-	       w.onclick = rotateMe;
-           e.onclick = rotateMe;
+        Object.prototype.appt = function() {
+            var x = this;
+            while (!x.classList.contains('appointment')) {
+                x = x.parentElement;
+            }
+        return x;
         }
-        function rotateMe(e) {
-           e.preventDefault();
-           window.getSelection().removeAllRanges();
-	       this.parentElement.classList.toggle('collapsed');
-        }
-        function expand() {
-	       var days = document.getElementsByClassName('day');
-	       for (var loop = 0; loop < days.length; loop++) {
-		   days[loop].classList.remove('collapsed');
-	   }
-    }
-    function collapse() {
-	   var days = document.getElementsByClassName('day');
-	   for (var loop = 0; loop < days.length; loop++) {
-	       days[loop].classList.add('collapsed');
-	   }
-    }
-</script>";
+    </script>";
 
         return( $s );
     }
@@ -325,7 +304,7 @@ class Calendar
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_name]]</option>" )
             ."</select>"
-            ."<input type='submit' value='Save'/>"
+            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\" />"
             ."</form>";
 
         return( $s );
