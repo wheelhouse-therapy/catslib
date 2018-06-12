@@ -1,6 +1,117 @@
 <?php
 
+/* Appointments and Invoices are treated as the same data structure (cats_appointments)
+ * because we always bill each appointment on separate invoice.
+ *
+ * Each appointment starts as a Google calender event.
+ * CATS notices this, asks the therapist to confirm client id and creates a cats_appointment with status REVIEWED.
+ * REVIEWED appointments can be DELETED (not billed).
+ * REVIEWED appointments can be COMPLETED (billed) when the therapist provides billing details.
+ * COMPLETED appointments have invoices that can be sent by email, etc.
+ * COMPLETED appoints become PAID when payment is received.
+ *
+ * Classes:
+ *      CATSAppointments    - handles db changes, manages state transitions.
+ *      CATSCalendar        - draws calendar UI, and connects with CATS_GoogleCalendar
+ *      CATS_GoogleCalendar - interface to google calendar
+ *      CATSInvoices        - formats and sends invoices
+ */
+
 include( SEEDROOT."seedlib/SEEDGoogleService.php" );
+
+class Appointments
+{
+    private $oApp;
+    private $oApptDB;
+    private $oQ;
+
+    function __construct( SEEDAppSessionAccount $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oApptDB = new AppointmentsDB( $this->oApp );
+        $this->oQ = new SEEDQ( $oApp );
+    }
+
+    function Cmd( $cmd, $kAppt, $raParms )
+    {
+        $raCmds = array( 'catsappt--reviewed' => array( 'REVIEWED', 'apptReviewed' ),
+                         'catsappt--delete'   => array( 'REVIEWED', 'apptReviewed' ),
+
+
+        );
+
+        $rQ = $this->oQ->GetEmptyRQ();
+
+        if( !isset( $raCmds[$cmd] ) )  goto done;
+
+        list($ok,$dummy,$sErr) = $this->oApp->sess->IsAllowed( $cmd );
+        if( !$ok ) {
+            $rQ['sErr'] = $sErr;
+            goto done;
+        }
+
+        /* The only command we can do without a kAppt is adding a new appointment.
+           Check for this special case; otherwise do other commands if they are allowed for the appt's eStatus
+         */
+        if( !$kAppt ) {
+            if( $cmd == 'catsappt--reviewed' ) {
+                $kfrAppt = $this->oApptDB->GetKFR( 0 );     // same as CreateRecord
+                $rQ = $this->apptReviewed( $kfrAppt, $raParms );
+            }
+        } else if( ($kfrAppt = $this->oApptDB->GetKFR( $kAppt )) ) {
+            $onlyAllowedForThisStatus = $raCmds[$cmd][0];
+            $fn = $raCmds[$cmd][1];
+
+            if( $kfrAppt->Value('eStatus') == $onlyAllowedForThisStatus ) {
+                $rQ = $this->$fn( $kfrAppt, $raParms );
+            }
+        }
+
+        done:
+        return( $rQ );
+    }
+
+    private function apptReviewed( KeyframeRecord $kfrAppt = null, $raParms )
+    /************************************************************************
+        Create or update a cats_appointments record. If this is a new record, kfrAppt is newly created.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+
+        $copyParms = array( 'google_cal_ev_id',
+                            'session_minutes',
+                            'fk_clients',
+                            'fk_professionals',
+                            'note'
+        );
+        foreach( $copyParms as $p ) {
+            if( isset( $raParms[$p]) )  $kfrAppt->SetValue( $p, $raParms[$p] );
+        }
+        // At minimum, the record must have a google_cal_ev_id
+        if( !$kfrAppt->Value('google_cal_ev_id') ) {
+            $rQ['sErr'] = "Missing event in google calendar";
+            goto done;
+        }
+
+        $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
+        list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
+
+        $oGC = new CATS_GoogleCalendar();
+        $event = $oGC->getEventByID( $calId, $eventId );
+
+        if( !($start = $event->start->dateTime) ) {
+            $start = $event->start->date;
+        }
+        $start = substr( $start, 0, 19 );
+        $kfrAppt->SetValue( 'start_time', $start );
+
+        $rQ['bOk'] = $kfrAppt->PutDBRow();
+
+        done:
+        return( $rQ );
+    }
+}
+
 
 class Calendar
 {
@@ -96,11 +207,11 @@ class Calendar
                     // The current user is only allowed to see Free slots and book them
                     if( strtolower($event->getSummary()) != "free" )  continue;
 
-                    $sList .= $this->drawEvent( $event, 'nonadmin', null );
+                    $sList .= $this->drawEvent( $calendarIdCurrent, $event, 'nonadmin', null );
 
                 } else {
                     // Admin user: check this google event against our appointment list
-                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$event->id."'");
+                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$calendarIdCurrent." | ".$event->id."'");
 
                     if( !$kfrAppt ) {
                         // NEW: this google event is not yet in cat_appointments; show the form to add the appointment
@@ -120,7 +231,7 @@ class Calendar
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
                     }
-                    $sList .= $this->drawEvent( $event, $eType, $kfrAppt, $invoice );
+                    $sList .= $this->drawEvent( $calendarIdCurrent, $event, $eType, $kfrAppt, $invoice );
                 }
 
             }
@@ -142,7 +253,7 @@ class Calendar
         $sAppts = "<h3>CATS appointments</h3>";
         $raAppts = $oApptDB->GetList( "eStatus in ('NEW','REVIEWED')" );
         foreach( $raAppts as $ra ) {
-            $eventId = $ra['google_event_id'];
+            $eventId = $ra['google_cal_ev_id'];
             $eStatus = $ra['eStatus'];
             $startTime = $ra['start_time'];
             $clientId = $ra['fk_clients'];
@@ -234,7 +345,7 @@ class Calendar
         return( $s );
     }
 
-    private function drawEvent( $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
+    private function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
         eType:
             nonadmin = the user is only allowed to see Free slots and book them. This method is only called for Free slots.
@@ -260,7 +371,7 @@ class Calendar
         }
         else{
             $tz = substr($start, -6);
-            $start = substr($start, 0,-6);
+            //$start = substr($start, 0,-6);
         }
         if( !$tz ) $tz = 'America/Toronto';
         $time = new DateTime($start, new DateTimeZone($tz));
@@ -271,7 +382,7 @@ class Calendar
 
         switch( $eType ) {
             case 'new':
-                $sSpecial = $this->formNewAppt( $event );
+                $sSpecial = $this->formNewAppt( $calendarId, $event, $start );
                 break;
             case 'moved':
                 $sSpecial = "NOTICE: THIS APPOINTMENT HAS MOVED - OK";
@@ -285,7 +396,7 @@ class Calendar
              .($admin ? ("<div class='appt-summary'>".$event->getSummary()."</div>") : "")
              ."<div class='appt-special'>$sSpecial</div>";
         $sInvoice = "";
-        if($kfrAppt && $kfrAppt->Value('fk_clients')){
+        if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
             //This string defines the general format of all invoices
             //The correct info for each client is subed in later with sprintf
             //TODO add parameter for session desc
@@ -309,11 +420,11 @@ class Calendar
         return $s;
     }
 
-    private function formNewAppt( $event )
+    private function formNewAppt( $sCalendarId, $event )
     {
         $s = "<h5>This appointment is new:</h5><br />Please Specify client"
             ."<form method='post' action='' class='appt-newform'>"
-            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$event->id."'>"
+            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$sCalendarId." | ".$event->id."'>"
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_name]]</option>" )
             ."</select>"
@@ -344,7 +455,7 @@ class Calendar
             ($event = $oGC->getEventByID($calendarIdCurrent,$googleEventId)) )
         {
             $kfr = $oApptDB->KFRel()->CreateRecord();
-            $kfr->SetValue("google_event_id", $event->id);
+            $kfr->SetValue("google_cal_ev_id", $calendarIdCurrent." | ".$event->id);
             $kfr->SetValue("start_time", substr($event->start->dateTime, 0, 19) );  // yyyy-mm-ddThh:mm:ss is 19 chars long; trim the timezone part
             $kfr->SetValue("fk_clients",$catsClientId);
             $kfr->PutDBRow();
