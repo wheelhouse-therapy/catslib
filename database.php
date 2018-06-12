@@ -2,7 +2,7 @@
 
 require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
-define( "DBNAME", "ot" );
+define( "DBNAME", $catsDefKFDB['kfdbDatabase'] );
 
 class ClientsDB
 {
