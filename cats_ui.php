@@ -104,7 +104,7 @@ class CATS_UI
 
                 $.ajax({
                     type: 'POST',
-                    data: { cmd: 'therapist--appt_newform', appt_gid: gid, cid: cid },
+                    data: { cmd: 'catsappt--reviewed', google_cal_ev_id: gid, fk_clients: cid },
                     url: 'jx.php',
                     success: function(data, textStatus, jqXHR) {
                         var jsData = JSON.parse(data);
@@ -178,12 +178,133 @@ class CATS_MainUI extends CATS_UI
 
     function DrawTherapist()
     {
-        return( drawTherapist( $this->screen, $this->oApp ) );
+        $raTherapistScreens = array(
+            array( 'home',                      "Home" ),
+            array( 'therapist-handouts',        "Print Handouts" ),
+            array( 'therapist-formscharts',     "Print Forms for Charts" ),
+            array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
+            array( 'therapist-entercharts',     "Enter Charts" ),
+            array( 'therapist-ideas',           "Get Ideas" ),
+            array( 'therapist-materials',       "Download Marketable Materials" ),
+            array( 'therapist-team',            "Meet the Team" ),
+            array( 'therapist-submitresources', "Submit Resources to Share" ),
+            array( 'therapist-clientlist',      "Clients and Providers" ),
+            array( 'therapist-calendar',        "Calendar" ),
+        );
+
+        $s = $this->Header()."<h2>Therapist</h2>";
+        switch( $this->screen ) {
+            case "therapist":
+            default:
+                $s .= $this->drawCircles( $raTherapistScreens );
+                break;
+
+            case "therapist-handouts":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "PRINT HANDOUTS";
+                break;
+            case "therapist-formscharts":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "PRINT FORMS FOR CHARTS";
+                break;
+            case "therapist-linedpapers":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "PRINT DIFFERENT LINED PAPERS";
+                break;
+            case "therapist-entercharts":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "ENTER CHARTS";
+                break;
+            case "therapist-ideas":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "GET IDEAS";
+                break;
+            case "therapist-materials":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= DownloadMaterials( $oApp );
+                break;
+            case "therapist-team":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "MEET THE TEAM";
+                break;
+            case "therapist-submitresources":
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= "SUBMIT RESOURCES";
+                $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
+                    Select resource to upload:
+                    <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
+                    <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
+                    </form>";
+                break;
+            case "therapist-clientlist":
+                $o = new ClientList( $this->oApp->kfdb );
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= $o->DrawClientList();
+                break;
+            case "therapist-calendar":
+                require_once CATSLIB."calendar.php";
+                $o = new Calendar( $this->oApp );
+                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $s .= $o->DrawCalendar();
+        }
+        return( $s );
     }
 
     function DrawAdmin()
     {
-        return( drawAdmin( $this->oApp ) );
+        $s = "";
+
+        $s .= $this->Header()."<h2>Admin</h2>";
+        switch( $this->screen ) {
+            case 'admin-droptable':
+                $oApp->kfdb->Execute("drop table ot.clients");
+                $oApp->kfdb->Execute("drop table ot.clients_pros");
+                $oApp->kfdb->Execute("drop table ot.professionals");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
+                $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
+                break;
+
+            case 'admin-users':
+                $s .= $this->drawAdminUsers();
+                break;
+
+            default:
+            case 'admin':
+                $raScreens = array(
+                    array( 'home',             "Home" ),
+                    array( 'therapist',        "Therapist" ),
+                );
+                $s .= $this->drawCircles( $raScreens );
+
+                if( $this->oApp->sess->CanWrite("admin") ) {
+                    $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
+                         ."<a href='review_resources.php' class='toCircle catsCircle2'>Review Resources</a>";
+                }
+                if( $this->oApp->sess->CanAdmin("DropTables") ) {
+                    $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>"
+                         ."<script>function drop(){
+                          var password = prompt('Enter the admin password');
+                          $.ajax({
+                                url: 'administrator-password.php',
+                                type: 'POST',
+                                data: {'password':password},
+                                cache: 'false',
+                                success: function(result){
+                                    location.href = '?screen=admin-droptable';
+                                },
+                                error: function(jqXHR, status, error){
+                                    alert('You are not authorized to perform this action');
+                                }
+                          });
+                          }</script>";
+                }
+                break;
+        }
+        return( $s );
     }
 
     function DrawLogout()
@@ -191,132 +312,34 @@ class CATS_MainUI extends CATS_UI
         $this->oApp->sess->LogoutSession();
         header( "Location: ".CATSDIR );
     }
-}
 
 
+    private function drawCircles( $raScreens )
+    {
+        $s = "<div class='container-fluid'>";
+        $i = 0;
+        foreach( $raScreens as $ra ) {
+            $circle = "catsCircle".($i % 2 + 1);
 
-function drawTherapist( $screen, $oApp )
-{
-    $raTherapistScreens = array(
-        array( 'home',                      "Home" ),
-        array( 'therapist-handouts',        "Print Handouts" ),
-        array( 'therapist-formscharts',     "Print Forms for Charts" ),
-        array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
-        array( 'therapist-entercharts',     "Enter Charts" ),
-        array( 'therapist-ideas',           "Get Ideas" ),
-        array( 'therapist-materials',       "Download Marketable Materials" ),
-        array( 'therapist-team',            "Meet the Team" ),
-        array( 'therapist-submitresources', "Submit Resources to Share" ),
-        array( 'therapist-clientlist',      "Clients and Providers" ),
-        array( 'therapist-calendar',        "Calendar" ),
-    );
+            if( $i % 4 == 0 ) $s .= "<div class='row'>";
+            $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
+            if( $i % 4 == 3 ) $s .= "</div>";   // row
+            ++$i;
+        }
+        if( $i && $i % 4 != 0 ) $s .= "</div>"; // end row if it didn't complete in the loop
 
-
-    global $oUI;
-    $s = $oUI->Header()."<h2>Therapist</h2>";
-    switch( $screen ) {
-        case "therapist":
-        default:
-            $s .= "<div class='container-fluid'>";
-            $i = 0;
-            foreach( $raTherapistScreens as $ra ) {
-                $circle = "catsCircle".($i % 2 + 1);
-
-                if( $i % 4 == 0 ) $s .= "<div class='row'>";
-                $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
-                if( $i % 4 == 3 ) $s .= "</div>";   // row
-                ++$i;
-            }
-            if( $i && $i % 4 != 0 ) $s .= "</div>"; // end row if it didn't complete in the loop
-
-            break;
-
-        case "therapist-handouts":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "PRINT HANDOUTS";
-            break;
-        case "therapist-formscharts":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "PRINT FORMS FOR CHARTS";
-            break;
-        case "therapist-linedpapers":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "PRINT DIFFERENT LINED PAPERS";
-            break;
-        case "therapist-entercharts":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "ENTER CHARTS";
-            break;
-        case "therapist-ideas":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "GET IDEAS";
-            break;
-        case "therapist-materials":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= DownloadMaterials( $oApp );
-            break;
-        case "therapist-team":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "MEET THE TEAM";
-            break;
-        case "therapist-submitresources":
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= "SUBMIT RESOURCES";
-            $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
-                Select resource to upload:
-                <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
-                <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
-                </form>";
-            break;
-        case "therapist-clientlist":
-            $o = new ClientList( $oApp->kfdb );
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= $o->DrawClientList();
-            break;
-        case "therapist-calendar":
-            require_once CATSLIB."calendar.php";
-            $o = new Calendar( $oApp );
-            $s .= ($oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-            $s .= $o->DrawCalendar();
-    }
-    return( $s );
-}
-function drawAdmin($oApp)
-{
-    global $oUI;
-    $s = "";
-    if(SEEDInput_Str("screen") == "admin-droptable"){
-        $oApp->kfdb->Execute("drop table ot.clients");
-        $oApp->kfdb->Execute("drop table ot.clients_pros");
-        $oApp->kfdb->Execute("drop table ot.professionals");
-        $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
-        $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
-        $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
-        $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
-        $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
-    }
-    $s .= $oUI->Header()."<h2>Admin</h2>";
-    $s .= "<a href='?screen=home' class='toCircle catsCircle2'>Home</a><a href='?screen=therapist' class='toCircle catsCircle2'>Therapist</a>";
-    if($oApp->sess->CanAdmin("DropTables")){
-        $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>"
-        ."<script>function drop(){
-          var password = prompt('Enter the admin password');
-          $.ajax({
-                url: 'administrator-password.php',
-                type: 'POST',
-                data: {'password':password},
-                cache: 'false',
-                success: function(result){
-                    location.href = '?screen=admin-droptable';
-                },
-                error: function(jqXHR, status, error){
-                    alert('You are not authorized to perform this action');
-                }
-          });
-          }</script>";
-    }
-    if($oApp->sess->CanWrite("admin")){$s .= "<a href='review_resources.php' class='toCircle catsCircle2'>Review Resources</a>";}
         return( $s );
+    }
+
+    private function drawAdminUsers()
+    {
+        $s = "";
+
+
+
+
+        return( $s );
+    }
 }
 
 ?>

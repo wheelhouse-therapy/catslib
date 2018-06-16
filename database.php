@@ -2,7 +2,7 @@
 
 require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
-define( "DBNAME", "ot" );
+define( "DBNAME", $catsDefKFDB['kfdbDatabase'] );
 
 class ClientsDB
 {
@@ -18,7 +18,7 @@ class ClientsDB
 
     function __construct( KeyframeDatabase $kfdb, $uid = 0 )
     {
-        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid );
+        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."clients-pros.log") );
     }
 
     function GetClient( $key )
@@ -42,7 +42,7 @@ class ProsDB
 
     function __construct( KeyframeDatabase $kfdb, $uid = 0 )
     {
-        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid );
+        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."clients-pros.log") );
     }
 
     function GetPro( $key )
@@ -79,8 +79,8 @@ class Clients_ProsDB
 
     function __construct( KeyframeDatabase $kfdb, $uid = 0 )
     {
-        $this->kfrel   = new KeyFrame_Relation( $kfdb, $this->kfreldef,   $uid );
-        $this->kfrel_X = new KeyFrame_Relation( $kfdb, $this->kfreldef_X, $uid );
+        $this->kfrel   = new KeyFrame_Relation( $kfdb, $this->kfreldef,   $uid, array('logfile'=>CATSDIR_LOG."clients-pros.log") );
+        $this->kfrel_X = new KeyFrame_Relation( $kfdb, $this->kfreldef_X, $uid, array('logfile'=>CATSDIR_LOG."clients-pros.log") );
     }
 
     function GetClientInfoForProfessional( $pro_key )
@@ -108,12 +108,17 @@ class AppointmentsDB
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
-        $this->kfrel = new KeyFrame_Relation( $oApp->kfdb, $this->kfreldef, $oApp->sess->GetUID() );
+        $this->kfrel = new KeyFrame_Relation( $oApp->kfdb, $this->kfreldef, $oApp->sess->GetUID(), array('logfile'=>CATSDIR_LOG."appt.log") );
     }
 
     function GetList( $sCond )
     {
         return( $this->kfrel->GetRecordSetRA( $sCond, $raKFParms = array() ) );
+    }
+
+    function GetKFR( $k )
+    {
+        return( $k ? $this->kfrel->GetRecordFromDBKey( $k ) : $this->kfrel->CreateRecord() );
     }
 }
 
@@ -219,13 +224,13 @@ function createTables( KeyframeDatabase $kfdb )
             _updated_by INTEGER,
             _status     INTEGER DEFAULT 0,
 
-            google_event_id  VARCHAR(200) NOT NULL DEFAULT '',
-            eStatus          ENUM('REVIEWED','COMPLETED','CANCELLED','MISSED') NOT NULL DEFAULT 'REVIEWED',
+            google_cal_ev_id VARCHAR(200) NOT NULL DEFAULT '',
+            eStatus          ENUM('REVIEWED','COMPLETED','CANCELLED','PAID') NOT NULL DEFAULT 'REVIEWED',
             start_time       DATETIME NULL,
             session_minutes  INTEGER NOT NULL DEFAULT 0,  -- initially calculated from calendar
             prep_minutes     INTEGER NOT NULL DEFAULT 10,
          -- total_time       INTEGER NOT NULL DEFAULT 0,    just session+prep
-            rate             INTEGER NOT NULL DEFAULT 0,  -- from pros but editable  
+            rate             INTEGER NOT NULL DEFAULT 0,  -- from pros but editable
             invoice_email    VARCHAR(200) NOT NULL DEFAULT 0,
             fk_clients       INTEGER NOT NULL DEFAULT 0,
             fk_professionals INTEGER NOT NULL DEFAULT 0,
@@ -287,6 +292,7 @@ function createTables( KeyframeDatabase $kfdb )
                         array('therapist',      'RWA',  'NULL',       4),
                         array('client',         'RWA',  'NULL',       5),
                         array('DropTables',     'RWA',       1,  'NULL'),
+                        array('catsappt',       'RW',   'NULL',       4),
                         array('Calendar',       'RW',   'NULL',       5),
                         array('Calendar',       'A',    'NULL',       4),
                       ) as $ra )

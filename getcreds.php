@@ -41,6 +41,15 @@ function expandHomeDirectory($path) {
   return str_replace('~', realpath($homeDirectory), $path);
 }
 
+
+/***********
+
+ Replace all of this with CATS_GoogleCalendar
+
+ */
+
+
+
 $oG = new SEEDGoogleService( $raGoogleParms, false );   // don't create the Google_Client because the credentials file isn't there yet
 //if( !$oG->client ) die( "Could not create Google Client" );
 $oG->GetCredentials( true );
