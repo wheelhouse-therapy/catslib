@@ -270,7 +270,9 @@ class CATS_MainUI extends CATS_UI
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
                 break;
-
+            case 'admin-resources':
+                include('review_resources.php');
+                break;
             default:
             case 'admin':
                 $raScreens = array(
@@ -281,7 +283,7 @@ class CATS_MainUI extends CATS_UI
 
                 if( $this->oApp->sess->CanWrite("admin") ) {
                     $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
-                         ."<a href='review_resources.php' class='toCircle catsCircle2'>Review Resources</a>";
+                         ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
                 }
                 if( $this->oApp->sess->CanAdmin("DropTables") ) {
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>"
