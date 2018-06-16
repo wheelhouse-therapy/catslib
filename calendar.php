@@ -205,13 +205,14 @@ class Calendar
         }
     </style>
     <script>
-        Object.prototype.appt = function() {
+        function appt() {
             var x = this;
             while (!x.classList.contains('appointment')) {
                 x = x.parentElement;
             }
         return x;
         }
+        Object.defineProperty(HTMLElement.prototype, 'appt', {enumerable: false, writable: false, value: appt});
     </script>";
 
         return( $s );
@@ -291,7 +292,7 @@ class Calendar
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick ><div class='row'><div class='col-md-3'>$sAppt</div><div class='col-md-9'>$sInvoice</div></div></div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div>";
 
         return $s;
     }

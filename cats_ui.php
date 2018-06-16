@@ -39,7 +39,8 @@ class CATS_UI
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
     <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
-    <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src='w/js/appointments.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <style>
@@ -74,14 +75,14 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
-    	for (var x in elements) {
+    	for (var x in elements.values()) {
     	   	var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-    		elements[x].style.height = diameter;
-    		elements[x].style.width = diameter;
-    		elements[x].style.color = textColor;
-            elements[x].style.backgroundColor = color;
-            elements[x].style.borderColor = color;
-    		elements[x].style.borderRadius = diameter;
+    		x.style.height = diameter;
+    		x.style.width = diameter;
+    		x.style.color = textColor;
+            x.style.backgroundColor = color;
+            x.style.borderColor = color;
+    		x.style.borderRadius = diameter;
     	}
     return true;
     }
