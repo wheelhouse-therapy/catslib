@@ -308,11 +308,11 @@ class CATS_MainUI extends CATS_UI
             case 'administrator':
                 if( $this->oApp->sess->CanAdmin("DropTables") ) {
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
-
-<script>
+                    <script>
 function drop() {
      if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        Window.href = '?administrator-dropable';
+        alert('dropping');
+        window.location.href = '".CATSDIR."?screen=administrator-droptable';
     }
 }
 </script>";
