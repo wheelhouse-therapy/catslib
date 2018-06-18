@@ -254,6 +254,7 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
+        $oApp = $this->oApp;
         $s .= $this->Header()."<h2>Admin</h2>";
         switch( $this->screen ) {
             case 'admin-droptable':
