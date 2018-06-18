@@ -106,6 +106,7 @@ class Appointments
         $kfrAppt->SetValue( 'start_time', $start );
 
         $rQ['bOk'] = $kfrAppt->PutDBRow();
+        $rQ['sOut'] = "Success";
 
         done:
         return( $rQ );

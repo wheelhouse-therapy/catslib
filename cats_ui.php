@@ -152,8 +152,9 @@ class CATS_MainUI extends CATS_UI
         $this->SetScreen( $screen );
 
         $s = "";
-
-        if( substr( $screen, 0, 5 ) == 'admin' ) {
+        if( substr($screen,0,13) == "administrator" ) {
+            $s = $this->DrawAdministrator();
+        }else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s = $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
             $s = $this->DrawTherapist();
@@ -171,7 +172,9 @@ class CATS_MainUI extends CATS_UI
     {
         $s = $this->Header()."<h2>Home</h2>"
             .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
-            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>" : "");
+            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>" : "")
+            .($this->oApp->sess->CanRead('administrator')     ? "<a href='?screen=administrator' class='toCircle' data-format='200px red blue'>Administrator</a>" : "");
+            
 
         return( $s );
     }
@@ -257,22 +260,12 @@ class CATS_MainUI extends CATS_UI
         $oApp = $this->oApp;
         $s .= $this->Header()."<h2>Admin</h2>";
         switch( $this->screen ) {
-            case 'admin-droptable':
-                $oApp->kfdb->Execute("drop table ot.clients");
-                $oApp->kfdb->Execute("drop table ot.clients_pros");
-                $oApp->kfdb->Execute("drop table ot.professionals");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
-                $oApp->kfdb->Execute("drop table ot.cats_appointments");
-                $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
-                break;
-
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
                 break;
-
+            case 'admin-resources':
+                include('review_resources.php');
+                break;
             default:
             case 'admin':
                 $raScreens = array(
@@ -283,26 +276,9 @@ class CATS_MainUI extends CATS_UI
 
                 if( $this->oApp->sess->CanWrite("admin") ) {
                     $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
-                         ."<a href='review_resources.php' class='toCircle catsCircle2'>Review Resources</a>";
+                         ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
                 }
-                if( $this->oApp->sess->CanAdmin("DropTables") ) {
-                    $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>"
-                         ."<script>function drop(){
-                          var password = prompt('Enter the admin password');
-                          $.ajax({
-                                url: 'administrator-password.php',
-                                type: 'POST',
-                                data: {'password':password},
-                                cache: 'false',
-                                success: function(result){
-                                    location.href = '?screen=admin-droptable';
-                                },
-                                error: function(jqXHR, status, error){
-                                    alert('You are not authorized to perform this action');
-                                }
-                          });
-                          }</script>";
-                }
+                
                 break;
         }
         return( $s );
@@ -313,8 +289,40 @@ class CATS_MainUI extends CATS_UI
         $this->oApp->sess->LogoutSession();
         header( "Location: ".CATSDIR );
     }
-
-
+    
+    function DrawAdministrator(){
+        $s = "";
+        $s .= $this->Header()."<h2>Administrator</h2>";
+        switch($this->screen){
+            case 'administrator-droptable':
+                $oApp = $this->oApp;
+                $oApp->kfdb->Execute("drop table ot.clients");
+                $oApp->kfdb->Execute("drop table ot.clients_pros");
+                $oApp->kfdb->Execute("drop table ot.professionals");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
+                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
+                $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
+                break;
+            default:
+            case 'administrator':
+                if( $this->oApp->sess->CanAdmin("DropTables") ) {
+                    $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
+                    <script>
+function drop() {
+     if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
+        alert('dropping');
+        window.location.href = '".CATSDIR."?screen=administrator-droptable';
+    }
+}
+</script>";
+                }
+        }
+        return( $s );
+    }
+    
     private function drawCircles( $raScreens )
     {
         $s = "<div class='container-fluid'>";

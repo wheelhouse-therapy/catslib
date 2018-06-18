@@ -291,7 +291,7 @@ function createTables( KeyframeDatabase $kfdb )
                         array('leader',         'RWA',  'NULL',       3),
                         array('therapist',      'RWA',  'NULL',       4),
                         array('client',         'RWA',  'NULL',       5),
-                        array('DropTables',     'RWA',       1,  'NULL'),
+                        array('administrator',  'RWA',       1,  'NULL'),
                         array('catsappt',       'RW',   'NULL',       4),
                         array('Calendar',       'RW',   'NULL',       5),
                         array('Calendar',       'A',    'NULL',       4),
