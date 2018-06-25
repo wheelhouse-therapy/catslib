@@ -418,7 +418,7 @@ class Calendar
 
 
         $classFree = strtolower($event->getSummary()) == "free" ? "free" : "busy";
-        $sOnClick = strtolower($event->getSummary()) == "free" ? $this->bookable($event->id) : "";
+        $sOnClick = "";//strtolower($event->getSummary()) == "free" ? $this->bookable($event->id) : "";
 
         switch( $eType ) {
             case 'new':
