@@ -578,7 +578,6 @@ class CATS_GoogleCalendar
             'timeMin' => date("Y-m-d\TH:i:s\Z", $startdate),
             'timeMax' => date("Y-m-d\TH:i:s\Z", $enddate),
         );
-        var_dump($calendarId);
         $results = $this->service->events->listEvents($calendarId, $optParams);
 
         $raEvents = $results->getItems();
