@@ -173,7 +173,7 @@ class CATS_MainUI extends CATS_UI
             .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
             .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>" : "")
             .($this->oApp->sess->CanRead('administrator')     ? "<a href='?screen=administrator' class='toCircle' data-format='200px red blue'>Administrator</a>" : "");
-            
+
 
         return( $s );
     }
@@ -223,7 +223,7 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-materials":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-                $s .= DownloadMaterials( $oApp );
+                $s .= DownloadMaterials( $this->oApp );
                 break;
             case "therapist-team":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
@@ -276,7 +276,7 @@ class CATS_MainUI extends CATS_UI
                     $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
                          ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
                 }
-                
+
                 break;
         }
         return( $s );
@@ -287,7 +287,7 @@ class CATS_MainUI extends CATS_UI
         $this->oApp->sess->LogoutSession();
         header( "Location: ".CATSDIR );
     }
-    
+
     function DrawAdministrator(){
         $s = "";
         $s .= $this->Header()."<h2>Administrator</h2>";
@@ -320,7 +320,7 @@ function drop() {
         }
         return( $s );
     }
-    
+
     private function drawCircles( $raScreens )
     {
         $s = "<div class='container-fluid'>";

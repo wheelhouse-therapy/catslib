@@ -470,7 +470,7 @@ class Calendar
             $kfr->PutDBRow();
         }
     }
-    
+
     public function deleteAppt($calendarId, $apptId){
         $oApptDB = new AppointmentsDB( $this->oApp );
         $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$apptId."'");
@@ -479,13 +479,13 @@ class Calendar
         $oGC = new CATS_GoogleCalendar();
         $oGC->deleteEvent($calendarId, $apptId);
     }
-    
+
 }
 
 
 class CATS_GoogleCalendar
 {
-    private $service;
+    private $service = null;
 
     function __construct()
     {
@@ -500,13 +500,12 @@ class CATS_GoogleCalendar
                 'credentials_file' => CATSDIR_CONFIG."calendar-php-quickstart.json",
         );
 
-        if( !file_exists($raGoogleParms['client_secret_file']) )  echo "<p>Google client file not found</p>";
-        if( !file_exists($raGoogleParms['credentials_file']) )    echo "<p>Google cred file not found</p>";
-
-
         $oG = new SEEDGoogleService( $raGoogleParms, false );
-        $oG->GetClient();
-        $this->service = new Google_Service_Calendar($oG->client);
+        if( ($client = $oG->GetClient()) ) {                        // this will fail if you happen to be offline
+            $this->service = new Google_Service_Calendar($client);
+        } else {
+            echo $oG->GetErrMsg();
+        }
     }
 
     function GetAllMyCalendars()
@@ -564,11 +563,11 @@ class CATS_GoogleCalendar
     function getEventByID($calendarID,$id){
         return( $this->service ? $this->service->events->get($calendarID, $id) : null );
     }
-    
+
     function deleteEvent($calendarID, $id){
         $this->service->events->delete($calendarID,$id);
     }
-    
+
 }
 
 
