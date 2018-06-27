@@ -275,9 +275,6 @@ class Calendar
 
         $s .= "
     <style>
-       div.appointment {
-           width: 90%;
-       }
        div.appt-time,div.appt-summary {
            font-family: 'Roboto', sans-serif;
            display: inline-block;
@@ -305,6 +302,7 @@ class Calendar
 	       margin-bottom: 5px;
            box-sizing: content-box;
            height: 300px;
+           width: 90%;
         }
         .collapsed .appointment {
 	       height: 0;
@@ -314,6 +312,9 @@ class Calendar
         }
         .day {
 	       margin: 2px;
+        }
+        .dayname {
+            user-select: none;
         }
     </style>
     <script>
@@ -325,7 +326,8 @@ class Calendar
         return x;
         }
         Object.defineProperty(HTMLElement.prototype, 'appt', {enumerable: false, writable: false, value: appt});
-    </script>";
+    </script>
+    <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
         return( $s );
     }
@@ -404,7 +406,7 @@ class Calendar
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div> </div>";
 
         return $s;
     }
