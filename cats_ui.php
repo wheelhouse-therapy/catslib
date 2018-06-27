@@ -75,15 +75,16 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
-    	for (var x in elements.values()) {
-    	   	var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-    		x.style.height = diameter;
-    		x.style.width = diameter;
-    		x.style.color = textColor;
-            x.style.backgroundColor = color;
-            x.style.borderColor = color;
-    		x.style.borderRadius = diameter;
-    	}
+        debugger;
+    	for (var x in elements) {
+		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		  elements[x].style.height = diameter;
+		  elements[x].style.width = diameter;
+		  elements[x].style.color = textColor;
+		  elements[x].style.backgroundColor = color;
+		  elements[x].style.borderColor = color;
+		  elements[x].style.borderRadius = diameter;
+	   }
     return true;
     }
     function run() {
