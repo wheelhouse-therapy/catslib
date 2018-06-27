@@ -44,7 +44,7 @@ class CATS_UI
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <style>
-    a:link.toCircle, a:visited.toCircle, a:hover.toCircle, a:active.toCircle {
+    a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
     	justify-content: center;
@@ -58,14 +58,14 @@ class CATS_UI
         from {background-color: #b3f0ff; border-color: #b3f0ff;}
         to {background-color: #99ff99; border-color: #99ff99;}
     }
-    a.catsCircle1 {
+    a.catsCircle1, button.catsCircle1 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
     	color: blue;
     	animation: colorChange 10s linear infinite alternate;
     }
-    a.catsCircle2 {
+    a.catsCircle2, button.catsCircle2 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
@@ -75,19 +75,20 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
-    	for (var x in elements.values()) {
-    	   	var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-    		x.style.height = diameter;
-    		x.style.width = diameter;
-    		x.style.color = textColor;
-            x.style.backgroundColor = color;
-            x.style.borderColor = color;
-    		x.style.borderRadius = diameter;
-    	}
+        debugger;
+    	for (var x in elements) {
+		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		  elements[x].style.height = diameter;
+		  elements[x].style.width = diameter;
+		  elements[x].style.color = textColor;
+		  elements[x].style.backgroundColor = color;
+		  elements[x].style.borderColor = color;
+		  elements[x].style.borderRadius = diameter;
+	   }
     return true;
     }
     function run() {
-        var x = document.querySelectorAll('a.toCircle:not([class*=\"catsCircle\"])');
+        var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
         var elements = [], styles = [];
         for(var y = 0; y < x.length; y++) {
 	       elements.push(x[y]);
