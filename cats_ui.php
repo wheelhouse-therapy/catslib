@@ -306,7 +306,6 @@ class CATS_MainUI extends CATS_UI
                 break;
             default:
             case 'administrator':
-                if( $this->oApp->sess->CanAdmin("DropTables") ) {
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
                     <script>
 function drop() {
@@ -316,7 +315,6 @@ function drop() {
     }
 }
 </script>";
-                }
         }
         return( $s );
     }
