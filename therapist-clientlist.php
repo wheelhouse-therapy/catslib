@@ -155,6 +155,7 @@ class ClientList
                      .$this->drawFormRow( "Email", $oFormClient->Email('email',"",array("attrs"=>"placeholder='Email'") ) )
                      ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
+                        .($ra['email']?"<tdclass='col-md-12'><button onclick='sendcreds()' >Send Credentials</button></td>":"")
                      ."</tr>"
                      ."</table>"
                      ."</form>";

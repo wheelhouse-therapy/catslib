@@ -95,8 +95,12 @@ class Appointments
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
         list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
-
-        $oGC = new CATS_GoogleCalendar();
+        $json = json_decode(file_get_contents(CATSDIR_CONFIG."google-accounts.json"), TRUE);
+        $file = CATSDIR_CONFIG.$json[$this->oApp->sess->SmartGPC('acount')];
+        if(!$file){
+            $file = CATSDIR_CONFIG."calendar-php-quickstart.json";
+        }
+        $oGC = new CATS_GoogleCalendar($file);
         $event = $oGC->getEventByID( $calId, $eventId );
 
         if( !($start = $event->start->dateTime) ) {
