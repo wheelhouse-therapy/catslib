@@ -281,10 +281,16 @@ class Calendar
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
         $sCalendar = "<div class='row'>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
-                        ."<div class='col-md-8'><h3>Appointments from ".date('Y-m-d', $tMon)." to ".date('Y-m-d', $tSun)."</h3></div>"
+                        ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
-                    ."</div>";
+                    ."</div>"
+                    ."<div id='weekLinkContainer'>"
+                    ."<span>Next 4 weeks from today:</span><br/>";
+        for($i=1; $i<5; $i++) {
+            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
+        }
+        $sCalendar .= "</div>";
         $sCalendar .= $sList;
 
 
@@ -350,6 +356,23 @@ class Calendar
         }
         .dayname {
             user-select: none;
+        }
+        .weekLink {
+            margin-bottom: 10px;
+        }
+        body {
+            margin: 8px;
+        }
+        :root {
+            overflow: clip;
+        }
+        #weekLinkContainer {
+            border: 1px dotted black;
+            width: fit-content;
+            padding: 5px;
+            border-radius: 10px;
+            position: relative;
+            left: 20%;
         }
     </style>
     <script>
