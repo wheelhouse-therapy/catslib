@@ -95,8 +95,12 @@ class Appointments
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
         list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
-
-        $oGC = new CATS_GoogleCalendar();
+        $json = json_decode(file_get_contents(CATSDIR_CONFIG."google-accounts.json"), TRUE);
+        $file = CATSDIR_CONFIG.$json[$this->oApp->sess->SmartGPC('acount')];
+        if(!$file){
+            $file = CATSDIR_CONFIG."calendar-php-quickstart.json";
+        }
+        $oGC = new CATS_GoogleCalendar($file);
         $event = $oGC->getEventByID( $calId, $eventId );
 
         if( !($start = $event->start->dateTime) ) {
@@ -281,10 +285,16 @@ class Calendar
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
         $sCalendar = "<div class='row'>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
-                        ."<div class='col-md-8'><h3>Appointments from ".date('Y-m-d', $tMon)." to ".date('Y-m-d', $tSun)."</h3></div>"
+                        ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
-                    ."</div>";
+                    ."</div>"
+                    ."<div id='weekLinkContainer'>"
+                    ."<span>Next 4 weeks from today:</span><br/>";
+        for($i=1; $i<5; $i++) {
+            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
+        }
+        $sCalendar .= "</div>";
         $sCalendar .= $sList;
 
 
@@ -310,9 +320,6 @@ class Calendar
 
         $s .= "
     <style>
-       div.appointment {
-           width: 90%;
-       }
        div.appt-time,div.appt-summary {
            font-family: 'Roboto', sans-serif;
            display: inline-block;
@@ -339,7 +346,8 @@ class Calendar
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
-           height: 150px;
+           height: 300px;
+           width: 90%;
         }
         .collapsed .appointment {
 	       height: 0;
@@ -350,37 +358,38 @@ class Calendar
         .day {
 	       margin: 2px;
         }
+        .dayname {
+            user-select: none;
+        }
+        .weekLink {
+            margin-bottom: 10px;
+        }
+        body {
+            margin: 8px;
+        }
+        :root {
+            overflow: clip;
+        }
+        #weekLinkContainer {
+            border: 1px dotted black;
+            width: fit-content;
+            padding: 5px;
+            border-radius: 10px;
+            position: relative;
+            left: 20%;
+        }
     </style>
     <script>
-        var x = document.createElement('img');
-        x.src = 'https://cdn1.iconfinder.com/data/icons/pixel-perfect-at-16px-volume-2/16/5001-128.png';
-        x.className = 'drop-arrow';
-        var z = document.getElementsByClassName('day');
-        for(y = 0; y < z.length; y++) {
-	       var w = x.cloneNode();
-           var e = z[y].firstChild;
-	       z[y].insertBefore(w, e);
-	       w.onclick = rotateMe;
-           e.onclick = rotateMe;
+        function appt() {
+            var x = this;
+            while (!x.classList.contains('appointment')) {
+                x = x.parentElement;
+            }
+        return x;
         }
-        function rotateMe(e) {
-           e.preventDefault();
-           window.getSelection().removeAllRanges();
-	       this.parentElement.classList.toggle('collapsed');
-        }
-        function expand() {
-	       var days = document.getElementsByClassName('day');
-	       for (var loop = 0; loop < days.length; loop++) {
-		   days[loop].classList.remove('collapsed');
-	   }
-    }
-    function collapse() {
-	   var days = document.getElementsByClassName('day');
-	   for (var loop = 0; loop < days.length; loop++) {
-	       days[loop].classList.add('collapsed');
-	   }
-    }
-</script>";
+        Object.defineProperty(HTMLElement.prototype, 'appt', {enumerable: false, writable: false, value: appt});
+    </script>
+    <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
         return( $s );
     }
@@ -459,7 +468,7 @@ class Calendar
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick ><div class='row'><div class='col-md-3'>$sAppt</div><div class='col-md-9'>$sInvoice</div></div></div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div> </div>";
 
         return $s;
     }
@@ -472,7 +481,7 @@ class Calendar
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_name]]</option>" )
             ."</select>"
-            ."<input type='submit' value='Save'/>"
+            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\" />"
             ."</form>";
 
         return( $s );

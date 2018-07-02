@@ -38,6 +38,7 @@ require_once "documents.php";
 
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
+if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
 
 $dirImg = CATSDIR_IMG;
 

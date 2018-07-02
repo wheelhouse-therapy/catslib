@@ -39,11 +39,12 @@ class CATS_UI
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
     <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
-    <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src='w/js/appointments.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <style>
-    a:link.toCircle, a:visited.toCircle, a:hover.toCircle, a:active.toCircle {
+    a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
     	justify-content: center;
@@ -57,14 +58,14 @@ class CATS_UI
         from {background-color: #b3f0ff; border-color: #b3f0ff;}
         to {background-color: #99ff99; border-color: #99ff99;}
     }
-    a.catsCircle1 {
+    a.catsCircle1, button.catsCircle1 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
     	color: blue;
     	animation: colorChange 10s linear infinite alternate;
     }
-    a.catsCircle2 {
+    a.catsCircle2, button.catsCircle2 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
@@ -74,19 +75,20 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
+        debugger;
     	for (var x in elements) {
-    	   	var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-    		elements[x].style.height = diameter;
-    		elements[x].style.width = diameter;
-    		elements[x].style.color = textColor;
-            elements[x].style.backgroundColor = color;
-            elements[x].style.borderColor = color;
-    		elements[x].style.borderRadius = diameter;
-    	}
+		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		  elements[x].style.height = diameter;
+		  elements[x].style.width = diameter;
+		  elements[x].style.color = textColor;
+		  elements[x].style.backgroundColor = color;
+		  elements[x].style.borderColor = color;
+		  elements[x].style.borderRadius = diameter;
+	   }
     return true;
     }
     function run() {
-        var x = document.querySelectorAll('a.toCircle:not([class*=\"catsCircle\"])');
+        var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
         var elements = [], styles = [];
         for(var y = 0; y < x.length; y++) {
 	       elements.push(x[y]);
@@ -256,6 +258,7 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
+        $oApp = $this->oApp;
         $s .= $this->Header()."<h2>Admin</h2>";
         switch( $this->screen ) {
             case 'admin-users':
@@ -306,7 +309,6 @@ class CATS_MainUI extends CATS_UI
                 break;
             default:
             case 'administrator':
-                if( $this->oApp->sess->CanAdmin("DropTables") ) {
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
                     <script>
 function drop() {
@@ -316,7 +318,6 @@ function drop() {
     }
 }
 </script>";
-                }
         }
         return( $s );
     }
