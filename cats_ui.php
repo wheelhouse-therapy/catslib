@@ -41,6 +41,7 @@ class CATS_UI
     <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
     <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
     <script src='w/js/appointments.js'></script>
+    <script src='".W_CORE_URL."js/SEEDCore.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <style>
@@ -126,7 +127,7 @@ class CATS_UI
 
     .$body
 
-
+    ."<script> SEEDCore_CleanBrowserAddress(); </script>"
 
     ."<script> run(); </script>"
     ."</body></html>";
@@ -221,7 +222,7 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-ideas":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-                $s .= "GET IDEAS";
+                $s .= IAmAStegosaurus();
                 break;
             case "therapist-materials":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
@@ -348,6 +349,73 @@ function drop() {
 
         return( $s );
     }
+}
+
+
+require_once SEEDCORE."SEEDUI.php";
+class MySEEDUI extends SEEDUI
+{
+    function __construct() { parent::__construct(); }
+}
+
+
+class MySEEDUIComponent extends SEEDUIComponent
+{
+    function __construct( SEEDUI $o ) { parent::__construct( $o ); }
+
+}
+
+
+function IAmAStegosaurus()
+{
+    $s = "";
+
+    $oUI = new MySEEDUI();
+    $oComp = new MySEEDUIComponent( $oUI );
+    $oComp->Update();
+
+
+
+    $oList = new SEEDUIWidget_List( $oComp );
+    $oSrch = new SEEDUIWidget_SearchControl( $oComp, array('filters'=> array('First Name'=>'firstname','Last Name'=>'lastname')) );
+// should the search control config:filters use the same format as list:cols - easier and extendible
+    $oComp->Start();
+
+    $raParms['cols'] = array(
+        array( 'label'=>'First Name', 'col'=>'firstname' ),
+        array( 'label'=>'Last Name',  'col'=>'lastname'  ),
+        array( 'label'=>'Address',    'col'=>'address'   ),
+        array( 'label'=>'Child',      'col'=>'child'     ),
+    );
+    $raView = array(
+        array( 'firstname'=>'Fred',   'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
+        array( 'firstname'=>'Wilma',  'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
+        array( 'firstname'=>'Betty',  'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
+        array( 'firstname'=>'Barney', 'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
+    );
+    $sList = $oList->ListDrawInteractive( $raView, $raParms );
+
+    $sSrch = $oSrch->Draw();
+
+    $s = $oList->Style()
+        ."<table width='100%'><tr>"
+        ."<td><h3>I am a Search Control</h3>"
+        ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sSrch."</div>"
+        ."</td>"
+        ."<td><h3>I am an Interactive List</h3>"
+        ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sList."</div>"
+        ."</td>"
+        ."</tr><tr>"
+        ."<td><h3>I am a Form</h3>"
+        ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
+        ."</td>"
+        ."<td><h3>I am a Stegosaurus</h3>"
+        ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
+        ."</td>"
+        ."</tr></table>";
+
+
+    return( $s );
 }
 
 ?>
