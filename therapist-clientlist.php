@@ -139,7 +139,7 @@ class ClientList
                 $sForm =
                       "<form>"
                      ."<input type='hidden' name='cmd' value='update_client'/>"
-                     ."<input type='hidden' name='client_key' value='{$this->client_key}'/>"
+                     ."<input type='hidden' name='client_key' id='clientId' value='{$this->client_key}'/>"
                      .$oFormClient->HiddenKey()
                      ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                      ."<p>Client # {$this->client_key}</p>"
@@ -155,7 +155,28 @@ class ClientList
                      .$this->drawFormRow( "Email", $oFormClient->Email('email',"",array("attrs"=>"placeholder='Email'") ) )
                      ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
-                        .($ra['email']?"<tdclass='col-md-12'><button onclick='sendcreds()' >Send Credentials</button></td>":"")
+                        .($ra['email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
+                        ."<script>"
+                            ."function sendcreds(e){
+e.preventDefault();
+                                var credsDiv = document.getElementById('credsDiv');
+                                var cid = document.getElementById('clientId').value;
+                                $.ajax({
+                                    type: 'POST',
+                                    data: { cmd: 'therapist---credentials', client: cid },
+                                    url: 'jx.php',
+                                    success: function(data, textStatus, jqXHR) {
+                                        var jsData = JSON.parse(data);
+                                        var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
+                                        credsDiv.innerHTML =  sSpecial;
+                                    },
+                                    error: function(jqXHR, status, error) {
+                                        console.log(status + \": \" + error);
+                                        debugger;
+                                    }
+                                });
+                            }
+                          </script>"
                      ."</tr>"
                      ."</table>"
                      ."</form>";
