@@ -37,7 +37,7 @@ function drawModal($ra, $oProsDB, $pro_roles_name){
             <div class=\"modal-dialog\">
                 <div class=\"modal-content\">
                     <div class=\"modal-header\">
-                        <h4 class=\"modal-title\">Connect Providers to ".$ra['client_name']."</h4>
+                        <h4 class=\"modal-title\">Connect Providers to ".$ra['client_first_name']." ".$ra['client_last_name']."</h4>
                     </div>
                     <div class=\"modal-body\">
                         <form id=\"contact_form\" action=\"modal-submit.php\" method=\"POST\">

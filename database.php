@@ -139,7 +139,8 @@ function createTables( KeyframeDatabase $kfdb )
             _updated_by INTEGER,
             _status     INTEGER DEFAULT 0,
 
-            client_name VARCHAR(200) NOT NULL DEFAULT '',
+            client_first_name VARCHAR(200) NOT NULL DEFAULT '',
+            client_last_name VARCHAR(200) NOT NULL DEFAULT '',
             parents_name VARCHAR(200) NOT NULL DEFAULT '',
             parents_separate BIT(1) NOT NULL DEFAULT b'0',
             address VARCHAR(200) NOT NULL DEFAULT '',
@@ -151,8 +152,8 @@ function createTables( KeyframeDatabase $kfdb )
             referal VARCHAR(500) NOT NULL DEFAULT '',
             background_info VARCHAR(500) NOT NULL DEFAULT '')" );
 
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_name) values (null,'Eric')" );
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_name) values (null,'Joe')" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_first_name) values (null,'Eric')" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_first_name) values (null,'Joe')" );
         $kfdb->SetDebug(0);
     }
 

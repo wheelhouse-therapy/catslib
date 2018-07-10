@@ -102,7 +102,7 @@ class ClientList
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]&screen=therapist-clientlist'>[[client_name]]</a></div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]&screen=therapist-clientlist'>[[client_first_name]] [[client_last_name]]</a></div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -134,7 +134,6 @@ class ClientList
                         .SEEDCore_ArrayExpandRows( $myPros, "[[Pros_pro_name]] is my [[Pros_pro_role]]<br />" )
                         ."</div>";
                 $sPros .= drawModal($ra, $this->oProsDB,$this->pro_roles_name);
-
                 $oFormClient->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200' ) ) );
                 $sForm =
                       "<form>"
@@ -144,7 +143,8 @@ class ClientList
                      ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                      ."<p>Client # {$this->client_key}</p>"
                      ."<table class='container-fluid table table-striped table-sm'>"
-                     .$this->drawFormRow( "Name", $oFormClient->Text('client_name',"",array("attrs"=>"required placeholder='Name'") ) )
+                     .$this->drawFormRow( "First Name", $oFormClient->Text('client_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
+                     .$this->drawFormRow( "Last Name", $oFormClient->Text('client_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
                      .$this->drawFormRow( "Parents Name", $oFormClient->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
                      .$this->drawFormRow( "Parents Separate", $oFormClient->Checkbox('parents_separate') )
                      .$this->drawFormRow( "Address", $oFormClient->Text('address',"",array("attrs"=>"placeholder='Address'") ) )
@@ -217,7 +217,7 @@ e.preventDefault();
                         ."<input type='hidden' name='pro_key' value='{$this->pro_key}'/>"
                         ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                         ."<select name='add_client_key'><option value='0'> Choose a client</option>"
-                        .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[client_name]]</option>" )
+                        .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
                         ."</select><input type='submit' value='add'></form>";
                 $sForm =
                     "<form>"
