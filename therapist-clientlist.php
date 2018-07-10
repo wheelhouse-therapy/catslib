@@ -210,7 +210,7 @@ e.preventDefault();
             if( $ra['_key'] == $this->pro_key ) {
 
                 $sClients = "<div style='padding:10px;border:1px solid #888'>"
-                    .SEEDCore_ArrayExpandRows( $myClients, "[[client_name]]<br />" )
+                    .SEEDCore_ArrayExpandRows( $myClients, "[[client_first_name]] [[client_last_name]]<br />" )
                     ."</div>";
                 $sClients .= "<form>"
                         ."<input type='hidden' name='cmd' value='update_pro_add_client'/>"
