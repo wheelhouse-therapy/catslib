@@ -167,7 +167,7 @@ e.preventDefault();
                                     url: 'jx.php',
                                     success: function(data, textStatus, jqXHR) {
                                         var jsData = JSON.parse(data);
-                                        var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
+                                        var sSpecial = jsData.bOk ? jsData.sOut : 'Failed to send Email';
                                         credsDiv.innerHTML =  sSpecial;
                                     },
                                     error: function(jqXHR, status, error) {
