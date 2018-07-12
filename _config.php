@@ -18,7 +18,6 @@ if( !defined("W_CORE_URL") )   define( "W_CORE_URL", "./wcore/" );              
 if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 
 if( !defined("W_ROOT") )   define( "W_ROOT", "./w/" );
-if( !defined("W_ROOT_FPDF") )  define( "W_ROOT_FPDF", W_CORE_FPDF );
 
 
 if( !file_exists(SEEDROOT."seedcore/SEEDCore.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );

@@ -1,6 +1,6 @@
 <?php
 
-include( W_ROOT_FPDF."fpdf.php" );
+include( W_CORE_FPDF."fpdf.php" );
 
 define('EURO', chr(128) );
 define('EURO_VAL', 6.55957 );
