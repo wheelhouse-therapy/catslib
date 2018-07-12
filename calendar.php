@@ -110,7 +110,7 @@ class Appointments
         $kfrAppt->SetValue( 'start_time', $start );
 
         $rQ['bOk'] = $kfrAppt->PutDBRow();
-        $rQ['sOut'] = "Success";
+        $rQ['sOut'] = (new Calendar($this->oApp))->drawEvent($calId,$event,'normal',$kfrAppt,'true');
 
         done:
         return( $rQ );
@@ -271,7 +271,7 @@ class Calendar
                             $eType = 'moved';
                         }
                     }
-                    $invoice = (($cmd == 'invoice' && $apptId == $event->id)?NULL:"true");
+                    $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
                     }
@@ -394,7 +394,7 @@ class Calendar
         return( $s );
     }
 
-    private function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
+    function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
         eType:
             nonadmin = the user is only allowed to see Free slots and book them. This method is only called for Free slots.

@@ -102,7 +102,7 @@ class CATS_UI
                 e.preventDefault();
                 var gid = $(this).find('#appt-gid').val();
                 var cid = $(this).find('#appt-clientid').val();
-                var divSpecial = $(this).closest('.appt-special');
+                var divSpecial = this.appt();
 
                 $.ajax({
                     type: 'POST',
@@ -111,7 +111,7 @@ class CATS_UI
                     success: function(data, textStatus, jqXHR) {
                         var jsData = JSON.parse(data);
                         var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
-                        divSpecial.html( sSpecial );
+                        divSpecial.outerHTML = sSpecial;
                     },
                     error: function(jqXHR, status, error) {
                         console.log(status + \": \" + error);
