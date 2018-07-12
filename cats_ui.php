@@ -76,7 +76,6 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
-        debugger;
     	for (var x in elements) {
 		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
 		  elements[x].style.height = diameter;
