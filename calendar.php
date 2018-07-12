@@ -451,7 +451,7 @@ class Calendar
             //TODO add parameter for session desc
             $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' value='%2\$s'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div></div>"
-                        . "<div class='row'><div class='col-md-12'><span>Rate: </span> <input type='text' value='$%6\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' value='%7\$s'></div></div><input type='submit' value='Confirm'></form>";
+                        . "<div class='row'><div class='col-md-12'><span>Rate: </span> <input type='text' value='$%6\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' value='%7\$s'></div></div><input type='submit' value='Confirm'><input type='submit' value='Confirm and Email' /></form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
