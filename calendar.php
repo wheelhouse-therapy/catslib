@@ -454,7 +454,7 @@ class Calendar
                         . "<div class='row'><div class='col-md-12'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div><input type='submit' value='Confirm'></form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
-            $sInvoice = sprintf($sInvoice,$kfrClient->Value('client_first_name')." ".$kfrClient->Value('client_last_name'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),100);//TODO Replace 100 fee with code to determine fee
+            $sInvoice = sprintf($sInvoice,$kfrClient->Value('client_first_name')." ".$kfrClient->Value('client_last_name'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),110);//TODO Replace 110 fee with code to determine fee
             if($invoice){
                 if($invoice == 'true'){
                     $invoice = "";
