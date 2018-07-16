@@ -305,6 +305,8 @@ class CATS_MainUI extends CATS_UI
                 $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
                 $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
                 $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $oApp->kfdb->Execute("drop table ot.clinics");
+                $oApp->kfdb->Execute("drop table ot.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
             default:
@@ -313,7 +315,6 @@ class CATS_MainUI extends CATS_UI
                     <script>
 function drop() {
      if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        alert('dropping');
         window.location.href = '".CATSDIR."?screen=developer-droptable';
     }
 }
