@@ -241,7 +241,7 @@ class CATS_MainUI extends CATS_UI
                     </form>";
                 break;
             case "therapist-clientlist":
-                $o = new ClientList( $this->oApp->kfdb );
+                $o = new ClientList( $this->oApp );
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawClientList();
                 break;

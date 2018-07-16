@@ -1,5 +1,6 @@
 <?php
 require_once "client-modal.php" ;
+require_once 'Clinics.php';
 class ClientList
 {
     public $kfdb;
@@ -16,14 +17,17 @@ class ClientList
     private $client_key;
     private $pro_key;
 
-    function __construct( KeyframeDatabase $kfdb )
+    function __construct( SEEDAppSessionAccount $oApp )
     {
-        $this->kfdb = $kfdb;
+        $this->kfdb = $oApp->kfdb;
 
-        $this->oClientsDB = new ClientsDB( $kfdb );
-        $this->oProsDB = new ProsDB( $kfdb );
-        $this->oClients_ProsDB = new Clients_ProsDB( $kfdb );
+        $this->oClientsDB = new ClientsDB( $oApp->kfdb );
+        $this->oProsDB = new ProsDB( $oApp->kfdb );
+        $this->oClients_ProsDB = new Clients_ProsDB( $oApp->kfdb );
 
+        $clinics = new Clinics($oApp);
+        $clinics->GetCurrentClinic();
+        
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
 
