@@ -296,17 +296,19 @@ class CATS_MainUI extends CATS_UI
         $s .= $this->Header()."<h2>Developer</h2>";
         switch($this->screen){
             case 'developer-droptable':
+                global $catsDefKFDB;
+                $db = $catsDefKFDB['kfdbDatabase'];
                 $oApp = $this->oApp;
-                $oApp->kfdb->Execute("drop table ot.clients");
-                $oApp->kfdb->Execute("drop table ot.clients_pros");
-                $oApp->kfdb->Execute("drop table ot.professionals");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
-                $oApp->kfdb->Execute("drop table ot.cats_appointments");
-                $oApp->kfdb->Execute("drop table ot.clinics");
-                $oApp->kfdb->Execute("drop table ot.users_clinics");
+                $oApp->kfdb->Execute("drop table $db.clients");
+                $oApp->kfdb->Execute("drop table $db.clients_pros");
+                $oApp->kfdb->Execute("drop table $db.professionals");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersXGroups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Perms");
+                $oApp->kfdb->Execute("drop table $db.cats_appointments");
+                $oApp->kfdb->Execute("drop table $db.clinics");
+                $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
             default:
