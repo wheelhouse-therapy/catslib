@@ -110,7 +110,7 @@ class Appointments
         $kfrAppt->SetValue( 'start_time', $start );
 
         $rQ['bOk'] = $kfrAppt->PutDBRow();
-        $rQ['sOut'] = "Success";
+        $rQ['sOut'] = (new Calendar($this->oApp))->drawEvent($calId,$event,'normal',$kfrAppt,'true');
 
         done:
         return( $rQ );
@@ -271,7 +271,7 @@ class Calendar
                             $eType = 'moved';
                         }
                     }
-                    $invoice = (($cmd == 'invoice' && $apptId == $event->id)?NULL:"true");
+                    $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
                     }
@@ -394,7 +394,7 @@ class Calendar
         return( $s );
     }
 
-    private function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
+    function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
         eType:
             nonadmin = the user is only allowed to see Free slots and book them. This method is only called for Free slots.
@@ -448,10 +448,10 @@ class Calendar
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
             //This string defines the general format of all invoices
             //The correct info for each client is subed in later with sprintf
-            //TODO add parameter for session desc
             $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' value='%2\$s'></div></div>"
-                        . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div></div>"
-                        . "<div class='row'><div class='col-md-12'><span>Rate: </span> <input type='text' value='$%6\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' value='%7\$s'></div></div><input type='submit' value='Confirm'></form>";
+                        . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
+                        . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' maxlength='150' value='%7\$s'></div></div>"
+                        . "<input type='submit' value='Save' /><input type='submit' value='Save and Email' /></form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');

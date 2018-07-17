@@ -76,7 +76,6 @@ class CATS_UI
     </style>
     <script>
     function createCircle(elements, styles) {
-        debugger;
     	for (var x in elements) {
 		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
 		  elements[x].style.height = diameter;
@@ -102,7 +101,7 @@ class CATS_UI
                 e.preventDefault();
                 var gid = $(this).find('#appt-gid').val();
                 var cid = $(this).find('#appt-clientid').val();
-                var divSpecial = $(this).closest('.appt-special');
+                var divSpecial = this.appt();
 
                 $.ajax({
                     type: 'POST',
@@ -111,7 +110,7 @@ class CATS_UI
                     success: function(data, textStatus, jqXHR) {
                         var jsData = JSON.parse(data);
                         var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
-                        divSpecial.html( sSpecial );
+                        divSpecial.outerHTML = sSpecial;
                     },
                     error: function(jqXHR, status, error) {
                         console.log(status + \": \" + error);
@@ -242,7 +241,7 @@ class CATS_MainUI extends CATS_UI
                     </form>";
                 break;
             case "therapist-clientlist":
-                $o = new ClientList( $this->oApp->kfdb );
+                $o = new ClientList( $this->oApp );
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawClientList();
                 break;
@@ -306,6 +305,8 @@ class CATS_MainUI extends CATS_UI
                 $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
                 $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
                 $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $oApp->kfdb->Execute("drop table ot.clinics");
+                $oApp->kfdb->Execute("drop table ot.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
             default:
@@ -314,7 +315,6 @@ class CATS_MainUI extends CATS_UI
                     <script>
 function drop() {
      if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        alert('dropping');
         window.location.href = '".CATSDIR."?screen=developer-droptable';
     }
 }
