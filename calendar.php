@@ -386,26 +386,30 @@ class Calendar
         $cmd = SEEDInput_Str('cmd');
         // Get the id of the event
         $apptId = SEEDInput_Str('apptId');
-        /* If the user has booked a free slot, store the booking
-         */
-        if( $cmd == 'booking' && ($sSummary = SEEDInput_Str("bookingSumary")) ) {
-            $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
-            echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
-            die();
-        }
-        if( $cmd == 'delete'){
-            $this->deleteAppt($calendarIdCurrent,$apptId);
-            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
-        }
-        if( $cmd == 'fulfillAppt' ) {
-            // Save the form fields
-//todo save the form fields
-
-            $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
-
-            if( $bEmailInvoice ) {
-                $s .= $this->emailTheInvoice( $apptId );
-            }
+        switch($cmd){
+            /* If the user has booked a free slot, store the booking
+             */
+            case "booking":
+                if($sSummary = SEEDInput_Str("bookingSumary")) {
+                    $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
+                    echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
+                    die();
+                }
+                break;
+            case 'delete':
+                $this->deleteAppt($calendarIdCurrent,$apptId);
+                $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
+                break;
+            case 'fulfillAppt':
+                // Save the form fields
+                //todo save the form fields
+    
+                $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+    
+                if( $bEmailInvoice ) {
+                    $s .= $this->emailTheInvoice( $apptId );
+                }
+                break;
         }
     }
 
