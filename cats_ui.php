@@ -18,9 +18,11 @@ class CATS_UI
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
         }
-        return( "<div class='cats_header'>"
+        $clinics = new Clinics($this->oApp);
+        return( "<div class='cats_header' style='overflow:auto'>"
                    ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
                    ."<div style='float:right'>"
+                       .$clinics->displayUserClinics()
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"

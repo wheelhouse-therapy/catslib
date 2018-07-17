@@ -34,7 +34,7 @@ class Clinics {
         return $k;
     }
     
-    function GetUserClinics( SEEDAppSessionAccount $oApp ){
+    function GetUserClinics(){
         /*
          * Returns a list of clinics that the user is part of (accessable)
          * 
@@ -42,7 +42,12 @@ class Clinics {
          * ie. their user id is mapped to the clinic id in the Users_Clients Database table
          */
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
-        return $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='{$this->oApp->sess->GetUID()}'" );
+        $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$this->oApp->sess->GetUID()."'");
+        return $clinics;
+    }
+    
+    function displayUserClinics(){
+        return SEEDCore_ArrayExpandRows($this->GetUserClinics(), "<a href='?clinic=[[Clinics__key]]'>[[Clinics_clinic_name]]</a>");
     }
     
 }

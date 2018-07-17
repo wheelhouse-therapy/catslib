@@ -147,7 +147,7 @@ class ClinicsDB
 
 class Users_ClinicsDB
 /*******************
- The connections between sessions and clinics
+ The connections between users and clinics
  */
 {
     private $kfrel;     // just the users_clinics table
@@ -345,10 +345,10 @@ function createTables( KeyframeDatabase $kfdb )
             _updated_by INTEGER,
             _status     INTEGER DEFAULT 0,
             
-            fk_users       INTEGER NOT NULL DEFAULT 0,
+            fk_SEEDSession_Users       INTEGER NOT NULL DEFAULT 0,
             fk_clinics INTEGER NOT NULL DEFAULT 0 )" );
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_users,fk_clinics) values (null,1,1)" );  // Dev leads the Core clinic
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_users,fk_clinics) values (null,2,1)" );  // Sue is a member of the Core clinic
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_SEEDSession_Users,fk_clinics) values (null,1,1)" );  // Dev leads the Core clinic
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_SEEDSession_Users,fk_clinics) values (null,2,1)" );  // Sue is a member of the Core clinic
         $kfdb->SetDebug(0);
     }
     

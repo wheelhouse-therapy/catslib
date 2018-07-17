@@ -198,9 +198,18 @@ class Calendar
             $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
 
             if( $bEmailInvoice ) {
-                $body = "Get Mom to say what should go here";
-
-
+                $body = "Dear %s,"
+                        ."\n"
+                        ."\n"
+                        ."Attached is your invoice for services provided for %s.  "
+                        ."The total owing is $%d.\n\n"
+                        ."Payment is due by end of day (EOD)."
+                        ."We accept cash, cheque or e-transfer.  Please make your"
+                        ." e-transfer payable to %s.\n\n "
+                        ."Thank you in advance!\n\n"
+                        ."Sincerely, %s, %s.";
+                            ///TODO Replace 110 with invoice total
+                $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
                 $s .= $this->shmail( "CATS@catherapyservices.ca", "you", "Your invoice", $body );
             }
         }
@@ -448,7 +457,9 @@ class Calendar
 
         $classFree = strtolower($event->getSummary()) == "free" ? "free" : "busy";
         $sOnClick = "";//strtolower($event->getSummary()) == "free" ? $this->bookable($event->id) : "";
-
+        if(strtolower($event->getSummary()) == "free"){
+            $eType = "do nothing"; // This prevents the select client form from showing up in free
+        }
         switch( $eType ) {
             case 'new':
                 $sSpecial = $this->formNewAppt( $calendarId, $event, $start );
@@ -472,7 +483,9 @@ class Calendar
                         . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' maxlength='150' value='%7\$s'></div></div>"
                         . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                        . "<input type='submit' name='submitVal' value='Save' /><input type='submit' name='submitVal' value='Fulfill and Email Invoice' /></form>";
+                        . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
+                        ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                        ."</form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
@@ -483,8 +496,6 @@ class Calendar
                     $invoice = "";
                 }
                 $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'><img src='".CATSDIR_IMG."invoice.png' style='max-width:20px;'/></a>"
-                           ."&nbsp;&nbsp;"
-                           ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=delete&apptId=$event->id$invoice'>Delete Appointment</a>"
                            ."&nbsp;&nbsp;"
