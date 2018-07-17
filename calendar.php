@@ -129,7 +129,7 @@ class Calendar
 
     function DrawCalendar()
     {
-        $s = "";
+        $s = "<div class='row'><div class='col-md-5'>";
 
         // Get the command parameter, used for responding to user actions
         $cmd = SEEDInput_Str('cmd');
@@ -203,7 +203,7 @@ class Calendar
         $s .= "<form method='post'>"
              .$oForm->Select( 'calendarIdCurrent', $raCalendars, "Calendar",
                               array( 'selected' => $calendarIdCurrent, 'attrs' => "onchange='submit();'" ) )
-             ."</form>";
+             ."</form></div>";
 
 
         // Get the dates of the monday-sunday period that includes the current day.
@@ -283,20 +283,22 @@ class Calendar
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
-        $sCalendar = "<div class='row'>"
+        $sCalendar = "<div class='col-md-6'>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
                         ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
-                    ."</div>"
+                    ."</div></div>"
                     ."<div id='weekLinkContainer'>"
                     ."<span>Next 4 weeks from today:</span><br/>";
         for($i=1; $i<5; $i++) {
             $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
         }
-        $sCalendar .= "</div>";
-        $sCalendar .= $sList;
-
+        $sCalendar .= "</div></div>";
+        $sCalendar .= $sList; 
+        /*$this->oApp->kfdb->Execute("SELECT * FROM cats_appointments 
+                INNER JOIN clients ON clients._key = cats_appointments.fk_clients
+                WHERE clients.client_first_name = 0 AND clients.client_last_name = 0;");*/
 
         /* Get the list of appointments known in CATS
          */
@@ -346,7 +348,7 @@ class Calendar
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
-           height: 300px;
+           height: 180px;
            width: 90%;
         }
         .collapsed .appointment {
@@ -461,7 +463,7 @@ class Calendar
                 if($invoice == 'true'){
                     $invoice = "";
                 }
-                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'><img src='".CATSDIR_IMG."invoice.png' style='max-width:20px;'/></a>"
+                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
                            ."&nbsp;&nbsp;"
@@ -470,7 +472,7 @@ class Calendar
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div> </div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
 
         return $s;
     }
