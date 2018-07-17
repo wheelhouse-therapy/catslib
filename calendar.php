@@ -194,6 +194,16 @@ class Calendar
             $this->deleteAppt($calendarIdCurrent,$apptId);
             $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
         }
+        if( $cmd == 'fulfillAppt' ) {
+            $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+
+            if( $bEmailInvoice ) {
+                $body = "Get Mom to say what should go here";
+
+
+                $s .= $this->shmail( "CATS@catherapyservices.ca", "you", "Your invoice", $body );
+            }
+        }
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -396,6 +406,16 @@ class Calendar
         return( $s );
     }
 
+    function shmail( $from, $to, $subject, $body )
+    {
+        $s = "From: $from<br/>"
+            ."To: $to<br/>"
+            ."Subject: $subject<br/><br/>$body";
+
+        return( "<div class='card card-body bg-light'>$s</div>" );
+    }
+
+
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
         eType:
@@ -453,7 +473,8 @@ class Calendar
             $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' value='%2\$s'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' maxlength='150' value='%7\$s'></div></div>"
-                        . "<input type='submit' value='Save' /><input type='submit' value='Save and Email' /></form>";
+                        . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
+                        . "<input type='submit' name='submitVal' value='Save' /><input type='submit' name='submitVal' value='Fulfill and Email Invoice' /></form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
@@ -485,7 +506,7 @@ class Calendar
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
-            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\" />"
+            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\"' />"
             ."</form>";
 
         return( $s );
@@ -540,7 +561,7 @@ class CATS_GoogleCalendar
         $raGoogleParms = array(
                 'application_name' => "Google Calendar for CATS",
                 // If modifying these scopes, regenerate the credentials at ~/seed_config/calendar-php-quickstart.json
-//                'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR_READONLY ) ),
+//                'scopes' => implode(' ', array( Goog  le_Service_Calendar::CALENDAR_READONLY ) ),
                 'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR ) ),
                 // Downloaded from the Google API Console
             'client_secret_file' => CATSDIR_CONFIG."google_client_secret.json",
