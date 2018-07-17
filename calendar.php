@@ -178,8 +178,6 @@ class Calendar
         /* Get the id of the calendar that we're currently looking at. If there isn't one, use the primary.
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
-        
-        processCommands($oGC,$calendarIdCurrent);
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -281,8 +279,8 @@ class Calendar
             $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
         }
         $sCalendar .= "</div></div>";
-        $sCalendar .= $sList; 
-        /*$this->oApp->kfdb->Execute("SELECT * FROM cats_appointments 
+        $sCalendar .= $sList;
+        /*$this->oApp->kfdb->Execute("SELECT * FROM cats_appointments
                 INNER JOIN clients ON clients._key = cats_appointments.fk_clients
                 WHERE clients.client_first_name = 0 AND clients.client_last_name = 0;");*/
 
@@ -382,6 +380,7 @@ class Calendar
         return( $s );
     }
 
+
     private function processCommands($oGC,$calendarIdCurrent){
         // Get the command parameter, used for responding to user actions
         $cmd = SEEDInput_Str('cmd');
@@ -399,35 +398,16 @@ class Calendar
             $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
         }
         if( $cmd == 'fulfillAppt' ) {
+            // Save the form fields
+//todo save the form fields
+
             $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
-            
+
             if( $bEmailInvoice ) {
-                $body = "Dear %s,"
-                    ."\n"
-                        ."\n"
-                            ."Attached is your invoice for services provided for %s.  "
-                                ."The total owing is $%d.\n\n"
-                                    ."Payment is due by end of day (EOD)."
-                                        ."We accept cash, cheque or e-transfer.  Please make your"
-                                            ." e-transfer payable to %s.\n\n "
-                                                ."Thank you in advance!\n\n"
-                                                    ."Sincerely, %s, %s.";
-                                                    ///TODO Replace 110 with invoice total
-                                                    $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
-                                                    $s .= $this->shmail( "CATS@catherapyservices.ca", "you", "Your invoice", $body );
+                $s .= $this->emailTheInvoice( $apptId );
             }
         }
     }
-    
-    function shmail( $from, $to, $subject, $body )
-    {
-        $s = "From: $from<br/>"
-            ."To: $to<br/>"
-            ."Subject: $subject<br/><br/>$body";
-
-        return( "<div class='card card-body bg-light'>$s</div>" );
-    }
-
 
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
@@ -564,6 +544,28 @@ class Calendar
         $oGC->deleteEvent($calendarId, $apptId);
     }
 
+    private function emailTheInvoice( $apptId )
+    {
+        $body = "Dear %s,"
+               ."\n"
+               ."\n"
+               ."Attached is your invoice for services provided for %s.  "
+               ."The total owing is $%d.\n\n"
+               ."Payment is due by end of day (EOD)."
+               ."We accept cash, cheque or e-transfer.  Please make your"
+               ." e-transfer payable to %s.\n\n "
+               ."Thank you in advance!\n\n"
+               ."Sincerely, %s, %s.";
+                   ///TODO Replace 110 with invoice total
+        $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
+
+        include_once( SEEDCORE."SEEDEmail.php" );
+
+        $from = "cats@catherapyservices.ca";
+        $to = "you";
+        $subject = "Your Invoice";
+        SEEDEmailSend( $from, $to, $subject, "", $body );
+    }
 }
 
 
