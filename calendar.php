@@ -131,10 +131,6 @@ class Calendar
     {
         $s = "<div class='row'><div class='col-md-5'>";
 
-        // Get the command parameter, used for responding to user actions
-        $cmd = SEEDInput_Str('cmd');
-        // Get the id of the event
-        $apptId = SEEDInput_Str('apptId');
         $acounts_file = CATSDIR_CONFIG."google-accounts.json";
         $creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
         if(file_exists($acounts_file)){
@@ -182,37 +178,8 @@ class Calendar
         /* Get the id of the calendar that we're currently looking at. If there isn't one, use the primary.
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
-
-        /* If the user has booked a free slot, store the booking
-         */
-        if( $cmd == 'booking' && ($sSummary = SEEDInput_Str("bookingSumary")) ) {
-            $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
-            echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
-            die();
-        }
-        if( $cmd == 'delete'){
-            $this->deleteAppt($calendarIdCurrent,$apptId);
-            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
-        }
-        if( $cmd == 'fulfillAppt' ) {
-            $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
-
-            if( $bEmailInvoice ) {
-                $body = "Dear %s,"
-                        ."\n"
-                        ."\n"
-                        ."Attached is your invoice for services provided for %s.  "
-                        ."The total owing is $%d.\n\n"
-                        ."Payment is due by end of day (EOD)."
-                        ."We accept cash, cheque or e-transfer.  Please make your"
-                        ." e-transfer payable to %s.\n\n "
-                        ."Thank you in advance!\n\n"
-                        ."Sincerely, %s, %s.";
-                            ///TODO Replace 110 with invoice total
-                $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
-                $s .= $this->shmail( "CATS@catherapyservices.ca", "you", "Your invoice", $body );
-            }
-        }
+        
+        processCommands($oGC,$calendarIdCurrent);
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -415,6 +382,43 @@ class Calendar
         return( $s );
     }
 
+    private function processCommands($oGC,$calendarIdCurrent){
+        // Get the command parameter, used for responding to user actions
+        $cmd = SEEDInput_Str('cmd');
+        // Get the id of the event
+        $apptId = SEEDInput_Str('apptId');
+        /* If the user has booked a free slot, store the booking
+         */
+        if( $cmd == 'booking' && ($sSummary = SEEDInput_Str("bookingSumary")) ) {
+            $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
+            echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
+            die();
+        }
+        if( $cmd == 'delete'){
+            $this->deleteAppt($calendarIdCurrent,$apptId);
+            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
+        }
+        if( $cmd == 'fulfillAppt' ) {
+            $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+            
+            if( $bEmailInvoice ) {
+                $body = "Dear %s,"
+                    ."\n"
+                        ."\n"
+                            ."Attached is your invoice for services provided for %s.  "
+                                ."The total owing is $%d.\n\n"
+                                    ."Payment is due by end of day (EOD)."
+                                        ."We accept cash, cheque or e-transfer.  Please make your"
+                                            ." e-transfer payable to %s.\n\n "
+                                                ."Thank you in advance!\n\n"
+                                                    ."Sincerely, %s, %s.";
+                                                    ///TODO Replace 110 with invoice total
+                                                    $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
+                                                    $s .= $this->shmail( "CATS@catherapyservices.ca", "you", "Your invoice", $body );
+            }
+        }
+    }
+    
     function shmail( $from, $to, $subject, $body )
     {
         $s = "From: $from<br/>"
