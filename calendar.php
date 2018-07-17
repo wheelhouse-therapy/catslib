@@ -483,7 +483,7 @@ class Calendar
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
-            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\" />"
+            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\"' />"
             ."</form>";
 
         return( $s );
