@@ -255,6 +255,8 @@ class Calendar
                             $eType = 'moved';
                         }
                     }
+                    // Get the command parameter, used for responding to user actions
+                    $cmd = SEEDInput_Str('cmd');
                     $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
@@ -293,15 +295,7 @@ class Calendar
             $eStatus = $ra['eStatus'];
             $startTime = $ra['start_time'];
             $clientId = $ra['fk_clients'];
-
-            // Now look through the $raEvents that you got from google and try to find the google event with the same event id.
-            // If the date/time is different (someone changed it it google calendar), give a warning in $sAppts.
-            // If the client is not known clientId==0, give a warning in $sAppts.
-//this was just temporary; the CATS appointments will be built into the main calendar now
-//            $sAppts .= "<div>$startTime : $clientId</div>";
         }
-
-        //$s .= "<div class='row'><div class='col-md-6'>$sCalendar</div><div class='col-md-6'>$sAppts</div></div>";
         $s .= $sCalendar;
 
         $s .= "
