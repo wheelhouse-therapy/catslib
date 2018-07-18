@@ -18,8 +18,10 @@ class CATS_UI
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
         }
-        return( "<div class='cats_header'>"
+        $clinics = new Clinics($this->oApp);
+        return( "<div class='cats_header' style='overflow:auto'>"
                    ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
+                   ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
                    ."<div style='float:right'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
@@ -44,6 +46,7 @@ class CATS_UI
     <script src='".W_CORE_URL."js/SEEDCore.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
+    <link rel='stylesheet' href='w/css/tooltip.css'>
     <style>
     a.toCircle, button.toCircle {
     	text-decoration: none;
@@ -129,6 +132,7 @@ class CATS_UI
     ."<script> SEEDCore_CleanBrowserAddress(); </script>"
 
     ."<script> run(); </script>"
+    ."<script src='w/js/tooltip.js'></script>"
     ."</body></html>";
 
         return( $s );
@@ -241,7 +245,7 @@ class CATS_MainUI extends CATS_UI
                     </form>";
                 break;
             case "therapist-clientlist":
-                $o = new ClientList( $this->oApp->kfdb );
+                $o = new ClientList( $this->oApp );
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawClientList();
                 break;
@@ -296,15 +300,19 @@ class CATS_MainUI extends CATS_UI
         $s .= $this->Header()."<h2>Developer</h2>";
         switch($this->screen){
             case 'developer-droptable':
+                global $catsDefKFDB;
+                $db = $catsDefKFDB['kfdbDatabase'];
                 $oApp = $this->oApp;
-                $oApp->kfdb->Execute("drop table ot.clients");
-                $oApp->kfdb->Execute("drop table ot.clients_pros");
-                $oApp->kfdb->Execute("drop table ot.professionals");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
-                $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $oApp->kfdb->Execute("drop table $db.clients");
+                $oApp->kfdb->Execute("drop table $db.clients_pros");
+                $oApp->kfdb->Execute("drop table $db.professionals");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersXGroups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Perms");
+                $oApp->kfdb->Execute("drop table $db.cats_appointments");
+                $oApp->kfdb->Execute("drop table $db.clinics");
+                $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
             default:
@@ -313,7 +321,6 @@ class CATS_MainUI extends CATS_UI
                     <script>
 function drop() {
      if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        alert('dropping');
         window.location.href = '".CATSDIR."?screen=developer-droptable';
     }
 }

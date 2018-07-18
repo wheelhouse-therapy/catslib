@@ -122,6 +122,71 @@ class AppointmentsDB
     }
 }
 
+class ClinicsDB
+{
+    private $kfrel;
+    private $raClinics;
+    
+    private $kfreldef = array(
+        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.clinicss',
+            "Fields" => "Auto",
+        )));
+    
+    function KFRel()  { return( $this->kfrel ); }
+    
+    function __construct( KeyframeDatabase $kfdb, $uid = 0 )
+    {
+        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."clinics.log") );
+    }
+    
+    function GetClinic( $key )
+    {
+        return( $this->kfrel->GetRecordFromDBKey( $key ) );
+    }
+}
+
+class Users_ClinicsDB
+/*******************
+ The connections between users and clinics
+ */
+{
+    private $kfrel;     // just the users_clinics table
+    private $kfrel_X;   // the join of users X users_clinics X clinics
+    private $raPros;
+    
+    private $kfreldef = array(
+        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.users_clinics',
+            "Fields" => "Auto",
+        )));
+    
+    private $kfreldef_X = array(
+        "Tables" => array( "Users" => array( "Table" => DBNAME.'.SEEDSession_Users',
+            "Fields" => "Auto" ),
+            "Clinics"    => array( "Table" => DBNAME.'.clinics',
+                "Fields" => "Auto" ),
+            "UxC"     => array( "Table" => DBNAME.'.users_clinics',
+                "Fields" => "Auto" )
+        ));
+    
+    function KFRelBase()  { return( $this->kfrel ); }       // just the base table
+    function KFRel()      { return( $this->kfrel_X ); }     // the whole join of three tables
+    
+    function __construct( KeyframeDatabase $kfdb, $uid = 0 )
+    {
+        $this->kfrel   = new KeyFrame_Relation( $kfdb, $this->kfreldef,   $uid, array('logfile'=>CATSDIR_LOG."users-clinics.log") );
+        $this->kfrel_X = new KeyFrame_Relation( $kfdb, $this->kfreldef_X, $uid, array('logfile'=>CATSDIR_LOG."users-clinics.log") );
+    }
+    
+    function GetUserInfoForClinic( $clinic_key )
+    {
+        return( $this->kfrel_X->GetRecordFromDB( "Clinics._key='$clinic_key'" ) );
+    }
+    
+    function GetClinicInfoForUser( $user_key )
+    {
+        return( $this->kfrel_X->GetRecordFromDB( "Users._key='$user_key'" ) );
+    }
+}
 
 function createTables( KeyframeDatabase $kfdb )
 {
@@ -241,8 +306,52 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(0);
     }
-
-
+    
+    if( !tableExists( $kfdb, DBNAME.".clinics" ) ) {
+        echo "Creating the Clinics table";
+        
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "CREATE TABLE ".DBNAME.".clinics (
+            _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            _created    DATETIME,
+            _created_by INTEGER,
+            _updated    DATETIME,
+            _updated_by INTEGER,
+            _status     INTEGER DEFAULT 0,
+            
+            clinic_name VARCHAR(200) NOT NULL DEFAULT '',
+            address VARCHAR(200) NOT NULL DEFAULT '',
+            city VARCHAR(200) NOT NULL DEFAULT '',
+            postal_code VARCHAR(200) NOT NULL DEFAULT '',
+            phone_number VARCHAR(200) NOT NULL DEFAULT '',
+            fax_number VARCHAR(200) NOT NULL DEFAULT '',
+            rate INTEGER NOT NULL DEFAULT 110,
+            associated_business VARCHAR(200) NOT NULL DEFAULT '',
+            fk_leader INTEGER NOT NULL DEFAULT 1)" );
+        
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clinics (_key,clinic_name,rate,associated_business) values (null,'Core',110,'CATS')" );
+        $kfdb->SetDebug(0);
+    }
+    
+    if( !tableExists( $kfdb, DBNAME.".users_clinics" ) ) {
+        echo "Creating the Users X Clinics table";
+        
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "CREATE TABLE ".DBNAME.".users_clinics (
+            _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+            _created    DATETIME,
+            _created_by INTEGER,
+            _updated    DATETIME,
+            _updated_by INTEGER,
+            _status     INTEGER DEFAULT 0,
+            
+            fk_SEEDSession_Users       INTEGER NOT NULL DEFAULT 0,
+            fk_clinics INTEGER NOT NULL DEFAULT 0 )" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_SEEDSession_Users,fk_clinics) values (null,1,1)" );  // Dev leads the Core clinic
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".users_clinics (_key,fk_SEEDSession_Users,fk_clinics) values (null,2,1)" );  // Sue is a member of the Core clinic
+        $kfdb->SetDebug(0);
+    }
+    
     // Also make the SEEDSession tables
     if( !tableExists( $kfdb, DBNAME.".SEEDSession_Users" ) ) {
         echo "Creating the Session tables";

@@ -17,6 +17,7 @@ if( !defined("W_CORE") )       define( "W_CORE", "../seeds/wcore/" );       // u
 if( !defined("W_CORE_URL") )   define( "W_CORE_URL", W_CORE );              // use for references to files that the browser has to find (e.g. js, css in <head>)
 if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 
+// deprecate W_ROOT: SEEDGoogleService uses W_ROOT, but it should use W_CORE instead
 if( !defined("W_ROOT") )   define( "W_ROOT", "./w/" );
 
 
@@ -42,6 +43,7 @@ require_once "documents.php";
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
 if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
+if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
 
 $dirImg = CATSDIR_IMG;
 

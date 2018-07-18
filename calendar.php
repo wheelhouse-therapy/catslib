@@ -129,12 +129,8 @@ class Calendar
 
     function DrawCalendar()
     {
-        $s = "";
+        $s = "<div class='row'><div class='col-md-5'>";
 
-        // Get the command parameter, used for responding to user actions
-        $cmd = SEEDInput_Str('cmd');
-        // Get the id of the event
-        $apptId = SEEDInput_Str('apptId');
         $acounts_file = CATSDIR_CONFIG."google-accounts.json";
         $creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
         if(file_exists($acounts_file)){
@@ -167,7 +163,7 @@ class Calendar
         }
         $oGC = new CATS_GoogleCalendar($creds_file);    // for appointments on the google calendar
         $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
-
+        
         /* Get a list of all the calendars that this user can see
          */
         list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars();
@@ -183,18 +179,8 @@ class Calendar
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
 
-        /* If the user has booked a free slot, store the booking
-         */
-        if( $cmd == 'booking' && ($sSummary = SEEDInput_Str("bookingSumary")) ) {
-            $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
-            echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
-            die();
-        }
-        if( $cmd == 'delete'){
-            $this->deleteAppt($calendarIdCurrent,$apptId);
-            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
-        }
-
+        $s .= $this->processCommands($oGC, $calendarIdCurrent)
+        
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
          */
@@ -203,7 +189,7 @@ class Calendar
         $s .= "<form method='post'>"
              .$oForm->Select( 'calendarIdCurrent', $raCalendars, "Calendar",
                               array( 'selected' => $calendarIdCurrent, 'attrs' => "onchange='submit();'" ) )
-             ."</form>";
+             ."</form></div>";
 
 
         // Get the dates of the monday-sunday period that includes the current day.
@@ -271,6 +257,9 @@ class Calendar
                             $eType = 'moved';
                         }
                     }
+                    // Get the command parameter, used for responding to user actions
+                    $cmd = SEEDInput_Str('cmd');
+                    $apptId = SEEDInput_Str('apptId');
                     $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
@@ -283,20 +272,22 @@ class Calendar
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
-        $sCalendar = "<div class='row'>"
+        $sCalendar = "<div class='col-md-6'>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
                         ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
-                    ."</div>"
+                    ."</div></div>"
                     ."<div id='weekLinkContainer'>"
                     ."<span>Next 4 weeks from today:</span><br/>";
         for($i=1; $i<5; $i++) {
             $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
         }
-        $sCalendar .= "</div>";
+        $sCalendar .= "</div></div>";
         $sCalendar .= $sList;
-
+        /*$this->oApp->kfdb->Execute("SELECT * FROM cats_appointments
+                INNER JOIN clients ON clients._key = cats_appointments.fk_clients
+                WHERE clients.client_first_name = 0 AND clients.client_last_name = 0;");*/
 
         /* Get the list of appointments known in CATS
          */
@@ -307,15 +298,7 @@ class Calendar
             $eStatus = $ra['eStatus'];
             $startTime = $ra['start_time'];
             $clientId = $ra['fk_clients'];
-
-            // Now look through the $raEvents that you got from google and try to find the google event with the same event id.
-            // If the date/time is different (someone changed it it google calendar), give a warning in $sAppts.
-            // If the client is not known clientId==0, give a warning in $sAppts.
-//this was just temporary; the CATS appointments will be built into the main calendar now
-//            $sAppts .= "<div>$startTime : $clientId</div>";
         }
-
-        //$s .= "<div class='row'><div class='col-md-6'>$sCalendar</div><div class='col-md-6'>$sAppts</div></div>";
         $s .= $sCalendar;
 
         $s .= "
@@ -346,7 +329,7 @@ class Calendar
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
-           height: 300px;
+           height: 180px;
            width: 90%;
         }
         .collapsed .appointment {
@@ -394,6 +377,45 @@ class Calendar
         return( $s );
     }
 
+
+    private function processCommands($oGC,$calendarIdCurrent){
+        // Get the command parameter, used for responding to user actions
+        $cmd = SEEDInput_Str('cmd');
+        // Get the id of the event
+        $apptId = SEEDInput_Str('apptId');
+        switch($cmd){
+            /* If the user has booked a free slot, store the booking
+             */
+            case "booking":
+                if($sSummary = SEEDInput_Str("bookingSumary")) {
+                    $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
+                    echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
+                    die();
+                }
+                break;
+            case 'delete':
+                $this->deleteAppt($calendarIdCurrent,$apptId);
+                $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
+                break;
+            case 'fulfillAppt':
+                // Save the form fields
+                //todo save the form fields
+    
+                $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+    
+                if( $bEmailInvoice ) {
+                    $s .= $this->emailTheInvoice( $apptId );
+                }
+                break;
+            case 'cancelFee':
+                //TODO Make fee 1/2 and session desc Cancilation fee
+                break;
+            default:
+                return "Unknown Command";
+        }
+        return "";
+    }
+
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
     /***************************************************************************
         eType:
@@ -428,7 +450,9 @@ class Calendar
 
         $classFree = strtolower($event->getSummary()) == "free" ? "free" : "busy";
         $sOnClick = "";//strtolower($event->getSummary()) == "free" ? $this->bookable($event->id) : "";
-
+        if(strtolower($event->getSummary()) == "free"){
+            $eType = "do nothing"; // This prevents the select client form from showing up in free
+        }
         switch( $eType ) {
             case 'new':
                 $sSpecial = $this->formNewAppt( $calendarId, $event, $start );
@@ -451,7 +475,11 @@ class Calendar
             $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' value='%2\$s'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
                         . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' maxlength='150' value='%7\$s'></div></div>"
-                        . "<input type='submit' value='Save' /><input type='submit' value='Save and Email' /></form>";
+                        . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
+                        . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
+                        . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
+                        ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                        ."</form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
@@ -461,16 +489,16 @@ class Calendar
                 if($invoice == 'true'){
                     $invoice = "";
                 }
-                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'><img src='".CATSDIR_IMG."invoice.png' style='max-width:20px;'/></a>"
+                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                           ."<a href='?cmd=cancelFee' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=delete&apptId=$event->id$invoice'>Delete Appointment</a>"
+                           ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
+                           ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-3'>$sAppt</div> <div class='col-md-9'>$sInvoice</div> </div> </div> </div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
 
         return $s;
     }
@@ -483,7 +511,7 @@ class Calendar
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
-            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\" />"
+            ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\"' />"
             ."</form>";
 
         return( $s );
@@ -526,6 +554,31 @@ class Calendar
         $oGC->deleteEvent($calendarId, $apptId);
     }
 
+    private function emailTheInvoice( $apptId )
+    {
+        $body = "Dear %s,"
+               ."\n"
+               ."\n"
+               ."Attached is your invoice for services provided for %s.  "
+               ."The total owing is $%d.\n\n"
+               ."Payment is due by end of day (EOD)."
+               ."We accept cash, cheque or e-transfer.  Please make your"
+               ." e-transfer payable to %s.\n\n "
+               ."Thank you in advance!\n\n"
+               ."Sincerely, %s, %s.";
+                   ///TODO Replace 110 with invoice total
+        $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
+
+        include_once( SEEDCORE."SEEDEmail.php" );
+        include_once( CATSLIB."invoice/catsinvoice.php" );
+
+        CATSInvoice( $this->oApp, $apptId, "F" );
+
+        $from = "cats@catherapyservices.ca";
+        $to = "you";
+        $subject = "Your Invoice";
+        SEEDEmailSend( $from, $to, $subject, "", $body );
+    }
 }
 
 
@@ -538,7 +591,7 @@ class CATS_GoogleCalendar
         $raGoogleParms = array(
                 'application_name' => "Google Calendar for CATS",
                 // If modifying these scopes, regenerate the credentials at ~/seed_config/calendar-php-quickstart.json
-//                'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR_READONLY ) ),
+//                'scopes' => implode(' ', array( Goog  le_Service_Calendar::CALENDAR_READONLY ) ),
                 'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR ) ),
                 // Downloaded from the Google API Console
             'client_secret_file' => CATSDIR_CONFIG."google_client_secret.json",
