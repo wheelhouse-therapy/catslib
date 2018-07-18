@@ -157,7 +157,12 @@ class CATS_MainUI extends CATS_UI
         $this->SetScreen( $screen );
 
         $s = "";
-        if( substr($screen,0,9) == "developer" ) {
+        $clinics = new Clinics($this->oApp);
+        if($clinics->GetCurrentClinic() == NULL){
+            $s = "<h2>Please Select a clinic to continue</h2>"
+                 .$clinics->displayUserClinics();
+        }
+        else if( substr($screen,0,9) == "developer" ) {
             $s = $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s = $this->DrawAdmin();
