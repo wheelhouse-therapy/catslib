@@ -104,7 +104,7 @@ class ClientList
              ."<div class='col-md-6'>"
                  ."<h3>Clients</h3>"
                  ."<button onclick='add_new();'>Add Client</button>"
-                 ."<script>function add_new(){var value = prompt('Enter Clients Name');
+                 ."<script>function add_new(){var value = prompt('Enter Clients First Name');
                  if(!value){return;}
                  document.getElementById('new_client_name').value = value;
                  document.getElementById('new_client').submit();
