@@ -131,10 +131,6 @@ class Calendar
     {
         $s = "<div class='row'><div class='col-md-5'>";
 
-        // Get the command parameter, used for responding to user actions
-        $cmd = SEEDInput_Str('cmd');
-        // Get the id of the event
-        $apptId = SEEDInput_Str('apptId');
         $acounts_file = CATSDIR_CONFIG."google-accounts.json";
         $creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
         if(file_exists($acounts_file)){
@@ -182,28 +178,6 @@ class Calendar
         /* Get the id of the calendar that we're currently looking at. If there isn't one, use the primary.
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
-
-        /* If the user has booked a free slot, store the booking
-         */
-        if( $cmd == 'booking' && ($sSummary = SEEDInput_Str("bookingSumary")) ) {
-            $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
-            echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
-            die();
-        }
-        if( $cmd == 'delete'){
-            $this->deleteAppt($calendarIdCurrent,$apptId);
-            $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
-        }
-        if( $cmd == 'fulfillAppt' ) {
-            // Save the form fields
-//todo save the form fields
-
-            $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
-
-            if( $bEmailInvoice ) {
-                $s .= $this->emailTheInvoice( $apptId );
-            }
-        }
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -281,6 +255,9 @@ class Calendar
                             $eType = 'moved';
                         }
                     }
+                    // Get the command parameter, used for responding to user actions
+                    $cmd = SEEDInput_Str('cmd');
+                    $apptId = SEEDInput_Str('apptId');
                     $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
@@ -319,15 +296,7 @@ class Calendar
             $eStatus = $ra['eStatus'];
             $startTime = $ra['start_time'];
             $clientId = $ra['fk_clients'];
-
-            // Now look through the $raEvents that you got from google and try to find the google event with the same event id.
-            // If the date/time is different (someone changed it it google calendar), give a warning in $sAppts.
-            // If the client is not known clientId==0, give a warning in $sAppts.
-//this was just temporary; the CATS appointments will be built into the main calendar now
-//            $sAppts .= "<div>$startTime : $clientId</div>";
         }
-
-        //$s .= "<div class='row'><div class='col-md-6'>$sCalendar</div><div class='col-md-6'>$sAppts</div></div>";
         $s .= $sCalendar;
 
         $s .= "
@@ -404,6 +373,39 @@ class Calendar
     <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
         return( $s );
+    }
+
+
+    private function processCommands($oGC,$calendarIdCurrent){
+        // Get the command parameter, used for responding to user actions
+        $cmd = SEEDInput_Str('cmd');
+        // Get the id of the event
+        $apptId = SEEDInput_Str('apptId');
+        switch($cmd){
+            /* If the user has booked a free slot, store the booking
+             */
+            case "booking":
+                if($sSummary = SEEDInput_Str("bookingSumary")) {
+                    $oGC->BookSlot( $calendarIdCurrent, $apptId, $sSummary );
+                    echo("<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body><a href=".CATSDIR."\"\">Redirect</a></body>");
+                    die();
+                }
+                break;
+            case 'delete':
+                $this->deleteAppt($calendarIdCurrent,$apptId);
+                $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
+                break;
+            case 'fulfillAppt':
+                // Save the form fields
+                //todo save the form fields
+    
+                $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+    
+                if( $bEmailInvoice ) {
+                    $s .= $this->emailTheInvoice( $apptId );
+                }
+                break;
+        }
     }
 
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
