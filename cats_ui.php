@@ -21,8 +21,8 @@ class CATS_UI
         $clinics = new Clinics($this->oApp);
         return( "<div class='cats_header' style='overflow:auto'>"
                    ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
+                   ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
                    ."<div style='float:right'>"
-                       .$clinics->displayUserClinics()
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
