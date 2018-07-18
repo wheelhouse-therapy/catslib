@@ -163,7 +163,7 @@ class Calendar
         }
         $oGC = new CATS_GoogleCalendar($creds_file);    // for appointments on the google calendar
         $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
-
+        
         /* Get a list of all the calendars that this user can see
          */
         list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars();
@@ -179,6 +179,8 @@ class Calendar
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
 
+        $s .= $this->processCommands($oGC, $calendarIdCurrent)
+        
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
          */
@@ -405,7 +407,13 @@ class Calendar
                     $s .= $this->emailTheInvoice( $apptId );
                 }
                 break;
+            case 'cancelFee':
+                //TODO Make fee 1/2 and session desc Cancilation fee
+                break;
+            default:
+                return "Unknown Command";
         }
+        return "";
     }
 
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
