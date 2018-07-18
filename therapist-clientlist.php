@@ -110,7 +110,7 @@ class ClientList
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]&screen=therapist-clientlist'>[[client_first_name]] [[client_last_name]]</a></div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a></div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -122,7 +122,7 @@ class ClientList
                  document.getElementById('new_pro').submit();
                  }</script><form id='new_pro'><input type='hidden' value='' name='new_pro_name' id='new_pro_name'><input type='hidden' name='cmd' value='new_pro'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]&screen=therapist-clientlist'>[[pro_name]]</a> is a [[pro_role]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[pro_name]]</a> is a [[pro_role]]</div>" )
                  .($this->pro_key ? $this->drawProForm( $raPros, $myClients, $raClients ) : "")
              ."</div>"
              ."</div></div>";
