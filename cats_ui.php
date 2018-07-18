@@ -366,6 +366,9 @@ function drop() {
             array( 'firstname'=>'Betty',  'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
             array( 'firstname'=>'Barney', 'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
         );
+
+        list($oView,$raWindowRows) = $oComp->GetView();
+
         $sList = $oList->ListDrawInteractive( $raView, $raParms );
 
         $sSrch = $oSrch->Draw();
@@ -402,8 +405,29 @@ class MySEEDUI extends SEEDUI
 
 class MySEEDUIComponent extends SEEDUIComponent
 {
-    function __construct( SEEDUI $o ) { parent::__construct( $o ); }
+    private $kfrel;
+    private $raViewParms = array();
 
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
+
+    private $raViewParms = array();
+    function GetView()
+    {
+        $raViewParms = array();
+
+        if( ($col = $this->oUI->GetUIParm['sortup']) ) {
+
+        }
+
+        $raViewParms['sSortCol']  = $this->oUI->GetUIParm('sSortCol');
+        $raViewParms['bSortDown'] = $this->oUI->GetUIParm('bSortDown');
+        $raViewParms['sGroupCol'] = $this->oUI->GetUIParm('sGroupCol');
+        $raViewParms['iStatus']   = $this->oUI->GetUIParm('iStatus');
+
+        $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
+        $raWindowRows = $oView->GetDataWindow( $this->oUI->GetUIParm( 'iWindowOffset' ), $this->oUI->GetUIParm( 'nWindowSize' ) );
+        return( array( $oView, $raWindowRows ) );
+    }
 }
 
 ?>
