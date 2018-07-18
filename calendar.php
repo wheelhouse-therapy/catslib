@@ -489,11 +489,13 @@ class Calendar
                 if($invoice == 'true'){
                     $invoice = "";
                 }
-                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
+                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=delete&apptId=$event->id$invoice'>Delete Appointment</a>"
+                           ."<a href='?cmd=cancelFee' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=cancel&apptId=$event->id$invoice'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
+                           ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
+                           ."&nbsp;&nbsp;"
+                           ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
