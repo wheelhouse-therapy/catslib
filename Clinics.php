@@ -47,7 +47,6 @@ class Clinics {
     }
     
     function displayUserClinics(){
-        if(count($this->GetUserClinics()) == 1){return "";}
         return SEEDCore_ArrayExpandRows($this->GetUserClinics(), "<a href='?clinic=[[Clinics__key]]'>[[Clinics_clinic_name]]</a>");
     }
     
