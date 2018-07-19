@@ -179,7 +179,7 @@ class Calendar
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
 
-        $s .= $this->processCommands($oGC, $calendarIdCurrent)
+        $s .= $this->processCommands($oGC, $calendarIdCurrent);
         
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
