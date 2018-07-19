@@ -2,11 +2,18 @@
 
 require_once CATSLIB."invoice/pdfinvoice.php";
 
-function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode )
+function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode, $raParms = array() )
 {
+    $pdfname = "";
+
     $oApptDB = new AppointmentsDB( $oApp );   // for appointments saved in cats_appointments
 
     if( !($kfrAppt = $oApptDB->KFRel()->GetRecordFromDBKey( $apptId )) ) goto done;
+
+    if( $mode == 'F' ) {
+        if( !($pdfname = $raParms['filename']) )  goto done;
+    }
+
 
     $pdf = new PDF_Invoice( 'P', 'mm', 'letter' );
     $pdf->AddPage();
@@ -95,7 +102,7 @@ function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode )
 
     $pdf->addTVAs( $params, $tab_tva, $tot_prods);
     $pdf->addCadreEurosFrancs();
-    $pdf->Output( $mode );
+    $pdf->Output( $mode, $pdfname );
 
     done:
 }

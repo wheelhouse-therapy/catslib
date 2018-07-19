@@ -128,7 +128,7 @@ class ClinicsDB
     private $raClinics;
     
     private $kfreldef = array(
-        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.clinics',
+        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.clinicss',
             "Fields" => "Auto",
         )));
     
@@ -215,8 +215,7 @@ function createTables( KeyframeDatabase $kfdb )
             phone_number VARCHAR(200) NOT NULL DEFAULT '',
             email VARCHAR(200) NOT NULL DEFAULT '',
             referal VARCHAR(500) NOT NULL DEFAULT '',
-            background_info VARCHAR(500) NOT NULL DEFAULT '',
-            clinic INTEGER NOT NULL DEFAULT 1)" );
+            background_info VARCHAR(500) NOT NULL DEFAULT '')" );
 
         $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_first_name) values (null,'Eric')" );
         $kfdb->Execute( "INSERT INTO ".DBNAME.".clients (_key,client_first_name) values (null,'Joe')" );
@@ -243,8 +242,7 @@ function createTables( KeyframeDatabase $kfdb )
             phone_number VARCHAR(200) NOT NULL DEFAULT '',
             fax_number VARCHAR(200) NOT NULL DEFAULT '',
             rate INTEGER NOT NULL DEFAULT 0,
-            email VARCHAR(200) NOT NULL DEFAULT '',
-            clinic INTEGER NOT NULL DEFAULT 1)" );
+            email VARCHAR(200) NOT NULL DEFAULT '')" );
 
         $kfdb->Execute( "INSERT INTO ".DBNAME.".professionals (_key,pro_name,pro_role) values (null,'Jose','Dentist')" );
         $kfdb->Execute( "INSERT INTO ".DBNAME.".professionals (_key,pro_name,pro_role) values (null,'Darth Vader','Surgeon')" );

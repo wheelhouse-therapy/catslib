@@ -57,6 +57,7 @@ class Clinics {
     }
     
     function displayUserClinics(){
+<<<<<<< HEAD
         if(count($this->GetUserClinics()) == 1){return "";}
         $s = "";
         foreach($this->GetUserClinics() as $ra){
@@ -176,6 +177,9 @@ class Clinics {
         }
         $s .= "</select>";
         return($s);
+=======
+        return SEEDCore_ArrayExpandRows($this->GetUserClinics(), "<a href='?clinic=[[Clinics__key]]'>[[Clinics_clinic_name]]</a>");
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
     
 }
