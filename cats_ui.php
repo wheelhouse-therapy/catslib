@@ -422,7 +422,6 @@ class MySEEDUIComponent extends SEEDUIComponent
 
     function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
 
-    private $raViewParms = array();
     function GetView()
     {
         $raViewParms = array();
