@@ -16,6 +16,7 @@ class ClientList
 
     private $client_key;
     private $pro_key;
+    private $clinics;
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -30,6 +31,7 @@ class ClientList
         
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
+        $this->clinics = new Clinics($oApp);
 
     }
 
@@ -93,8 +95,8 @@ class ClientList
             $myClients = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Pros._key='{$this->pro_key}'" );
         }
 
-        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA("");
-        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA("");
+        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
+        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
 
         $s .= "<div class='container-fluid'><div class='row'>"
              ."<div class='col-md-6'>"
@@ -133,6 +135,9 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
+            if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
+                continue;
+            }
             if( $ra['_key'] == $this->client_key ) {
                 $sPros = "<div style='padding:10px;border:1px solid #888'>"
                         .SEEDCore_ArrayExpandRows( $myPros, "[[Pros_pro_name]] is my [[Pros_pro_role]]<br />" )
@@ -212,7 +217,9 @@ e.preventDefault();
         // The user clicked on a professionals name so show their form
         foreach( $raPros as $ra ) {
             if( $ra['_key'] == $this->pro_key ) {
-
+                if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
+                    continue;
+                }
                 $sClients = "<div style='padding:10px;border:1px solid #888'>"
                     .SEEDCore_ArrayExpandRows( $myClients, "[[client_first_name]] [[client_last_name]]<br />" )
                     ."</div>";

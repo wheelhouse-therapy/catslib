@@ -157,16 +157,12 @@ class CATS_MainUI extends CATS_UI
         $this->SetScreen( $screen );
 
         $s = "";
-<<<<<<< HEAD
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
             $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics();
         }
         else if( substr($screen,0,9) == "developer" ) {
-=======
-        if( substr($screen,0,9) == "developer" ) {
->>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
             $s = $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s = $this->DrawAdmin();

@@ -128,7 +128,7 @@ class ClinicsDB
     private $raClinics;
     
     private $kfreldef = array(
-        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.clinicss',
+        "Tables" => array( "Clinics" => array( "Table" => DBNAME.'.clinics',
             "Fields" => "Auto",
         )));
     
