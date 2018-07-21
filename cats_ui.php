@@ -252,11 +252,14 @@ class CATS_MainUI extends CATS_UI
             case "therapist-submitresources":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "SUBMIT RESOURCES";
-                $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
+                $s .= "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
                     <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
                     <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
                     </form>";
+                break;
+            case 'therapist-resources':
+                include('share_resorces_upload.php');
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
@@ -334,7 +337,7 @@ class CATS_MainUI extends CATS_UI
                 break;
             default:
             case 'developer':
-                    $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
+                    $s .= "<button onclick='drop();' class='toCircle catsCircle2' style='cursor: pointer;'>Drop Tables</button>
                            <script>
                                function drop() {
                                    if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
@@ -436,7 +439,7 @@ class KeyframeUIComponent extends SEEDUIComponent
     private $kfrel;
     private $raViewParms = array();
 
-    function __construct( KeyframeUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
 
     function GetView()
     {
