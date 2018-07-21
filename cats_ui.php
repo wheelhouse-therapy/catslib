@@ -214,7 +214,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-submitresources', "Submit Resources to Share" ),
         );
 
-        $s = $this->Header()."<h2>Therapist</h2>";
+        $s = $this->Header();
         switch( $this->screen ) {
             case "therapist":
             default:
