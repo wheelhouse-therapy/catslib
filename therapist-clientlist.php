@@ -7,7 +7,7 @@ class ClientList
 
     public $oClientsDB, $oProsDB, $oClients_ProsDB, $oClinicsDB;
 
-    private $client_fields = array("client_name","parents_name","address","city","postal_code","dob","phone_number","email","family_doc","paediatrician","slp","psychologist","referal","background_info");
+    private $client_fields = array("client_name","parents_name","address","city","province","postal_code","dob","phone_number","email","family_doc","paediatrician","slp","psychologist","referal","background_info");
     private $pro_fields    = array("pro_name","pro_role","address","city","postal_code","phone_number","fax_number","email");
     //Computer Valid Keys for Roles
     public $pro_roles_key = array("GP","Paediatrician", "Psychologist", "SLP", "PT", "OT", "Specialist_Dr", "Resource_Teacher", "Teacher_Tutor", "Other");
@@ -25,18 +25,14 @@ class ClientList
         $this->oClientsDB = new ClientsDB( $oApp->kfdb );
         $this->oProsDB = new ProsDB( $oApp->kfdb );
         $this->oClients_ProsDB = new Clients_ProsDB( $oApp->kfdb );
-        $this->oClinicsDB = new ClinicsDB($oApp->kfdb); 
+        $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
 
         $clinics = new Clinics($oApp);
         $clinics->GetCurrentClinic();
-        
+
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
         $this->clinics = new Clinics($oApp);
-<<<<<<< HEAD
-=======
-
->>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
 
     function DrawClientList()
@@ -141,11 +137,7 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
-<<<<<<< HEAD
-            if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
-=======
             if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
->>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
                 continue;
             }
             if( $ra['_key'] == $this->client_key ) {
@@ -168,6 +160,7 @@ class ClientList
                      .$this->drawFormRow( "Parents Separate", $oFormClient->Checkbox('parents_separate') )
                      .$this->drawFormRow( "Address", $oFormClient->Text('address',"",array("attrs"=>"placeholder='Address'") ) )
                      .$this->drawFormRow( "City", $oFormClient->Text('city',"",array("attrs"=>"placeholder='City'") ) )
+                     .$this->drawFormRow( "Province", $oFormClient->Text('province',"",array("attrs"=>"placeholder='Province' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
                      .$this->drawFormRow( "Postal Code", $oFormClient->Text('postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
                      .$this->drawFormRow( "Date Of Birth", $oFormClient->Date('dob',"",array("attrs"=>"style='border:1px solid gray'")) )
                      .$this->drawFormRow( "Phone Number", $oFormClient->Text('phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
@@ -178,7 +171,7 @@ class ClientList
                         .($ra['email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
                         ."<script>"
                             ."function sendcreds(e){
-e.preventDefault();
+                                e.preventDefault();
                                 var credsDiv = document.getElementById('credsDiv');
                                 var cid = document.getElementById('clientId').value;
                                 $.ajax({
