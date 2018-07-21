@@ -368,15 +368,15 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
-        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb );
+        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>CATSDIR_LOG) );
 
-        $oUI = new MySEEDUI();
+        $oUI = new SEEDUI(); // base class seems good enough for now  -- new MySEEDUI();
         $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
 
 
-        $oList = new SEEDUIWidget_List( $oComp );
+        $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, array('filters'=> array('First Name'=>'firstname','Last Name'=>'lastname')) );
     // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
@@ -424,10 +424,11 @@ class CATS_MainUI extends CATS_UI
 
 
 require_once SEEDCORE."SEEDUI.php";
-class MySEEDUI extends SEEDUI
-{
-    function __construct() { parent::__construct(); }
-}
+// SEEDUI seems to be good enough for now
+//class MySEEDUI extends SEEDUI
+//{
+//    function __construct() { parent::__construct(); }
+//}
 
 
 class KeyframeUIComponent extends SEEDUIComponent
@@ -435,7 +436,7 @@ class KeyframeUIComponent extends SEEDUIComponent
     private $kfrel;
     private $raViewParms = array();
 
-    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
+    function __construct( KeyframeUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
 
     function GetView()
     {
@@ -453,6 +454,14 @@ class KeyframeUIComponent extends SEEDUIComponent
         $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
         $raWindowRows = $oView->GetDataWindow( $this->oUI->GetUIParm( 'iWindowOffset' ), $this->oUI->GetUIParm( 'nWindowSize' ) );
         return( array( $oView, $raWindowRows ) );
+    }
+}
+
+class KeyframeUIWidget_List extends SEEDUIWidget_List
+{
+    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
     }
 }
 
