@@ -474,9 +474,18 @@ class Calendar
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
             //This string defines the general format of all invoices
             //The correct info for each client is subed in later with sprintf
-            $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div></div>"
-                        . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
-                        . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div></div>"
+            $sInvoice = "<form><div class='row'>
+                                <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
+                                <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
+                            </div>"
+                        . "<div class='row'>
+                                <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
+                                <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
+                            </div>"
+                        . "<div class='row'>
+                                <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
+                                <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
+                            </div>"
                         . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
                         . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
                         . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
