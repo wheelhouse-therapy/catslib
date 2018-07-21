@@ -403,6 +403,8 @@ class Calendar
             case 'cancelFee':
                 //TODO Make fee 1/2 and session desc Cancilation fee
                 break;
+            case '':
+                break;
             default:
                 return "Unknown Command";
         }
