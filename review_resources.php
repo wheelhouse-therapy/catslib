@@ -3,7 +3,7 @@
 $dir_name = "pending_resources";
 $dir_accept = "accepted_resources";
 
-$s .= "<a href='".CATSDIR."?screen=admin'><button>Back</button></a><br />";
+$s .= "<a href='?screen=home'><button>Back</button></a><br />";
 $cmd = SEEDInput_Str( 'cmd' );
 if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
