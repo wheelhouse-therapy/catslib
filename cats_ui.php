@@ -203,16 +203,15 @@ class CATS_MainUI extends CATS_UI
     {
         $raTherapistScreens = array(
             array( 'home',                      "Home" ),
+            array( 'therapist-calendar',        "Calendar" ),
+            array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
-            array( 'therapist-entercharts',     "Enter Charts" ),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
-            array( 'therapist-clientlist',      "Clients and Providers" ),
-            array( 'therapist-calendar',        "Calendar" ),
         );
 
         $s = $this->Header()."<h2>Therapist</h2>";
