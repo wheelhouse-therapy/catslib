@@ -350,8 +350,10 @@ function drop() {
     {
         $s = "";
 
+        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb );
+
         $oUI = new MySEEDUI();
-        $oComp = new MySEEDUIComponent( $oUI );
+        $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
 
@@ -410,7 +412,7 @@ class MySEEDUI extends SEEDUI
 }
 
 
-class MySEEDUIComponent extends SEEDUIComponent
+class KeyframeUIComponent extends SEEDUIComponent
 {
     private $kfrel;
     private $raViewParms = array();
