@@ -166,22 +166,22 @@ class CATS_MainUI extends CATS_UI
     function Screen( $screen ) {
         $this->SetScreen( $screen );
 
-        $s = "";
+        $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
             $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics();
         }
         else if( substr($screen,0,9) == "developer" ) {
-            $s = $this->DrawDeveloper();
+            $s .= $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
-            $s = $this->DrawAdmin();
+            $s .= $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
-            $s = $this->DrawTherapist();
+            $s .= $this->DrawTherapist();
         } else if( $screen == "logout" ) {
-            $s = $this->DrawLogout();
+            $s .= $this->DrawLogout();
         } else {
-            $s = $this->DrawHome();
+            $s .= $this->DrawHome();
         }
 
         return( $s );
@@ -190,10 +190,10 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = $this->Header()."<h2>Home</h2>"
-            .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
-            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Administrator</a>" : "")
-            .($this->oApp->sess->CanRead('administrator')     ? "<a href='?screen=developer' class='toCircle' data-format='200px red blue'>Developer</a>" : "");
+        $s = "<h2>Home</h2>"
+            .($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+            .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
+            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
 
 
         return( $s );
@@ -202,19 +202,18 @@ class CATS_MainUI extends CATS_UI
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'home',                      "Home" ),
             array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
             array( 'therapist-ideas',           "Get Ideas" ),
-            array( 'therapist-materials',       "Download Marketable Materials" ),
+            array( 'therapist-materials',       "Download Marketing Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
         );
 
-        $s = $this->Header();
+        $s = "";
         switch( $this->screen ) {
             case "therapist":
             default:
@@ -222,35 +221,27 @@ class CATS_MainUI extends CATS_UI
                 break;
 
             case "therapist-handouts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT HANDOUTS";
                 break;
             case "therapist-formscharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT FORMS FOR CHARTS";
                 break;
             case "therapist-linedpapers":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT DIFFERENT LINED PAPERS";
                 break;
             case "therapist-entercharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "ENTER CHARTS";
                 break;
             case "therapist-ideas":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "GET IDEAS";
                 break;
             case "therapist-materials":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= DownloadMaterials( $this->oApp );
                 break;
             case "therapist-team":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "MEET THE TEAM";
                 break;
             case "therapist-submitresources":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "SUBMIT RESOURCES";
                 $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
@@ -260,13 +251,11 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawClientList();
                 break;
             case "therapist-calendar":
                 require_once CATSLIB."calendar.php";
                 $o = new Calendar( $this->oApp );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawCalendar();
         }
         return( $s );
@@ -277,7 +266,6 @@ class CATS_MainUI extends CATS_UI
         $s = "";
 
         $oApp = $this->oApp;
-        $s .= $this->Header()."<h2>Admin</h2>";
         switch( $this->screen ) {
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
@@ -286,17 +274,11 @@ class CATS_MainUI extends CATS_UI
                 include('review_resources.php');
                 break;
             default:
-            case 'admin':
                 $raScreens = array(
-                    array( 'home',             "Home" ),
-                    array( 'therapist',        "Therapist" ),
+                    array( 'admin-users',             "Manage Users" ),
+                    array( 'admin-resources',        "Review Resources" ),
                 );
                 $s .= $this->drawCircles( $raScreens );
-
-                if( $this->oApp->sess->CanWrite("admin") ) {
-                    $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
-                         ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
-                }
 
                 break;
         }
@@ -311,7 +293,6 @@ class CATS_MainUI extends CATS_UI
 
     function DrawDeveloper(){
         $s = "";
-        $s .= $this->Header()."<h2>Developer</h2>";
         switch($this->screen){
             case 'developer-droptable':
                 global $catsDefKFDB;
@@ -333,7 +314,6 @@ class CATS_MainUI extends CATS_UI
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
             default:
-            case 'developer':
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
                            <script>
                                function drop() {

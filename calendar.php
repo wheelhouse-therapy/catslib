@@ -272,16 +272,16 @@ class Calendar
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
-        $sCalendar = "<div class='col-md-6 row'>"
+        $sCalendar = "<div class='col-md-6'>"
+                        ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
                         ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
-                        ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px;' alt='<-'>  </a></div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
                     ."</div></div>"
                     ."<div id='weekLinkContainer'>"
                     ."<span>Next 4 weeks from today:</span><br/>";
         for($i=1; $i<5; $i++) {
-            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a> &nbsp;&nbsp;";
+            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
         }
         $sCalendar .= "</div></div>";
         $sCalendar .= $sList;
@@ -315,7 +315,7 @@ class Calendar
 	       border-radius: 5px;
 	       width: 105px;
 	       padding: 2px;
-	       background-color: #63cdfc;
+	       background-color: #99ff99;
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
@@ -391,15 +391,9 @@ class Calendar
                 $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
                 break;
             case 'fulfillAppt':
-                $oApptDB = new AppointmentsDB( $this->oApp );
-                $kfr = $oApptDB->GetKFR($apptId);
-                foreach( $oApptDB->KFRel()->BaseTableFields() as $field ) {
-                    if(!SEEDInput_Str($field['alias'])){
-                        continue;
-                    }
-                    $kfr->SetValue( $field['alias'],  SEEDInput_Str($field['alias']));
-                }
-                $kfr->PutDBRow();
+                // Save the form fields
+                //todo save the form fields
+
                 $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
 
                 if( $bEmailInvoice ) {
@@ -408,8 +402,6 @@ class Calendar
                 break;
             case 'cancelFee':
                 //TODO Make fee 1/2 and session desc Cancilation fee
-                break;
-            case '':
                 break;
             default:
                 return "Unknown Command";
@@ -486,6 +478,9 @@ class Calendar
                                 <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
                                 <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
                             </div>"
+            $sInvoice = "<form><div class='row'><div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div> <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' value='%2\$s'></div></div>"
+                        . "<div class='row'><div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' value='%4\$s'></div><div class='col-md-6'><span>Rate: </span> <input type='text' value='$%6\$d'></div></div>"
+                        . "<div class='row'><div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' value='%3\$d'></div><div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' maxlength='150' value='%7\$s'></div></div>"
                         . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
                         . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
                         . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
@@ -495,7 +490,7 @@ class Calendar
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
             if(!$desc) $desc = "Occupational Therapy Treatment";
-            $sInvoice = sprintf($sInvoice,$kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),110,$desc);//TODO Replace 110 fee with code to determine fee
+            $sInvoice = sprintf($sInvoice,$kfrClient->Value('client_first_name')." ".$kfrClient->Value('client_last_name'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),110,$desc);//TODO Replace 110 fee with code to determine fee
             if($invoice){
                 if($invoice == 'true'){
                     $invoice = "";
