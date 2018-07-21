@@ -252,11 +252,14 @@ class CATS_MainUI extends CATS_UI
             case "therapist-submitresources":
                 $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "SUBMIT RESOURCES";
-                $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
+                $s .= "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
                     <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
                     <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
                     </form>";
+                break;
+            case 'therapist-resources':
+                include('share_resorces_upload.php');
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
