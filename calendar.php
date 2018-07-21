@@ -399,6 +399,9 @@ class Calendar
                     }
                     $kfr->SetValue( $field['alias'],  SEEDInput_Str($field['alias']));
                 }
+                if(!$kfr->Value("invoice_date")) {
+                    $kfr->SetValue("invoice_date", date("Y-M-d"));
+                }
                 $kfr->PutDBRow();
                 $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
 
