@@ -68,6 +68,7 @@ class CATS_UI
         to {background-color: var(--color2); border-color: var(--color2);}
     }
     a.catsCircle1, button.catsCircle1 {
+        box-sizing: border-box;
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
@@ -75,12 +76,16 @@ class CATS_UI
     	animation: colorChange 10s ease-in-out infinite alternate;
     }
     a.catsCircle2, button.catsCircle2 {
-    	height: 200px;
+    	box-sizing: border-box;
+        height: 200px;
     	width: 200px;
     	border-radius: 100px;
     	color: var(--textColor);
     	animation: colorChange 10s ease-in-out -5s infinite alternate;
     }
+    span.selectedClinic {
+        font-size: 20pt;
+}
     </style>
     <script>
     function createCircle(elements, styles) {

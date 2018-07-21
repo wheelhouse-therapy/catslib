@@ -61,10 +61,10 @@ class Clinics {
         $s = "";
         foreach($this->GetUserClinics() as $ra){
             if($s){
-                $s .=",";
+                $s .=", ";
             }
             if($ra['Clinics__key'] == $this->GetCurrentClinic()){
-                $s .= $ra['Clinics_clinic_name'];
+                $s .= "<span class='selectedClinic'> ".$ra['Clinics_clinic_name']."</span>";
             }
             else {
                 $s .= "<a href='?clinic=".$ra['Clinics__key']."'>".$ra['Clinics_clinic_name']."</a>";
