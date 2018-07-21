@@ -33,10 +33,6 @@ class ClientList
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
         $this->clinics = new Clinics($oApp);
-<<<<<<< HEAD
-=======
-
->>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
 
     function DrawClientList()
@@ -141,11 +137,7 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
-<<<<<<< HEAD
-            if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
-=======
             if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
->>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
                 continue;
             }
             if( $ra['_key'] == $this->client_key ) {
