@@ -9,6 +9,8 @@ function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode, $raParms = ar
     $oApptDB = new AppointmentsDB( $oApp );   // for appointments saved in cats_appointments
 
     if( !($kfrAppt = $oApptDB->KFRel()->GetRecordFromDBKey( $apptId )) ) goto done;
+    $client = $kfrAppt->Value("fk_clients");
+    
 
     if( $mode == 'F' ) {
         if( !($pdfname = $raParms['filename']) )  goto done;
@@ -17,6 +19,8 @@ function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode, $raParms = ar
 
     $pdf = new PDF_Invoice( 'P', 'mm', 'letter' );
     $pdf->AddPage();
+    //$pdf->Image("w/img/CATS.png", 10, 10, 50);
+    $pdf->Ln();
     $pdf->addSociete( "CATS",
                       "Collaborative Approach Therapy Services\n" .
                       "68 Dunbar Road South\n".
@@ -24,7 +28,7 @@ function CATSInvoice( SEEDAppSessionAccount $oApp, $apptId, $mode, $raParms = ar
     $pdf->fact_dev( "INVOICE", "" );
     //$pdf->temporaire( "Devis temporaire" );
     $pdf->addDate( date("Y-M-d" ) ); //03/12/2003");
-    $pdf->addClient("CL01");
+    $pdf->addClient("CL" . $client);
     $pdf->addPageNumber("1");
     $pdf->addClientAdresse("68 Dunbar Rd South\nWaterloo ON N2L 2E3");
     $pdf->addReglement("Payment by cheque");

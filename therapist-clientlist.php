@@ -5,7 +5,7 @@ class ClientList
 {
     public $kfdb;
 
-    public $oClientsDB, $oProsDB, $oClients_ProsDB;
+    public $oClientsDB, $oProsDB, $oClients_ProsDB, $oClinicsDB;
 
     private $client_fields = array("client_name","parents_name","address","city","postal_code","dob","phone_number","email","family_doc","paediatrician","slp","psychologist","referal","background_info");
     private $pro_fields    = array("pro_name","pro_role","address","city","postal_code","phone_number","fax_number","email");
@@ -25,6 +25,7 @@ class ClientList
         $this->oClientsDB = new ClientsDB( $oApp->kfdb );
         $this->oProsDB = new ProsDB( $oApp->kfdb );
         $this->oClients_ProsDB = new Clients_ProsDB( $oApp->kfdb );
+        $this->oClinicsDB = new ClinicsDB($oApp->kfdb); 
 
         $clinics = new Clinics($oApp);
         $clinics->GetCurrentClinic();
@@ -32,7 +33,10 @@ class ClientList
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
         $this->clinics = new Clinics($oApp);
+<<<<<<< HEAD
+=======
 
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
 
     function DrawClientList()
@@ -63,7 +67,8 @@ class ClientList
             case "new_client":
                 $name = SEEDInput_Str("new_client_name");
                 $kfr = $this->oClientsDB->KFRel()->CreateRecord();
-                $kfr->SetValue("client_name", $name);
+                $kfr->SetValue("client_first_name",$name);
+                $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->client_key = $kfr->Key();
                 break;
@@ -71,6 +76,7 @@ class ClientList
                 $name = SEEDInput_Str("new_pro_name");
                 $kfr = $this->oProsDB->KFRel()->CreateRecord();
                 $kfr->SetValue("pro_name", $name);
+                $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->pro_key = $kfr->Key();
                 break;
@@ -102,13 +108,13 @@ class ClientList
              ."<div class='col-md-6'>"
                  ."<h3>Clients</h3>"
                  ."<button onclick='add_new();'>Add Client</button>"
-                 ."<script>function add_new(){var value = prompt('Enter Clients Name');
+                 ."<script>function add_new(){var value = prompt('Enter Clients First Name');
                  if(!value){return;}
                  document.getElementById('new_client_name').value = value;
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]&screen=therapist-clientlist'>[[client_first_name]] [[client_last_name]]</a></div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a></div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -120,7 +126,7 @@ class ClientList
                  document.getElementById('new_pro').submit();
                  }</script><form id='new_pro'><input type='hidden' value='' name='new_pro_name' id='new_pro_name'><input type='hidden' name='cmd' value='new_pro'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]&screen=therapist-clientlist'>[[pro_name]]</a> is a [[pro_role]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[pro_name]]</a> is a [[pro_role]]</div>" )
                  .($this->pro_key ? $this->drawProForm( $raPros, $myClients, $raClients ) : "")
              ."</div>"
              ."</div></div>";
@@ -135,7 +141,11 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
+<<<<<<< HEAD
+            if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
+=======
             if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
                 continue;
             }
             if( $ra['_key'] == $this->client_key ) {
@@ -162,6 +172,7 @@ class ClientList
                      .$this->drawFormRow( "Date Of Birth", $oFormClient->Date('dob',"",array("attrs"=>"style='border:1px solid gray'")) )
                      .$this->drawFormRow( "Phone Number", $oFormClient->Text('phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
                      .$this->drawFormRow( "Email", $oFormClient->Email('email',"",array("attrs"=>"placeholder='Email'") ) )
+                     .$this->drawFormRow("Clinic", $this->oClinicsDB->GetClinic($this->clinics->GetCurrentClinic())->Value("clinic_name"))
                      ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
                         .($ra['email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
@@ -216,6 +227,9 @@ e.preventDefault();
 
         // The user clicked on a professionals name so show their form
         foreach( $raPros as $ra ) {
+            if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
+                continue;
+            }
             if( $ra['_key'] == $this->pro_key ) {
                 if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
                     continue;
@@ -283,6 +297,7 @@ e.preventDefault();
                     ."<tr>"
                         ."<td class='col-md-4'><p>Rate</p></td>"
                             ."<td class='col-md-8'><input type='number' name='rate' value='".htmlspecialchars($ra['rate'])."' placeholder='Rate' step='1' min='0' /></td>"
+                            .$this->drawFormRow("Clinic", $this->oClinicsDB->GetClinic($this->clinics->GetCurrentClinic())->Value("clinic_name"))
                     ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save'/></td>"
                     ."</tr>"

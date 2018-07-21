@@ -569,8 +569,8 @@ class Calendar
         $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
         CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
 
-        $from = "cats@catherapyservices.ca";
-        $to = "you";
+        $from = "developer@catherapyservices.ca";
+        $to = "bob@seeds.ca";
         $subject = "Your Invoice";
         SEEDEmailSend( $from, $to, $subject, "", $body );
     }

@@ -56,6 +56,11 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
     
+<<<<<<< HEAD
+    function displayUserClinics(){
+        if(count($this->GetUserClinics()) == 1){return "";}
+        return SEEDCore_ArrayExpandRows($this->GetUserClinics(), "<a href='?clinic=[[Clinics__key]]'>[[Clinics_clinic_name]]</a>");
+=======
     function displayUserClinics(){
         if(count($this->GetUserClinics()) == 1){return "";}
         $s = "";
@@ -176,6 +181,7 @@ class Clinics {
         }
         $s .= "</select>";
         return($s);
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
     
 }
