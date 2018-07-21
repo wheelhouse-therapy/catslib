@@ -48,6 +48,11 @@ class CATS_UI
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <link rel='stylesheet' href='w/css/tooltip.css'>
     <style>
+    :root {
+        --color1: #63cdfc;
+        --color2: #388ed4;
+        --textColor: black;
+}
     a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
@@ -59,22 +64,22 @@ class CATS_UI
     	border-style: inset outset outset inset;
     }
     @keyframes colorChange {
-        from {background-color: #b3f0ff; border-color: #b3f0ff;}
-        to {background-color: #99ff99; border-color: #99ff99;}
+        from {background-color: var(--color1); border-color: var(--color1);}
+        to {background-color: var(--color2); border-color: var(--color2);}
     }
     a.catsCircle1, button.catsCircle1 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out infinite alternate;
     }
     a.catsCircle2, button.catsCircle2 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear -5s infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out -5s infinite alternate;
     }
     </style>
     <script>
