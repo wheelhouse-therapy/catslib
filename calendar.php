@@ -289,16 +289,6 @@ class Calendar
                 INNER JOIN clients ON clients._key = cats_appointments.fk_clients
                 WHERE clients.client_first_name = 0 AND clients.client_last_name = 0;");*/
 
-        /* Get the list of appointments known in CATS
-         */
-        $sAppts = "<h3>CATS appointments</h3>";
-        $raAppts = $oApptDB->GetList( "eStatus in ('REVIEWED')" );
-        foreach( $raAppts as $ra ) {
-            $eventId = $ra['google_cal_ev_id'];
-            $eStatus = $ra['eStatus'];
-            $startTime = $ra['start_time'];
-            $clientId = $ra['fk_clients'];
-        }
         $s .= $sCalendar;
 
         $s .= "
