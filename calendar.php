@@ -163,7 +163,7 @@ class Calendar
         }
         $oGC = new CATS_GoogleCalendar($creds_file);    // for appointments on the google calendar
         $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
-        
+
         /* Get a list of all the calendars that this user can see
          */
         list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars();
@@ -179,8 +179,8 @@ class Calendar
          */
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
 
-        $s .= $this->processCommands($oGC, $calendarIdCurrent)
-        
+        $s .= $this->processCommands($oGC, $calendarIdCurrent);
+
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
          */
@@ -378,7 +378,10 @@ class Calendar
     }
 
 
-    private function processCommands($oGC,$calendarIdCurrent){
+    private function processCommands($oGC,$calendarIdCurrent)
+    {
+        $s = "";
+
         // Get the command parameter, used for responding to user actions
         $cmd = SEEDInput_Str('cmd');
         // Get the id of the event
@@ -400,9 +403,9 @@ class Calendar
             case 'fulfillAppt':
                 // Save the form fields
                 //todo save the form fields
-    
+
                 $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
-    
+
                 if( $bEmailInvoice ) {
                     $s .= $this->emailTheInvoice( $apptId );
                 }
@@ -413,7 +416,8 @@ class Calendar
             default:
                 return "Unknown Command";
         }
-        return "";
+
+        return( $s );
     }
 
     function drawEvent( $calendarId, $event, $eType, KeyframeRecord $kfrAppt = null, $invoice = null)
@@ -572,10 +576,11 @@ class Calendar
         include_once( SEEDCORE."SEEDEmail.php" );
         include_once( CATSLIB."invoice/catsinvoice.php" );
 
-        CATSInvoice( $this->oApp, $apptId, "F" );
+        $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
+        CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
 
-        $from = "cats@catherapyservices.ca";
-        $to = "you";
+        $from = "developer@catherapyservices.ca";
+        $to = "bob@seeds.ca";
         $subject = "Your Invoice";
         SEEDEmailSend( $from, $to, $subject, "", $body );
     }

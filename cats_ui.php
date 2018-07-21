@@ -159,7 +159,7 @@ class CATS_MainUI extends CATS_UI
         $s = "";
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
-            $s = "<h2>Please Select a clinic to continue</h2>"
+            $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics();
         }
         else if( substr($screen,0,9) == "developer" ) {
@@ -320,16 +320,20 @@ class CATS_MainUI extends CATS_UI
                 $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
+            case 'developer-clinics':
+                $s .= (new Clinics($this->oApp))->manageClinics();
+                break;
             default:
             case 'developer':
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
-                    <script>
-function drop() {
-     if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        window.location.href = '".CATSDIR."?screen=developer-droptable';
-    }
-}
-</script>";
+                           <script>
+                               function drop() {
+                                   if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
+                                       window.location.href = '".CATSDIR."?screen=developer-droptable';
+                                   }
+                               }
+                           </script>";
+                    $s .= "<a href='?screen=developer-clinics' class='toCircle catsCircle1'>Manage Clinics</a>";
         }
         return( $s );
     }

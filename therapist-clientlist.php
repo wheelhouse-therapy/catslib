@@ -33,6 +33,10 @@ class ClientList
         $this->client_key = SEEDInput_Int( 'client_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
         $this->clinics = new Clinics($oApp);
+<<<<<<< HEAD
+=======
+
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
     }
 
     function DrawClientList()
@@ -97,20 +101,20 @@ class ClientList
             $myClients = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Pros._key='{$this->pro_key}'" );
         }
 
-        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA("");
-        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA("");
+        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
+        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
 
         $s .= "<div class='container-fluid'><div class='row'>"
              ."<div class='col-md-6'>"
                  ."<h3>Clients</h3>"
                  ."<button onclick='add_new();'>Add Client</button>"
-                 ."<script>function add_new(){var value = prompt('Enter Clients Name');
+                 ."<script>function add_new(){var value = prompt('Enter Clients First Name');
                  if(!value){return;}
                  document.getElementById('new_client_name').value = value;
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]&screen=therapist-clientlist'>[[client_first_name]] [[client_last_name]]</a></div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a></div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -122,7 +126,7 @@ class ClientList
                  document.getElementById('new_pro').submit();
                  }</script><form id='new_pro'><input type='hidden' value='' name='new_pro_name' id='new_pro_name'><input type='hidden' name='cmd' value='new_pro'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]&screen=therapist-clientlist'>[[pro_name]]</a> is a [[pro_role]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[pro_name]]</a> is a [[pro_role]]</div>" )
                  .($this->pro_key ? $this->drawProForm( $raPros, $myClients, $raClients ) : "")
              ."</div>"
              ."</div></div>";
@@ -137,7 +141,11 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
+<<<<<<< HEAD
             if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
+=======
+            if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
+>>>>>>> branch 'master' of https://github.com/wheelhouse-therapy/catslib.git
                 continue;
             }
             if( $ra['_key'] == $this->client_key ) {
@@ -223,7 +231,9 @@ e.preventDefault();
                 continue;
             }
             if( $ra['_key'] == $this->pro_key ) {
-
+                if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
+                    continue;
+                }
                 $sClients = "<div style='padding:10px;border:1px solid #888'>"
                     .SEEDCore_ArrayExpandRows( $myClients, "[[client_first_name]] [[client_last_name]]<br />" )
                     ."</div>";
