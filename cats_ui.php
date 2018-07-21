@@ -49,8 +49,9 @@ class CATS_UI
     <link rel='stylesheet' href='w/css/tooltip.css'>
     <style>
     :root {
-        --color1: #80c6ff;
-        --color2: #004073;
+        --color1: #63cdfc;
+        --color2: #388ed4;
+        --textColor: black;
 }
     a.toCircle, button.toCircle {
     	text-decoration: none;
@@ -63,22 +64,22 @@ class CATS_UI
     	border-style: inset outset outset inset;
     }
     @keyframes colorChange {
-        from {background-color: var(color1); border-color: var(color1);}
-        to {background-color: var(color2); border-color: var(color2);}
+        from {background-color: var(--color1); border-color: var(--color1);}
+        to {background-color: var(--color2); border-color: var(--color2);}
     }
     a.catsCircle1, button.catsCircle1 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out infinite alternate;
     }
     a.catsCircle2, button.catsCircle2 {
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear -5s infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out -5s infinite alternate;
     }
     </style>
     <script>
