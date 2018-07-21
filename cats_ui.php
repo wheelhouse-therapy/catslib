@@ -48,6 +48,11 @@ class CATS_UI
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
     <link rel='stylesheet' href='w/css/tooltip.css'>
     <style>
+    :root {
+        --color1: #63cdfc;
+        --color2: #388ed4;
+        --textColor: black;
+}
     a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
@@ -59,23 +64,28 @@ class CATS_UI
     	border-style: inset outset outset inset;
     }
     @keyframes colorChange {
-        from {background-color: #b3f0ff; border-color: #b3f0ff;}
-        to {background-color: #99ff99; border-color: #99ff99;}
+        from {background-color: var(--color1); border-color: var(--color1);}
+        to {background-color: var(--color2); border-color: var(--color2);}
     }
     a.catsCircle1, button.catsCircle1 {
+        box-sizing: border-box;
     	height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out infinite alternate;
     }
     a.catsCircle2, button.catsCircle2 {
-    	height: 200px;
+    	box-sizing: border-box;
+        height: 200px;
     	width: 200px;
     	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear -5s infinite alternate;
+    	color: var(--textColor);
+    	animation: colorChange 10s ease-in-out -5s infinite alternate;
     }
+    span.selectedClinic {
+        font-size: 20pt;
+}
     </style>
     <script>
     function createCircle(elements, styles) {
@@ -157,7 +167,12 @@ class CATS_MainUI extends CATS_UI
         $this->SetScreen( $screen );
 
         $s = "";
-        if( substr($screen,0,9) == "developer" ) {
+        $clinics = new Clinics($this->oApp);
+        if($clinics->GetCurrentClinic() == NULL){
+            $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
+                 .$clinics->displayUserClinics();
+        }
+        else if( substr($screen,0,9) == "developer" ) {
             $s = $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s = $this->DrawAdmin();
@@ -188,19 +203,18 @@ class CATS_MainUI extends CATS_UI
     {
         $raTherapistScreens = array(
             array( 'home',                      "Home" ),
+            array( 'therapist-calendar',        "Calendar" ),
+            array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
-            array( 'therapist-entercharts',     "Enter Charts" ),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
-            array( 'therapist-clientlist',      "Clients and Providers" ),
-            array( 'therapist-calendar',        "Calendar" ),
         );
 
-        $s = $this->Header()."<h2>Therapist</h2>";
+        $s = $this->Header();
         switch( $this->screen ) {
             case "therapist":
             default:
@@ -315,16 +329,20 @@ class CATS_MainUI extends CATS_UI
                 $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
+            case 'developer-clinics':
+                $s .= (new Clinics($this->oApp))->manageClinics();
+                break;
             default:
             case 'developer':
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
-                    <script>
-function drop() {
-     if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        window.location.href = '".CATSDIR."?screen=developer-droptable';
-    }
-}
-</script>";
+                           <script>
+                               function drop() {
+                                   if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
+                                       window.location.href = '".CATSDIR."?screen=developer-droptable';
+                                   }
+                               }
+                           </script>";
+                    $s .= "<a href='?screen=developer-clinics' class='toCircle catsCircle1'>Manage Clinics</a>";
         }
         return( $s );
     }

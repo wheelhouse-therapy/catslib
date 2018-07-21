@@ -272,16 +272,16 @@ class Calendar
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
-        $sCalendar = "<div class='col-md-6'>"
-                        ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px; position: relative; top: 5px;' alt='->'>  </a></div>"
+        $sCalendar = "<div class='col-md-6 row'>"
                         ."<div class='col-md-8'><h3>Appointments from ".date('M d, Y', $tMon)." to ".date('M d, Y', $tSun)."</h3></div>"
                         ."<div class='col-md-2'>$linkGoToThisWeek</div>"
+                        ."<div class='col-md-1'><a href='?tMon=".($tMon-3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='transform: rotate(180deg); height: 20px;' alt='<-'>  </a></div>"
                         ."<div class='col-md-1'><a href='?tMon=".($tMon+3600*24*7)."'><img src='" . CATSDIR_IMG . "arrow.jpg' style='height: 20px' alt='->'> </a></div>"
                     ."</div></div>"
                     ."<div id='weekLinkContainer'>"
                     ."<span>Next 4 weeks from today:</span><br/>";
         for($i=1; $i<5; $i++) {
-            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a><br/>";
+            $sCalendar .= "<a class='weekLink' href='?tMon=".($tMonThisWeek+($i*3600*24*7))."'> Week of " . date("M d", $tMonThisWeek+($i*3600*24*7)) . "</a> &nbsp;&nbsp;";
         }
         $sCalendar .= "</div></div>";
         $sCalendar .= $sList;
@@ -289,16 +289,6 @@ class Calendar
                 INNER JOIN clients ON clients._key = cats_appointments.fk_clients
                 WHERE clients.client_first_name = 0 AND clients.client_last_name = 0;");*/
 
-        /* Get the list of appointments known in CATS
-         */
-        $sAppts = "<h3>CATS appointments</h3>";
-        $raAppts = $oApptDB->GetList( "eStatus in ('REVIEWED')" );
-        foreach( $raAppts as $ra ) {
-            $eventId = $ra['google_cal_ev_id'];
-            $eStatus = $ra['eStatus'];
-            $startTime = $ra['start_time'];
-            $clientId = $ra['fk_clients'];
-        }
         $s .= $sCalendar;
 
         $s .= "
@@ -325,7 +315,7 @@ class Calendar
 	       border-radius: 5px;
 	       width: 105px;
 	       padding: 2px;
-	       background-color: #99ff99;
+	       background-color: #63cdfc;
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
@@ -412,6 +402,8 @@ class Calendar
                 break;
             case 'cancelFee':
                 //TODO Make fee 1/2 and session desc Cancilation fee
+                break;
+            case '':
                 break;
             default:
                 return "Unknown Command";
@@ -579,8 +571,8 @@ class Calendar
         $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
         CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
 
-        $from = "cats@catherapyservices.ca";
-        $to = "you";
+        $from = "developer@catherapyservices.ca";
+        $to = "bob@seeds.ca";
         $subject = "Your Invoice";
         SEEDEmailSend( $from, $to, $subject, "", $body );
     }
