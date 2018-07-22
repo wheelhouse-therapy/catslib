@@ -425,10 +425,6 @@ class KeyframeUIComponent extends SEEDUIComponent
     {
         $raViewParms = array();
 
-        if( ($col = $this->oUI->GetUIParm['sortup']) ) {
-
-        }
-
         $raViewParms['sSortCol']  = $this->oUI->GetUIParm('sSortCol');
         $raViewParms['bSortDown'] = $this->oUI->GetUIParm('bSortDown');
         $raViewParms['sGroupCol'] = $this->oUI->GetUIParm('sGroupCol');
