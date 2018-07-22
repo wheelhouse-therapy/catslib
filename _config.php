@@ -52,7 +52,8 @@ $dirImg = CATSDIR_IMG;
 $oApp = new SEEDAppConsole(
                 array_merge( $catsDefKFDB,
                              array( 'sessPermsRequired' => array(),
-                                    'sessParms' => array( 'logfile' => CATSDIR_LOG."seedsession.log"))
+                                    'sessParms' => array( 'logfile' => CATSDIR_LOG."seedsession.log"),
+                                    'logdir' => CATSDIR_LOG )
                            )
 );
 $oApp->kfdb->SetDebug(1);

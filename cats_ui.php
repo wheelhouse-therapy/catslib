@@ -351,7 +351,7 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
-        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>CATSDIR_LOG) );
+        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
 
         $oUI = new SEEDUI(); // base class seems good enough for now  -- new MySEEDUI();
         $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
