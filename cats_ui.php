@@ -166,22 +166,22 @@ class CATS_MainUI extends CATS_UI
     function Screen( $screen ) {
         $this->SetScreen( $screen );
 
-        $s = "";
+        $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
-            $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
+            $s .= "<h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics();
         }
         else if( substr($screen,0,9) == "developer" ) {
-            $s = $this->DrawDeveloper();
+            $s .= $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
-            $s = $this->DrawAdmin();
+            $s .= $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
-            $s = $this->DrawTherapist();
+            $s .= $this->DrawTherapist();
         } else if( $screen == "logout" ) {
-            $s = $this->DrawLogout();
+            $s .= $this->DrawLogout();
         } else {
-            $s = $this->DrawHome();
+            $s .= $this->DrawHome();
         }
 
         return( $s );
@@ -190,8 +190,7 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = $this->Header()
-            .($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+        $s = ($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
             .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
 
@@ -214,7 +213,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-submitresources', "Submit Resources to Share" ),
         );
 
-        $s = $this->Header();
+        $s = "";
         switch( $this->screen ) {
             case "therapist":
             default:
