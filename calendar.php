@@ -656,7 +656,7 @@ class CATS_GoogleCalendar
                 }
 
                 if( ($fname = @$json[$gAccount]) ) {
-                    $creds_file = $fname;
+                    $creds_file = CATSDIR_CONFIG.$fname;
                 } else {
                     // error: not found
                     $creds_file = "";
