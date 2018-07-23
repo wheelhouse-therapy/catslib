@@ -71,8 +71,8 @@ class Appointments
         return( $rQ );
     }
 
-    private function apptReviewed( KeyframeRecord $kfrAppt = null, $raParms )
-    /************************************************************************
+    private function apptReviewed( KeyframeRecord $kfrAppt, $raParms )
+    /*****************************************************************
         Create or update a cats_appointments record. If this is a new record, kfrAppt is newly created.
      */
     {
@@ -95,12 +95,7 @@ class Appointments
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
         list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
-        $json = json_decode(file_get_contents(CATSDIR_CONFIG."google-accounts.json"), TRUE);
-        $file = CATSDIR_CONFIG.$json[$this->oApp->sess->SmartGPC('acount')];
-        if(!$file){
-            $file = CATSDIR_CONFIG."calendar-php-quickstart.json";
-        }
-        $oGC = new CATS_GoogleCalendar($file);
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $event = $oGC->getEventByID( $calId, $eventId );
 
         if( !($start = $event->start->dateTime) ) {
@@ -131,38 +126,16 @@ class Calendar
     {
         $s = "<div class='row'><div class='col-md-5'>";
 
-        $acounts_file = CATSDIR_CONFIG."google-accounts.json";
-        $creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
-        if(file_exists($acounts_file)){
-            $json = json_decode(file_get_contents($acounts_file), TRUE);
-            if(count($json) > 1){
-                $s .= "Multiple Google Accounts Detected<br />";
-                $act = "";
-                foreach($json as $name => $key){
-                    if($act){
-                        $act .= ",";
-                    }
-                    if($this->oApp->sess->SmartGPC('acount') == $name){
-                        $act .= $name;
-                        $creds_file = CATSDIR_CONFIG.$key;
-                    }
-                    else{
-                        $act .= "<a href='?acount=$name'>$name</a>";
-                    }
-                }
-                $s .= $act;
-                if(!$this->oApp->sess->SmartGPC('acount')){
-                    return $s;
-                }
-            }
-            elseif (count($json) == 1){
-                foreach($json as $name =>$key){
-                    $creds_file = CATSDIR_CONFIG.$key;
-                }
-            }
+        $gAccount = $this->oApp->sess->SmartGPC('gAccount');    // currently selected google account (can be blank if there is only one configured)
+
+        // for appointments on the google calendar
+        $oGC = new CATS_GoogleCalendar( $gAccount );
+        if( !$oGC->ServiceStarted() ) {
+            $s .= $oGC->AccountSelector( $gAccount );
+            goto done;
         }
-        $oGC = new CATS_GoogleCalendar($creds_file);    // for appointments on the google calendar
-        $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
+        // for appointments saved in cats_appointments
+        $oApptDB = new AppointmentsDB( $this->oApp );
 
         /* Get a list of all the calendars that this user can see
          */
@@ -364,6 +337,7 @@ class Calendar
     </script>
     <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
+        done:
         return( $s );
     }
 
@@ -542,8 +516,10 @@ class Calendar
 
     public function createAppt($ra){
         //Nessisary variables needed to create new appointments
-        $oGC = new CATS_GoogleCalendar();               // for appointments on the google calendar
-        $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
+        // for appointments on the google calendar
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
+        // for appointments saved in cats_appointments
+        $oApptDB = new AppointmentsDB( $this->oApp );
 
         if( ($googleEventId = @$ra['appt_gid']) &&
             ($catsClientId = @$ra['cid']) &&
@@ -564,7 +540,7 @@ class Calendar
         $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$apptId."'");
         $kfrAppt->StatusSet("Deleted");
         $kfrAppt->PutDBRow();
-        $oGC = new CATS_GoogleCalendar();
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $oGC->deleteEvent($calendarId, $apptId);
     }
 
@@ -599,19 +575,109 @@ class Calendar
 
 class CATS_GoogleCalendar
 {
+    private $accounts_file;                 // optional file containing list of credentials files
+    private $default_creds_file;            // default credentials file if accounts_file doesn't exist
+    private $google_client_secret_file;     // the file that authorizes this app as a google client
     private $service = null;
 
-    function __construct($file)
+    function __construct( $gAccount = "" )
+    {
+        $this->accounts_file = CATSDIR_CONFIG."google-accounts.json";
+        $this->default_creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
+        $this->google_client_secret_file = CATSDIR_CONFIG."google_client_secret.json";
+
+        /* Find the credentials file and start the calendar service.
+         *      1) use $gAccount to select the credentials file.
+         *      2) if there is only one credentials file use that.
+         *
+         * If there are multiple creds and gAccount is not set, then don't start the service. We use this class to create
+         * an account selection control for the user to choose.
+         */
+        $this->StartService( $gAccount );
+    }
+
+    function StartService( $gAccount = "" )
+    {
+        if( ($creds_file = $this->getCredsFile( $gAccount ) ) ) {
+            $this->_startService( $creds_file );
+        }
+    }
+
+    function ServiceStarted()  { return( $this->service != null ); }
+
+    function AccountSelector( $gAccount )
+    /************************************
+        Return some html that lets the user choose an account from google-accounts.json
+     */
+    {
+        $s = "";
+
+        if( file_exists( $this->accounts_file ) &&
+            ($json = json_decode( file_get_contents( $this->accounts_file ), true )) )
+        {
+            foreach( $json as $name => $fname ) {
+                if( $s )  $s .= ",";
+
+                $s .= ($s ? ", " : "")
+                     .($name == $gAccount ? $name : "<a href='?gAccount=$name'>$name</a>");
+            }
+        }
+
+        return( $s );
+    }
+
+
+    private function getCredsFile( $gAccount )
+    /*****************************************
+        Look in google-accounts.json to find the matching $gAccount credentials file.
+
+        If google-accounts.json doesn't exist, use the default credentials file.
+        If google-accounts.json has only one entry, use it.
+        If google-accounts.json has more than one entry use the one specified by gAccount.
+     */
+    {
+        $creds_file = $this->default_creds_file;
+
+        if( file_exists( $this->accounts_file ) &&
+            ($json = json_decode( file_get_contents( $this->accounts_file ), true )) )
+        {
+            if( count($json) == 1 ) {
+                /* Only one account listed so use it.
+                 */
+                foreach( $json as $fname ) {                // there might be a better way to get the value when there's only one item in the array
+                    $creds_file = CATSDIR_CONFIG.$fname;
+                }
+            } elseif( count($json) > 1 ) {
+                /* Multiple accounts so get the one named by gAccount
+                 */
+                if( !$gAccount ) {
+                    // error: can't choose a credentials file because the account is not specified
+                    $creds_file = "";
+                }
+
+                if( ($fname = @$json[$gAccount]) ) {
+                    $creds_file = $fname;
+                } else {
+                    // error: not found
+                    $creds_file = "";
+                }
+            }
+        }
+
+        return( $creds_file );
+    }
+
+    private function _startService( $creds_file )
     {
         $raGoogleParms = array(
                 'application_name' => "Google Calendar for CATS",
                 // If modifying these scopes, regenerate the credentials at ~/seed_config/calendar-php-quickstart.json
-//                'scopes' => implode(' ', array( Goog  le_Service_Calendar::CALENDAR_READONLY ) ),
+                //'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR_READONLY, Google_Service_Calendar::CALENDAR ) ),
                 'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR ) ),
                 // Downloaded from the Google API Console
-            'client_secret_file' => CATSDIR_CONFIG."google_client_secret.json",
+                'client_secret_file' => $this->google_client_secret_file,
                 // Generated by getcreds.php
-                'credentials_file' => $file,
+                'credentials_file' => $creds_file,
         );
 
         $oG = new SEEDGoogleService( $raGoogleParms, false );
@@ -681,7 +747,6 @@ class CATS_GoogleCalendar
     function deleteEvent($calendarID, $id){
         $this->service->events->delete($calendarID,$id);
     }
-
 }
 
 
