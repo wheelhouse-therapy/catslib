@@ -384,7 +384,12 @@ class Calendar
                 }
                 break;
             case 'cancelFee':
-                //TODO Make fee 1/2 and session desc Cancilation fee
+                $oApptDB = new AppointmentsDB( $this->oApp );
+                $kfr = $oApptDB->GetKFR($apptId);
+                $kfr->SetValue('session_desc',"Cancelation Fee");
+                $kfr->SetValue('estatus','CANCELLED');
+                $kfr->SetValue('session_minutes',30);
+                $kfr->PutDBRow();
                 break;
             case '':
                 break;
