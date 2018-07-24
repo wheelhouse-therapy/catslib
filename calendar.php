@@ -135,6 +135,7 @@ class Calendar
             $s .= $oGC->AccountSelector( $gAccount );
             goto done;
         }
+        $s .= $oGC->AccountSelector($gAccount);
         // for appointments saved in cats_appointments
         $oApptDB = new AppointmentsDB( $this->oApp );
 
