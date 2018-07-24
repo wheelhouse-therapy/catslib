@@ -408,7 +408,7 @@ class Calendar
                 break;
             case 'cancelFee':
                 $oApptDB = new AppointmentsDB( $this->oApp );
-                $kfr = $oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$this->convertGoogleToDB($this->oApp->sess->SmartGPC('calendarIdCurrent'), $apptId)."'");
+                $kfr = $oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$calendarIdCurrent, $apptId)."'");
                 $kfr->SetValue('session_desc',"Cancelation Fee");
                 $kfr->SetValue('estatus','CANCELLED');
                 $kfr->SetValue('session_minutes',30);
