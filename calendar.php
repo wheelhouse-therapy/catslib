@@ -94,7 +94,8 @@ class Appointments
         }
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
-        list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
+        $cal = new Calendar($this->oApp);
+        list($calId,$eventId) = $cal->convertDBToGoogle($raParms['google_cal_ev_id'] );
         $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $event = $oGC->getEventByID( $calId, $eventId );
 
@@ -214,7 +215,7 @@ class Calendar
 
                 } else {
                     // Admin user: check this google event against our appointment list
-                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$calendarIdCurrent." | ".$event->id."'");
+                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
 
                     if( !$kfrAppt ) {
                         // NEW: this google event is not yet in cat_appointments; show the form to add the appointment
@@ -341,7 +342,29 @@ class Calendar
         return( $s );
     }
 
-
+    function convertGoogleToDB($calendarId,$eventId){
+        /*
+         * Take a calendar id and event id and convert them into the form used by the DB
+         * The method convertDBToGoogle converts the DB form back to the google form
+         */
+        return $calendarId ." | ". $eventId;
+    }
+    
+    function  convertDBToGoogle($google_cal_ev_id){
+        /*
+         * Take a event id from the database and convert it into the form used by google
+         * The method convertGoogleToDB converts the google form back into the google form
+         */
+        $separator = " | ";
+        $pos = strpos($google_cal_ev_id, $separator); // get the position of the start of the separator
+        $calId = substr($google_cal_ev_id, $pos); // Splice off the calendar id
+        $pos += strlen($separator); // Advance pos to end of separator
+        $evId = substr($google_cal_ev_id, $pos); // Splice off the event id
+        
+        return array("calendarId" => $calId, "eventId" => $evId);
+        
+    }
+    
     private function processCommands($oGC,$calendarIdCurrent)
     {
         $s = "";
@@ -385,7 +408,7 @@ class Calendar
                 break;
             case 'cancelFee':
                 $oApptDB = new AppointmentsDB( $this->oApp );
-                $kfr = $oApptDB->GetKFR($apptId);
+                $kfr = $oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$this->convertGoogleToDB($this->oApp->sess->SmartGPC('calendarIdCurrent'), $appttId)."'");
                 $kfr->SetValue('session_desc',"Cancelation Fee");
                 $kfr->SetValue('estatus','CANCELLED');
                 $kfr->SetValue('session_minutes',30);
@@ -484,7 +507,7 @@ class Calendar
                 }
                 $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=cancelFee' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
+                           ."<a href='?cmd=cancelFee&apptId=$event->id$invoice' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
                            ."&nbsp;&nbsp;"
@@ -500,7 +523,7 @@ class Calendar
     {
         $s = "<h5>This appointment is new:</h5><br />Please Specify client"
             ."<form method='post' action='' class='appt-newform'>"
-            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$sCalendarId." | ".$event->id."'>"
+            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$this->convertGoogleToDB($sCalendarId,$event->id)."'>"
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
@@ -533,7 +556,7 @@ class Calendar
             ($event = $oGC->getEventByID($calendarIdCurrent,$googleEventId)) )
         {
             $kfr = $oApptDB->KFRel()->CreateRecord();
-            $kfr->SetValue("google_cal_ev_id", $calendarIdCurrent." | ".$event->id);
+            $kfr->SetValue("google_cal_ev_id", $this->convertGoogleToDB($calendarIdCurrent, $event->id));
             $kfr->SetValue("start_time", substr($event->start->dateTime, 0, 19) );  // yyyy-mm-ddThh:mm:ss is 19 chars long; trim the timezone part
             $kfr->SetValue("fk_clients",$catsClientId);
             $kfr->PutDBRow();
@@ -542,7 +565,7 @@ class Calendar
 
     public function deleteAppt($calendarId, $apptId){
         $oApptDB = new AppointmentsDB( $this->oApp );
-        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$apptId."'");
+        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$this->convertGoogleToDB($calendarId, $apptId)."'");
         $kfrAppt->StatusSet("Deleted");
         $kfrAppt->PutDBRow();
         $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
@@ -622,9 +645,7 @@ class CATS_GoogleCalendar
         {
             foreach( $json as $name => $fname ) {
                 if( $s )  $s .= ",";
-
-                $s .= ($s ? ", " : "")
-                     .($name == $gAccount ? $name : "<a href='?gAccount=$name'>$name</a>");
+                    $s .= ($name == $gAccount ? $name : "<a href='?gAccount=$name'>$name</a>");
             }
         }
 
