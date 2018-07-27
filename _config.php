@@ -47,7 +47,7 @@ if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
 
 $dirImg = CATSDIR_IMG;
 //Directory to the logo used on the CATS server
-define(CATS_LOGO, CATSDIR_IMG."cats_wide.png");
+define("CATS_LOGO", CATSDIR_IMG."cats_wide.png");
 
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(
