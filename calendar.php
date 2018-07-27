@@ -577,6 +577,8 @@ class Calendar
 
     private function emailTheInvoice( $apptId )
     {
+        $oApptDB = new AppointmentsDB( $this->oApp );
+        $kfr = $oApptDB->GetKFR($apptId);
         $body = "Dear %s,"
                ."\n"
                ."\n"
@@ -597,7 +599,7 @@ class Calendar
         CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
 
         $from = "developer@catherapyservices.ca";
-        $to = "bob@seeds.ca";
+        $to = $kfr->Value('invoice_email');
         $subject = "Your Invoice";
         SEEDEmailSend( $from, $to, $subject, "", $body );
     }
