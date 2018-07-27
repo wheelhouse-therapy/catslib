@@ -589,8 +589,7 @@ class Calendar
                ." e-transfer payable to %s.\n\n "
                ."Thank you in advance!\n\n"
                ."Sincerely, %s, %s.";
-                   ///TODO Replace 110 with invoice total
-        $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
+        $body = sprintf($body,"Bill Name","Client Name",($kfr->Value("session_minutes")+$kfr->Value("prep_minutes"))*$kfr->Value('rate'),"Clinic accounts receivable","Therapist", "Designation");
 
         include_once( SEEDCORE."SEEDEmail.php" );
         include_once( CATSLIB."invoice/catsinvoice.php" );
