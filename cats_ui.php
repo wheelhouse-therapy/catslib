@@ -20,7 +20,7 @@ class CATS_UI
         }
         $clinics = new Clinics($this->oApp);
         return( "<div class='cats_header' style='overflow:auto'>"
-                   ."<img src='".CATSDIR_IMG."cats_wide.png' style='max-width:300px;float:left;'/>"
+                   ."<img src='".CATS_LOGO."' style='max-width:300px;float:left;'/>"
                    ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
                    ."<div style='float:right'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
@@ -201,7 +201,6 @@ class CATS_MainUI extends CATS_UI
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'home',                      "Home" ),
             array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
