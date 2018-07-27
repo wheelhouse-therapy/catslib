@@ -20,7 +20,7 @@ class CATS_UI
         }
         $clinics = new Clinics($this->oApp);
         return( "<div class='cats_header' style='overflow:auto'>"
-                   ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
+                   ."<img src='".CATSDIR_IMG."cats_wide.png' style='max-width:300px;float:left;'/>"
                    ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
                    ."<div style='float:right'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "

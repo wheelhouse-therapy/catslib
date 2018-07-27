@@ -95,7 +95,9 @@ class Appointments
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
         $cal = new Calendar($this->oApp);
-        list($calId,$eventId) = $cal->convertDBToGoogle($raParms['google_cal_ev_id'] );
+        $raGoogle = $cal->convertDBToGoogle($raParms['google_cal_ev_id'] );
+        $calId = $raGoogle['calendarId'];
+        $eventId = $raGoogle['eventId'];
         $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $event = $oGC->getEventByID( $calId, $eventId );
 
@@ -358,7 +360,7 @@ class Calendar
          */
         $separator = " | ";
         $pos = strpos($google_cal_ev_id, $separator); // get the position of the start of the separator
-        $calId = substr($google_cal_ev_id, $pos); // Splice off the calendar id
+        $calId = substr($google_cal_ev_id,0, $pos); // Splice off the calendar id
         $pos += strlen($separator); // Advance pos to end of separator
         $evId = substr($google_cal_ev_id, $pos); // Splice off the event id
         
