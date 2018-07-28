@@ -19,10 +19,10 @@ class CATS_UI
             exit;
         }
         $clinics = new Clinics($this->oApp);
-        return( "<div class='cats_header' style='overflow:auto'>"
-                   ."<img src='".CATS_LOGO."' style='max-width:300px;float:left;'/>"
-                   ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
-                   ."<div style='float:right'>"
+        return( "<div class='cats_header'>"
+                   ."<a href='?screen=home'><img src='".CATS_LOGO."' style='max-width:300px;float:left;'/></a>"
+                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>".$clinics->displayUserClinics()."</div>"
+                   ."<div style='float:right;top: 5px;position: relative;'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
@@ -53,6 +53,9 @@ class CATS_UI
         --color2: #388ed4;
         --textColor: black;
 }
+    body {
+        margin: 0 8px;
+    }
     a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
@@ -85,7 +88,16 @@ class CATS_UI
     }
     span.selectedClinic {
         font-size: 20pt;
-}
+    }
+    div.cats_header {
+        overflow: visible;
+        position: sticky;
+        background-color: rgba(255, 255, 255, 0.8);
+        top: 0;
+        z-index: 1;
+        display: inline-block;
+        width: 100%;
+    }
     </style>
     <script>
     function createCircle(elements, styles) {
