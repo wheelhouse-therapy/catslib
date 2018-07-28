@@ -110,6 +110,13 @@ class CATS_UI
         createCircle(elements, styles);
 
         $(document).ready( function () {
+
+            /* Generic seedjx submission
+             */
+            $('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
+
+            /* the Appointment Review button launches catsappt--reviewd
+             */
             $('.appt-newform').submit( function (e) {
                 e.preventDefault();
                 var gid = $(this).find('#appt-gid').val();
@@ -407,10 +414,7 @@ class CATS_MainUI extends CATS_UI
                      ."<select name='test'/><option value='good'>Good</option><option value='bad'>Bad</option></select>"
                      ."<button class='seedjx-submit'>Go</button>"
                  ."</div>"
-             ."</div>"
-             ."<script>
-               $('.seedjx-submit').click( function () { SEEDJX_Form1( 'http://localhost/~bob/cats/jx.php', $(this) ); } );
-               </script>";
+             ."</div>";
 
         return( $s );
     }
