@@ -47,6 +47,10 @@ class Clinics {
         $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$this->oApp->sess->GetUID()."'");
         $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$this->oApp->sess->GetUID()."'");
         foreach($leading as $k => $ra){
+            if($this->containsClinic($ra, $clinics)){
+                unset($leading[$k]);
+                continue;
+            }
             $leading1 = array();
             foreach($ra as $k1 => $v){
                 $leading1["Clinics_".$k1] = $v;
@@ -57,7 +61,6 @@ class Clinics {
     }
 
     function displayUserClinics(){
-        var_dump($this->GetUserClinics());
         if(count($this->GetUserClinics()) == 1){return "";}
         $s = "";
         foreach($this->GetUserClinics() as $ra){
@@ -72,6 +75,24 @@ class Clinics {
             }
         }
         return($s);
+    }
+    
+    private function containsClinic($needle,$haystack){
+        //This function checks if the clinic already exists in the list of user clinics
+        $name = '';
+        if(array_key_exists('clinic_name', $needle)){
+            $name = $needle['clinic_name'];
+        }
+        elseif (array_key_exists('Clinics_clinic_name', $needle)){
+            $name = $needle['Clinics_clinic_name'];
+        }
+        if(!$name) return NULL; // Not a valid clinic array
+        foreach($haystack as $k => $v){
+            if($haystack[$k]['Clinics_clinic_name'] == $name){
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
     
     //These functions are for managing clinics.
