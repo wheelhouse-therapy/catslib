@@ -480,31 +480,12 @@ class Calendar
              ."<div class='appt-special'>$sSpecial</div>";
         $sInvoice = "";
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
-            //This string defines the general format of all invoices
-            //The correct info for each client is subed in later with sprintf
-            $sInvoice = "<form><div class='row'>
-                                <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
-                                <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
-                            </div>"
-                        . "<div class='row'>
-                                <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
-                                <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
-                            </div>"
-                        . "<div class='row'>
-                                <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
-                                <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
-                            </div>"
-                        . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
-                        . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                        . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
-                        ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
-                        ."</form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
-            if(!$desc) $desc = "Occupational Therapy Treatment";
-            $sInvoice = sprintf($sInvoice,$kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),110,$desc);//TODO Replace 110 fee with code to determine fee
-            if($invoice){
+            $rate = 110.0;
+            if( $invoice ) {
+                // show the information about the invoice/appt
                 if($invoice == 'true'){
                     $invoice = "";
                 }
@@ -515,6 +496,44 @@ class Calendar
                            ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
+
+                $sInvoice .= "<div class='row'>
+                                    <div class='col-md-6'><span>Name:&nbsp </span> ".$kfrClient->Expand('[[client_first_name]] [[client_last_name]]')."</div>
+                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> ".$kfrClient->Value('email')."</div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span>Session length:&nbsp; </span>".$session->format("%h:%i")."</div>
+                                    <div class='col-md-6'><span>Rate ($): </span> $rate</div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span> Preptime:&nbsp </span> ".$kfrAppt->Value('prep_minutes')."</div>
+                                    <div class='col-md-6'><span> Session Description:&nbsp </span> $desc</div>
+                                </div>";
+            } else {
+                //This string defines the general format of all invoices
+                //The correct info for each client is subed in later with sprintf
+                $sInvoice = "<form><div class='row'>
+                                    <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
+                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
+                                    <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
+                                    <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
+                                </div>"
+                            . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
+                            . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
+                            . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
+                            ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                            ."</form>";
+                if(!$desc) $desc = "Occupational Therapy Treatment";
+                $sInvoice = sprintf($sInvoice,
+                                    $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),
+                                    $kfrClient->Value('email'), $kfrAppt->Value('prep_minutes'),
+                                    $session->format("%h:%i"), $time->format("M jS Y"), $rate, $desc ); //TODO Replace 110 fee with code to determine fee
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
