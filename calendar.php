@@ -71,8 +71,8 @@ class Appointments
         return( $rQ );
     }
 
-    private function apptReviewed( KeyframeRecord $kfrAppt = null, $raParms )
-    /************************************************************************
+    private function apptReviewed( KeyframeRecord $kfrAppt, $raParms )
+    /*****************************************************************
         Create or update a cats_appointments record. If this is a new record, kfrAppt is newly created.
      */
     {
@@ -94,13 +94,11 @@ class Appointments
         }
 
         $kfrAppt->SetValue( 'google_cal_ev_id', $raParms['google_cal_ev_id'] );
-        list($calId,$eventId) = explode( " | ", $raParms['google_cal_ev_id'] );
-        $json = json_decode(file_get_contents(CATSDIR_CONFIG."google-accounts.json"), TRUE);
-        $file = CATSDIR_CONFIG.$json[$this->oApp->sess->SmartGPC('acount')];
-        if(!$file){
-            $file = CATSDIR_CONFIG."calendar-php-quickstart.json";
-        }
-        $oGC = new CATS_GoogleCalendar($file);
+        $cal = new Calendar($this->oApp);
+        $raGoogle = $cal->convertDBToGoogle($raParms['google_cal_ev_id'] );
+        $calId = $raGoogle['calendarId'];
+        $eventId = $raGoogle['eventId'];
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $event = $oGC->getEventByID( $calId, $eventId );
 
         if( !($start = $event->start->dateTime) ) {
@@ -131,38 +129,17 @@ class Calendar
     {
         $s = "<div class='row'><div class='col-md-5'>";
 
-        $acounts_file = CATSDIR_CONFIG."google-accounts.json";
-        $creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
-        if(file_exists($acounts_file)){
-            $json = json_decode(file_get_contents($acounts_file), TRUE);
-            if(count($json) > 1){
-                $s .= "Multiple Google Accounts Detected<br />";
-                $act = "";
-                foreach($json as $name => $key){
-                    if($act){
-                        $act .= ",";
-                    }
-                    if($this->oApp->sess->SmartGPC('acount') == $name){
-                        $act .= $name;
-                        $creds_file = CATSDIR_CONFIG.$key;
-                    }
-                    else{
-                        $act .= "<a href='?acount=$name'>$name</a>";
-                    }
-                }
-                $s .= $act;
-                if(!$this->oApp->sess->SmartGPC('acount')){
-                    return $s;
-                }
-            }
-            elseif (count($json) == 1){
-                foreach($json as $name =>$key){
-                    $creds_file = CATSDIR_CONFIG.$key;
-                }
-            }
+        $gAccount = $this->oApp->sess->SmartGPC('gAccount');    // currently selected google account (can be blank if there is only one configured)
+
+        // for appointments on the google calendar
+        $oGC = new CATS_GoogleCalendar( $gAccount );
+        if( !$oGC->ServiceStarted() ) {
+            $s .= $oGC->AccountSelector( $gAccount );
+            goto done;
         }
-        $oGC = new CATS_GoogleCalendar($creds_file);    // for appointments on the google calendar
-        $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
+        $s .= $oGC->AccountSelector($gAccount);
+        // for appointments saved in cats_appointments
+        $oApptDB = new AppointmentsDB( $this->oApp );
 
         /* Get a list of all the calendars that this user can see
          */
@@ -241,7 +218,7 @@ class Calendar
 
                 } else {
                     // Admin user: check this google event against our appointment list
-                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$calendarIdCurrent." | ".$event->id."'");
+                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
 
                     if( !$kfrAppt ) {
                         // NEW: this google event is not yet in cat_appointments; show the form to add the appointment
@@ -260,6 +237,11 @@ class Calendar
                     // Get the command parameter, used for responding to user actions
                     $cmd = SEEDInput_Str('cmd');
                     $apptId = SEEDInput_Str('apptId');
+// bug: The tMon code below is supposed to tell the Details/Cancellation Fee links to append that parm so we stay in the chosen week
+//      when clicking those links in a future (or past) week.
+//      But tMon is only used if the current event is not $apptId.
+//      If you go to a future week that has not been reviewed, review the appt, then apptId will be the current event. Then click
+//      Details. You get kicked back to the current week because there was no tMon in the Details link.
                     $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
                     if($invoice && SEEDInput_Int('tMon')){
                         $invoice = "&tMon=".SEEDInput_Str('tMon');
@@ -364,9 +346,32 @@ class Calendar
     </script>
     <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
+        done:
         return( $s );
     }
 
+    function convertGoogleToDB($calendarId,$eventId){
+        /*
+         * Take a calendar id and event id and convert them into the form used by the DB
+         * The method convertDBToGoogle converts the DB form back to the google form
+         */
+        return $calendarId ." | ". $eventId;
+    }
+
+    function  convertDBToGoogle($google_cal_ev_id){
+        /*
+         * Take a event id from the database and convert it into the form used by google
+         * The method convertGoogleToDB converts the google form back into the google form
+         */
+        $separator = " | ";
+        $pos = strpos($google_cal_ev_id, $separator); // get the position of the start of the separator
+        $calId = substr($google_cal_ev_id,0, $pos); // Splice off the calendar id
+        $pos += strlen($separator); // Advance pos to end of separator
+        $evId = substr($google_cal_ev_id, $pos); // Splice off the event id
+
+        return array("calendarId" => $calId, "eventId" => $evId);
+
+    }
 
     private function processCommands($oGC,$calendarIdCurrent)
     {
@@ -410,7 +415,12 @@ class Calendar
                 }
                 break;
             case 'cancelFee':
-                //TODO Make fee 1/2 and session desc Cancilation fee
+                $oApptDB = new AppointmentsDB( $this->oApp );
+                $kfr = $oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$this->convertGoogleToDB($calendarIdCurrent, $apptId)."'");
+                $kfr->SetValue('session_desc',"Cancelation Fee");
+                $kfr->SetValue('estatus','CANCELLED');
+                $kfr->SetValue('session_minutes',30);
+                $kfr->PutDBRow();
                 break;
             case '':
                 break;
@@ -475,41 +485,60 @@ class Calendar
              ."<div class='appt-special'>$sSpecial</div>";
         $sInvoice = "";
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
-            //This string defines the general format of all invoices
-            //The correct info for each client is subed in later with sprintf
-            $sInvoice = "<form><div class='row'>
-                                <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
-                                <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
-                            </div>"
-                        . "<div class='row'>
-                                <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
-                                <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
-                            </div>"
-                        . "<div class='row'>
-                                <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
-                                <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
-                            </div>"
-                        . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
-                        . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                        . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
-                        ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
-                        ."</form>";
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
-            if(!$desc) $desc = "Occupational Therapy Treatment";
-            $sInvoice = sprintf($sInvoice,$kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),$kfrClient->Value('email'),$kfrAppt->Value('prep_minutes'),$session->format("%h:%i"),$time->format("M jS Y"),110,$desc);//TODO Replace 110 fee with code to determine fee
-            if($invoice){
+            $rate = 110.0;
+            if( $invoice ) {
+                // show the information about the invoice/appt
                 if($invoice == 'true'){
                     $invoice = "";
                 }
                 $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=cancelFee' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
+                           ."<a href='?cmd=cancelFee&apptId=$event->id$invoice' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
+
+                $sInvoice .= "<div class='row'>
+                                    <div class='col-md-6'><span>Name:&nbsp </span> ".$kfrClient->Expand('[[client_first_name]] [[client_last_name]]')."</div>
+                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> ".$kfrClient->Value('email')."</div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span>Session length:&nbsp; </span>".$session->format("%h:%i")."</div>
+                                    <div class='col-md-6'><span>Rate ($): </span> $rate</div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span> Preptime:&nbsp </span> ".$kfrAppt->Value('prep_minutes')."</div>
+                                    <div class='col-md-6'><span> Session Description:&nbsp </span> $desc</div>
+                                </div>";
+            } else {
+                //This string defines the general format of all invoices
+                //The correct info for each client is subed in later with sprintf
+                $sInvoice = "<form><div class='row'>
+                                    <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
+                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
+                                    <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
+                                </div>"
+                            . "<div class='row'>
+                                    <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
+                                    <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
+                                </div>"
+                            . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
+                            . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
+                            . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
+                            ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                            ."</form>";
+                if(!$desc) $desc = "Occupational Therapy Treatment";
+                $sInvoice = sprintf($sInvoice,
+                                    $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),
+                                    $kfrClient->Value('email'), $kfrAppt->Value('prep_minutes'),
+                                    $session->format("%h:%i"), $time->format("M jS Y"), $rate, $desc ); //TODO Replace 110 fee with code to determine fee
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
@@ -521,7 +550,7 @@ class Calendar
     {
         $s = "<h5>This appointment is new:</h5><br />Please Specify client"
             ."<form method='post' action='' class='appt-newform'>"
-            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$sCalendarId." | ".$event->id."'>"
+            ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$this->convertGoogleToDB($sCalendarId,$event->id)."'>"
             ."<select id='appt-clientid' name='appt-clientid'>"
                 .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
@@ -542,8 +571,10 @@ class Calendar
 
     public function createAppt($ra){
         //Nessisary variables needed to create new appointments
-        $oGC = new CATS_GoogleCalendar();               // for appointments on the google calendar
-        $oApptDB = new AppointmentsDB( $this->oApp );   // for appointments saved in cats_appointments
+        // for appointments on the google calendar
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
+        // for appointments saved in cats_appointments
+        $oApptDB = new AppointmentsDB( $this->oApp );
 
         if( ($googleEventId = @$ra['appt_gid']) &&
             ($catsClientId = @$ra['cid']) &&
@@ -552,7 +583,7 @@ class Calendar
             ($event = $oGC->getEventByID($calendarIdCurrent,$googleEventId)) )
         {
             $kfr = $oApptDB->KFRel()->CreateRecord();
-            $kfr->SetValue("google_cal_ev_id", $calendarIdCurrent." | ".$event->id);
+            $kfr->SetValue("google_cal_ev_id", $this->convertGoogleToDB($calendarIdCurrent, $event->id));
             $kfr->SetValue("start_time", substr($event->start->dateTime, 0, 19) );  // yyyy-mm-ddThh:mm:ss is 19 chars long; trim the timezone part
             $kfr->SetValue("fk_clients",$catsClientId);
             $kfr->PutDBRow();
@@ -561,15 +592,17 @@ class Calendar
 
     public function deleteAppt($calendarId, $apptId){
         $oApptDB = new AppointmentsDB( $this->oApp );
-        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$apptId."'");
+        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$this->convertGoogleToDB($calendarId, $apptId)."'");
         $kfrAppt->StatusSet("Deleted");
         $kfrAppt->PutDBRow();
-        $oGC = new CATS_GoogleCalendar();
+        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
         $oGC->deleteEvent($calendarId, $apptId);
     }
 
     private function emailTheInvoice( $apptId )
     {
+        $oApptDB = new AppointmentsDB( $this->oApp );
+        $kfr = $oApptDB->GetKFR($apptId);
         $body = "Dear %s,"
                ."\n"
                ."\n"
@@ -580,17 +613,17 @@ class Calendar
                ." e-transfer payable to %s.\n\n "
                ."Thank you in advance!\n\n"
                ."Sincerely, %s, %s.";
-                   ///TODO Replace 110 with invoice total
-        $body = sprintf($body,"Bill Name","Client Name",110,"Clinic accounts receivable","Therapist", "Designation");
+        $body = sprintf($body,"Bill Name","Client Name",($kfr->Value("session_minutes")+$kfr->Value("prep_minutes"))*$kfr->Value('rate'),"Clinic accounts receivable","Therapist", "Designation");
 
         include_once( SEEDCORE."SEEDEmail.php" );
         include_once( CATSLIB."invoice/catsinvoice.php" );
 
         $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
-        CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
+        $oInvoice = new CATSInvoice( $this->oApp, $apptId );
+        $oInvoice->InvoicePDF( "F", array('filename'=>$filename) );
 
         $from = "developer@catherapyservices.ca";
-        $to = "bob@seeds.ca";
+        $to = $kfr->Value('invoice_email');
         $subject = "Your Invoice";
         SEEDEmailSend( $from, $to, $subject, "", $body );
     }
@@ -599,19 +632,107 @@ class Calendar
 
 class CATS_GoogleCalendar
 {
+    private $accounts_file;                 // optional file containing list of credentials files
+    private $default_creds_file;            // default credentials file if accounts_file doesn't exist
+    private $google_client_secret_file;     // the file that authorizes this app as a google client
     private $service = null;
 
-    function __construct($file)
+    function __construct( $gAccount = "" )
+    {
+        $this->accounts_file = CATSDIR_CONFIG."google-accounts.json";
+        $this->default_creds_file = CATSDIR_CONFIG."calendar-php-quickstart.json";
+        $this->google_client_secret_file = CATSDIR_CONFIG."google_client_secret.json";
+
+        /* Find the credentials file and start the calendar service.
+         *      1) use $gAccount to select the credentials file.
+         *      2) if there is only one credentials file use that.
+         *
+         * If there are multiple creds and gAccount is not set, then don't start the service. We use this class to create
+         * an account selection control for the user to choose.
+         */
+        $this->StartService( $gAccount );
+    }
+
+    function StartService( $gAccount = "" )
+    {
+        if( ($creds_file = $this->getCredsFile( $gAccount ) ) ) {
+            $this->_startService( $creds_file );
+        }
+    }
+
+    function ServiceStarted()  { return( $this->service != null ); }
+
+    function AccountSelector( $gAccount )
+    /************************************
+        Return some html that lets the user choose an account from google-accounts.json
+     */
+    {
+        $s = "";
+
+        if( file_exists( $this->accounts_file ) &&
+            ($json = json_decode( file_get_contents( $this->accounts_file ), true )) )
+        {
+            foreach( $json as $name => $fname ) {
+                if( $s )  $s .= ",";
+                    $s .= ($name == $gAccount ? $name : "<a href='?gAccount=$name'>$name</a>");
+            }
+        }
+
+        return( $s );
+    }
+
+
+    private function getCredsFile( $gAccount )
+    /*****************************************
+        Look in google-accounts.json to find the matching $gAccount credentials file.
+
+        If google-accounts.json doesn't exist, use the default credentials file.
+        If google-accounts.json has only one entry, use it.
+        If google-accounts.json has more than one entry use the one specified by gAccount.
+     */
+    {
+        $creds_file = $this->default_creds_file;
+
+        if( file_exists( $this->accounts_file ) &&
+            ($json = json_decode( file_get_contents( $this->accounts_file ), true )) )
+        {
+            if( count($json) == 1 ) {
+                /* Only one account listed so use it.
+                 */
+                foreach( $json as $fname ) {                // there might be a better way to get the value when there's only one item in the array
+                    $creds_file = CATSDIR_CONFIG.$fname;
+                }
+            } elseif( count($json) > 1 ) {
+                /* Multiple accounts so get the one named by gAccount
+                 */
+                if( !$gAccount ) {
+                    // error: can't choose a credentials file because the account is not specified
+                    $creds_file = "";
+                }
+
+                if( ($fname = @$json[$gAccount]) ) {
+                    $creds_file = CATSDIR_CONFIG.$fname;
+                } else {
+                    // error: not found
+                    $creds_file = "";
+                }
+            }
+        }
+
+        return( $creds_file );
+    }
+
+    private function _startService( $creds_file )
     {
         $raGoogleParms = array(
                 'application_name' => "Google Calendar for CATS",
                 // If modifying these scopes, regenerate the credentials at ~/seed_config/calendar-php-quickstart.json
-//                'scopes' => implode(' ', array( Goog  le_Service_Calendar::CALENDAR_READONLY ) ),
+                //'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR_READONLY, Google_Service_Calendar::CALENDAR ) ),
                 'scopes' => implode(' ', array( Google_Service_Calendar::CALENDAR ) ),
                 // Downloaded from the Google API Console
-            'client_secret_file' => CATSDIR_CONFIG."google_client_secret.json",
+                'client_secret_file' => $this->google_client_secret_file,
                 // Generated by getcreds.php
-                'credentials_file' => $file,
+                'credentials_file' => $creds_file,
         );
 
         $oG = new SEEDGoogleService( $raGoogleParms, false );
@@ -681,7 +802,6 @@ class CATS_GoogleCalendar
     function deleteEvent($calendarID, $id){
         $this->service->events->delete($calendarID,$id);
     }
-
 }
 
 

@@ -19,10 +19,10 @@ class CATS_UI
             exit;
         }
         $clinics = new Clinics($this->oApp);
-        return( "<div class='cats_header' style='overflow:auto'>"
-                   ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
-                   ."<div style='float:none'>".$clinics->displayUserClinics()."</div>"
-                   ."<div style='float:right'>"
+        return( "<div class='cats_header'>"
+                   ."<a href='?screen=home'><img src='".CATS_LOGO."' style='max-width:300px;float:left;'/></a>"
+                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>".$clinics->displayUserClinics()."</div>"
+                   ."<div style='float:right;top: 5px;position: relative;'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
@@ -53,6 +53,9 @@ class CATS_UI
         --color2: #388ed4;
         --textColor: black;
 }
+    body {
+        margin: 0 8px;
+    }
     a.toCircle, button.toCircle {
     	text-decoration: none;
     	display: flex;
@@ -85,7 +88,16 @@ class CATS_UI
     }
     span.selectedClinic {
         font-size: 20pt;
-}
+    }
+    div.cats_header {
+        overflow: visible;
+        position: sticky;
+        background-color: rgba(255, 255, 255, 0.8);
+        top: 0;
+        z-index: 1;
+        display: inline-block;
+        width: 100%;
+    }
     </style>
     <script>
     function createCircle(elements, styles) {
@@ -110,6 +122,13 @@ class CATS_UI
         createCircle(elements, styles);
 
         $(document).ready( function () {
+
+            /* Generic seedjx submission
+             */
+            $('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
+
+            /* the Appointment Review button launches catsappt--reviewd
+             */
             $('.appt-newform').submit( function (e) {
                 e.preventDefault();
                 var gid = $(this).find('#appt-gid').val();
@@ -166,22 +185,22 @@ class CATS_MainUI extends CATS_UI
     function Screen( $screen ) {
         $this->SetScreen( $screen );
 
-        $s = "";
+        $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
-            $s = $this->Header()."<h2>Please Select a clinic to continue</h2>"
+            $s .= "<h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics();
         }
         else if( substr($screen,0,9) == "developer" ) {
-            $s = $this->DrawDeveloper();
+            $s .= $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
-            $s = $this->DrawAdmin();
+            $s .= $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
-            $s = $this->DrawTherapist();
+            $s .= $this->DrawTherapist();
         } else if( $screen == "logout" ) {
-            $s = $this->DrawLogout();
+            $s .= $this->DrawLogout();
         } else {
-            $s = $this->DrawHome();
+            $s .= $this->DrawHome();
         }
 
         return( $s );
@@ -190,10 +209,9 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = $this->Header()."<h2>Home</h2>"
-            .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
-            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Administrator</a>" : "")
-            .($this->oApp->sess->CanRead('administrator')     ? "<a href='?screen=developer' class='toCircle' data-format='200px red blue'>Developer</a>" : "");
+        $s = ($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+            .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
+            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
 
 
         return( $s );
@@ -202,7 +220,6 @@ class CATS_MainUI extends CATS_UI
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'home',                      "Home" ),
             array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
@@ -214,7 +231,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-submitresources', "Submit Resources to Share" ),
         );
 
-        $s = $this->Header();
+        $s = "";
         switch( $this->screen ) {
             case "therapist":
             default:
@@ -222,35 +239,27 @@ class CATS_MainUI extends CATS_UI
                 break;
 
             case "therapist-handouts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT HANDOUTS";
                 break;
             case "therapist-formscharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT FORMS FOR CHARTS";
                 break;
             case "therapist-linedpapers":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT DIFFERENT LINED PAPERS";
                 break;
             case "therapist-entercharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "ENTER CHARTS";
                 break;
             case "therapist-ideas":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "GET IDEAS";
                 break;
             case "therapist-materials":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= DownloadMaterials( $this->oApp );
                 break;
             case "therapist-team":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "MEET THE TEAM";
                 break;
             case "therapist-submitresources":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "SUBMIT RESOURCES";
                 $s .= "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
@@ -263,13 +272,11 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawClientList();
                 break;
             case "therapist-calendar":
                 require_once CATSLIB."calendar.php";
                 $o = new Calendar( $this->oApp );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawCalendar();
         }
         return( $s );
@@ -280,7 +287,6 @@ class CATS_MainUI extends CATS_UI
         $s = "";
 
         $oApp = $this->oApp;
-        $s .= $this->Header()."<h2>Admin</h2>";
         switch( $this->screen ) {
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
@@ -289,17 +295,11 @@ class CATS_MainUI extends CATS_UI
                 include('review_resources.php');
                 break;
             default:
-            case 'admin':
                 $raScreens = array(
-                    array( 'home',             "Home" ),
-                    array( 'therapist',        "Therapist" ),
+                    array( 'admin-users',             "Manage Users" ),
+                    array( 'admin-resources',        "Review Resources" ),
                 );
                 $s .= $this->drawCircles( $raScreens );
-
-                if( $this->oApp->sess->CanWrite("admin") ) {
-                    $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
-                         ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
-                }
 
                 break;
         }
@@ -314,7 +314,6 @@ class CATS_MainUI extends CATS_UI
 
     function DrawDeveloper(){
         $s = "";
-        $s .= $this->Header()."<h2>Developer</h2>";
         switch($this->screen){
             case 'developer-droptable':
                 global $catsDefKFDB;
@@ -336,7 +335,6 @@ class CATS_MainUI extends CATS_UI
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
             default:
-            case 'developer':
                     $s .= "<button onclick='drop();' class='toCircle catsCircle2' style='cursor: pointer;'>Drop Tables</button>
                            <script>
                                function drop() {
@@ -371,13 +369,15 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
-        $oUI = new MySEEDUI();
-        $oComp = new MySEEDUIComponent( $oUI );
+        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
+
+        $oUI = new SEEDUI(); // base class seems good enough for now  -- new MySEEDUI();
+        $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
 
 
-        $oList = new SEEDUIWidget_List( $oComp );
+        $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, array('filters'=> array('First Name'=>'firstname','Last Name'=>'lastname')) );
     // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
@@ -394,6 +394,9 @@ class CATS_MainUI extends CATS_UI
             array( 'firstname'=>'Betty',  'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
             array( 'firstname'=>'Barney', 'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
         );
+
+        list($oView,$raWindowRows) = $oComp->GetView();
+
         $sList = $oList->ListDrawInteractive( $raView, $raParms );
 
         $sSrch = $oSrch->Draw();
@@ -416,22 +419,56 @@ class CATS_MainUI extends CATS_UI
             ."</tr></table>";
 
 
+        $s .= "<div class='seedjx' seedjx-cmd='test'>"
+                 ."<div class='seedjx-err alert alert-danger' style='display:none'></div>"
+                 ."<div class='seedjx-out'>"
+                     ."<input name='a'/>"
+                     ."<select name='test'/><option value='good'>Good</option><option value='bad'>Bad</option></select>"
+                     ."<button class='seedjx-submit'>Go</button>"
+                 ."</div>"
+             ."</div>";
+
         return( $s );
     }
 }
 
 
 require_once SEEDCORE."SEEDUI.php";
-class MySEEDUI extends SEEDUI
+// SEEDUI seems to be good enough for now
+//class MySEEDUI extends SEEDUI
+//{
+//    function __construct() { parent::__construct(); }
+//}
+
+
+class KeyframeUIComponent extends SEEDUIComponent
 {
-    function __construct() { parent::__construct(); }
+    private $kfrel;
+    private $raViewParms = array();
+
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
+
+    function GetView()
+    {
+        $raViewParms = array();
+
+        $raViewParms['sSortCol']  = $this->oUI->GetUIParm('sSortCol');
+        $raViewParms['bSortDown'] = $this->oUI->GetUIParm('bSortDown');
+        $raViewParms['sGroupCol'] = $this->oUI->GetUIParm('sGroupCol');
+        $raViewParms['iStatus']   = $this->oUI->GetUIParm('iStatus');
+
+        $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
+        $raWindowRows = $oView->GetDataWindow( $this->oUI->GetUIParm( 'iWindowOffset' ), $this->oUI->GetUIParm( 'nWindowSize' ) );
+        return( array( $oView, $raWindowRows ) );
+    }
 }
 
-
-class MySEEDUIComponent extends SEEDUIComponent
+class KeyframeUIWidget_List extends SEEDUIWidget_List
 {
-    function __construct( SEEDUI $o ) { parent::__construct( $o ); }
-
+    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
 }
 
 ?>

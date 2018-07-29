@@ -29,7 +29,7 @@ define( "SEEDLIB", SEEDROOT."seedlib/" );
 
 require_once SEEDCORE."SEEDCoreForm.php";
 require_once SEEDCORE."SEEDCore.php";
-require_once SEEDROOT."seedapp/SEEDApp.php" ;
+require_once SEEDCORE."SEEDApp.php" ;
 require_once SEEDROOT."Keyframe/KeyframeForm.php" ;
 require_once SEEDROOT."Keyframe/KeyframeDB.php" ;
 require_once SEEDROOT."DocRep/DocRepDB.php" ;
@@ -46,13 +46,15 @@ if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
 if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
 
 $dirImg = CATSDIR_IMG;
-
+//Directory to the logo used on the CATS server
+define("CATS_LOGO", CATSDIR_IMG."cats_wide.png");
 
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(
                 array_merge( $catsDefKFDB,
                              array( 'sessPermsRequired' => array(),
-                                    'sessParms' => array( 'logfile' => CATSDIR_LOG."seedsession.log"))
+                                    'sessParms' => array( 'logfile' => CATSDIR_LOG."seedsession.log"),
+                                    'logdir' => CATSDIR_LOG )
                            )
 );
 $oApp->kfdb->SetDebug(1);

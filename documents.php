@@ -11,7 +11,7 @@ class CATSDocumentManager
     function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
     {
         $this->oApp = $oApp;
-        $this->oDocRepDB = new DocRepDB2( $oApp->kfdb, $oApp->sess->GetUID(), array( 'raPermClassesR'=>array(1) ) );
+        $this->oDocRepDB = new DocRepDB2( $oApp->kfdb, $oApp->sess->GetUID(), array( 'raPermClassesR'=>array(1), 'logdir'=>CATSDIR_LOG ) );
         $this->oDocRepUI = new CATSDocRepUI( $this->oDocRepDB );
         if( $kSelectedDoc ) $this->oDoc = $this->oDocRepDB->GetDocRepDoc( $kSelectedDoc );
     }
