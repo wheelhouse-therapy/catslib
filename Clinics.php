@@ -57,6 +57,7 @@ class Clinics {
     }
 
     function displayUserClinics(){
+        var_dump($this->GetUserClinics());
         if(count($this->GetUserClinics()) == 1){return "";}
         $s = "";
         foreach($this->GetUserClinics() as $ra){
