@@ -352,7 +352,7 @@ class Calendar
          */
         return $calendarId ." | ". $eventId;
     }
-    
+
     function  convertDBToGoogle($google_cal_ev_id){
         /*
          * Take a event id from the database and convert it into the form used by google
@@ -363,11 +363,11 @@ class Calendar
         $calId = substr($google_cal_ev_id,0, $pos); // Splice off the calendar id
         $pos += strlen($separator); // Advance pos to end of separator
         $evId = substr($google_cal_ev_id, $pos); // Splice off the event id
-        
+
         return array("calendarId" => $calId, "eventId" => $evId);
-        
+
     }
-    
+
     private function processCommands($oGC,$calendarIdCurrent)
     {
         $s = "";
@@ -595,7 +595,8 @@ class Calendar
         include_once( CATSLIB."invoice/catsinvoice.php" );
 
         $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
-        CATSInvoice( $this->oApp, $apptId, "F", array('filename'=>$filename) );
+        $oInvoice = new CATSInvoice( $this->oApp, $apptId );
+        $oInvoice->InvoicePDF( "F", array('filename'=>$filename) );
 
         $from = "developer@catherapyservices.ca";
         $to = $kfr->Value('invoice_email');
