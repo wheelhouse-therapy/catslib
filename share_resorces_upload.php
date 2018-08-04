@@ -1,7 +1,12 @@
 <?php
 require_once '_start.php';
 
-$target_dir = "pending_resources/";
+if (!file_exists(CATSDIR_RESOURCES."pending")) {
+    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
+    echo "Pending Resources Directiory Created<br />";
+}
+
+$target_dir = CATSDIR_RESOURCES."pending/";
 $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
 $uploadOk = 1;
 $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));

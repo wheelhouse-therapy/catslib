@@ -1,7 +1,16 @@
 <?php
 
-$dir_name = "pending_resources";
-$dir_accept = "accepted_resources";
+if (!file_exists(CATSDIR_RESOURCES."pending")) {
+    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
+    echo "Pending Resources Directiory Created<br />";
+}
+if (!file_exists(CATSDIR_RESOURCES."accepted")) {
+    @mkdir(CATSDIR_RESOURCES."accepted", 0777, true);
+    echo "Accepted Resources Directiory Created<br />";
+}
+
+$dir_name = CATSDIR_RESOURCES."pending/";
+$dir_accept = CATSDIR_RESOURCES."accepted/";
 
 $s .= "<a href='?screen=home'><button>Back</button></a><br />";
 $cmd = SEEDInput_Str( 'cmd' );
