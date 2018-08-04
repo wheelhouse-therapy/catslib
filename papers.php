@@ -113,7 +113,7 @@ function unsupported() {
 }
 @media print {
     body :not(.printing) {
-        display: none;
+        display: none !important;
     }
     .printing {
         position: absolute;
