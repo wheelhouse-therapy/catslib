@@ -137,7 +137,7 @@ class CATS_UI
 
                 $.ajax({
                     type: 'POST',
-                    data: { cmd: 'catsappt--reviewed', google_cal_ev_id: gid, fk_clients: cid },
+                    data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
                     url: 'jx.php',
                     success: function(data, textStatus, jqXHR) {
                         var jsData = JSON.parse(data);

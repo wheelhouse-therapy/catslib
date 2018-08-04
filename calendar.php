@@ -33,17 +33,45 @@ class Appointments
     }
 
     function Cmd( $cmd, $kAppt, $raParms )
+    /*************************************
+        All code that changes cats_appointments should be called through this interface.
+        Why? Because it is the exact interface that ajax can use, therefore allowing internal php code as well as external javascript
+        code to execute the same commands.
+     */
     {
-        $raCmds = array( 'catsappt--reviewed' => array( 'REVIEWED', 'apptReviewed' ),
-                         'catsappt--delete'   => array( 'REVIEWED', 'apptReviewed' ),
+        $raCmds = array( // If appt is REVIEWED you can review it again, delete it, cancel it, or complete it
+                         'catsappt--review'   => array( 'REVIEWED', 'apptReview' ),
+                         'catsappt--delete'   => array( 'REVIEWED', 'apptDelete' ),
+                         'catsappt--cancel'   => array( 'REVIEWED', 'apptCancel' ),
+                         'catsappt--complete' => array( 'REVIEWED', 'apptComplete' ),
 
+                         // If appt is COMPLETED you can't do any of the above anymore
+                         // but you can amend info, or you can send/resend an invoice.
+                         // When payment is received, the appt becomes PAID
+                         'catsappt--completeamend' => array( 'COMPLETED', 'apptCompleteAmend' ),
+                         'catsappt--sendinvoice'   => array( 'COMPLETED', 'apptSendInvoice' ),
+                         'catsappt--paid'          => array( 'COMPLETED', 'apptPaid' ),
 
+                         // When payment has been received all you can do is send/resend a receipt
+                         'catsappt--send receipt'  => array( 'PAID', 'apptSendReceipt' ),
         );
 
         $rQ = $this->oQ->GetEmptyRQ();
 
         if( !isset( $raCmds[$cmd] ) )  goto done;
 
+// TODO: enforce these security checks.  IsAllowed() does part of the work, but we also have to check whether the current user
+//       is allowed to access the particular kAppt
+    if( strpos($cmd,'---') !== false ) {
+        /* This is an admin command. Make sure the current user has Admin permission on catsappt OR the given kAppt appointment
+         */
+    } else if( strpos($cmd,'--') !== false ) {
+        /* This is a write command. Make sure the current user has Write permission on catsappt AND the given kAppt appointment
+         */
+    } else {
+        /* This is a read command. Make sure the current user has Read permission on the given kAppt appointment.
+         */
+    }
         list($ok,$dummy,$sErr) = $this->oApp->sess->IsAllowed( $cmd );
         if( !$ok ) {
             $rQ['sErr'] = $sErr;
@@ -54,9 +82,9 @@ class Appointments
            Check for this special case; otherwise do other commands if they are allowed for the appt's eStatus
          */
         if( !$kAppt ) {
-            if( $cmd == 'catsappt--reviewed' ) {
+            if( $cmd == 'catsappt--review' ) {
                 $kfrAppt = $this->oApptDB->GetKFR( 0 );     // same as CreateRecord
-                $rQ = $this->apptReviewed( $kfrAppt, $raParms );
+                $rQ = $this->apptReview( $kfrAppt, $raParms );
             }
         } else if( ($kfrAppt = $this->oApptDB->GetKFR( $kAppt )) ) {
             $onlyAllowedForThisStatus = $raCmds[$cmd][0];
@@ -71,7 +99,7 @@ class Appointments
         return( $rQ );
     }
 
-    private function apptReviewed( KeyframeRecord $kfrAppt, $raParms )
+    private function apptReview( KeyframeRecord $kfrAppt, $raParms )
     /*****************************************************************
         Create or update a cats_appointments record. If this is a new record, kfrAppt is newly created.
      */
@@ -111,6 +139,117 @@ class Appointments
         $rQ['sOut'] = (new Calendar($this->oApp))->drawEvent($calId,$event,'normal',$kfrAppt,'true');
 
         done:
+        return( $rQ );
+    }
+
+    private function apptComplete( KeyframeRecord $kfrAppt, $raParms )
+    /*****************************************************************
+        When treatment is done, the therapist marks the appointment COMPLETED.
+        Treatment details are stored.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+        return( $rQ );
+    }
+
+    private function apptCompleteAmend( KeyframeRecord $kfrAppt, $raParms )
+    /**********************************************************************
+        Treatment details for a COMPLETED appointment are amended / saved / re-saved.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+        return( $rQ );
+    }
+
+    private function apptDelete( KeyframeRecord $kfrAppt, $raParms )
+    /***************************************************************
+        Delete an appointment. This is different than cancel because it carries no penalty to a client and no record is preserved.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+
+// Also delete the google appointment
+//        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$this->convertGoogleToDB($calendarId, $apptId)."'");
+//        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
+//        $oGC->deleteEvent($calendarId, $apptId);
+
+        $kfrAppt->StatusSet( KeyframeRecord::STATUS_DELETED );
+        $kfrAppt->PutDBRow();
+
+        $rQ['sOut'] = "<div class='alert alert-success'>Appointment Deleted</div>";
+        $rQ['bOk'] = true;
+
+        return( $rQ );
+    }
+
+    private function apptCancel( KeyframeRecord $kfrAppt, $raParms )
+    /***************************************************************
+        Cancel an appointment. This is different than delete because it represents a missed appointment which might carry a fee,
+        and a record of the cancellation is preserved.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+        return( $rQ );
+    }
+
+    private function apptSendInvoice( KeyframeRecord $kfrAppt, $raParms )
+    /********************************************************************
+        Send an invoice for a completed (or missed) appointment to the client. This can be repeated any number of times.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+
+        $body = "Dear %s,"
+               ."\n"
+               ."\n"
+               ."Attached is your invoice for services provided for %s.  "
+               ."The total owing is $%d.\n\n"
+               ."Payment is due by end of day (EOD)."
+               ."We accept cash, cheque or e-transfer.  Please make your"
+               ." e-transfer payable to %s.\n\n "
+               ."Thank you in advance!\n\n"
+               ."Sincerely, %s, %s.";
+        $body = sprintf( $body,
+                         "Bill Name",
+                         "Client Name",
+                         ($kfr->Value("session_minutes") + $kfr->Value("prep_minutes")) * $kfr->Value('rate'),
+                         "Clinic accounts receivable",
+                         "Therapist",
+                         "Designation" );
+
+        include_once( SEEDCORE."SEEDEmail.php" );
+        include_once( CATSLIB."invoice/catsinvoice.php" );
+
+        $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
+        $oInvoice = new CATSInvoice( $this->oApp, $apptId );
+        $oInvoice->InvoicePDF( "F", array('filename'=>$filename) );
+
+        $from = "developer@catherapyservices.ca";
+        $to = $kfr->Value('invoice_email');
+        $subject = "Your Invoice";
+        if( SEEDEmailSend( $from, $to, $subject, "", $body ) ) {
+            $rQ['bOk'] = true;
+            $rQ['sOut'] = "<p>Invoice was sent to $to</p>";
+        }
+
+        return( $rQ );
+    }
+
+    private function apptSendReceipt( KeyframeRecord $kfrAppt, $raParms )
+    /********************************************************************
+        Send an receipt for a paid invoice to the client. This can be repeated any number of times.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
+        return( $rQ );
+    }
+
+    private function apptPaid( KeyframeRecord $kfrAppt, $raParms )
+    /*************************************************************
+        An invoice has been paid. Change status to PAID.
+     */
+    {
+        $rQ = $this->oQ->GetEmptyRQ();
         return( $rQ );
     }
 }
@@ -391,10 +530,6 @@ class Calendar
                     die();
                 }
                 break;
-            case 'delete':
-                $this->deleteAppt($calendarIdCurrent,$apptId);
-                $s .= "<div class='alert alert-success'> Appointment Deleted</div>";
-                break;
             case 'fulfillAppt':
                 $oApptDB = new AppointmentsDB( $this->oApp );
                 $kfr = $oApptDB->GetKFR($apptId);
@@ -408,10 +543,12 @@ class Calendar
                     $kfr->SetValue("invoice_date", date("Y-M-d"));
                 }
                 $kfr->PutDBRow();
-                $bEmailInvoice = (SEEDInput_Str('submitVal')=="Fulfill and Email Invoice");
+                $bEmailInvoice = (SEEDInput_Str('submitVal')=="Save and Email Invoice");
 
                 if( $bEmailInvoice ) {
-                    $s .= $this->emailTheInvoice( $apptId );
+                    $o = new Appointments( $this->oApp );
+                    $rQ = $o->Cmd( 'catsappt--sendinvoice', $apptId, array() );
+                    $s .= $rQ['sOut'];
                 }
                 break;
             case 'cancelFee':
@@ -494,13 +631,19 @@ class Calendar
                 if($invoice == 'true'){
                     $invoice = "";
                 }
-                $sInvoice = "<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
+                $sInvoice = "<div class='seedjx'>"
+                           ."<input type='hidden' name='kAppt' value='".$kfrAppt->Key()."'/>"
+                           ."<a href='?cmd=invoice&apptId=".$event->id.$invoice."' data-tooltip='Confirm details and invoice client'>Details &nbsp;<img src='".CATSDIR_IMG."invoice.png' style='max-width:20px; position:relative; top:-5px;'/></a>"
                            ."&nbsp;&nbsp;"
                            ."<a href='?cmd=cancelFee&apptId=$event->id$invoice' data-tooltip='Invoice cancellation fee'> Cancellation fee </a>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=delete&apptId=$event->id$invoice' data-tooltip='Delete completely'>Delete Appointment</a>"
+                           ."<button seedjx-cmd='catsappt--delete' class='seedjx-submit' data-tooltip='Delete completely'>Delete Appointment</button>"
                            ."&nbsp;&nbsp;"
-                           ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>";
+                           ."<a href='?cmd=cancel&apptId=$event->id$invoice' data-tooltip='Reload from Google Calendar'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>"
+                           ."&nbsp;&nbsp;"
+                           ."<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show PDF Invoice</a>"
+                           ."<div class='seedjx-out'></div>"
+                           ."</div>";
 
                 $sInvoice .= "<div class='row'>
                                     <div class='col-md-6'><span>Name:&nbsp </span> ".$kfrClient->Expand('[[client_first_name]] [[client_last_name]]')."</div>
@@ -531,8 +674,7 @@ class Calendar
                                 </div>"
                             . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
                             . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                            . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Fulfill and Email Invoice' />"
-                            ."&nbsp;&nbsp;<a href='cats_invoice.php?id=".$kfrAppt->Key()."' target='_blank'>Show Invoice</a>"
+                            . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Save and Email Invoice' />"
                             ."</form>";
                 if(!$desc) $desc = "Occupational Therapy Treatment";
                 $sInvoice = sprintf($sInvoice,
@@ -590,43 +732,6 @@ class Calendar
         }
     }
 
-    public function deleteAppt($calendarId, $apptId){
-        $oApptDB = new AppointmentsDB( $this->oApp );
-        $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_event_id = '".$this->convertGoogleToDB($calendarId, $apptId)."'");
-        $kfrAppt->StatusSet("Deleted");
-        $kfrAppt->PutDBRow();
-        $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
-        $oGC->deleteEvent($calendarId, $apptId);
-    }
-
-    private function emailTheInvoice( $apptId )
-    {
-        $oApptDB = new AppointmentsDB( $this->oApp );
-        $kfr = $oApptDB->GetKFR($apptId);
-        $body = "Dear %s,"
-               ."\n"
-               ."\n"
-               ."Attached is your invoice for services provided for %s.  "
-               ."The total owing is $%d.\n\n"
-               ."Payment is due by end of day (EOD)."
-               ."We accept cash, cheque or e-transfer.  Please make your"
-               ." e-transfer payable to %s.\n\n "
-               ."Thank you in advance!\n\n"
-               ."Sincerely, %s, %s.";
-        $body = sprintf($body,"Bill Name","Client Name",($kfr->Value("session_minutes")+$kfr->Value("prep_minutes"))*$kfr->Value('rate'),"Clinic accounts receivable","Therapist", "Designation");
-
-        include_once( SEEDCORE."SEEDEmail.php" );
-        include_once( CATSLIB."invoice/catsinvoice.php" );
-
-        $filename = CATSDIR_FILES.sprintf( "invoices/invoice%04d.pdf", $apptId );
-        $oInvoice = new CATSInvoice( $this->oApp, $apptId );
-        $oInvoice->InvoicePDF( "F", array('filename'=>$filename) );
-
-        $from = "developer@catherapyservices.ca";
-        $to = $kfr->Value('invoice_email');
-        $subject = "Your Invoice";
-        SEEDEmailSend( $from, $to, $subject, "", $body );
-    }
 }
 
 
