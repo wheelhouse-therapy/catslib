@@ -246,6 +246,7 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-linedpapers":
                 $s .= "PRINT DIFFERENT LINED PAPERS";
+                include("papers.php");
                 break;
             case "therapist-entercharts":
                 $s .= "ENTER CHARTS";
