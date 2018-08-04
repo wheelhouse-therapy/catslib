@@ -634,8 +634,6 @@ class Calendar
             $clientname = $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'); // fixed, not allowed to change in this form
 
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
-            $desc = $kfrAppt->Value('session_desc');
-            $rate = $kfrAppt->Value('rate');
             if( $invoice ) {
                 // show the information about the invoice/appt
                 if($invoice == 'true'){
@@ -656,16 +654,16 @@ class Calendar
                            ."</div>";
 
                 $oGrid = new SEEDBootstrapGrid( array( 'classCol1'=>'col-md-6', 'classCol2'=>'col-md-6') );
-                $sInvoice .= $oGrid->Row( "<span>Name:&nbsp </span> $clientname",
-                                          "<span>Send invoice to:&nbsp; </span> ".$kfrAppt->Value('invoice_email') )
-                            .$oGrid->Row( "<span>Session length:&nbsp; </span>".$session->format("%h:%i"),
-                                          "<span>Rate ($): </span> $rate" )
-                            .$oGrid->Row( "<span> Preptime:&nbsp </span> ".$kfrAppt->Value('prep_minutes'),
-                                          "<span> Session Description:&nbsp </span> $desc" );
+                $sInvoice .= $oGrid->Row( "Name: $clientname",
+                                          "Send invoice to: ".$kfrAppt->Value('invoice_email') )
+                            .$oGrid->Row( "Session length: ".$session->format("%h:%i"),
+                                          "Rate ($): ".$kfrAppt->Value('rate') )
+                            .$oGrid->Row( "Prep time: ".$kfrAppt->Value('prep_minutes'),
+                                          "Session Description: ".$kfrAppt->Value('session_desc') );
             } else {
                 // Set default values
-                if( !$rate ) $rate = 110.0;
-                if( !$desc ) $desc = "Occupational Therapy Treatment";
+                if( !$kfrAppt->Value('rate') )           $kfrAppt->SetValue( 'rate', 110.0 );
+                if( !$kfrAppt->Value('session_desc') )   $kfrAppt->SetValue( 'session_desc', "Occupational Therapy Treatment" );
                 if( !$kfrAppt->Value('invoice_email') )  $kfrAppt->SetValue( 'invoice_email', $kfrClient->Value('email') );
 
                 //This string defines the general format of all invoices
@@ -675,16 +673,19 @@ class Calendar
                            .$oGrid->Row( "Name: $clientname",
                                          "Send invoice to: <input type='email' name='invoice_email' value='%1\$s'>" )
                            .$oGrid->Row( "Session length (min): <input type='text' name='session_minutes' value='%2\$s' style='width:3em'>",
-                                         "Rate ($): <input name='rate' type='text' value='%6\$d' style='width:3em'>" )
-                           .$oGrid->Row( "Prep time (min):&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d' style='width:3em'>",
-                                         "Session Description: <textarea name='session_desc' rows='1' cols='20'>%7\$s</textarea>" )
+                                         "Rate ($): <input name='rate' type='text' value='%3\$d' style='width:3em'>" )
+                           .$oGrid->Row( "Prep time (min):&nbsp </span> <input type='number' name='prep_minutes' value='%4\$d' style='width:3em'>",
+                                         "Session Description: <textarea name='session_desc' rows='1' cols='20'>%5\$s</textarea>" )
                            . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
                            . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                           . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Save and Email Invoice' />"
+                           . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;"
+                           ."<input type='submit' name='submitVal' value='Save and Email Invoice' />"
                            ."</form>";
                 $sInvoice = sprintf($sInvoice,
-                                    $kfrAppt->Value('invoice_email'), $session->format("%m"), $kfrAppt->Value('prep_minutes'),
-                                    $session->format("%h:%i"), $time->format("M jS Y"), $rate, SEEDCore_HSC($desc) );
+                                    $kfrAppt->Value('invoice_email'), $session->format("%i"), $kfrAppt->Value('rate'),
+                                    $kfrAppt->Value('prep_minutes'), $kfrAppt->ValueEnt('session_desc')
+                                    //$session->format("%h:%i"), $time->format("M jS Y")
+                                    );
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
