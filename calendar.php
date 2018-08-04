@@ -376,14 +376,9 @@ class Calendar
                     // Get the command parameter, used for responding to user actions
                     $cmd = SEEDInput_Str('cmd');
                     $apptId = SEEDInput_Str('apptId');
-// bug: The tMon code below is supposed to tell the Details/Cancellation Fee links to append that parm so we stay in the chosen week
-//      when clicking those links in a future (or past) week.
-//      But tMon is only used if the current event is not $apptId.
-//      If you go to a future week that has not been reviewed, review the appt, then apptId will be the current event. Then click
-//      Details. You get kicked back to the current week because there was no tMon in the Details link.
                     $invoice = (($cmd == 'invoice' && $apptId == $event->id)?null:"true");
-                    if($invoice && SEEDInput_Int('tMon')){
-                        $invoice = "&tMon=".SEEDInput_Str('tMon');
+                    if($invoice && $this->oApp->sess->SmartGPC('tMon')){
+                        $invoice = "&tMon=".$this->oApp->sess->SmartGPC('tMon');
                     }
                     $sList .= $this->drawEvent( $calendarIdCurrent, $event, $eType, $kfrAppt, $invoice );
                 }
