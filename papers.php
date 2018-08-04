@@ -28,10 +28,10 @@ var currentIndex = -1;
 var pageRule = document.createElement('style');
 document.addEventListener("DOMContentLoaded", function() {
 document.body.appendChild(pageRule);
-if (!unsupported()) {
+if (unsupported()) {
     let tip = document.getElementById("tip");
     tip.style.display = "block";
-    if (!/constructor/i.test(window.HTMLElement) || 
+    if (/constructor/i.test(window.HTMLElement) || 
         (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })
         (!window['safari'] || safari.pushNotification)) {
         tip.innerHTML += "<br/><br/> On Safari, you may also want to change the print margins"
