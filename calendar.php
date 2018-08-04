@@ -18,11 +18,13 @@
  */
 
 include( SEEDROOT."seedlib/SEEDGoogleService.php" );
+include( SEEDCORE."SEEDGrid.php" );
 
 class Appointments
 {
+    public $oApptDB;    // anyone with an Appointments can also use an AppointmentsDB
+
     private $oApp;
-    private $oApptDB;
     private $oQ;
 
     function __construct( SEEDAppSessionAccount $oApp )
@@ -87,6 +89,14 @@ class Appointments
                 $rQ = $this->apptReview( $kfrAppt, $raParms );
             }
         } else if( ($kfrAppt = $this->oApptDB->GetKFR( $kAppt )) ) {
+
+            // kluge: catsappt--complete is only allowed from REVIEWED and
+            //        catsappt--completeamend is only allowed from COMPLETED but they both do the same thing and they're called
+            //        from the same form (but the first time the eStatus is changed). So choose the cmd based on the eStatus
+            if( in_array($cmd, array('catsappt--complete','catsappt--completeamend')) ) {
+                $cmd = ($kfrAppt->Value('eStatus') == 'REVIEWED') ? 'catsappt--complete' : 'catsappt--completeamend';
+            }
+
             $onlyAllowedForThisStatus = $raCmds[$cmd][0];
             $fn = $raCmds[$cmd][1];
 
@@ -149,6 +159,11 @@ class Appointments
      */
     {
         $rQ = $this->oQ->GetEmptyRQ();
+
+        // this is the same as completeamend except it changes the eStatus
+        $kfrAppt->SetValue( 'eStatus', "COMPLETED" );
+        $rQ = $this->apptCompleteAmend( $kfrAppt, $raParms );
+
         return( $rQ );
     }
 
@@ -158,6 +173,17 @@ class Appointments
      */
     {
         $rQ = $this->oQ->GetEmptyRQ();
+
+        foreach( $this->oApptDB->KFRel()->BaseTableFields() as $field ) {
+            if( isset($raParms[$field['alias']]) ) {
+                $kfrAppt->SetValue( $field['alias'], $raParms[$field['alias']] );
+            }
+        }
+        if(!$kfrAppt->Value("invoice_date")) {
+            $kfrAppt->SetValue("invoice_date", date("Y-M-d"));
+        }
+        $kfrAppt->PutDBRow();
+
         return( $rQ );
     }
 
@@ -258,10 +284,12 @@ class Appointments
 class Calendar
 {
     private $oApp;
+    private $oAppt;     // Appointments
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
+        $this->oAppt = new Appointments( $oApp );
     }
 
     function DrawCalendar()
@@ -277,8 +305,6 @@ class Calendar
             goto done;
         }
         $s .= $oGC->AccountSelector($gAccount);
-        // for appointments saved in cats_appointments
-        $oApptDB = new AppointmentsDB( $this->oApp );
 
         /* Get a list of all the calendars that this user can see
          */
@@ -357,7 +383,7 @@ class Calendar
 
                 } else {
                     // Admin user: check this google event against our appointment list
-                    $kfrAppt = $oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
+                    $kfrAppt = $this->oAppt->oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
 
                     if( !$kfrAppt ) {
                         // NEW: this google event is not yet in cat_appointments; show the form to add the appointment
@@ -526,29 +552,15 @@ class Calendar
                 }
                 break;
             case 'fulfillAppt':
-                $oApptDB = new AppointmentsDB( $this->oApp );
-                $kfr = $oApptDB->GetKFR($apptId);
-                foreach( $oApptDB->KFRel()->BaseTableFields() as $field ) {
-                    if(!SEEDInput_Str($field['alias'])){
-                        continue;
-                    }
-                    $kfr->SetValue( $field['alias'],  SEEDInput_Str($field['alias']));
-                }
-                if(!$kfr->Value("invoice_date")) {
-                    $kfr->SetValue("invoice_date", date("Y-M-d"));
-                }
-                $kfr->PutDBRow();
+                $this->oAppt->Cmd( 'catsappt--complete', $apptId, $_REQUEST );   // get the appointment details from $_REQUEST
                 $bEmailInvoice = (SEEDInput_Str('submitVal')=="Save and Email Invoice");
-
                 if( $bEmailInvoice ) {
-                    $o = new Appointments( $this->oApp );
-                    $rQ = $o->Cmd( 'catsappt--sendinvoice', $apptId, array() );
+                    $rQ = $this->oAppt->Cmd( 'catsappt--sendinvoice', $apptId, array() );
                     $s .= $rQ['sOut'];
                 }
                 break;
             case 'cancelFee':
-                $oApptDB = new AppointmentsDB( $this->oApp );
-                $kfr = $oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$this->convertGoogleToDB($calendarIdCurrent, $apptId)."'");
+                $kfr = $this->oAppt->oApptDB->KFRel()->GetRecordFromDB("Appts.google_cal_ev_id='".$this->convertGoogleToDB($calendarIdCurrent, $apptId)."'");
                 $kfr->SetValue('session_desc',"Cancelation Fee");
                 $kfr->SetValue('estatus','CANCELLED');
                 $kfr->SetValue('session_minutes',30);
@@ -618,9 +630,12 @@ class Calendar
         $sInvoice = "";
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
             $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
+
+            $clientname = $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'); // fixed, not allowed to change in this form
+
             $session = date_diff(date_create(($event->start->dateTime?$event->start->dateTime:$event->start->date)), date_create(($event->end->dateTime?$event->end->dateTime:$event->end->date)));
             $desc = $kfrAppt->Value('session_desc');
-            $rate = 110.0;
+            $rate = $kfrAppt->Value('rate');
             if( $invoice ) {
                 // show the information about the invoice/appt
                 if($invoice == 'true'){
@@ -640,42 +655,36 @@ class Calendar
                            ."<div class='seedjx-out'></div>"
                            ."</div>";
 
-                $sInvoice .= "<div class='row'>
-                                    <div class='col-md-6'><span>Name:&nbsp </span> ".$kfrClient->Expand('[[client_first_name]] [[client_last_name]]')."</div>
-                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> ".$kfrClient->Value('email')."</div>
-                                </div>"
-                            . "<div class='row'>
-                                    <div class='col-md-6'><span>Session length:&nbsp; </span>".$session->format("%h:%i")."</div>
-                                    <div class='col-md-6'><span>Rate ($): </span> $rate</div>
-                                </div>"
-                            . "<div class='row'>
-                                    <div class='col-md-6'><span> Preptime:&nbsp </span> ".$kfrAppt->Value('prep_minutes')."</div>
-                                    <div class='col-md-6'><span> Session Description:&nbsp </span> $desc</div>
-                                </div>";
+                $oGrid = new SEEDBootstrapGrid( array( 'classCol1'=>'col-md-6', 'classCol2'=>'col-md-6') );
+                $sInvoice .= $oGrid->Row( "<span>Name:&nbsp </span> $clientname",
+                                          "<span>Send invoice to:&nbsp; </span> ".$kfrAppt->Value('invoice_email') )
+                            .$oGrid->Row( "<span>Session length:&nbsp; </span>".$session->format("%h:%i"),
+                                          "<span>Rate ($): </span> $rate" )
+                            .$oGrid->Row( "<span> Preptime:&nbsp </span> ".$kfrAppt->Value('prep_minutes'),
+                                          "<span> Session Description:&nbsp </span> $desc" );
             } else {
+                // Set default values
+                if( !$rate ) $rate = 110.0;
+                if( !$desc ) $desc = "Occupational Therapy Treatment";
+                if( !$kfrAppt->Value('invoice_email') )  $kfrAppt->SetValue( 'invoice_email', $kfrClient->Value('email') );
+
                 //This string defines the general format of all invoices
                 //The correct info for each client is subed in later with sprintf
-                $sInvoice = "<form><div class='row'>
-                                    <div class='col-md-6'><span>Name:&nbsp </span> <input type='text' value='%1\$s'></div>
-                                    <div class='col-md-6'> <span>Send invoice to:&nbsp; </span> <input type='email' name='invoice_email' value='%2\$s'></div>
-                                </div>"
-                            . "<div class='row'>
-                                    <div class='col-md-6'><span>Session length:&nbsp; </span><input type='text' name='' value='%4\$s'></div>
-                                    <div class='col-md-6'><span>Rate ($): </span> <input name='rate' type='text' value='%6\$d'></div>
-                                </div>"
-                            . "<div class='row'>
-                                    <div class='col-md-6'><span> Preptime:&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d'></div>
-                                    <div class='col-md-6'><span> Session Description:&nbsp </span> <input type='text' name='session_desc' value='%7\$s'></div>
-                                </div>"
-                            . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
-                            . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
-                            . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Save and Email Invoice' />"
-                            ."</form>";
-                if(!$desc) $desc = "Occupational Therapy Treatment";
+                $oGrid = new SEEDBootstrapGrid( array( 'classCol1'=>'col-md-6', 'classCol2'=>'col-md-6') );
+                $sInvoice = "<form>"
+                           .$oGrid->Row( "Name: $clientname",
+                                         "Send invoice to: <input type='email' name='invoice_email' value='%1\$s'>" )
+                           .$oGrid->Row( "Session length (min): <input type='text' name='session_minutes' value='%2\$s' style='width:3em'>",
+                                         "Rate ($): <input name='rate' type='text' value='%6\$d' style='width:3em'>" )
+                           .$oGrid->Row( "Prep time (min):&nbsp </span> <input type='number' name='prep_minutes' value='%3\$d' style='width:3em'>",
+                                         "Session Description: <textarea name='session_desc' rows='1' cols='20'>%7\$s</textarea>" )
+                           . "<input type='hidden' name='apptId' value='".$kfrAppt->Key()."'/>"
+                           . "<input type='hidden' name='cmd' value='fulfillAppt'/>"
+                           . "<input type='submit' name='submitVal' value='Save' />&nbsp;&nbsp;<input type='submit' name='submitVal' value='Save and Email Invoice' />"
+                           ."</form>";
                 $sInvoice = sprintf($sInvoice,
-                                    $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'),
-                                    $kfrClient->Value('email'), $kfrAppt->Value('prep_minutes'),
-                                    $session->format("%h:%i"), $time->format("M jS Y"), $rate, $desc ); //TODO Replace 110 fee with code to determine fee
+                                    $kfrAppt->Value('invoice_email'), $session->format("%m"), $kfrAppt->Value('prep_minutes'),
+                                    $session->format("%h:%i"), $time->format("M jS Y"), $rate, SEEDCore_HSC($desc) );
             }
         }
         $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
@@ -710,8 +719,6 @@ class Calendar
         //Nessisary variables needed to create new appointments
         // for appointments on the google calendar
         $oGC = new CATS_GoogleCalendar( $this->oApp->sess->SmartGPC('gAccount') );
-        // for appointments saved in cats_appointments
-        $oApptDB = new AppointmentsDB( $this->oApp );
 
         if( ($googleEventId = @$ra['appt_gid']) &&
             ($catsClientId = @$ra['cid']) &&
@@ -719,7 +726,7 @@ class Calendar
             ($calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent' )) &&
             ($event = $oGC->getEventByID($calendarIdCurrent,$googleEventId)) )
         {
-            $kfr = $oApptDB->KFRel()->CreateRecord();
+            $kfr = $this->oAppt->oApptDB->KFRel()->CreateRecord();
             $kfr->SetValue("google_cal_ev_id", $this->convertGoogleToDB($calendarIdCurrent, $event->id));
             $kfr->SetValue("start_time", substr($event->start->dateTime, 0, 19) );  // yyyy-mm-ddThh:mm:ss is 19 chars long; trim the timezone part
             $kfr->SetValue("fk_clients",$catsClientId);
