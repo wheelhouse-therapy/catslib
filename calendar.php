@@ -341,7 +341,7 @@ class Calendar
         // so "monday this week" is better than those
         $tMonThisWeek = strtotime('monday this week');
 
-        if( !($tMon = SEEDInput_Int('tMon')) ) {
+        if( !($tMon = $this->oApp->sess->SmartGPC('tMon')) ) {
             $tMon = $tMonThisWeek;
         }
         $tSun = $tMon + (3600 * 24 * 7 ) - 60;    // Add seven days (in seconds) then subtract a minute. That's the end of next sunday.
