@@ -92,7 +92,7 @@ class CATS_UI
     div.cats_header {
         overflow: visible;
         position: sticky;
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.83);
         top: 0;
         z-index: 1;
         display: inline-block;
@@ -245,7 +245,6 @@ class CATS_MainUI extends CATS_UI
                 $s .= "PRINT FORMS FOR CHARTS";
                 break;
             case "therapist-linedpapers":
-                $s .= "PRINT DIFFERENT LINED PAPERS";
                 include("papers.php");
                 break;
             case "therapist-entercharts":
