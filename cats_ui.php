@@ -372,7 +372,7 @@ class CATS_MainUI extends CATS_UI
 
         $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
 
-        $oUI = new SEEDUI(); // base class seems good enough for now  -- new MySEEDUI();
+        $oUI = new MySEEDUI( $this->oApp, "Stegosaurus" );
         $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
@@ -435,11 +435,20 @@ class CATS_MainUI extends CATS_UI
 
 
 require_once SEEDCORE."SEEDUI.php";
-// SEEDUI seems to be good enough for now
-//class MySEEDUI extends SEEDUI
-//{
-//    function __construct() { parent::__construct(); }
-//}
+class MySEEDUI extends SEEDUI
+{
+    private $oSVA;
+
+    function __construct( SEEDAppSession $oApp, $sApplication )
+    {
+        parent::__construct();
+        $this->oSVA = new SEEDSessionVarAccessor( $oApp->sess, $sApplication );
+    }
+
+    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
+    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
+    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
+}
 
 
 class KeyframeUIComponent extends SEEDUIComponent
@@ -453,13 +462,13 @@ class KeyframeUIComponent extends SEEDUIComponent
     {
         $raViewParms = array();
 
-        $raViewParms['sSortCol']  = $this->oUI->GetUIParm('sSortCol');
-        $raViewParms['bSortDown'] = $this->oUI->GetUIParm('bSortDown');
-        $raViewParms['sGroupCol'] = $this->oUI->GetUIParm('sGroupCol');
-        $raViewParms['iStatus']   = $this->oUI->GetUIParm('iStatus');
+        $raViewParms['sSortCol']  = $this->GetUIParm('sSortCol');
+        $raViewParms['bSortDown'] = $this->GetUIParm('bSortDown');
+        $raViewParms['sGroupCol'] = $this->GetUIParm('sGroupCol');
+        $raViewParms['iStatus']   = $this->GetUIParm('iStatus');
 
         $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
-        $raWindowRows = $oView->GetDataWindow( $this->oUI->GetUIParm( 'iWindowOffset' ), $this->oUI->GetUIParm( 'nWindowSize' ) );
+        $raWindowRows = $oView->GetDataWindow( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
         return( array( $oView, $raWindowRows ) );
     }
 }
