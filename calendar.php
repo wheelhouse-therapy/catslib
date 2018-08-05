@@ -237,8 +237,8 @@ class Appointments
                ."Sincerely, %s, %s.";
         $body = sprintf( $body,
                          "Bill Name",
-                         "Client Name",
-                         ($kfr->Value("session_minutes") + $kfr->Value("prep_minutes")) * $kfr->Value('rate'),
+                         (new ClientsDB($this->oApp))->getClient($kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
+                         ($kfrAppt->Value("session_minutes") + $kfrAppt->Value("prep_minutes")) * $kfrAppt->Value('rate'),
                          "Clinic accounts receivable",
                          "Therapist",
                          "Designation" );
@@ -341,7 +341,7 @@ class Calendar
         // so "monday this week" is better than those
         $tMonThisWeek = strtotime('monday this week');
 
-        if( !($tMon = SEEDInput_Int('tMon')) ) {
+        if( !($tMon = $this->oApp->sess->SmartGPC('tMon')) ) {
             $tMon = $tMonThisWeek;
         }
         $tSun = $tMon + (3600 * 24 * 7 ) - 60;    // Add seven days (in seconds) then subtract a minute. That's the end of next sunday.
