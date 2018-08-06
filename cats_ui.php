@@ -391,7 +391,8 @@ class CATS_MainUI extends CATS_UI
 
         $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
-    // should the search control config:filters use the same format as list:cols - easier and extendible
+        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$this->getUsersFormTemplate()) );
+        // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
 
 
@@ -399,6 +400,7 @@ class CATS_MainUI extends CATS_UI
         $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
 
         $sSrch = $oSrch->Draw();
+        $sForm = $oForm->Draw();
 
         $s = $oList->Style()
             ."<table width='100%'><tr>"
@@ -410,7 +412,7 @@ class CATS_MainUI extends CATS_UI
             ."</td>"
             ."</tr><tr>"
             ."<td><h3>I am a Form</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
             ."</td>"
             ."<td><h3>I am a Stegosaurus</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
@@ -426,6 +428,13 @@ class CATS_MainUI extends CATS_UI
                      ."<button class='seedjx-submit'>Go</button>"
                  ."</div>"
              ."</div>";
+
+        return( $s );
+    }
+
+    private function getUsersFormTemplate()
+    {
+        $s = "<div>Name: [[Text:realname]]</div>";
 
         return( $s );
     }
@@ -454,7 +463,30 @@ class KeyframeUIComponent extends SEEDUIComponent
     private $kfrel;
     private $raViewParms = array();
 
-    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel )
+    {
+         $this->kfrel = $kfrel;     // set this before the parent::construct because that uses the factory_SEEDForm
+         parent::__construct( $o );
+    }
+
+    protected function factory_SEEDForm( $cid, $raSFParms )
+    {
+        // Any widget can find this KeyframeForm at $this->oComp->oForm
+        return( new KeyframeForm( $this->kfrel, $cid, $raSFParms ) );
+    }
+
+    function Start()
+    {
+        parent::Start();
+
+        /* Now the Component is all set up with its uiparms and widgets, but the oForm is not initialized to
+         * the current key (unless it got loaded during Update).
+         */
+
+        if( $this->Get_kCurr() && ($kfr = $this->kfrel->GetRecordFromDBKey($this->Get_kCurr())) ) {
+            $this->oForm->SetKFR( $kfr );
+        }
+    }
 
     function GetViewWindow()
     {
@@ -478,5 +510,25 @@ class KeyframeUIWidget_List extends SEEDUIWidget_List
         parent::__construct( $oComp, $raConfig );
     }
 }
+
+class KeyframeUIWidget_Form extends SEEDUIWidget_Form
+{
+    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
+    function Draw()
+    {
+        $s = "";
+
+        if( $this->oComp->oForm->GetKey() ) {
+            $o = new SEEDFormExpand( $this->oComp->oForm );
+            $s = $o->ExpandForm( $this->raConfig['sTemplate'] );
+        }
+        return( $s );
+    }
+}
+
 
 ?>
