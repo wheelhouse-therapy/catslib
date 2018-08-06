@@ -375,29 +375,28 @@ class CATS_MainUI extends CATS_UI
         $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
+        $raListParms = array(
+            'bUse_key' => true,
+            'cols' => array(
+                array( 'label'=>'Name',    'col'=>'realname' ),
+                array( 'label'=>'Email',   'col'=>'email'  ),
+                array( 'label'=>'Status',  'col'=>'eStatus'  ),
+            ) );
+        $raSrchParms['filters'] = array(
+            array( 'label'=>'Name',    'col'=>'realname' ),
+            array( 'label'=>'Email',   'col'=>'email'  ),
+            array( 'label'=>'Status',  'col'=>'eStatus'  ),
+        );
 
 
         $oList = new KeyframeUIWidget_List( $oComp );
-        $oSrch = new SEEDUIWidget_SearchControl( $oComp, array('filters'=> array('First Name'=>'firstname','Last Name'=>'lastname')) );
+        $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
     // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
 
-        $raParms['cols'] = array(
-            array( 'label'=>'First Name', 'col'=>'firstname' ),
-            array( 'label'=>'Last Name',  'col'=>'lastname'  ),
-            array( 'label'=>'Address',    'col'=>'address'   ),
-            array( 'label'=>'Child',      'col'=>'child'     ),
-        );
-        $raView = array(
-            array( 'firstname'=>'Fred',   'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
-            array( 'firstname'=>'Wilma',  'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
-            array( 'firstname'=>'Betty',  'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
-            array( 'firstname'=>'Barney', 'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
-        );
 
-        list($oView,$raWindowRows) = $oComp->GetView();
-
-        $sList = $oList->ListDrawInteractive( $raView, $raParms );
+        list($oView,$raWindowRows) = $oComp->GetViewWindow();
+        $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
 
         $sSrch = $oSrch->Draw();
 
@@ -457,7 +456,7 @@ class KeyframeUIComponent extends SEEDUIComponent
 
     function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
 
-    function GetView()
+    function GetViewWindow()
     {
         $raViewParms = array();
 
@@ -467,7 +466,7 @@ class KeyframeUIComponent extends SEEDUIComponent
         $raViewParms['iStatus']   = $this->GetUIParm('iStatus');
 
         $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
-        $raWindowRows = $oView->GetDataWindow( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
+        $raWindowRows = $oView->GetDataWindowRA( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
         return( array( $oView, $raWindowRows ) );
     }
 }
