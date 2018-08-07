@@ -34,6 +34,17 @@ class Appointments
         $this->oQ = new SEEDQ( $oApp );
     }
 
+    static function SessionHoursCalc( KeyframeRecord $kfrAppt )
+    {
+        $ra['total_minutes'] = intval($kfrAppt->Value('session_minutes'))+intval($kfrAppt->Value('prep_minutes'));
+
+        // G is the hours of 24h time without leading zero. This is really meant for displaying the time
+        // of day, but it does what we want for displaying a duration in hours:minutes
+        $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
+
+        return( $ra );
+    }
+
     function Cmd( $cmd, $kAppt, $raParms )
     /*************************************
         All code that changes cats_appointments should be called through this interface.
@@ -237,8 +248,8 @@ class Appointments
                ."Sincerely, %s, %s.";
         $body = sprintf( $body,
                          "Bill Name",
-                         "Client Name",
-                         ($kfr->Value("session_minutes") + $kfr->Value("prep_minutes")) * $kfr->Value('rate'),
+                         (new ClientsDB($this->oApp))->getClient($kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
+                         ($kfrAppt->Value("session_minutes") + $kfrAppt->Value("prep_minutes")) * $kfrAppt->Value('rate'),
                          "Clinic accounts receivable",
                          "Therapist",
                          "Designation" );
@@ -341,7 +352,7 @@ class Calendar
         // so "monday this week" is better than those
         $tMonThisWeek = strtotime('monday this week');
 
-        if( !($tMon = SEEDInput_Int('tMon')) ) {
+        if( !($tMon = $this->oApp->sess->SmartGPC('tMon')) ) {
             $tMon = $tMonThisWeek;
         }
         $tSun = $tMon + (3600 * 24 * 7 ) - 60;    // Add seven days (in seconds) then subtract a minute. That's the end of next sunday.
