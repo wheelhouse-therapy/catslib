@@ -434,7 +434,12 @@ class CATS_MainUI extends CATS_UI
 
     private function getUsersFormTemplate()
     {
-        $s = "<div>Name: [[Text:realname]]</div>";
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+            ."||| Name || [[Text:realname]]\n"
+            ."||| Email|| [[Text:email]]\n"
+            ."||| Status|| <select><option>Choose</option></select>\n"
+            ."||| Group|| [[Text:gid1]]\n"
+                ;
 
         return( $s );
     }
