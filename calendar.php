@@ -461,7 +461,7 @@ class Calendar
 	       margin-top: 5px;
 	       margin-bottom: 5px;
            box-sizing: content-box;
-           height: 180px;
+           min-height: 180px;
            width: 90%;
         }
         .collapsed .appointment {
