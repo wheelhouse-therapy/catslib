@@ -1,6 +1,7 @@
 <?php
 
 require_once CATSLIB."invoice/pdfinvoice.php";
+require CATSLIB.'calendar.php';
 
 class CATSInvoice
 {
@@ -88,7 +89,7 @@ class CATSInvoice
         $y    = 109;
         $sessionTime = ($this->kfrAppt->Value('prep_minutes')+$this->kfrAppt->Value('session_minutes'))/60;
         $line = array( "DETAILS"  => $this->kfrAppt->Value('session_desc')."\n",
-                       "HOURS"     => $sessionTime,
+                       "HOURS"     => Appointments::SessionHoursCalc($this->kfrAppt)['time_format'],
                        "AMOUNT"       => $sessionTime*$this->kfrAppt->Value('rate'));
         $size = $pdf->addLine( $y, $line );
         $y   += $size + 2;

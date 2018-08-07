@@ -42,6 +42,8 @@ class Appointments
         // of day, but it does what we want for displaying a duration in hours:minutes
         $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
 
+        $ra['payment'] = ($ra['total_minutes']/60)*$kfrAppt->Value('rate');
+        
         return( $ra );
     }
 
@@ -249,7 +251,7 @@ class Appointments
         $body = sprintf( $body,
                          "Bill Name",
                          (new ClientsDB($this->oApp))->getClient($kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
-                         (($kfrAppt->Value("session_minutes") + $kfrAppt->Value("prep_minutes"))/60) * $kfrAppt->Value('rate'),
+                         SessionHoursCalc($kfrAppt)['payment'],
                          "Clinic accounts receivable",
                          "Therapist",
                          "Designation" );
