@@ -468,7 +468,6 @@ class Calendar
 	       overflow: hidden;
 	       border: 1px dotted gray;
 	       border-radius: 5px;
-	       width: 105px;
 	       padding: 2px;
 	       background-color: #63cdfc;
 	       margin-top: 5px;
