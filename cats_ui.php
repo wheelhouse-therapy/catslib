@@ -76,7 +76,7 @@ class CATS_UI
         box-sizing: border-box;
         height: 200px;
     	width: 200px;
-    	color: var(--textColor);
+    	color: var(--textColor) !important;
     }
     .catsCircle1 {
     	animation: colorChange 10s ease-in-out infinite alternate;
@@ -368,36 +368,35 @@ class CATS_MainUI extends CATS_UI
 
         $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
 
-        $oUI = new MySEEDUI( $this->oApp, "Stegosaurus" );
+        $oUI = new SEEDUI(); // base class seems good enough for now  -- new MySEEDUI();
         $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
         $oComp->Update();
 
-        $raListParms = array(
-            'bUse_key' => true,
-            'cols' => array(
-                array( 'label'=>'Name',    'col'=>'realname' ),
-                array( 'label'=>'Email',   'col'=>'email'  ),
-                array( 'label'=>'Status',  'col'=>'eStatus'  ),
-            ) );
-        $raSrchParms['filters'] = array(
-            array( 'label'=>'Name',    'col'=>'realname' ),
-            array( 'label'=>'Email',   'col'=>'email'  ),
-            array( 'label'=>'Status',  'col'=>'eStatus'  ),
-        );
 
 
         $oList = new KeyframeUIWidget_List( $oComp );
-        $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
-        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$this->getUsersFormTemplate()) );
-        // should the search control config:filters use the same format as list:cols - easier and extendible
+        $oSrch = new SEEDUIWidget_SearchControl( $oComp, array('filters'=> array('First Name'=>'firstname','Last Name'=>'lastname')) );
+    // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
 
+        $raParms['cols'] = array(
+            array( 'label'=>'First Name', 'col'=>'firstname' ),
+            array( 'label'=>'Last Name',  'col'=>'lastname'  ),
+            array( 'label'=>'Address',    'col'=>'address'   ),
+            array( 'label'=>'Child',      'col'=>'child'     ),
+        );
+        $raView = array(
+            array( 'firstname'=>'Fred',   'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
+            array( 'firstname'=>'Wilma',  'lastname'=>'Flintstone', 'address'=>'33 Rocky Road', 'child'=>'Pebbles' ),
+            array( 'firstname'=>'Betty',  'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
+            array( 'firstname'=>'Barney', 'lastname'=>'Rubble',     'address'=>'34 Rocky Road', 'child'=>'Bam Bam' ),
+        );
 
-        list($oView,$raWindowRows) = $oComp->GetViewWindow();
-        $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
+        list($oView,$raWindowRows) = $oComp->GetView();
+
+        $sList = $oList->ListDrawInteractive( $raView, $raParms );
 
         $sSrch = $oSrch->Draw();
-        $sForm = $oForm->Draw();
 
         $s = $oList->Style()
             ."<table width='100%'><tr>"
@@ -409,7 +408,7 @@ class CATS_MainUI extends CATS_UI
             ."</td>"
             ."</tr><tr>"
             ."<td><h3>I am a Form</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
             ."</td>"
             ."<td><h3>I am a Stegosaurus</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
@@ -428,31 +427,15 @@ class CATS_MainUI extends CATS_UI
 
         return( $s );
     }
-
-    private function getUsersFormTemplate()
-    {
-        $s = "<div>Name: [[Text:realname]]</div>";
-
-        return( $s );
-    }
 }
 
 
 require_once SEEDCORE."SEEDUI.php";
-class MySEEDUI extends SEEDUI
-{
-    private $oSVA;
-
-    function __construct( SEEDAppSession $oApp, $sApplication )
-    {
-        parent::__construct();
-        $this->oSVA = new SEEDSessionVarAccessor( $oApp->sess, $sApplication );
-    }
-
-    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
-    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
-    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
-}
+// SEEDUI seems to be good enough for now
+//class MySEEDUI extends SEEDUI
+//{
+//    function __construct() { parent::__construct(); }
+//}
 
 
 class KeyframeUIComponent extends SEEDUIComponent
@@ -460,42 +443,19 @@ class KeyframeUIComponent extends SEEDUIComponent
     private $kfrel;
     private $raViewParms = array();
 
-    function __construct( SEEDUI $o, Keyframe_Relation $kfrel )
-    {
-         $this->kfrel = $kfrel;     // set this before the parent::construct because that uses the factory_SEEDForm
-         parent::__construct( $o );
-    }
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel ) { parent::__construct( $o ); $this->kfrel = $kfrel; }
 
-    protected function factory_SEEDForm( $cid, $raSFParms )
-    {
-        // Any widget can find this KeyframeForm at $this->oComp->oForm
-        return( new KeyframeForm( $this->kfrel, $cid, $raSFParms ) );
-    }
-
-    function Start()
-    {
-        parent::Start();
-
-        /* Now the Component is all set up with its uiparms and widgets, but the oForm is not initialized to
-         * the current key (unless it got loaded during Update).
-         */
-
-        if( $this->Get_kCurr() && ($kfr = $this->kfrel->GetRecordFromDBKey($this->Get_kCurr())) ) {
-            $this->oForm->SetKFR( $kfr );
-        }
-    }
-
-    function GetViewWindow()
+    function GetView()
     {
         $raViewParms = array();
 
-        $raViewParms['sSortCol']  = $this->GetUIParm('sSortCol');
-        $raViewParms['bSortDown'] = $this->GetUIParm('bSortDown');
-        $raViewParms['sGroupCol'] = $this->GetUIParm('sGroupCol');
-        $raViewParms['iStatus']   = $this->GetUIParm('iStatus');
+        $raViewParms['sSortCol']  = $this->oUI->GetUIParm('sSortCol');
+        $raViewParms['bSortDown'] = $this->oUI->GetUIParm('bSortDown');
+        $raViewParms['sGroupCol'] = $this->oUI->GetUIParm('sGroupCol');
+        $raViewParms['iStatus']   = $this->oUI->GetUIParm('iStatus');
 
         $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
-        $raWindowRows = $oView->GetDataWindowRA( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
+        $raWindowRows = $oView->GetDataWindow( $this->oUI->GetUIParm( 'iWindowOffset' ), $this->oUI->GetUIParm( 'nWindowSize' ) );
         return( array( $oView, $raWindowRows ) );
     }
 }
@@ -507,25 +467,5 @@ class KeyframeUIWidget_List extends SEEDUIWidget_List
         parent::__construct( $oComp, $raConfig );
     }
 }
-
-class KeyframeUIWidget_Form extends SEEDUIWidget_Form
-{
-    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
-    {
-        parent::__construct( $oComp, $raConfig );
-    }
-
-    function Draw()
-    {
-        $s = "";
-
-        if( $this->oComp->oForm->GetKey() ) {
-            $o = new SEEDFormExpand( $this->oComp->oForm );
-            $s = $o->ExpandForm( $this->raConfig['sTemplate'] );
-        }
-        return( $s );
-    }
-}
-
 
 ?>
