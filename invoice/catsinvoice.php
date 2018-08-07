@@ -75,36 +75,29 @@ class CATSInvoice
         $pdf->addEcheance( date( 'Y-M-d', time() + 3600*24*30) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
         $pdf->addReference("");
-        $cols=array( "REFERENCE"    => 23,
-                     "DESIGNATION"  => 78,
-                     "QUANTITY"     => 22,
-                     "AMOUNT"       => 30,
-                     "TOTAL"        => 11 );
+        $cols=array( "DETAILS"  => 143.9,
+                     "HOURS"     => 22,
+                     "AMOUNT"       => 30);
         $pdf->addCols( $cols);
-        $cols=array( "REFERENCE"    => "L",
-                     "DESIGNATION"  => "L",
-                     "QUANTITY"     => "C",
-                     "AMOUNT"       => "R",
-                     "TOTAL"        => "C" );
+        $cols=array( "DETAILS"  => "L",
+                     "HOURS"     => "C",
+                     "AMOUNT"       => "R");
         $pdf->addLineFormat( $cols);
         $pdf->addLineFormat($cols);
 
         $y    = 109;
-        $line = array( "REFERENCE"    => "REF1",
-                       "DESIGNATION"  => "Therapy services\n",
-                       "QUANTITY"     => "1",
-                       "AMOUNT"       => "120.00",
-                       "TOTAL"        => "1" );
+        $sessionTime = ($this->kfrAppt->Value('prep_minutes')+$this->kfrAppt->Value('session_minutes'))/60;
+        $line = array( "DETAILS"  => $this->kfrAppt->Value('session_desc')."\n",
+                       "HOURS"     => $sessionTime,
+                       "AMOUNT"       => $sessionTime*$this->kfrAppt->Value('rate'));
         $size = $pdf->addLine( $y, $line );
         $y   += $size + 2;
 
-        $line = array( "REFERENCE"    => "REF2",
-                       "DESIGNATION"  => "Consulting",
-                       "QUANTITY"     => "1",
-                       "AMOUNT"       => "60.00",
-                       "TOTAL"        => "1" );
-        $size = $pdf->addLine( $y, $line );
-        $y   += $size + 2;
+//         $line = array( "DETAILS"  => "Consulting",
+//                        "HOURS"     => "1",
+//                        "AMOUNT"       => "60.00");
+//         $size = $pdf->addLine( $y, $line );
+//         $y   += $size + 2;
 
         $pdf->addCadreTVAs();
 
