@@ -52,11 +52,11 @@ class CATS_UI
         --color1: #63cdfc;
         --color2: #388ed4;
         --textColor: black;
-}
+    }
     body {
         margin: 0 8px;
     }
-    a.toCircle, button.toCircle {
+    .toCircle {
     	text-decoration: none;
     	display: flex;
     	justify-content: center;
@@ -65,25 +65,23 @@ class CATS_UI
     	margin-bottom: 20px;
     	margin-left: 10px;
     	border-style: inset outset outset inset;
+        border-width: 3px;
+        border-radius: 50%;
     }
     @keyframes colorChange {
         from {background-color: var(--color1); border-color: var(--color1);}
         to {background-color: var(--color2); border-color: var(--color2);}
     }
-    a.catsCircle1, button.catsCircle1 {
+    [class *= catsCircle] {
         box-sizing: border-box;
-    	height: 200px;
-    	width: 200px;
-    	border-radius: 100px;
-    	color: var(--textColor);
-    	animation: colorChange 10s ease-in-out infinite alternate;
-    }
-    a.catsCircle2, button.catsCircle2 {
-    	box-sizing: border-box;
         height: 200px;
     	width: 200px;
-    	border-radius: 100px;
-    	color: var(--textColor);
+    	color: var(--textColor) !important;
+    }
+    .catsCircle1 {
+    	animation: colorChange 10s ease-in-out infinite alternate;
+    }
+    .catsCircle2 {
     	animation: colorChange 10s ease-in-out -5s infinite alternate;
     }
     span.selectedClinic {
@@ -92,7 +90,7 @@ class CATS_UI
     div.cats_header {
         overflow: visible;
         position: sticky;
-        background-color: rgba(255, 255, 255, 0.83);
+        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
         top: 0;
         z-index: 1;
         display: inline-block;
@@ -108,7 +106,6 @@ class CATS_UI
 		  elements[x].style.color = textColor;
 		  elements[x].style.backgroundColor = color;
 		  elements[x].style.borderColor = color;
-		  elements[x].style.borderRadius = diameter;
 	   }
     return true;
     }
