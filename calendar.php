@@ -34,6 +34,17 @@ class Appointments
         $this->oQ = new SEEDQ( $oApp );
     }
 
+    static function SessionHoursCalc( KeyframeRecord $kfrAppt )
+    {
+        $ra['total_minutes'] = intval($kfrAppt->Value('session_minutes'))+intval($kfrAppt->Value('prep_minutes'));
+
+        // G is the hours of 24h time without leading zero. This is really meant for displaying the time
+        // of day, but it does what we want for displaying a duration in hours:minutes
+        $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
+
+        return( $ra );
+    }
+
     function Cmd( $cmd, $kAppt, $raParms )
     /*************************************
         All code that changes cats_appointments should be called through this interface.
