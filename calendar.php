@@ -238,7 +238,7 @@ class Appointments
         $body = sprintf( $body,
                          "Bill Name",
                          (new ClientsDB($this->oApp))->getClient($kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
-                         ($kfrAppt->Value("session_minutes") + $kfrAppt->Value("prep_minutes")) * $kfrAppt->Value('rate'),
+                         (($kfrAppt->Value("session_minutes") + $kfrAppt->Value("prep_minutes"))/60) * $kfrAppt->Value('rate'),
                          "Clinic accounts receivable",
                          "Therapist",
                          "Designation" );
