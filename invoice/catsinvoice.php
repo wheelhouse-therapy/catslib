@@ -118,7 +118,7 @@ class CATSInvoice
         //                  "AccompteExige" => [0|1],
         //                      "accompte"         => value    // amount of the deposit (TTC)
         //                      "accompte_percent" => percent  // percentage of deposit (TTC)
-        //                  "Remarque" => "texte"              // text
+        //                  "Note" => "texte"              // text
         $tot_prods = array( array ( "px_unit" => 120, "qte" => 1, "tva" => 1 ),
                             array ( "px_unit" =>  60, "qte" => 1, "tva" => 1 ));
         $tab_tva = array( "1"       => 19.6,
