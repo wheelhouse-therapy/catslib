@@ -18,9 +18,11 @@ class CATS_UI
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
         }
+        $clinics = new Clinics($this->oApp);
         return( "<div class='cats_header'>"
-                   ."<img src='".CATSDIR_IMG."CATS.png' style='max-width:300px;float:left;'/>"
-                   ."<div style='float:right'>"
+                   ."<a href='?screen=home'><img src='".CATS_LOGO."' style='max-width:300px;float:left;'/></a>"
+                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>".$clinics->displayUserClinics()."</div>"
+                   ."<div style='float:right;top: 5px;position: relative;'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
@@ -39,11 +41,22 @@ class CATS_UI
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
     <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
-    <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src='w/js/appointments.js'></script>
+    <script src='".W_CORE_URL."js/SEEDCore.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
     <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
+    <link rel='stylesheet' href='w/css/tooltip.css'>
     <style>
-    a:link.toCircle, a:visited.toCircle, a:hover.toCircle, a:active.toCircle {
+    :root {
+        --color1: #63cdfc;
+        --color2: #388ed4;
+        --textColor: black;
+    }
+    body {
+        margin: 0 8px;
+    }
+    .toCircle {
     	text-decoration: none;
     	display: flex;
     	justify-content: center;
@@ -52,41 +65,52 @@ class CATS_UI
     	margin-bottom: 20px;
     	margin-left: 10px;
     	border-style: inset outset outset inset;
+        border-width: 3px;
+        border-radius: 50%;
     }
     @keyframes colorChange {
-        from {background-color: #b3f0ff; border-color: #b3f0ff;}
-        to {background-color: #99ff99; border-color: #99ff99;}
+        from {background-color: var(--color1); border-color: var(--color1);}
+        to {background-color: var(--color2); border-color: var(--color2);}
     }
-    a.catsCircle1 {
-    	height: 200px;
+    [class *= catsCircle] {
+        box-sizing: border-box;
+        height: 200px;
     	width: 200px;
-    	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear infinite alternate;
+    	color: var(--textColor) !important;
     }
-    a.catsCircle2 {
-    	height: 200px;
-    	width: 200px;
-    	border-radius: 100px;
-    	color: blue;
-    	animation: colorChange 10s linear -5s infinite alternate;
+    .catsCircle1 {
+    	animation: colorChange 10s ease-in-out infinite alternate;
+    }
+    .catsCircle2 {
+    	animation: colorChange 10s ease-in-out -5s infinite alternate;
+    }
+    span.selectedClinic {
+        font-size: 20pt;
+    }
+    div.cats_header {
+        overflow: visible;
+        position: sticky;
+        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+        top: 0;
+        z-index: 1;
+        display: inline-block;
+        width: 100%;
     }
     </style>
     <script>
     function createCircle(elements, styles) {
     	for (var x in elements) {
-    	   	var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-    		elements[x].style.height = diameter;
-    		elements[x].style.width = diameter;
-    		elements[x].style.color = textColor;
-            elements[x].style.backgroundColor = color;
-            elements[x].style.borderColor = color;
-    		elements[x].style.borderRadius = diameter;
-    	}
+		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		  elements[x].style.height = diameter;
+		  elements[x].style.width = diameter;
+		  elements[x].style.color = textColor;
+		  elements[x].style.backgroundColor = color;
+		  elements[x].style.borderColor = color;
+	   }
     return true;
     }
     function run() {
-        var x = document.querySelectorAll('a.toCircle:not([class*=\"catsCircle\"])');
+        var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
         var elements = [], styles = [];
         for(var y = 0; y < x.length; y++) {
 	       elements.push(x[y]);
@@ -95,20 +119,27 @@ class CATS_UI
         createCircle(elements, styles);
 
         $(document).ready( function () {
+
+            /* Generic seedjx submission
+             */
+            $('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
+
+            /* the Appointment Review button launches catsappt--reviewd
+             */
             $('.appt-newform').submit( function (e) {
                 e.preventDefault();
                 var gid = $(this).find('#appt-gid').val();
                 var cid = $(this).find('#appt-clientid').val();
-                var divSpecial = $(this).closest('.appt-special');
+                var divSpecial = this.appt();
 
                 $.ajax({
                     type: 'POST',
-                    data: { cmd: 'catsappt--reviewed', google_cal_ev_id: gid, fk_clients: cid },
+                    data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
                     url: 'jx.php',
                     success: function(data, textStatus, jqXHR) {
                         var jsData = JSON.parse(data);
                         var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
-                        divSpecial.html( sSpecial );
+                        divSpecial.outerHTML = sSpecial;
                     },
                     error: function(jqXHR, status, error) {
                         console.log(status + \": \" + error);
@@ -124,9 +155,10 @@ class CATS_UI
 
     .$body
 
-
+    ."<script> SEEDCore_CleanBrowserAddress(); </script>"
 
     ."<script> run(); </script>"
+    ."<script src='w/js/tooltip.js'></script>"
     ."</body></html>";
 
         return( $s );
@@ -150,17 +182,22 @@ class CATS_MainUI extends CATS_UI
     function Screen( $screen ) {
         $this->SetScreen( $screen );
 
-        $s = "";
-        if( substr($screen,0,13) == "administrator" ) {
-            $s = $this->DrawAdministrator();
+        $s = $this->Header();
+        $clinics = new Clinics($this->oApp);
+        if($clinics->GetCurrentClinic() == NULL){
+            $s .= "<h2>Please Select a clinic to continue</h2>"
+                 .$clinics->displayUserClinics();
+        }
+        else if( substr($screen,0,9) == "developer" ) {
+            $s .= $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
-            $s = $this->DrawAdmin();
+            $s .= $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
-            $s = $this->DrawTherapist();
+            $s .= $this->DrawTherapist();
         } else if( $screen == "logout" ) {
-            $s = $this->DrawLogout();
+            $s .= $this->DrawLogout();
         } else {
-            $s = $this->DrawHome();
+            $s .= $this->DrawHome();
         }
 
         return( $s );
@@ -169,11 +206,10 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = $this->Header()."<h2>Home</h2>"
-            .($this->oApp->sess->CanRead('therapist') ? "<a href='?screen=therapist' class='toCircle catsCircle1'>Therapist</a>" : "")
-            .($this->oApp->sess->CanRead('admin')     ? "<a href='?screen=admin' class='toCircle' data-format='200px red blue'>Admin</a>" : "")
-            .($this->oApp->sess->CanRead('administrator')     ? "<a href='?screen=administrator' class='toCircle' data-format='200px red blue'>Administrator</a>" : "");
-            
+        $s = ($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+            .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
+            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
+
 
         return( $s );
     }
@@ -181,20 +217,18 @@ class CATS_MainUI extends CATS_UI
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'home',                      "Home" ),
+            array( 'therapist-calendar',        "Calendar" ),
+            array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
-            array( 'therapist-entercharts',     "Enter Charts" ),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
-            array( 'therapist-clientlist',      "Clients and Providers" ),
-            array( 'therapist-calendar',        "Calendar" ),
         );
 
-        $s = $this->Header()."<h2>Therapist</h2>";
+        $s = "";
         switch( $this->screen ) {
             case "therapist":
             default:
@@ -202,51 +236,44 @@ class CATS_MainUI extends CATS_UI
                 break;
 
             case "therapist-handouts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT HANDOUTS";
                 break;
             case "therapist-formscharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "PRINT FORMS FOR CHARTS";
                 break;
             case "therapist-linedpapers":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-                $s .= "PRINT DIFFERENT LINED PAPERS";
+                include("papers.php");
                 break;
             case "therapist-entercharts":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "ENTER CHARTS";
                 break;
             case "therapist-ideas":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "GET IDEAS";
                 break;
             case "therapist-materials":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
-                $s .= DownloadMaterials( $oApp );
+                $s .= DownloadMaterials( $this->oApp );
                 break;
             case "therapist-team":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "MEET THE TEAM";
                 break;
             case "therapist-submitresources":
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= "SUBMIT RESOURCES";
-                $s .= "<form action=\"share_resorces_upload.php\" method=\"post\" enctype=\"multipart/form-data\">
+                $s .= "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
                     <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
                     <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
                     </form>";
                 break;
+            case 'therapist-resources':
+                include('share_resorces_upload.php');
+                break;
             case "therapist-clientlist":
-                $o = new ClientList( $this->oApp->kfdb );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
+                $o = new ClientList( $this->oApp );
                 $s .= $o->DrawClientList();
                 break;
             case "therapist-calendar":
                 require_once CATSLIB."calendar.php";
                 $o = new Calendar( $this->oApp );
-                $s .= ($this->oApp->sess->CanAdmin('therapist')?"<a href='?screen=therapist' >Therapist</a><br />":"");
                 $s .= $o->DrawCalendar();
         }
         return( $s );
@@ -256,7 +283,7 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "";
 
-        $s .= $this->Header()."<h2>Admin</h2>";
+        $oApp = $this->oApp;
         switch( $this->screen ) {
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
@@ -265,18 +292,12 @@ class CATS_MainUI extends CATS_UI
                 include('review_resources.php');
                 break;
             default:
-            case 'admin':
                 $raScreens = array(
-                    array( 'home',             "Home" ),
-                    array( 'therapist',        "Therapist" ),
+                    array( 'admin-users',             "Manage Users" ),
+                    array( 'admin-resources',        "Review Resources" ),
                 );
                 $s .= $this->drawCircles( $raScreens );
 
-                if( $this->oApp->sess->CanWrite("admin") ) {
-                    $s .= "<a href='?screen=admin-users' class='toCircle catsCircle2'>Manage Users</a>"
-                         ."<a href='?screen=admin-resources' class='toCircle catsCircle2'>Review Resources</a>";
-                }
-                
                 break;
         }
         return( $s );
@@ -287,40 +308,43 @@ class CATS_MainUI extends CATS_UI
         $this->oApp->sess->LogoutSession();
         header( "Location: ".CATSDIR );
     }
-    
-    function DrawAdministrator(){
+
+    function DrawDeveloper(){
         $s = "";
-        $s .= $this->Header()."<h2>Administrator</h2>";
         switch($this->screen){
-            case 'administrator-droptable':
+            case 'developer-droptable':
+                global $catsDefKFDB;
+                $db = $catsDefKFDB['kfdbDatabase'];
                 $oApp = $this->oApp;
-                $oApp->kfdb->Execute("drop table ot.clients");
-                $oApp->kfdb->Execute("drop table ot.clients_pros");
-                $oApp->kfdb->Execute("drop table ot.professionals");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Users");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Groups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_UsersXGroups");
-                $oApp->kfdb->Execute("drop table ot.SEEDSession_Perms");
-                $oApp->kfdb->Execute("drop table ot.cats_appointments");
+                $oApp->kfdb->Execute("drop table $db.clients");
+                $oApp->kfdb->Execute("drop table $db.clients_pros");
+                $oApp->kfdb->Execute("drop table $db.professionals");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersXGroups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_Perms");
+                $oApp->kfdb->Execute("drop table $db.cats_appointments");
+                $oApp->kfdb->Execute("drop table $db.clinics");
+                $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
                 break;
+            case 'developer-clinics':
+                $s .= (new Clinics($this->oApp))->manageClinics();
+                break;
             default:
-            case 'administrator':
-                if( $this->oApp->sess->CanAdmin("DropTables") ) {
-                    $s .= "<button onclick='drop();' class='toCircle catsCircle2'>Drop Tables</button>
-                    <script>
-function drop() {
-     if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-        alert('dropping');
-        window.location.href = '".CATSDIR."?screen=administrator-droptable';
-    }
-}
-</script>";
-                }
+                    $s .= "<button onclick='drop();' class='toCircle catsCircle2' style='cursor: pointer;'>Drop Tables</button>
+                           <script>
+                               function drop() {
+                                   if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
+                                       window.location.href = '".CATSDIR."?screen=developer-droptable';
+                                   }
+                               }
+                           </script>";
+                    $s .= "<a href='?screen=developer-clinics' class='toCircle catsCircle1'>Manage Clinics</a>";
         }
         return( $s );
     }
-    
+
     private function drawCircles( $raScreens )
     {
         $s = "<div class='container-fluid'>";
@@ -342,11 +366,171 @@ function drop() {
     {
         $s = "";
 
+        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
+
+        $oUI = new MySEEDUI( $this->oApp, "Stegosaurus" );
+        $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
+        $oComp->Update();
+
+        $raListParms = array(
+            'bUse_key' => true,
+            'cols' => array(
+                array( 'label'=>'Name',    'col'=>'realname' ),
+                array( 'label'=>'Email',   'col'=>'email'  ),
+                array( 'label'=>'Status',  'col'=>'eStatus'  ),
+            ) );
+        $raSrchParms['filters'] = array(
+            array( 'label'=>'Name',    'col'=>'realname' ),
+            array( 'label'=>'Email',   'col'=>'email'  ),
+            array( 'label'=>'Status',  'col'=>'eStatus'  ),
+        );
 
 
+        $oList = new KeyframeUIWidget_List( $oComp );
+        $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
+        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$this->getUsersFormTemplate()) );
+        // should the search control config:filters use the same format as list:cols - easier and extendible
+        $oComp->Start();
+
+
+        list($oView,$raWindowRows) = $oComp->GetViewWindow();
+        $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
+
+        $sSrch = $oSrch->Draw();
+        $sForm = $oForm->Draw();
+
+        $s = $oList->Style()
+            ."<table width='100%'><tr>"
+            ."<td><h3>I am a Search Control</h3>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sSrch."</div>"
+            ."</td>"
+            ."<td><h3>I am an Interactive List</h3>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sList."</div>"
+            ."</td>"
+            ."</tr><tr>"
+            ."<td><h3>I am a Form</h3>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
+            ."</td>"
+            ."<td><h3>I am a Stegosaurus</h3>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
+            ."</td>"
+            ."</tr></table>";
+
+
+        $s .= "<div class='seedjx' seedjx-cmd='test'>"
+                 ."<div class='seedjx-err alert alert-danger' style='display:none'></div>"
+                 ."<div class='seedjx-out'>"
+                     ."<input name='a'/>"
+                     ."<select name='test'/><option value='good'>Good</option><option value='bad'>Bad</option></select>"
+                     ."<button class='seedjx-submit'>Go</button>"
+                 ."</div>"
+             ."</div>";
+
+        return( $s );
+    }
+
+    private function getUsersFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+            ."||| Name || [[Text:realname]]\n"
+            ."||| Email|| [[Text:email]]\n"
+            ."||| Status|| <select><option>Choose</option></select>\n"
+            ."||| Group|| [[Text:gid1]]\n"
+                ;
 
         return( $s );
     }
 }
+
+
+require_once SEEDCORE."SEEDUI.php";
+class MySEEDUI extends SEEDUI
+{
+    private $oSVA;
+
+    function __construct( SEEDAppSession $oApp, $sApplication )
+    {
+        parent::__construct();
+        $this->oSVA = new SEEDSessionVarAccessor( $oApp->sess, $sApplication );
+    }
+
+    function GetUIParm( $cid, $name )      { return( $this->oSVA->VarGet( "$cid|$name" ) ); }
+    function SetUIParm( $cid, $name, $v )  { $this->oSVA->VarSet( "$cid|$name", $v ); }
+    function ExistsUIParm( $cid, $name )   { return( $this->oSVA->VarIsSet( "$cid|$name" ) ); }
+}
+
+
+class KeyframeUIComponent extends SEEDUIComponent
+{
+    private $kfrel;
+    private $raViewParms = array();
+
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel )
+    {
+         $this->kfrel = $kfrel;     // set this before the parent::construct because that uses the factory_SEEDForm
+         parent::__construct( $o );
+    }
+
+    protected function factory_SEEDForm( $cid, $raSFParms )
+    {
+        // Any widget can find this KeyframeForm at $this->oComp->oForm
+        return( new KeyframeForm( $this->kfrel, $cid, $raSFParms ) );
+    }
+
+    function Start()
+    {
+        parent::Start();
+
+        /* Now the Component is all set up with its uiparms and widgets, but the oForm is not initialized to
+         * the current key (unless it got loaded during Update).
+         */
+
+        if( $this->Get_kCurr() && ($kfr = $this->kfrel->GetRecordFromDBKey($this->Get_kCurr())) ) {
+            $this->oForm->SetKFR( $kfr );
+        }
+    }
+
+    function GetViewWindow()
+    {
+        $raViewParms = array();
+
+        $raViewParms['sSortCol']  = $this->GetUIParm('sSortCol');
+        $raViewParms['bSortDown'] = $this->GetUIParm('bSortDown');
+        $raViewParms['sGroupCol'] = $this->GetUIParm('sGroupCol');
+        $raViewParms['iStatus']   = $this->GetUIParm('iStatus');
+
+        $oView = new KeyframeRelationView( $this->kfrel, $this->sSqlCond, $raViewParms );
+        $raWindowRows = $oView->GetDataWindowRA( $this->Get_iWindowOffset(), $this->Get_nWindowSize() );
+        return( array( $oView, $raWindowRows ) );
+    }
+}
+
+class KeyframeUIWidget_List extends SEEDUIWidget_List
+{
+    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+}
+
+class KeyframeUIWidget_Form extends SEEDUIWidget_Form
+{
+    function __construct( KeyframeUIComponent $oComp, $raConfig = array() )
+    {
+        parent::__construct( $oComp, $raConfig );
+    }
+
+    function Draw()
+    {
+        $s = "";
+
+        if( $this->oComp->oForm->GetKey() ) {
+            $o = new SEEDFormExpand( $this->oComp->oForm );
+            $s = $o->ExpandForm( $this->raConfig['sTemplate'] );
+        }
+        return( $s );
+    }
+}
+
 
 ?>
