@@ -93,7 +93,7 @@ class CATSInvoice
         $size = $pdf->addLine( $y, $line );
         $y   += $size + 2;
 
-        $pdf->addCadreTVAs(); // Draw Tax Box at bottom of screen
+        //$pdf->addCadreTVAs(); // Draw Tax Box at bottom of screen
 
         // invoice = array( "px_unit" => value,
         //                  "qte"     => qte,
