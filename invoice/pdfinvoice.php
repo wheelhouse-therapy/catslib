@@ -141,7 +141,7 @@ function sizeOfText( $texte, $largeur )
 function addSociete( $nom, $adresse )
 {
 	$x = 10;
-	$y = 8;
+	$y = 55;
 	//Positionnement en bas
 	$this->SetXY( $x, $y );
 	$this->SetFont('Arial','B',12);

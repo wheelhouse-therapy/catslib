@@ -64,14 +64,18 @@ class CATSInvoice
         $pdf->Ln();
         $pdf->addSociete( "CATS",
                           "Collaborative Approach Therapy Services\n" .
-                          "68 Dunbar Road South\n".
-                          "Waterloo ON N2L2E3\n" );
+                          (new ClinicsDB($this->oApp->kfdb))
+                                ->GetClinic((new ClientsDB($this->oApp->kfdb))
+                                ->GetClient($client)->Value('clinic'))
+                                ->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->fact_dev( "INVOICE", "" );
         //$pdf->temporaire( "Devis temporaire" );
         $pdf->addDate( date("Y-M-d" ) ); //03/12/2003");
         $pdf->addClient("CL" . $client);
         $pdf->addPageNumber("1");
-        $pdf->addClientAdresse("68 Dunbar Rd South\nWaterloo ON N2L 2E3");
+        $pdf->addClientAdresse((new ClientsDB($this->oApp->kfdb))
+            ->GetClient($client)
+            ->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->addRegulations("Payment by cheque");
         $pdf->addDeadline( date( 'Y-M-d', time() + 3600*24*30) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
@@ -88,6 +92,8 @@ class CATSInvoice
         $pdf->addLineFormat( $cols);
         $pdf->addLineFormat($cols);
 
+        $pdf->Image("w/img/thx-sign.png", 75, 195, 50);
+        
         $y    = 109;
         $line = array( "DATE"         => date_format(date_create($this->kfrAppt->Value('start_time')), 'Y-M-d'),
                        "DESCRIPTION"  => $this->kfrAppt->Value('session_desc')."\n",
