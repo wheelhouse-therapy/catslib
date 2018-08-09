@@ -43,7 +43,7 @@ class Appointments
         $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
 
         $ra['payment'] = ($ra['total_minutes']/60)*$kfrAppt->Value('rate');
-        
+
         return( $ra );
     }
 
@@ -363,38 +363,79 @@ class Calendar
          */
         $raEvents = $oGC->GetEvents( $calendarIdCurrent, $tMon, $tSun );
 
-        /* Get the list of calendar events from Google
+        /* Get the cats_appointments for the given week
          */
-        $sList = "";
-        if( !count($raEvents) ) {
-            $sList .= "No upcoming events found.";
-        } else {
-            $lastday = "";
-            foreach( $raEvents as $event ) {
-                /* Surround the events of each day in a <div class='day'> wrapper
-                 */
-                if( !($start = $event->start->date) ) {
-                    $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
-                }
-                if($start != $lastday){
-                    if($lastday != ""){
-                        $sList .= "</div>";
-                    }
-                    $sList .= "<div class='day'>";
-                    $time = new DateTime($start);
-                    $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
-                    $lastday = $start;
-                }
+        $raAppts = $this->oAppt->oApptDB->GetList( "google_cal_ev_id like '$calendarIdCurrent%' "
+                                                 ."AND UNIX_TIMESTAMP(start_time) >= '$tMon' "
+                                                 ."AND UNIX_TIMESTAMP(start_time) <= '$tSun'" );
+//        var_dump($raAppts,$raEvents);
 
-                /* Non-admin users are only allowed to see Free slots and book them
-                 */
-                if( !$this->oApp->sess->CanAdmin('Calendar') ) {
-                    // The current user is only allowed to see Free slots and book them
+        $sList = "";
+
+        /* Non-admin users are only allowed to see Free slots and book them.
+         * Do this by walking through the list of Google events and showing the ones that have summary "Free".
+         */
+        if( !$this->oApp->sess->CanAdmin('Calendar') ) {
+            if( !count($raEvents) ) {
+                $sList .= "No upcoming events found.";
+            } else {
+                $lastday = "";
+                foreach( $raEvents as $event ) {
                     if( strtolower($event->getSummary()) != "free" )  continue;
 
-                    $sList .= $this->drawEvent( $calendarIdCurrent, $event, 'nonadmin', null );
+                    /* Surround the events of each day in a <div class='day'> wrapper
+                     */
+                    if( !($start = $event->start->date) ) {
+                        $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
+                    }
+                    if($start != $lastday){
+                        if($lastday != ""){
+                            $sList .= "</div>";
+                        }
+                        $sList .= "<div class='day'>";
+                        $time = new DateTime($start);
+                        $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
+                        $lastday = $start;
+                    }
 
-                } else {
+                    $sList .= $this->drawEvent( $calendarIdCurrent, $event, 'nonadmin', null );
+                }
+                if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
+            }
+        } else {
+            /* Therapists and admin users are allowed to see all the appointments.
+             * Do this by showing the list of cats_appointments for this week.
+             */
+            if( !count($raAppts) ) {
+                $sList .= "No upcoming events found.";
+            } else {
+                $lastday = "";
+                foreach( $raAppts as $appt ) {
+                    // Find the corresponding google event
+                    $gid = $this->convertDBToGoogle($appt['google_cal_ev_id'])['eventId'];
+                    foreach( $raEvents as $event ) {
+                        if( substr($event->id,0,strlen($gid)) == $gid ) {
+                            break;
+                        }
+                        $event = null;
+                    }
+                    if( !$event ) continue;
+
+                    /* Surround the events of each day in a <div class='day'> wrapper
+                     */
+                    if( !($start = $event->start->date) ) {
+                        $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
+                    }
+                    if($start != $lastday){
+                        if($lastday != ""){
+                            $sList .= "</div>";
+                        }
+                        $sList .= "<div class='day'>";
+                        $time = new DateTime($start);
+                        $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
+                        $lastday = $start;
+                    }
+
                     // Admin user: check this google event against our appointment list
                     $kfrAppt = $this->oAppt->oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
 
@@ -421,9 +462,8 @@ class Calendar
                     }
                     $sList .= $this->drawEvent( $calendarIdCurrent, $event, $eType, $kfrAppt, $invoice );
                 }
-
+                if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
             }
-            if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
