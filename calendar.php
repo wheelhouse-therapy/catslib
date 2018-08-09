@@ -447,75 +447,7 @@ class Calendar
         $s .= $sCalendar;
 
         $s .= "
-    <style>
-       div.appt-time,div.appt-summary {
-           font-family: 'Roboto', sans-serif;
-           display: inline-block;
-           margin:0px 20px;
-        }
-       .drop-arrow {
-	       transition: all 0.2s ease-in-out;
-	       width: 10px;
-	       height: 10px;
-	       display: inline;
-	       transform: none;
-        }
-        .collapsed .drop-arrow {
-	       transform: rotate(-90deg);
-        }
-        .appointment {
-	       transition: all 0.2s ease-in-out;
-	       overflow: hidden;
-	       border: 1px dotted gray;
-	       border-radius: 5px;
-	       padding: 2px;
-	       background-color: #63cdfc;
-	       margin-top: 5px;
-	       margin-bottom: 5px;
-           box-sizing: content-box;
-           min-height: 180px;
-           width: 90%;
-        }
-        .collapsed .appointment {
-	       height: 0;
-	       border: none;
-	       padding: 0;
-	       margin: 0;
-        }
-        .day {
-	       margin: 2px;
-        }
-        .dayname {
-            user-select: none;
-        }
-        .weekLink {
-            margin-bottom: 10px;
-        }
-        body {
-            margin: 8px;
-        }
-        :root {
-            overflow: clip;
-        }
-        #weekLinkContainer {
-            border: 1px dotted black;
-            width: fit-content;
-            padding: 5px;
-            border-radius: 10px;
-            position: relative;
-            left: 20%;
-        }
-    </style>
-    <script>
-        function appt() {
-            var x = this;
-            while (!x.classList.contains('appointment')) {
-                x = x.parentElement;
-            }
-        return x;
-        }
-        Object.defineProperty(HTMLElement.prototype, 'appt', {enumerable: false, writable: false, value: appt});
-    </script>
+    <link rel='stylesheet' href='w/css/calendar.css' />
     <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
         done:
@@ -700,7 +632,7 @@ class Calendar
                                     );
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div>";
 
         return $s;
     }
