@@ -60,7 +60,7 @@ class CATSInvoice
 
         $pdf = new PDF_Invoice( 'P', 'mm', 'letter' );
         $pdf->AddPage();
-        //$pdf->Image("w/img/CATS.png", 10, 10, 50);
+        $pdf->Image("w/img/CATS.png", 10, 10, 50);
         $pdf->Ln();
         $pdf->addSociete( "CATS",
                           "Collaborative Approach Therapy Services\n" .
@@ -72,23 +72,26 @@ class CATSInvoice
         $pdf->addClient("CL" . $client);
         $pdf->addPageNumber("1");
         $pdf->addClientAdresse("68 Dunbar Rd South\nWaterloo ON N2L 2E3");
-        $pdf->addReglement("Payment by cheque");
-        $pdf->addEcheance( date( 'Y-M-d', time() + 3600*24*30) );
+        $pdf->addRegulations("Payment by cheque");
+        $pdf->addDeadline( date( 'Y-M-d', time() + 3600*24*30) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
         $pdf->addReference("");
-        $cols=array( "DETAILS"  => 143.9,
-                     "HOURS"     => 22,
+        $cols=array( "DATE"         => 23,
+                     "DESCRIPTION"  => 120.9,
+                     "DURATION"     => 22,
                      "AMOUNT"       => 30);
         $pdf->addCols( $cols);
-        $cols=array( "DETAILS"  => "L",
-                     "HOURS"     => "C",
+        $cols=array( "DATE"         => "L",
+                     "DESCRIPTION"  => "L",
+                     "DURATION"     => "C",
                      "AMOUNT"       => "R");
         $pdf->addLineFormat( $cols);
         $pdf->addLineFormat($cols);
 
         $y    = 109;
-        $line = array( "DETAILS"  => $this->kfrAppt->Value('session_desc')."\n",
-                       "HOURS"     => Appointments::SessionHoursCalc($this->kfrAppt)['time_format'],
+        $line = array( "DATE"         => date_format(date_create($this->kfrAppt->Value('start_time')), 'Y-M-d'),
+                       "DESCRIPTION"  => $this->kfrAppt->Value('session_desc')."\n",
+                       "DURATION"     => Appointments::SessionHoursCalc($this->kfrAppt)['time_format'],
                        "AMOUNT"       => "$".number_format(Appointments::SessionHoursCalc($this->kfrAppt)['payment'],2));
         $size = $pdf->addLine( $y, $line );
         $y   += $size + 2;

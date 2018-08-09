@@ -15,13 +15,13 @@ define('EURO_VAL', 6.55957 );
 //  function addSociete( $nom, $adresse )
 //  function fact_dev( $libelle, $num )
 //  function addDevis( $numdev )
-//  function addFacture( $numfact )
+//  function addBill( $numfact )
 //  function addDate( $date )
 //  function addClient( $ref )
 //  function addPageNumber( $page )
 //  function addClientAdresse( $adresse )
-//  function addReglement( $mode )
-//  function addEcheance( $date )
+//  function addRegulations( $mode )
+//  function addDeadline( $date )
 //  function addNumTVA($tva)
 //  function addReference($ref)
 //  function addCols( $tab )
@@ -194,10 +194,10 @@ function addDevis( $numdev )
 }
 
 // Invoice
-function addFacture( $numfact )
+function addBill( $numfact )
 {
 	$string = sprintf("FA%04d",$numfact);
-	$this->fact_dev( "Facture", $string );
+	$this->fact_dev( "Bill", $string );
 }
 
 function addDate( $date )
@@ -262,7 +262,7 @@ function addClientAdresse( $adresse )
 }
 
 // Mode of payment
-function addReglement( $mode )
+function addRegulations( $mode )
 {
 	$r1  = 10;
 	$r2  = $r1 + 60;
@@ -280,7 +280,7 @@ function addReglement( $mode )
 }
 
 // Expiry date
-function addEcheance( $date )
+function addDeadline( $date )
 {
 	$r1  = 80;
 	$r2  = $r1 + 40;
