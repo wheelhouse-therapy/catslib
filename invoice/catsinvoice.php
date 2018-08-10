@@ -77,7 +77,7 @@ class CATSInvoice
             ->GetClient($client)
             ->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->addRegulations("Payment by cheque");
-        $pdf->addDeadline( date( 'Y-M-d', time() + 3600*24*30) );
+        $pdf->addDeadline( date( 'Y-M-d', time()/* + 3600*24*30*/) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
         $pdf->addReference("");
         $cols=array( "DATE"         => 23,
