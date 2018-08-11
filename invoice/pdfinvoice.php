@@ -1,6 +1,7 @@
 <?php
 
-include( W_CORE_FPDF."fpdf.php" );
+//include( W_CORE_FPDF."fpdf.php" );    Now included by SEEDROOT."vendor/autoload.php"
+use Fpdf\Fpdf;
 
 define('EURO', chr(128) );
 define('EURO_VAL', 6.55957 );

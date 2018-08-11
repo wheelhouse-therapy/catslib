@@ -27,6 +27,9 @@ define( "SEEDCORE", SEEDROOT."seedcore/" );
 define( "SEEDAPP", SEEDROOT."seedapp/" );
 define( "SEEDLIB", SEEDROOT."seedlib/" );
 
+// include everything that SEEDROOT gets via composer
+include( SEEDROOT."vendor/autoload.php" );
+
 require_once SEEDCORE."SEEDCoreForm.php";
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
