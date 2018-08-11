@@ -60,47 +60,49 @@ class CATSInvoice
 
         $pdf = new PDF_Invoice( 'P', 'mm', 'letter' );
         $pdf->AddPage();
-        //$pdf->Image("w/img/CATS.png", 10, 10, 50);
+        $pdf->Image("w/img/CATS.png", 10, 10, 50);
         $pdf->Ln();
         $pdf->addSociete( "CATS",
                           "Collaborative Approach Therapy Services\n" .
-                          "68 Dunbar Road South\n".
-                          "Waterloo ON N2L2E3\n" );
+                          (new ClinicsDB($this->oApp->kfdb))
+                                ->GetClinic((new ClientsDB($this->oApp->kfdb))
+                                ->GetClient($client)->Value('clinic'))
+                                ->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->fact_dev( "INVOICE", "" );
         //$pdf->temporaire( "Devis temporaire" );
         $pdf->addDate( date("Y-M-d" ) ); //03/12/2003");
         $pdf->addClient("CL" . $client);
         $pdf->addPageNumber("1");
-        $pdf->addClientAdresse("68 Dunbar Rd South\nWaterloo ON N2L 2E3");
-        $pdf->addReglement("Payment by cheque");
-        $pdf->addEcheance( date( 'Y-M-d', time() + 3600*24*30) );
+        $pdf->addClientAdresse((new ClientsDB($this->oApp->kfdb))
+            ->GetClient($client)
+            ->Expand("[[address]]\n[[city]] [[postal_code]]"));
+        $pdf->addRegulations("Payment by cheque");
+        $pdf->addDeadline( date( 'Y-M-d', time()/* + 3600*24*30*/) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
         $pdf->addReference("");
-        $cols=array( "DETAILS"  => 143.9,
-                     "HOURS"     => 22,
+        $cols=array( "DATE"         => 23,
+                     "DESCRIPTION"  => 120.9,
+                     "DURATION"     => 22,
                      "AMOUNT"       => 30);
         $pdf->addCols( $cols);
-        $cols=array( "DETAILS"  => "L",
-                     "HOURS"     => "C",
+        $cols=array( "DATE"         => "L",
+                     "DESCRIPTION"  => "L",
+                     "DURATION"     => "C",
                      "AMOUNT"       => "R");
         $pdf->addLineFormat( $cols);
         $pdf->addLineFormat($cols);
 
+        $pdf->Image("w/img/thx-sign.png", 75, 195, 50);
+        
         $y    = 109;
-        $sessionTime = ($this->kfrAppt->Value('prep_minutes')+$this->kfrAppt->Value('session_minutes'))/60;
-        $line = array( "DETAILS"  => $this->kfrAppt->Value('session_desc')."\n",
-                       "HOURS"     => Appointments::SessionHoursCalc($this->kfrAppt)['time_format'],
-                       "AMOUNT"       => $sessionTime*$this->kfrAppt->Value('rate'));
+        $line = array( "DATE"         => date_format(date_create($this->kfrAppt->Value('start_time')), 'Y-M-d'),
+                       "DESCRIPTION"  => $this->kfrAppt->Value('session_desc')."\n",
+                       "DURATION"     => Appointments::SessionHoursCalc($this->kfrAppt)['time_format'],
+                       "AMOUNT"       => "$".number_format(Appointments::SessionHoursCalc($this->kfrAppt)['payment'],2));
         $size = $pdf->addLine( $y, $line );
         $y   += $size + 2;
 
-//         $line = array( "DETAILS"  => "Consulting",
-//                        "HOURS"     => "1",
-//                        "AMOUNT"       => "60.00");
-//         $size = $pdf->addLine( $y, $line );
-//         $y   += $size + 2;
-
-        $pdf->addCadreTVAs();
+        //$pdf->addCadreTVAs(); // Draw Tax Box at bottom of screen
 
         // invoice = array( "px_unit" => value,
         //                  "qte"     => qte,
@@ -108,38 +110,22 @@ class CATSInvoice
         // tab_tva = array( "1"       => 19.6,
         //                  "2"       => 5.5, ... );
         // params  = array( "RemiseGlobale" => [0|1],
-        //                      "remise_tva"     => [1|2...],  // {la remise s'applique sur ce code TVA}
-        //                      "remise"         => value,     // {montant de la remise}
-        //                      "remise_percent" => percent,   // {pourcentage de remise sur ce montant de TVA}
+        //                      "remise_tva"     => [1|2...],  // {the discount applies on this VAT code}
+        //                      "remise"         => value,     // {amount of the discount}
+        //                      "remise_percent" => percent,   // {percentage discount on this VAT amount}
         //                  "FraisPort"     => [0|1],
-        //                      "portTTC"        => value,     // montant des frais de ports TTC
-        //                                                     // par defaut la TVA = 19.6 %
-        //                      "portHT"         => value,     // montant des frais de ports HT
-        //                      "portTVA"        => tva_value, // valeur de la TVA a appliquer sur le montant HT
+        //                      "portTTC"        => value,     // amount of shipping costs
+        //                                                     // VAT default = 19.6%
+        //                      "portHT"         => value,     // amount of shipping costs
+        //                      "portTVA"        => tva_value, // value of the VAT to be applied on the amount HT
         //                  "AccompteExige" => [0|1],
-        //                      "accompte"         => value    // montant de l'acompte (TTC)
-        //                      "accompte_percent" => percent  // pourcentage d'acompte (TTC)
-        //                  "Remarque" => "texte"              // texte
+        //                      "accompte"         => value    // amount of the deposit (TTC)
+        //                      "accompte_percent" => percent  // percentage of deposit (TTC)
+        //                  "Note" => "texte"              // text
         $tot_prods = array( array ( "px_unit" => 120, "qte" => 1, "tva" => 1 ),
                             array ( "px_unit" =>  60, "qte" => 1, "tva" => 1 ));
         $tab_tva = array( "1"       => 19.6,
                           "2"       => 5.5);
-        $params  = array( "RemiseGlobale" => 1,
-                              "remise_tva"     => 1,       // {la remise s'applique sur ce code TVA}
-                              "remise"         => 0,       // {montant de la remise}
-                              "remise_percent" => 10,      // {pourcentage de remise sur ce montant de TVA}
-                          "FraisPort"     => 1,
-                              "portTTC"        => 10,      // montant des frais de ports TTC
-                                                           // par defaut la TVA = 19.6 %
-                              "portHT"         => 0,       // montant des frais de ports HT
-                              "portTVA"        => 19.6,    // valeur de la TVA a appliquer sur le montant HT
-                          "AccompteExige" => 1,
-                              "accompte"         => 0,     // montant de l'acompte (TTC)
-                              "accompte_percent" => 15,    // pourcentage d'acompte (TTC)
-                          "Remarque" => "Avec un acompte, svp..." );
-
-        $pdf->addTVAs( $params, $tab_tva, $tot_prods);
-        $pdf->addCadreEurosFrancs();
         $pdf->Output( $mode, $pdfname );
 
         done:

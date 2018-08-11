@@ -16,20 +16,20 @@ define('EURO_VAL', 6.55957 );
 //  function addSociete( $nom, $adresse )
 //  function fact_dev( $libelle, $num )
 //  function addDevis( $numdev )
-//  function addFacture( $numfact )
+//  function addBill( $numfact )
 //  function addDate( $date )
 //  function addClient( $ref )
 //  function addPageNumber( $page )
 //  function addClientAdresse( $adresse )
-//  function addReglement( $mode )
-//  function addEcheance( $date )
+//  function addRegulations( $mode )
+//  function addDeadline( $date )
 //  function addNumTVA($tva)
 //  function addReference($ref)
 //  function addCols( $tab )
 //  function addLineFormat( $tab )
 //  function lineVert( $tab )
 //  function addLine( $ligne, $tab )
-//  function addRemarque($remarque)
+//  function addNote($remarque)
 //  function addCadreTVAs()
 //  function addCadreEurosFrancs()
 //  function addTVAs( $params, $tab_tva, $invoice )
@@ -142,7 +142,7 @@ function sizeOfText( $texte, $largeur )
 function addSociete( $nom, $adresse )
 {
 	$x = 10;
-	$y = 8;
+	$y = 55;
 	//Positionnement en bas
 	$this->SetXY( $x, $y );
 	$this->SetFont('Arial','B',12);
@@ -195,10 +195,10 @@ function addDevis( $numdev )
 }
 
 // Invoice
-function addFacture( $numfact )
+function addBill( $numfact )
 {
 	$string = sprintf("FA%04d",$numfact);
-	$this->fact_dev( "Facture", $string );
+	$this->fact_dev( "Bill", $string );
 }
 
 function addDate( $date )
@@ -263,7 +263,7 @@ function addClientAdresse( $adresse )
 }
 
 // Mode of payment
-function addReglement( $mode )
+function addRegulations( $mode )
 {
 	$r1  = 10;
 	$r2  = $r1 + 60;
@@ -281,7 +281,7 @@ function addReglement( $mode )
 }
 
 // Expiry date
-function addEcheance( $date )
+function addDeadline( $date )
 {
 	$r1  = 80;
 	$r2  = $r1 + 40;
@@ -409,16 +409,16 @@ function addLine( $ligne, $tab )
 	return ( $maxSize - $ligne );
 }
 
-function addRemarque($remarque)
+function addNote($note)
 {
 	$this->SetFont( "Arial", "", 10);
-	$length = $this->GetStringWidth( "Remarque : " . $remarque );
+	$length = $this->GetStringWidth( "Note : " . $note );
 	$r1  = 10;
 	$r2  = $r1 + $length;
 	$y  = $this->h - 45.5;
 	$height  = $y+5;
 	$this->SetXY( $r1 , $y );
-	$this->Cell($length,4, "Remarque : " . $remarque);
+	$this->Cell($length,4, "Note : " . $note);
 }
 
 function addCadreTVAs()
@@ -430,29 +430,28 @@ function addCadreTVAs()
 	$height  = $y+20;
 	$this->RoundedRect($r1, $y, ($r2 - $r1), ($height-$y), 2.5, 'D');
 	$this->Line( $r1, $y+4, $r2, $y+4);
-	$this->Line( $r1+5,  $y+4, $r1+5, $height); // avant BASES HT
-	$this->Line( $r1+27, $y, $r1+27, $height);  // avant REMISE
-	$this->Line( $r1+43, $y, $r1+43, $height);  // avant MT TVA
-	$this->Line( $r1+63, $y, $r1+63, $height);  // avant % TVA
-	$this->Line( $r1+75, $y, $r1+75, $height);  // avant PORT
-	$this->Line( $r1+91, $y, $r1+91, $height);  // avant TOTAUX
-	$this->SetXY( $r1+9, $y);
-	$this->Cell(10,4, "BASES HT");
+	$this->Line( $r1+27, $y, $r1+27, $height);  // before DISCOUNT
+	$this->Line( $r1+47, $y, $r1+47, $height);  // before MT VAT
+	$this->Line( $r1+62, $y, $r1+62, $height);  // before % VAT
+	$this->Line( $r1+75, $y, $r1+75, $height);  // before PORT
+	$this->Line( $r1+91, $y, $r1+91, $height);  // before TOTALS
+	$this->SetXY( $r1+6, $y);
+	$this->Cell(10,4, "HT BASES");
 	$this->SetX( $r1+29 );
-	$this->Cell(10,4, "REMISE");
+	$this->Cell(10,4, "DISCOUNT");
 	$this->SetX( $r1+48 );
-	$this->Cell(10,4, "MT TVA");
+	$this->Cell(10,4, "MT VAT");
 	$this->SetX( $r1+63 );
-	$this->Cell(10,4, "% TVA");
+	$this->Cell(10,4, "% VAT");
 	$this->SetX( $r1+78 );
 	$this->Cell(10,4, "PORT");
-	$this->SetX( $r1+100 );
-	$this->Cell(10,4, "TOTAUX");
+	$this->SetX( $r1+99 );
+	$this->Cell(10,4, "TOTALS");
 	$this->SetFont( "Arial", "B", 6);
 	$this->SetXY( $r1+93, $height - 8 );
 	$this->Cell(6,0, "H.T.   :");
 	$this->SetXY( $r1+93, $height - 3 );
-	$this->Cell(6,0, "T.V.A. :");
+	$this->Cell(6,0, "V.A.T. :");
 }
 
 function addCadreEurosFrancs()
@@ -493,7 +492,7 @@ function addCadreEurosFrancs()
 //                  "AccompteExige" => [0|1],
 //                      "accompte"         => value    // montant de l'acompte (TTC)
 //                      "accompte_percent" => percent  // pourcentage d'acompte (TTC)
-//                  "Remarque" => "texte"              // texte
+//                  "Note" => "texte"              // texte
 // tab_tva = array( "1"       => 19.6,
 //                  "2"       => 5.5, ... );
 // invoice = array( "px_unit" => value,
@@ -631,10 +630,10 @@ function addTVAs( $params, $tab_tva, $invoice )
 		if ( $params["accompte"] > 0 )
 		{
 			$accompteTTC=sprintf ("%.2F", $params["accompte"]);
-			if ( strlen ($params["Remarque"]) == 0 )
-				$this->addRemarque( "Accompte de $accompteTTC Euros exigé à la commande.");
+			if ( strlen ($params["Note"]) == 0 )
+				$this->addNote( "Accompte de $accompteTTC Euros exigé à la commande.");
 			else
-				$this->addRemarque( $params["Remarque"] );
+				$this->addNote( $params["Note"] );
 		}
 		else if ( $params["accompte_percent"] > 0 )
 		{
@@ -643,18 +642,18 @@ function addTVAs( $params, $tab_tva, $invoice )
 				$percent /= 100;
 			$accompteTTC=sprintf("%.2F", $totalTTC * $percent);
 			$percent100 = $percent * 100;
-			if ( strlen ($params["Remarque"]) == 0 )
-				$this->addRemarque( "Accompte de $percent100 % (soit $accompteTTC Euros) exigé à la commande." );
+			if ( strlen ($params["Note"]) == 0 )
+				$this->addNote( "Accompte de $percent100 % (soit $accompteTTC Euros) exigé à la commande." );
 			else
-				$this->addRemarque( $params["Remarque"] );
+				$this->addNote( $params["Note"] );
 		}
 		else
-			$this->addRemarque( "Drôle d'acompte !!! " . $params["Remarque"]);
+			$this->addNote( "Drôle d'acompte !!! " . $params["Note"]);
 	}
 	else
 	{
-		if ( strlen ($params["Remarque"]) > 0 )
-			$this->addRemarque( $params["Remarque"] );
+		if ( strlen ($params["Note"]) > 0 )
+			$this->addNote( $params["Note"] );
 	}
 	$re  = $this->w - 50;
 	$rf  = $this->w - 29;
