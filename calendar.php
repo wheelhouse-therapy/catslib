@@ -43,7 +43,7 @@ class Appointments
         $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
 
         $ra['payment'] = ($ra['total_minutes']/60)*$kfrAppt->Value('rate');
-
+        
         return( $ra );
     }
 
@@ -321,8 +321,8 @@ class Calendar
 
         /* Get a list of all the calendars that this user can see
          */
-        list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars();
-
+        list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars($this->oApp);
+        
         /* This user cannot see the calendar we are currently looking at. Clear the Smart GPC
          * of the unavailable calendar so the code below will point to the primary calendar
          */
@@ -336,6 +336,14 @@ class Calendar
 
         $s .= $this->processCommands($oGC, $calendarIdCurrent);
 
+        // There are no calendars available for the clinic
+        // Show a message to the user that there are no calendars
+        // To avoid errors do not access the google api without a calendar id
+        if(count($raCalendars) == 0){
+            $s .= "<h5>No Calendars Available for this clinic</h5>";
+            return $s;
+        }
+        
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
          */
@@ -363,79 +371,38 @@ class Calendar
          */
         $raEvents = $oGC->GetEvents( $calendarIdCurrent, $tMon, $tSun );
 
-        /* Get the cats_appointments for the given week
+        /* Get the list of calendar events from Google
          */
-        $raAppts = $this->oAppt->oApptDB->GetList( "google_cal_ev_id like '$calendarIdCurrent%' "
-                                                 ."AND UNIX_TIMESTAMP(start_time) >= '$tMon' "
-                                                 ."AND UNIX_TIMESTAMP(start_time) <= '$tSun'" );
-//        var_dump($raAppts,$raEvents);
-
         $sList = "";
+        if( !count($raEvents) ) {
+            $sList .= "No upcoming events found.";
+        } else {
+            $lastday = "";
+            foreach( $raEvents as $event ) {
+                /* Surround the events of each day in a <div class='day'> wrapper
+                 */
+                if( !($start = $event->start->date) ) {
+                    $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
+                }
+                if($start != $lastday){
+                    if($lastday != ""){
+                        $sList .= "</div>";
+                    }
+                    $sList .= "<div class='day'>";
+                    $time = new DateTime($start);
+                    $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
+                    $lastday = $start;
+                }
 
-        /* Non-admin users are only allowed to see Free slots and book them.
-         * Do this by walking through the list of Google events and showing the ones that have summary "Free".
-         */
-        if( !$this->oApp->sess->CanAdmin('Calendar') ) {
-            if( !count($raEvents) ) {
-                $sList .= "No upcoming events found.";
-            } else {
-                $lastday = "";
-                foreach( $raEvents as $event ) {
+                /* Non-admin users are only allowed to see Free slots and book them
+                 */
+                if( !$this->oApp->sess->CanAdmin('Calendar') ) {
+                    // The current user is only allowed to see Free slots and book them
                     if( strtolower($event->getSummary()) != "free" )  continue;
 
-                    /* Surround the events of each day in a <div class='day'> wrapper
-                     */
-                    if( !($start = $event->start->date) ) {
-                        $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
-                    }
-                    if($start != $lastday){
-                        if($lastday != ""){
-                            $sList .= "</div>";
-                        }
-                        $sList .= "<div class='day'>";
-                        $time = new DateTime($start);
-                        $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
-                        $lastday = $start;
-                    }
-
                     $sList .= $this->drawEvent( $calendarIdCurrent, $event, 'nonadmin', null );
-                }
-                if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
-            }
-        } else {
-            /* Therapists and admin users are allowed to see all the appointments.
-             * Do this by showing the list of cats_appointments for this week.
-             */
-            if( !count($raAppts) ) {
-                $sList .= "No upcoming events found.";
-            } else {
-                $lastday = "";
-                foreach( $raAppts as $appt ) {
-                    // Find the corresponding google event
-                    $gid = $this->convertDBToGoogle($appt['google_cal_ev_id'])['eventId'];
-                    foreach( $raEvents as $event ) {
-                        if( substr($event->id,0,strlen($gid)) == $gid ) {
-                            break;
-                        }
-                        $event = null;
-                    }
-                    if( !$event ) continue;
 
-                    /* Surround the events of each day in a <div class='day'> wrapper
-                     */
-                    if( !($start = $event->start->date) ) {
-                        $start = strtok( $event->start->dateTime, "T" );    // strtok returns string before T, or whole string if there is no T
-                    }
-                    if($start != $lastday){
-                        if($lastday != ""){
-                            $sList .= "</div>";
-                        }
-                        $sList .= "<div class='day'>";
-                        $time = new DateTime($start);
-                        $sList .= "<span class='dayname'>".$time->format("l F jS Y")."</span>";
-                        $lastday = $start;
-                    }
-
+                } else {
                     // Admin user: check this google event against our appointment list
                     $kfrAppt = $this->oAppt->oApptDB->KFRel()->GetRecordFromDB("google_cal_ev_id = '".$this->convertGoogleToDB($calendarIdCurrent,$event->id)."'");
 
@@ -462,8 +429,9 @@ class Calendar
                     }
                     $sList .= $this->drawEvent( $calendarIdCurrent, $event, $eType, $kfrAppt, $invoice );
                 }
-                if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
+
             }
+            if( $sList )  $sList .= "</div>";   // end the last <div class='day'>
         }
 
         $linkGoToThisWeek = ( $tMon != $tMonThisWeek ) ? "<a href='?tMon=$tMonThisWeek'> Back to the current week </a>" : "";
@@ -487,7 +455,75 @@ class Calendar
         $s .= $sCalendar;
 
         $s .= "
-    <link rel='stylesheet' href='w/css/calendar.css' />
+    <style>
+       div.appt-time,div.appt-summary {
+           font-family: 'Roboto', sans-serif;
+           display: inline-block;
+           margin:0px 20px;
+        }
+       .drop-arrow {
+	       transition: all 0.2s ease-in-out;
+	       width: 10px;
+	       height: 10px;
+	       display: inline;
+	       transform: none;
+        }
+        .collapsed .drop-arrow {
+	       transform: rotate(-90deg);
+        }
+        .appointment {
+	       transition: all 0.2s ease-in-out;
+	       overflow: hidden;
+	       border: 1px dotted gray;
+	       border-radius: 5px;
+	       padding: 2px;
+	       background-color: #63cdfc;
+	       margin-top: 5px;
+	       margin-bottom: 5px;
+           box-sizing: content-box;
+           min-height: 180px;
+           width: 90%;
+        }
+        .collapsed .appointment {
+	       height: 0;
+	       border: none;
+	       padding: 0;
+	       margin: 0;
+        }
+        .day {
+	       margin: 2px;
+        }
+        .dayname {
+            user-select: none;
+        }
+        .weekLink {
+            margin-bottom: 10px;
+        }
+        body {
+            margin: 8px;
+        }
+        :root {
+            overflow: clip;
+        }
+        #weekLinkContainer {
+            border: 1px dotted black;
+            width: fit-content;
+            padding: 5px;
+            border-radius: 10px;
+            position: relative;
+            left: 20%;
+        }
+    </style>
+    <script>
+        function appt() {
+            var x = this;
+            while (!x.classList.contains('appointment')) {
+                x = x.parentElement;
+            }
+        return x;
+        }
+        Object.defineProperty(HTMLElement.prototype, 'appt', {enumerable: false, writable: false, value: appt});
+    </script>
     <script src='" . CATSDIR . "w/js/appointments.js'></script>";
 
         done:
@@ -672,7 +708,7 @@ class Calendar
                                     );
             }
         }
-        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div>";
+        $s .= "<div class='appointment $classFree' $sOnClick > <div class='row'><div class='col-md-5'>$sAppt</div> <div class='col-md-7'>$sInvoice</div> </div> </div> </div>";
 
         return $s;
     }
@@ -835,17 +871,18 @@ class CATS_GoogleCalendar
         }
     }
 
-    function GetAllMyCalendars()
+    function GetAllMyCalendars($oApp)
     {
         $raCalendars = array();
         $sCalendarIdPrimary = "";
 
         if( !$this->service ) goto done;
-
+        
         $opts = array();
         // calendars are paged; pageToken is not specified on the first time through, then nextPageToken is specified as long as it exists
         while( ($calendarList = $this->service->calendarList->listCalendarList( $opts )) ) {
             foreach ($calendarList->getItems() as $calendarListEntry) {
+                if(!$this->checkAssociation($oApp, $calendarListEntry->getID())) continue; // Calendar is not associated with the current clinic
                 $raCalendars[$calendarListEntry->getSummary()] = $calendarListEntry->getId();
                 if( $calendarListEntry->getPrimary() ) {
                     $sCalendarIdPrimary = $calendarListEntry->getId();
@@ -859,6 +896,25 @@ class CATS_GoogleCalendar
         return( array($raCalendars,$sCalendarIdPrimary) );
     }
 
+    private function checkAssociation($oApp,$calID){
+        //Clinics
+        $clinics = new Clinics($oApp);
+        $clinicsDB = new ClinicsDB($oApp->kfdb);
+        
+        $acl = $this->service->acl->listAcl($calID);
+        foreach ($acl->getItems() as $rule) {
+            $clinic = $clinicsDB->GetClinic($clinics->GetCurrentClinic())->Value('clinic_name');
+            //FIXME Core clinic can see all calendars is this Working As Intended?
+            if(strtolower($clinic) == 'core'){
+                return TRUE;
+            }
+            if(strtolower($rule->getScope()->getValue()) == strtolower($clinic."@catherapyservices.ca")){
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }
+    
     function GetEvents( $calendarId, $startdate, $enddate )
     {
         $raEvents = array();
