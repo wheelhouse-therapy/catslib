@@ -904,7 +904,6 @@ class CATS_GoogleCalendar
         $acl = $this->service->acl->listAcl($calID);
         foreach ($acl->getItems() as $rule) {
             $clinic = $clinicsDB->GetClinic($clinics->GetCurrentClinic())->Value('clinic_name');
-            //FIXME Core clinic can see all calendars is this Working As Intended?
             if(strtolower($clinic) == 'core'){
                 return TRUE;
             }
