@@ -6,6 +6,10 @@ class Clinics {
         $this->oApp = $oApp;
     }
     
+    function isCoreClinic(){
+        return $this->GetCurrentClinic() == 1;
+    }
+    
     function GetCurrentClinic(){
         /*
          * Returns the current clinic the user is looking at
