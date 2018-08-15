@@ -882,7 +882,9 @@ class CATS_GoogleCalendar
         // calendars are paged; pageToken is not specified on the first time through, then nextPageToken is specified as long as it exists
         while( ($calendarList = $this->service->calendarList->listCalendarList( $opts )) ) {
             foreach ($calendarList->getItems() as $calendarListEntry) {
-                if(!$this->checkAssociation($oApp, $calendarListEntry->getID())) continue; // Calendar is not associated with the current clinic
+                if(!(new Clinics($oApp))->isCoreClinic()){
+                    if($calendarListEntry["accessRole"] != 'owner' || !$this->checkAssociation($oApp, $calendarListEntry->getID())) continue; // Calendar is not associated with the current clinic
+                }
                 $raCalendars[$calendarListEntry->getSummary()] = $calendarListEntry->getId();
                 if( $calendarListEntry->getPrimary() ) {
                     $sCalendarIdPrimary = $calendarListEntry->getId();
@@ -904,9 +906,6 @@ class CATS_GoogleCalendar
         $acl = $this->service->acl->listAcl($calID);
         foreach ($acl->getItems() as $rule) {
             $clinic = $clinicsDB->GetClinic($clinics->GetCurrentClinic())->Value('clinic_name');
-            if(strtolower($clinic) == 'core'){
-                return TRUE;
-            }
             if(strtolower($rule->getScope()->getValue()) == strtolower($clinic."@catherapyservices.ca")){
                 return TRUE;
             }
