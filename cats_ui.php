@@ -434,20 +434,29 @@ class CATS_MainUI extends CATS_UI
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
             ."||| Name || [[Text:realname]]\n"
             ."||| Email|| [[Text:email]]\n"
-            ."||| Status|| <select>".$this->getStatusSelectionFormTemplate()."</select>\n"
-            ."||| Group|| [[Text:gid1]]\n"
+            ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
+            ."||| Group|| <select>".$this->getUserGroupSelectionFormTemplate()."</select>\n"
                 ;
 
         return( $s );
     }
     
-    private function getStatusSelectionFormTemplate(){
+    private function getUserStatusSelectionFormTemplate(){
         $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='ot' AND TABLE_NAME='SEEDSession_users' AND COLUMN_NAME='eStatus'");
         $options = substr($options, 1,strlen($options)-2);
         $options_array = str_getcsv($options, ',', "'");
         $s = "";
         foreach($options_array as $option){
             $s .= "<option [[ifeq:[[value:eStatus]]|".$option."|selected| ]]>".$option."</option>";
+        }
+        return $s;
+    }
+    
+    private function getUserGroupSelectionFormTemplate(){
+        $groups = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM SEEDSession_groups");
+        $s = "";
+        foreach($groups as $group){
+            $s .= "<option [[ifeq:[[value:gid1]]|".$group["_key"]."|selected| ]] value='".$group["_key"]."'>".$group["groupname"]."</option>";
         }
         return $s;
     }
