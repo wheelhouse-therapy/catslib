@@ -434,12 +434,24 @@ class CATS_MainUI extends CATS_UI
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
             ."||| Name || [[Text:realname]]\n"
             ."||| Email|| [[Text:email]]\n"
-            ."||| Status|| <select><option>Choose</option></select>\n"
+            ."||| Status|| <select>".$this->getStatusSelectionFormTemplate()."</select>\n"
             ."||| Group|| [[Text:gid1]]\n"
                 ;
 
         return( $s );
     }
+    
+    private function getStatusSelectionFormTemplate(){
+        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='ot' AND TABLE_NAME='SEEDSession_users' AND COLUMN_NAME='eStatus'");
+        $options = substr($options, 1,strlen($options)-2);
+        $options_array = str_getcsv($options, ',', "'");
+        $s = "";
+        foreach($options_array as $option){
+            $s .= "<option [[ifeq:[[value:eStatus]]|".$option."|selected| ]]>".$option."</option>";
+        }
+        return $s;
+    }
+    
 }
 
 
