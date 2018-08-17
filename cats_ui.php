@@ -368,17 +368,52 @@ class CATS_MainUI extends CATS_UI
 
         $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
 
+        $mode = $this->oApp->oC->oSVA->SmartGPC( 'adminUsersMode', array('Users','Groups','Permissions') );
+//TODO:
+// I don't get any entries in the Permissions list on my computer. Do you? I can't see why, but don't have time.
+
+// Fill in extra fields in the list and the form, especially in Permissions (need mode, uid, and gid)
+
+// The search control is the same for all three screens, but it should be different. See how I did $listCols. Do the
+// same thing with raSrchParms['filters'] which will set the list in the first dropdown of the Search Control.
+
+        switch( $mode ) {
+            case "Users":
+                $kfrel = $oAcctDB->GetKfrel('U');
+                $listCols = array(
+                    array( 'label'=>'Name',    'col'=>'realname' ),
+                    array( 'label'=>'Email',   'col'=>'email'  ),
+                    array( 'label'=>'Status',  'col'=>'eStatus'  ),
+                );
+                $formTemplate = $this->getUsersFormTemplate();
+                break;
+            case "Groups":
+                $kfrel = $oAcctDB->GetKfrel('G');
+                $listCols = array(
+                    array( 'label'=>'k',          'col'=>'_key' ),
+                    array( 'label'=>'Group Name', 'col'=>'groupname'  ),
+                );
+                $formTemplate = $this->getGroupsFormTemplate();
+                break;
+            case "Permissions":
+                $kfrel = $oAcctDB->GetKfrel('P');
+                $listCols = array(
+                    array( 'label'=>'k',          'col'=>'_key' ),
+                    array( 'label'=>'Permission', 'col'=>'perm'  ),
+                    // and other fields
+                );
+                $formTemplate = $this->getPermsFormTemplate();
+                break;
+        }
+
         $oUI = new MySEEDUI( $this->oApp, "Stegosaurus" );
-        $oComp = new KeyframeUIComponent( $oUI, $oAcctDB->GetKfrel('U') );
+        $oComp = new KeyframeUIComponent( $oUI, $kfrel );
         $oComp->Update();
 
         $raListParms = array(
             'bUse_key' => true,
-            'cols' => array(
-                array( 'label'=>'Name',    'col'=>'realname' ),
-                array( 'label'=>'Email',   'col'=>'email'  ),
-                array( 'label'=>'Status',  'col'=>'eStatus'  ),
-            ) );
+            'cols' => $listCols
+        );
         $raSrchParms['filters'] = array(
             array( 'label'=>'Name',    'col'=>'realname' ),
             array( 'label'=>'Email',   'col'=>'email'  ),
@@ -388,7 +423,7 @@ class CATS_MainUI extends CATS_UI
 
         $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
-        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$this->getUsersFormTemplate()) );
+        $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
         // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
 
@@ -400,18 +435,24 @@ class CATS_MainUI extends CATS_UI
         $sForm = $oForm->Draw();
 
         $s = $oList->Style()
+            ."<form method='post'>"
+                ."<input type='submit' name='adminUsersMode' value='Users'/>&nbsp;&nbsp;"
+                ."<input type='submit' name='adminUsersMode' value='Groups'/>&nbsp;&nbsp;"
+                ."<input type='submit' name='adminUsersMode' value='Permissions'/>"
+            ."</form>"
+            ."<h2>$mode</h2>"
             ."<table width='100%'><tr>"
-            ."<td><h3>I am a Search Control</h3>"
+            ."<td>"//<h3>I am a Search Control</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sSrch."</div>"
             ."</td>"
-            ."<td><h3>I am an Interactive List</h3>"
+            ."<td>"//<h3>I am an Interactive List</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sList."</div>"
             ."</td>"
             ."</tr><tr>"
-            ."<td><h3>I am a Form</h3>"
+            ."<td>"//<h3>I am a Form</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
             ."</td>"
-            ."<td><h3>I am a Stegosaurus</h3>"
+            ."<td><h3>I am still a Stegosaurus</h3>"
             ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
             ."</td>"
             ."</tr></table>";
@@ -440,10 +481,29 @@ class CATS_MainUI extends CATS_UI
 
         return( $s );
     }
-    
+
+    private function getGroupsFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+            ."||| Name || [[Text:groupname]]\n"
+                ;
+
+        return( $s );
+    }
+
+    private function getPermsFormTemplate()
+    {
+        $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+            ."||| Name || [[Text:perm]]\n"
+            // and other fields
+                ;
+
+        return( $s );
+    }
+
     private function getUserStatusSelectionFormTemplate(){
         require_once 'database.php';
-        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_users' AND COLUMN_NAME='eStatus'");
+        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
         $options = substr($options, 1,strlen($options)-2);
         $options_array = str_getcsv($options, ',', "'");
         $s = "";
@@ -452,16 +512,16 @@ class CATS_MainUI extends CATS_UI
         }
         return $s;
     }
-    
+
     private function getUserGroupSelectionFormTemplate(){
-        $groups = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM SEEDSession_groups");
+        $groups = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM SEEDSession_Groups");
         $s = "";
         foreach($groups as $group){
             $s .= "<option [[ifeq:[[value:gid1]]|".$group["_key"]."|selected| ]] value='".$group["_key"]."'>".$group["groupname"]."</option>";
         }
         return $s;
     }
-    
+
 }
 
 
