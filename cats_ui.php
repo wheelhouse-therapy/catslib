@@ -435,14 +435,15 @@ class CATS_MainUI extends CATS_UI
             ."||| Name || [[Text:realname]]\n"
             ."||| Email|| [[Text:email]]\n"
             ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
-            ."||| Group|| <select>".$this->getUserGroupSelectionFormTemplate()."</select>\n"
+            ."||| Group|| <select name='gid1>".$this->getUserGroupSelectionFormTemplate()."</select>\n"
                 ;
 
         return( $s );
     }
     
     private function getUserStatusSelectionFormTemplate(){
-        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='ot' AND TABLE_NAME='SEEDSession_users' AND COLUMN_NAME='eStatus'");
+        require_once 'database.php';
+        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_users' AND COLUMN_NAME='eStatus'");
         $options = substr($options, 1,strlen($options)-2);
         $options_array = str_getcsv($options, ',', "'");
         $s = "";
