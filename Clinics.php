@@ -65,7 +65,6 @@ class Clinics {
     }
 
     function displayUserClinics(){
-        if(count($this->GetUserClinics()) == 1){return "";}
         $s = "";
         foreach($this->GetUserClinics() as $ra){
             if($s){
