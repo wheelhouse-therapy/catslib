@@ -11,8 +11,12 @@ if (!file_exists(CATSDIR_RESOURCES."pending")) {
 // ALL directories are stored in the resources folder
 // The name value of the second array is the name displayed in the select element
 // It should be a discriptive name indicating what goes in the folder
-$directories = array("papers" => array("directory" => "papers/", "name" => "Papers")
-           );
+$directories = array("papers"    => array("directory" => "papers/",    "name" => "Papers"              ),
+                     "handouts"  => array("directory" => "handouts/",  "name" => "Handouts"            ),
+                     "reports"   => array("directory" => "reports/",   "name" => "Client Reports"      ),
+                     "forms"     => array("directory" => "forms/",     "name" => "Forms"               ),
+                     "marketing" => array("directory" => "marketing/", "name" => "Marketing Materials" )
+                    );
 
 foreach($directories as $k => $v){
     if (!file_exists(CATSDIR_RESOURCES.$v["directory"])) {
