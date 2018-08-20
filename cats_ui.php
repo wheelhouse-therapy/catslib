@@ -416,7 +416,7 @@ class CATS_MainUI extends CATS_UI
         );
         $raSrchParms['filters'] = $listCols;
 
-
+$this->oApp->kfdb->setDebug(2);
         $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
         $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
@@ -468,10 +468,10 @@ class CATS_MainUI extends CATS_UI
     private function getUsersFormTemplate()
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
-            ."||| Name || [[Text:realname]]\n"
-            ."||| Email|| [[Text:email]]\n"
+            ."||| Name  || [[Text:realname]]\n"
+            ."||| Email || [[Text:email]]\n"
             ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
-            ."||| Group|| <select name='gid1>".$this->getUserGroupSelectionFormTemplate()."</select>\n"
+            ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid1", "groupname")."\n"
                 ;
 
         return( $s );
@@ -489,13 +489,41 @@ class CATS_MainUI extends CATS_UI
     private function getPermsFormTemplate()
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
-            ."||| Name || [[Text:perm]]\n"
+            ."||| Name  || [[Text:perm]]\n"
+            ."||| Mode  || [[Text:modes]]\n"
+            ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
+            ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
             // and other fields
                 ;
 
         return( $s );
     }
 
+    private function getSelectTemplate($table, $col, $name, $bEmpty = FALSE)
+    /****************************************************
+     * Generate a template of that defines a select element
+     * 
+     * table - The database table to get the options from
+     * col - The database collum that the options are associated with.
+     * name - The database collum that contains the user understandable name for the option
+     * bEmpty - If a None option with value of NULL should be included in the select
+     * 
+     * eg. table = SEEDSession_Groups, col = gid, name = groupname
+     * will result a select element with the groups as options with the gid of kfrel as the selected option
+     */
+    {
+        $options = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM ".$table);
+        $s = "<select name='".$col."'>";
+        if($bEmpty){
+            $s .= "<option value='NULL'>None</option>";
+        }
+        foreach($options as $option){
+            $s .= "<option [[ifeq:[[value:".$col."]]|".$option["_key"]."|selected| ]] value='".$option["_key"]."'>".$option[$name]."</option>";
+        }
+        $s .= "</select>";
+        return $s;
+    }
+    
     private function getUserStatusSelectionFormTemplate(){
         require_once 'database.php';
         $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
@@ -504,15 +532,6 @@ class CATS_MainUI extends CATS_UI
         $s = "";
         foreach($options_array as $option){
             $s .= "<option [[ifeq:[[value:eStatus]]|".$option."|selected| ]]>".$option."</option>";
-        }
-        return $s;
-    }
-
-    private function getUserGroupSelectionFormTemplate(){
-        $groups = $this->oApp->kfdb->QueryRowsRA("SELECT * FROM SEEDSession_Groups");
-        $s = "";
-        foreach($groups as $group){
-            $s .= "<option [[ifeq:[[value:gid1]]|".$group["_key"]."|selected| ]] value='".$group["_key"]."'>".$group["groupname"]."</option>";
         }
         return $s;
     }
