@@ -372,11 +372,6 @@ class CATS_MainUI extends CATS_UI
 //TODO:
 // I don't get any entries in the Permissions list on my computer. Do you? I can't see why, but don't have time.
 
-// Fill in extra fields in the list and the form, especially in Permissions (need mode, uid, and gid)
-
-// The search control is the same for all three screens, but it should be different. See how I did $listCols. Do the
-// same thing with raSrchParms['filters'] which will set the list in the first dropdown of the Search Control.
-
         switch( $mode ) {
             case "Users":
                 $kfrel = $oAcctDB->GetKfrel('U');
@@ -493,7 +488,6 @@ $this->oApp->kfdb->setDebug(2);
             ."||| Mode  || [[Text:modes]]\n"
             ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
-            // and other fields
                 ;
 
         return( $s );
