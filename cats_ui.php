@@ -414,11 +414,7 @@ class CATS_MainUI extends CATS_UI
             'bUse_key' => true,
             'cols' => $listCols
         );
-        $raSrchParms['filters'] = array(
-            array( 'label'=>'Name',    'col'=>'realname' ),
-            array( 'label'=>'Email',   'col'=>'email'  ),
-            array( 'label'=>'Status',  'col'=>'eStatus'  ),
-        );
+        $raSrchParms['filters'] = $listCols;
 
 
         $oList = new KeyframeUIWidget_List( $oComp );
@@ -426,7 +422,6 @@ class CATS_MainUI extends CATS_UI
         $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
         // should the search control config:filters use the same format as list:cols - easier and extendible
         $oComp->Start();
-
 
         list($oView,$raWindowRows) = $oComp->GetViewWindow();
         $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
