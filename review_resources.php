@@ -61,7 +61,7 @@ foreach ($dir as $fileinfo) {
             $s .= "<option value='".$k."'>".$v['name']."</option>";
         }
         $s .= "</select>
-        <input type='submit' value='' style='background: url(.".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>
+        <input type='submit' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>
         </form>
         <a href='?cmd=reject&file=".$fileinfo->getFilename()."'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>
         <br />";
