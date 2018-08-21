@@ -383,6 +383,8 @@ class CATS_MainUI extends CATS_UI
 //TODO:
 // I don't get any entries in the Permissions list on my computer. Do you? I can't see why, but don't have time.
 
+        $sInfo = "";
+
         switch( $mode ) {
             case "Users":
                 $kfrel = $oAcctDB->GetKfrel('U');
@@ -422,7 +424,7 @@ class CATS_MainUI extends CATS_UI
         );
         $raSrchParms['filters'] = $listCols;
 
-$this->oApp->kfdb->setDebug(2);
+//$this->oApp->kfdb->SetDebug(2);
         $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
         $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
@@ -434,6 +436,14 @@ $this->oApp->kfdb->setDebug(2);
 
         $sSrch = $oSrch->Draw();
         $sForm = $oForm->Draw();
+
+        if( $mode == 'Users' && ($kUser = $oComp->Get_kCurr()) ) {
+            $sInfo = "<p>This user's permissions are:</p>";
+            $raPerms = $oAcctDB->GetPermsFromUser( $kUser );
+            foreach( $raPerms['perm2modes'] as $p => $m ) {
+                $sInfo .= "$p ($m)<br/>";
+            }
+        }
 
         $s = $oList->Style()
             ."<form method='post'>"
@@ -454,7 +464,7 @@ $this->oApp->kfdb->setDebug(2);
             ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
             ."</td>"
             ."<td><h3>I am still a Stegosaurus</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'></div>"
+            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sInfo."</div>"
             ."</td>"
             ."</tr></table>";
 
@@ -507,12 +517,12 @@ $this->oApp->kfdb->setDebug(2);
     private function getSelectTemplate($table, $col, $name, $bEmpty = FALSE)
     /****************************************************
      * Generate a template of that defines a select element
-     * 
+     *
      * table - The database table to get the options from
      * col - The database collum that the options are associated with.
      * name - The database collum that contains the user understandable name for the option
      * bEmpty - If a None option with value of NULL should be included in the select
-     * 
+     *
      * eg. table = SEEDSession_Groups, col = gid, name = groupname
      * will result a select element with the groups as options with the gid of kfrel as the selected option
      */
@@ -528,7 +538,7 @@ $this->oApp->kfdb->setDebug(2);
         $s .= "</select>";
         return $s;
     }
-    
+
     private function getUserStatusSelectionFormTemplate(){
         require_once 'database.php';
         $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
