@@ -226,6 +226,8 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-materials',       "Download Marketable Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
+            array( 'therapist-reports',         "Print Client Reports"),
+            array( 'therapist-assesments',      "Score Assesments"),
         );
 
         $s = "";
@@ -236,10 +238,16 @@ class CATS_MainUI extends CATS_UI
                 break;
 
             case "therapist-handouts":
-                $s .= "PRINT HANDOUTS";
+                $dir_name = "handouts/";
+                include('view_resources.php');
                 break;
             case "therapist-formscharts":
-                $s .= "PRINT FORMS FOR CHARTS";
+                $dir_name = "forms/";
+                include('view_resources.php');
+                break;
+            case 'therapist-reports':
+                $dir_name = "reports/";
+                include('view_resources.php');
                 break;
             case "therapist-linedpapers":
                 include("papers.php");
@@ -249,6 +257,9 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-ideas":
                 $s .= "GET IDEAS";
+                break;
+            case "therapist-assesments":
+                $s .= "Score Assesments";
                 break;
             case "therapist-materials":
                 $s .= DownloadMaterials( $this->oApp );
