@@ -469,14 +469,14 @@ class CATS_MainUI extends CATS_UI
             ."</tr></table>";
 
 
-        $s .= "<div class='seedjx' seedjx-cmd='test'>"
-                 ."<div class='seedjx-err alert alert-danger' style='display:none'></div>"
-                 ."<div class='seedjx-out'>"
-                     ."<input name='a'/>"
-                     ."<select name='test'/><option value='good'>Good</option><option value='bad'>Bad</option></select>"
-                     ."<button class='seedjx-submit'>Go</button>"
-                 ."</div>"
-             ."</div>";
+//         $s .= "<div class='seedjx' seedjx-cmd='test'>"
+//                  ."<div class='seedjx-err alert alert-danger' style='display:none'></div>"
+//                  ."<div class='seedjx-out'>"
+//                      ."<input name='a'/>"
+//                      ."<select name='test'/><option value='good'>Good</option><option value='bad'>Bad</option></select>"
+//                      ."<button class='seedjx-submit'>Go</button>"
+//                  ."</div>"
+//              ."</div>";
 
         return( $s );
     }
