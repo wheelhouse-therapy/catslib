@@ -496,7 +496,8 @@ class CATS_MainUI extends CATS_UI
     private function getGroupsFormTemplate()
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
-            ."||| Name || [[Text:groupname]]\n"
+            ."||| Name            || [[Text:groupname]]\n"
+            ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname")."\n"
                 ;
 
         return( $s );
