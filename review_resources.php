@@ -32,6 +32,7 @@ $cmd = SEEDInput_Str( 'cmd' );
 if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
     $dir = SEEDInput_Str( 'dir' );
+    $file = str_replace("+", " ", $file);
     if(rename($dir_name.$file, CATSDIR_RESOURCES.$directories[$dir]['directory'].$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
     }
