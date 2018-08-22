@@ -53,7 +53,7 @@ $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
-        <form style='display:inline>
+        <form style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='file' value='".$fileinfo->getFilename()."' />
         <select name='dir' required>
