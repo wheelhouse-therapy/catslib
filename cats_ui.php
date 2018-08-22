@@ -497,7 +497,7 @@ class CATS_MainUI extends CATS_UI
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
             ."||| Name            || [[Text:groupname]]\n"
-            ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname")."\n"
+            ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
                 ;
 
         return( $s );
