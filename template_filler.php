@@ -22,7 +22,8 @@ class template_filler {
             if(!($kfr = $this->resolveTable($table))){
                 continue; // Could not resolve table. Do Not Replace
             }
-            list($col) = $this->resolveColumn($table, $col);
+            list($bCol,$col) = $this->resolveColumn($table, $col);
+            $templateProcessor->setValue($tag,$bCol?$kfr->Value($col):$col);
         }
         
     }
