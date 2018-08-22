@@ -13,7 +13,7 @@ ini_set('html_errors', 1);
  */
 if( !defined("CATSDIR") ) { define( "CATSDIR", "./" ); }
 
-if( !defined("W_CORE") )       define( "W_CORE", "../seeds/wcore/" );       // use for php include, fileopen()
+if( !defined("W_CORE") )       define( "W_CORE", SEEDROOT."wcore/" );       // use for php include, fileopen()
 if( !defined("W_CORE_URL") )   define( "W_CORE_URL", W_CORE );              // use for references to files that the browser has to find (e.g. js, css in <head>)
 if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 
