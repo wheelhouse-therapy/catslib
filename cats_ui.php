@@ -375,15 +375,27 @@ class CATS_MainUI extends CATS_UI
 
     private function drawAdminUsers()
     {
+        $o = new UsersGroupsPermsUI( $this->oApp );
+        return( $o->DrawUI() );
+    }
+}
+
+class UsersGroupsPermsUI
+{
+    private $oApp;
+    private $oAcctDB;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, $this->oApp->sess->GetUID(), array('logdir'=>$this->oApp->logdir) );
+    }
+
+    function DrawUI()
+    {
         $s = "";
 
-        $oAcctDB = new SEEDSessionAccountDBRead2( $this->oApp->kfdb, 0, array('logdir'=>$this->oApp->logdir) );
-
         $mode = $this->oApp->oC->oSVA->SmartGPC( 'adminUsersMode', array('Users','Groups','Permissions') );
-//TODO:
-// I don't get any entries in the Permissions list on my computer. Do you? I can't see why, but don't have time.
-
-        $sInfo = "";
 
         $raListParms = array(
             'bUse_key' => true,
@@ -391,7 +403,7 @@ class CATS_MainUI extends CATS_UI
 
         switch( $mode ) {
             case "Users":
-                $kfrel = $oAcctDB->GetKfrel('U');
+                $kfrel = $this->oAcctDB->GetKfrel('U');
                 $raListParms['cols'] = array(
                     array( 'label'=>'User #',  'col'=>'_key' ),
                     array( 'label'=>'Name',    'col'=>'realname' ),
@@ -404,7 +416,7 @@ class CATS_MainUI extends CATS_UI
                 $formTemplate = $this->getUsersFormTemplate();
                 break;
             case "Groups":
-                $kfrel = $oAcctDB->GetKfrel('G');
+                $kfrel = $this->oAcctDB->GetKfrel('G');
                 $raListParms['cols'] = array(
                     array( 'label'=>'k',          'col'=>'_key' ),
                     array( 'label'=>'Group Name', 'col'=>'groupname'  ),
@@ -414,7 +426,7 @@ class CATS_MainUI extends CATS_UI
                 $formTemplate = $this->getGroupsFormTemplate();
                 break;
             case "Permissions":
-                $kfrel = $oAcctDB->GetKfrel('P');
+                $kfrel = $this->oAcctDB->GetKfrel('P');
                 $raListParms['cols'] = array(
                     array( 'label'=>'Permission', 'col'=>'perm'  ),
                     array( 'label'=>'Modes',      'col'=>'modes'  ),
@@ -445,11 +457,7 @@ class CATS_MainUI extends CATS_UI
         $sForm = $oForm->Draw();
 
         if( $mode == 'Users' && ($kUser = $oComp->Get_kCurr()) ) {
-            $sInfo = "<p>This user's permissions are:</p>";
-            $raPerms = $oAcctDB->GetPermsFromUser( $kUser );
-            foreach( $raPerms['perm2modes'] as $p => $m ) {
-                $sInfo .= "$p ($m)<br/>";
-            }
+            $sInfo = $this->drawUsersInfo( $oComp );
         }
 
         $s = $oList->Style()
@@ -469,12 +477,7 @@ class CATS_MainUI extends CATS_UI
                         ."<div style='width:90%;padding:20px;border:2px solid #999'>".$sForm."</div>"
                     ."</div>"
                 ."</div>"
-                ."<div class='row'>"
-                    ."<div class='col-md-6'>"
-                        ."<h3>I am still a Stegosaurus</h3>"
-                        ."<div style='width:90%;height:300px;border:1px solid #999'>".$sInfo."</div>"
-                    ."</div>"
-                ."</div>"
+                .$sInfo
             ."</div>";
 
 
@@ -487,6 +490,90 @@ class CATS_MainUI extends CATS_UI
 //                  ."</div>"
 //              ."</div>";
 
+        return( $s );
+    }
+
+    private function drawUsersInfo( KeyframeUIComponent $oComp )
+    {
+        $s = "";
+        $s .= $this->ugpStyle();
+
+        if( !($kUser = $oComp->Get_kCurr()) )  goto done;
+
+        $raGroups = $this->oAcctDB->GetGroupsFromUser( $kUser, array('bNames'=>true) );
+        $raPerms = $this->oAcctDB->GetPermsFromUser( $kUser );
+        $raMetadata = $this->oAcctDB->GetUserMetadata( $kUser );
+
+        /* Groups list
+         */
+        $sG = "<p><b>Groups</b></p>"
+             ."<div class='ugpBox'>";
+        foreach( $raGroups as $kGroup => $sGroupname ) {
+            $sG .= "$sGroupname &nbsp;<span style='float:right'>($kGroup)</span><br/>";
+        }
+        $sG .= "</div>";
+
+        // group add/remove
+        $oFormB = new SEEDCoreForm( "B" );
+        $sG .= "<div>"
+              ."<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+              //.$this->oComp->EncodeHiddenFormParms()
+              //.SEEDForm_Hidden( 'uid', $kUser )
+              //.SEEDForm_Hidden( 'form', "UsersXGroups" )
+              .$oFormB->Text( 'gid', '' )
+              ."<input type='submit' name='cmd' value='Add'/><INPUT type='submit' name='cmd' value='Remove'/>"
+              ."</form></div>";
+
+
+        /* Perms list
+         */
+        $sP = "<p><b>Permissions</b></p>"
+             ."<div class='ugpBox'>";
+        ksort($raPerms['perm2modes']);
+        foreach( $raPerms['perm2modes'] as $k => $v ) {
+            $sP .= "$k &nbsp;<span style='float:right'>( $v )</span><br/>";
+        }
+        $sP .= "</div>";
+
+
+        /* Metadata list
+         */
+        $sM = "<p><b>Metadata</b></p>"
+             ."<div class='ugpBox'>";
+        foreach( $raMetadata as $k => $v ) {
+            $sM .= "$k &nbsp;<span style='float:right'>( $v )</span><br/>";
+        }
+        $sM .= "</div>";
+/*
+            // Metadata Add/Remove
+            $s .= "<BR/>"
+                 ."<FORM action='{$_SERVER['PHP_SELF']}' method='post'>"
+                 .$this->oComp->EncodeHiddenFormParms()
+                 .SEEDForm_Hidden( 'uid', $kUser )
+                 .SEEDForm_Hidden( 'form', "UsersMetadata" )
+                 ."k ".SEEDForm_Text( 'meta_k', '' )
+                 ."<br/>"
+                 ."v ".SEEDForm_Text( 'meta_v', '' )
+                 ."<INPUT type='submit' name='cmd' value='Set'/><INPUT type='submit' name='cmd' value='Remove'/>"
+                 ."</FORM></TD>";
+*/
+
+        $s .= "<div class='row'>"
+                 ."<div class='col-md-4'>$sG</div>"
+                 ."<div class='col-md-4'>$sP</div>"
+                 ."<div class='col-md-4'>$sM</div>"
+             ."</div>";
+
+        done:
+        return( $s );
+    }
+
+    function ugpStyle()
+    {
+        $s = "<style>"
+             .".ugpForm { font-size:14px; }"
+             .".ugpBox { height:200px; border:1px solid gray; padding:3px; font-family:sans serif; font-size:11pt; overflow-y:scroll }"
+            ."</style>";
         return( $s );
     }
 
