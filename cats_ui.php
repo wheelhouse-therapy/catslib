@@ -385,31 +385,43 @@ class CATS_MainUI extends CATS_UI
 
         $sInfo = "";
 
+        $raListParms = array(
+            'bUse_key' => true,
+        );
+
         switch( $mode ) {
             case "Users":
                 $kfrel = $oAcctDB->GetKfrel('U');
-                $listCols = array(
+                $raListParms['cols'] = array(
+                    array( 'label'=>'User #',  'col'=>'_key' ),
                     array( 'label'=>'Name',    'col'=>'realname' ),
                     array( 'label'=>'Email',   'col'=>'email'  ),
                     array( 'label'=>'Status',  'col'=>'eStatus'  ),
+                    array( 'label'=>'Group1',  'col'=>'G_groupname'  ),
                 );
+                $raListParms['fnRowTranslate'] = array($this,"usersListRowTranslate");
+                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
                 $formTemplate = $this->getUsersFormTemplate();
                 break;
             case "Groups":
                 $kfrel = $oAcctDB->GetKfrel('G');
-                $listCols = array(
+                $raListParms['cols'] = array(
                     array( 'label'=>'k',          'col'=>'_key' ),
                     array( 'label'=>'Group Name', 'col'=>'groupname'  ),
+                    array( 'label'=>'Inherited',  'col'=>'gid_inherited'  ),
                 );
+                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
                 $formTemplate = $this->getGroupsFormTemplate();
                 break;
             case "Permissions":
                 $kfrel = $oAcctDB->GetKfrel('P');
-                $listCols = array(
-                    array( 'label'=>'k',          'col'=>'_key' ),
+                $raListParms['cols'] = array(
                     array( 'label'=>'Permission', 'col'=>'perm'  ),
-                    // and other fields
+                    array( 'label'=>'Modes',      'col'=>'modes'  ),
+                    array( 'label'=>'User',       'col'=>'U_realname'  ),
+                    array( 'label'=>'Group',      'col'=>'G_groupname'  ),
                 );
+                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
                 $formTemplate = $this->getPermsFormTemplate();
                 break;
         }
@@ -418,11 +430,6 @@ class CATS_MainUI extends CATS_UI
         $oComp = new KeyframeUIComponent( $oUI, $kfrel );
         $oComp->Update();
 
-        $raListParms = array(
-            'bUse_key' => true,
-            'cols' => $listCols
-        );
-        $raSrchParms['filters'] = $listCols;
 
 //$this->oApp->kfdb->SetDebug(2);
         $oList = new KeyframeUIWidget_List( $oComp );
@@ -452,21 +459,23 @@ class CATS_MainUI extends CATS_UI
                 ."<input type='submit' name='adminUsersMode' value='Permissions'/>"
             ."</form>"
             ."<h2>$mode</h2>"
-            ."<table width='100%'><tr>"
-            ."<td>"//<h3>I am a Search Control</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sSrch."</div>"
-            ."</td>"
-            ."<td>"//<h3>I am an Interactive List</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sList."</div>"
-            ."</td>"
-            ."</tr><tr>"
-            ."<td>"//<h3>I am a Form</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sForm."</div>"
-            ."</td>"
-            ."<td><h3>I am still a Stegosaurus</h3>"
-            ."<div style='width:90%;height:300px;border:1px solid:#999'>".$sInfo."</div>"
-            ."</td>"
-            ."</tr></table>";
+            ."<div class='container-fluid'>"
+                ."<div class='row'>"
+                    ."<div class='col-md-6'>"
+                        ."<div>".$sSrch."</div>"
+                        ."<div>".$sList."</div>"
+                    ."</div>"
+                    ."<div class='col-md-6'>"
+                        ."<div style='width:90%;padding:20px;border:2px solid #999'>".$sForm."</div>"
+                    ."</div>"
+                ."</div>"
+                ."<div class='row'>"
+                    ."<div class='col-md-6'>"
+                        ."<h3>I am still a Stegosaurus</h3>"
+                        ."<div style='width:90%;height:300px;border:1px solid #999'>".$sInfo."</div>"
+                    ."</div>"
+                ."</div>"
+            ."</div>";
 
 
 //         $s .= "<div class='seedjx' seedjx-cmd='test'>"
@@ -484,6 +493,7 @@ class CATS_MainUI extends CATS_UI
     private function getUsersFormTemplate()
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
+            ."||| User #|| [[Text:_key | readonly]]\n"
             ."||| Name  || [[Text:realname]]\n"
             ."||| Email || [[Text:email]]\n"
             ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
@@ -550,6 +560,16 @@ class CATS_MainUI extends CATS_UI
             $s .= "<option [[ifeq:[[value:eStatus]]|".$option."|selected| ]]>".$option."</option>";
         }
         return $s;
+    }
+
+    function usersListRowTranslate( $raRow )
+    {
+        if( $raRow['gid1'] && $raRow['G_groupname'] ) {
+            // When displaying the group name it's helpful to show the gid too
+            $raRow['G_groupname'] .= " (".$raRow['gid1'].")";
+        }
+
+        return( $raRow );
     }
 
 }
