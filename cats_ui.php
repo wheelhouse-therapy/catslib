@@ -397,12 +397,11 @@ class UsersGroupsPermsUI
 
         $mode = $this->oApp->oC->oSVA->SmartGPC( 'adminUsersMode', array('Users','Groups','Permissions') );
 
-        $raListParms = array(
-            'bUse_key' => true,
-        );
+        $raListParms = array( 'bUse_key' => true );
 
         switch( $mode ) {
             case "Users":
+                $cid = "U";
                 $kfrel = $this->oAcctDB->GetKfrel('U');
                 $raListParms['cols'] = array(
                     array( 'label'=>'User #',  'col'=>'_key' ),
@@ -412,10 +411,19 @@ class UsersGroupsPermsUI
                     array( 'label'=>'Group1',  'col'=>'G_groupname'  ),
                 );
                 $raListParms['fnRowTranslate'] = array($this,"usersListRowTranslate");
-                $raSrchParms['filters'] = $raListParms['cols'];     // conveniently the same format
+                // Not the same format as listcols because these actually need the column names not aliases.
+                // For groups and perms it happens to work but when _key is included in the WHERE it is ambiguous
+                $raSrchParms['filters'] = array(
+                    array( 'label'=>'User #',  'col'=>'U._key' ),
+                    array( 'label'=>'Name',    'col'=>'U.realname' ),
+                    array( 'label'=>'Email',   'col'=>'U.email'  ),
+                    array( 'label'=>'Status',  'col'=>'U.eStatus'  ),
+                    array( 'label'=>'Group1',  'col'=>'G.groupname'  ),
+                );
                 $formTemplate = $this->getUsersFormTemplate();
                 break;
             case "Groups":
+                $cid = "G";
                 $kfrel = $this->oAcctDB->GetKfrel('G');
                 $raListParms['cols'] = array(
                     array( 'label'=>'k',          'col'=>'_key' ),
@@ -426,6 +434,7 @@ class UsersGroupsPermsUI
                 $formTemplate = $this->getGroupsFormTemplate();
                 break;
             case "Permissions":
+                $cid = "P";
                 $kfrel = $this->oAcctDB->GetKfrel('P');
                 $raListParms['cols'] = array(
                     array( 'label'=>'Permission', 'col'=>'perm'  ),
@@ -439,16 +448,15 @@ class UsersGroupsPermsUI
         }
 
         $oUI = new MySEEDUI( $this->oApp, "Stegosaurus" );
-        $oComp = new KeyframeUIComponent( $oUI, $kfrel );
+        $oComp = new KeyframeUIComponent( $oUI, $kfrel, $cid );
         $oComp->Update();
-
 
 //$this->oApp->kfdb->SetDebug(2);
         $oList = new KeyframeUIWidget_List( $oComp );
         $oSrch = new SEEDUIWidget_SearchControl( $oComp, $raSrchParms );
         $oForm = new KeyframeUIWidget_Form( $oComp, array('sTemplate'=>$formTemplate) );
-        // should the search control config:filters use the same format as list:cols - easier and extendible
-        $oComp->Start();
+
+        $oComp->Start();    // call this after the widgets are registered
 
         list($oView,$raWindowRows) = $oComp->GetViewWindow();
         $sList = $oList->ListDrawInteractive( $raWindowRows, $raListParms );
@@ -456,8 +464,11 @@ class UsersGroupsPermsUI
         $sSrch = $oSrch->Draw();
         $sForm = $oForm->Draw();
 
-        if( $mode == 'Users' && ($kUser = $oComp->Get_kCurr()) ) {
-            $sInfo = $this->drawUsersInfo( $oComp );
+        // Have to do this after Start() because it can change things like kCurr
+        switch( $mode ) {
+            case 'Users':       $sInfo = $this->drawUsersInfo( $oComp );    break;
+            case 'Groups':      $sInfo = $this->drawGroupsInfo( $oComp );   break;
+            case 'Permissions': $sInfo = $this->drawPermsInfo( $oComp );    break;
         }
 
         $s = $oList->Style()
@@ -566,6 +577,21 @@ class UsersGroupsPermsUI
 
         done:
         return( $s );
+    }
+
+    private function drawGroupsInfo( KeyframeUIComponent $oComp )
+    {
+        $s = "";
+
+        return( $s );
+    }
+
+    private function drawPermsInfo( KeyframeUIComponent $oComp )
+    {
+        $s = "";
+
+        return( $s );
+
     }
 
     function ugpStyle()
@@ -684,10 +710,10 @@ class KeyframeUIComponent extends SEEDUIComponent
     private $kfrel;
     private $raViewParms = array();
 
-    function __construct( SEEDUI $o, Keyframe_Relation $kfrel )
+    function __construct( SEEDUI $o, Keyframe_Relation $kfrel, $cid = "A", $raCompConfig = array() )
     {
          $this->kfrel = $kfrel;     // set this before the parent::construct because that uses the factory_SEEDForm
-         parent::__construct( $o );
+         parent::__construct( $o, $cid, $raCompConfig );
     }
 
     protected function factory_SEEDForm( $cid, $raSFParms )
