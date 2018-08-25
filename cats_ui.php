@@ -174,6 +174,9 @@ class CATS_UI
 
 class CATS_MainUI extends CATS_UI
 {
+    
+    private $i = 0;
+    
     function __construct( SEEDAppConsole $oApp )
     {
         parent::__construct( $oApp );
@@ -206,9 +209,11 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = ($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+        $s = "<div class='container-fluid'>"
+            .($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
-            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
+            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "")
+            ."</div>";
 
 
         return( $s );
@@ -358,17 +363,15 @@ class CATS_MainUI extends CATS_UI
 
     private function drawCircles( $raScreens )
     {
-        $s = "<div class='container-fluid'>";
-        $i = 0;
+        $s = "";
         foreach( $raScreens as $ra ) {
-            $circle = "catsCircle".($i % 2 + 1);
+            $circle = "catsCircle".($this->i % 2 + 1);
 
-            if( $i % 4 == 0 ) $s .= "<div class='row'>";
+            if( $this->i % 4 == 0 ) $s .= "<div class='row'>";
             $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
-            if( $i % 4 == 3 ) $s .= "</div>";   // row
-            ++$i;
+            if( $this->i % 4 == 3 ) $s .= "</div>";   // row
+            ++$this->i;
         }
-        if( $i && $i % 4 != 0 ) $s .= "</div>"; // end row if it didn't complete in the loop
 
         return( $s );
     }
