@@ -192,6 +192,12 @@ function createTables( KeyframeDatabase $kfdb )
 {
     DRSetup( $kfdb );
 
+    // this query will return blank if the gid_inherited column isn't there
+    if( !$kfdb->Query1( "select table_schema from information_schema.columns "
+                       ."where table_schema='".DBNAME."' and table_name='SEEDSession_Groups' and column_name='gid_inherited'" ) ) {
+        $kfdb->Execute( "alter table SEEDSession_Groups add gid_inherited integer not null default '0'" );
+    }
+
     if( !tableExists( $kfdb, DBNAME.".clients" ) ) {
         echo "Creating the Client table";
 
