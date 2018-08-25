@@ -347,16 +347,18 @@ class CATS_MainUI extends CATS_UI
             case 'developer-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
+            case 'developer-confirmdrop':
+                $s .= "<h3>Are you sure you want to drop the tables?</h3>"
+                      ."<br /><h1>THIS CANNOT BE UNDONE</h1>"
+                      ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
+                      ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
+                      break;
             default:
-                    $s .= "<button onclick='drop();' class='toCircle catsCircle2' style='cursor: pointer;'>Drop Tables</button>
-                           <script>
-                               function drop() {
-                                   if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-                                       window.location.href = '".CATSDIR."?screen=developer-droptable';
-                                   }
-                               }
-                           </script>";
-                    $s .= "<a href='?screen=developer-clinics' class='toCircle catsCircle1'>Manage Clinics</a>";
+                    $raScreens = array(
+                        array( 'developer-confirmdrop',             "Drop Tables" ),
+                        array( 'developer-clinics',        "Manage Clinics" ),
+                    );
+                    $s .= $this->drawCircles( $raScreens );
         }
         return( $s );
     }
