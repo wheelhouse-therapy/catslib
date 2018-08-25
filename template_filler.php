@@ -26,6 +26,27 @@ class template_filler {
             $templateProcessor->setValue($tag,$bCol?$kfr->Value($col):$col);
         }
         
+        $ext = "";
+        switch(strtolower(substr($resourcename,strrpos($resourcename, ".")))){
+            case '.docx':
+                $ext = 'Word2007';
+                break;
+            case '.html':
+                $ext = 'HTML';
+                break;
+            case '.odt':
+                $ext = 'ODText';
+                break;
+            case '.rtf':
+                $ext = 'RTF';
+                break;
+            case '.doc':
+                $ext = 'MsDoc';
+                break;
+        }
+        $phpWord = \PhpOffice\PhpWord\IOFactory::load(($file = $templateProcessor->save()),$ext);
+        $phpWord->save($file,$ext,TRUE);
+        
     }
     
     private function expandTag($tag){
@@ -58,8 +79,10 @@ class template_filler {
     }
     
     private function resolveColumn($table,$col){
-        switch(strtolower($table)){
-              
+        $bCol = TRUE;
+        if($this->resolveTableName($table) == 'clinics' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
+            $bCol = FALSE;
+            $col = $this->resolveTable($table)->Expand("[[client_first_name]] [[client_last_name]]");
         }
     }
     
