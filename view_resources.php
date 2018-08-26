@@ -7,7 +7,7 @@ if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
     $dir_name = CATSDIR_RESOURCES.$dir_name;
 }
 $dir = new DirectoryIterator($dir_name);
-if(iterator_count($dir) == 0){
+if(iterator_count($dir) == 2){
     $s .= "<h2> No files in directory</h2>";
     return;
 }
