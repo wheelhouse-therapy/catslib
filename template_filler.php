@@ -81,9 +81,14 @@ class template_filler {
     
     private function resolveColumn($table,$col){
         $bCol = TRUE;
-        if($this->resolveTableName($table) == 'clients' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
+        $table = $this->resolveTableName($table);
+        if($table == 'client' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
             $bCol = FALSE;
             $col = $this->resolveTable($table)->Expand("[[client_first_name]] [[client_last_name]]");
+        }
+        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'clinic')){
+            $bCol = FALSE;
+            $col = $this->resolveTable($table)->Expand("[[address]]\n[[city]] [[postal_code]]");
         }
         return array($bCol,$col);
     }
