@@ -19,10 +19,17 @@ class template_filler {
                 continue; // Improper tag. Do Not Replace
             }
             list($table,$col) = $this->expandTag($tag);
-            if(!($kfr = $this->resolveTable($table))){
-                continue; // Could not resolve table. Do Not Replace
+            if($table != NULL){
+                // It is not a single tag treat normaly
+                if(!($kfr = $this->resolveTable($table))){
+                    continue; // Could not resolve table. Do Not Replace
+                }
+                list($bCol,$col) = $this->resolveColumn($table, $col);
             }
-            list($bCol,$col) = $this->resolveColumn($table, $col);
+            else{
+                $bCol = FALSE;
+                $col = $this->processSingleTag($col);
+            }
             $templateProcessor->setValue($tag,$bCol?$kfr->Value($col):$col);
         }
         
@@ -51,7 +58,10 @@ class template_filler {
     }
     
     private function expandTag($tag){
-        
+        if($this->processSingleTag($tag)){
+            // Single tags are things like date which dont require a database table
+            return array(NULL,$tag);
+        }
         $pos = strpos($tag, ":");
         if (FALSE === $pos){
             return FALSE;
@@ -105,6 +115,14 @@ class template_filler {
             default:
                 return $table; // Unable to resolve
         }
+    }
+    
+    private function processSingleTag($tag){
+        switch(strtolower($tag)){
+            case 'date':
+                return date("m/d/Y");
+        }
+        return FALSE;
     }
     
 }
