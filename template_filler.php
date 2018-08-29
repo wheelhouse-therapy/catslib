@@ -1,6 +1,6 @@
 <?php
 
-require('./seeds/vendor/autoload.php');
+require(SEEDROOT.'/vendor/autoload.php');
 
 class template_filler {
     
@@ -13,7 +13,7 @@ class template_filler {
     
     public function fill_resource($resourcename){
         
-        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor(CATSDIR_RESOURCES.$resourcename);
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
             if(!$this->expandTag($tag)){
                 continue; // Improper tag. Do Not Replace
@@ -44,8 +44,9 @@ class template_filler {
                 $ext = 'MsDoc';
                 break;
         }
-        $phpWord = \PhpOffice\PhpWord\IOFactory::load(($file = $templateProcessor->save()),$ext);
-        $phpWord->save($file,$ext,TRUE);
+        $phpWord = \PhpOffice\PhpWord\IOFactory::load($templateProcessor->save(),$ext);
+        $phpWord->save(substr($resourcename,strrpos($resourcename, '/')+1),$ext,TRUE);
+        die();
         
     }
     
