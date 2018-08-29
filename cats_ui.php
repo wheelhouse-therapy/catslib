@@ -1,5 +1,7 @@
 <?php
 
+include_once( "assessments.php" );
+
 /* Classes to help draw the user interface
  */
 class CATS_UI
@@ -227,7 +229,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-assesments',      "Score Assesments"),
+            array( 'therapist-assessments',     "Score Assessments"),
         );
 
         $s = "";
@@ -258,8 +260,8 @@ class CATS_MainUI extends CATS_UI
             case "therapist-ideas":
                 $s .= "GET IDEAS";
                 break;
-            case "therapist-assesments":
-                $s .= "Score Assesments";
+            case "therapist-assessments":
+                $s .= AssessmentsScore( $this->oApp );
                 break;
             case "therapist-materials":
                 $s .= DownloadMaterials( $this->oApp );
