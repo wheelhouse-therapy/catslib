@@ -176,6 +176,9 @@ class CATS_UI
 
 class CATS_MainUI extends CATS_UI
 {
+    
+    private $i = 0;
+    
     function __construct( SEEDAppConsole $oApp )
     {
         parent::__construct( $oApp );
@@ -208,9 +211,11 @@ class CATS_MainUI extends CATS_UI
 
     function DrawHome()
     {
-        $s = ($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
+        $s = "<div class='container-fluid'>"
+            .($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
-            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "");
+            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "")
+            ."</div>";
 
 
         return( $s );
@@ -344,33 +349,33 @@ class CATS_MainUI extends CATS_UI
             case 'developer-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
+            case 'developer-confirmdrop':
+                $s .= "<h3>Are you sure you want to drop the tables?</h3>"
+                      ."<br /><h1>THIS CANNOT BE UNDONE</h1>"
+                      ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
+                      ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
+                      break;
             default:
-                    $s .= "<button onclick='drop();' class='toCircle catsCircle2' style='cursor: pointer;'>Drop Tables</button>
-                           <script>
-                               function drop() {
-                                   if (confirm('Are you sure? THIS CANNOT BE UNDONE')) {
-                                       window.location.href = '".CATSDIR."?screen=developer-droptable';
-                                   }
-                               }
-                           </script>";
-                    $s .= "<a href='?screen=developer-clinics' class='toCircle catsCircle1'>Manage Clinics</a>";
+                    $raScreens = array(
+                        array( 'developer-confirmdrop',             "Drop Tables" ),
+                        array( 'developer-clinics',        "Manage Clinics" ),
+                    );
+                    $s .= $this->drawCircles( $raScreens );
         }
         return( $s );
     }
 
     private function drawCircles( $raScreens )
     {
-        $s = "<div class='container-fluid'>";
-        $i = 0;
+        $s = "";
         foreach( $raScreens as $ra ) {
-            $circle = "catsCircle".($i % 2 + 1);
+            $circle = "catsCircle".($this->i % 2 + 1);
 
-            if( $i % 4 == 0 ) $s .= "<div class='row'>";
+            if( $this->i % 4 == 0 ) $s .= "<div class='row'>";
             $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
-            if( $i % 4 == 3 ) $s .= "</div>";   // row
-            ++$i;
+            if( $this->i % 4 == 3 ) $s .= "</div>";   // row
+            ++$this->i;
         }
-        if( $i && $i % 4 != 0 ) $s .= "</div>"; // end row if it didn't complete in the loop
 
         return( $s );
     }
@@ -666,8 +671,9 @@ class UsersGroupsPermsUI
     }
 
     private function getUserStatusSelectionFormTemplate(){
-        require_once 'database.php';
-        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".DBNAME."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
+        global $catsDefKFDB;
+        $db = $catsDefKFDB['kfdbDatabase'];
+        $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".$db."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
         $options = substr($options, 1,strlen($options)-2);
         $options_array = str_getcsv($options, ',', "'");
         $s = "";
