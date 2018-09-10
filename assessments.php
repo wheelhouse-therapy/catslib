@@ -10,21 +10,60 @@ class Assessments
     function ScoreUI()
     {
         $s = "";
-var_dump( $_REQUEST );
+
         $oForm = new SEEDCoreForm( "A" );
 
-        $s .= "<form method='post'>";
-        $s .= $oForm->HiddenKeyParm( 11 )
-             ."<div>A ".$oForm->Text( 'fld', "" )."</div>";
-        $oForm->IncRowNum();
-        $s .= $oForm->HiddenKeyParm( 12 )
-             ."<div>B ".$oForm->Text( 'fld', "" )."</div>";
-        $oForm->IncRowNum();
-        $s .= $oForm->HiddenKeyParm( 13 )
-             ."<div>C ".$oForm->Text( 'fld', "" )."</div>";
-        $s .= "<input type='submit'/>"
-             ."</form>";
+        $s .= "<style>
+               .score-table {}
+               .score-table th { height:60px; }
+               .score-num   { width:1em; }
+               .score-item  { width:1em; }
+               </style>";
 
+
+        $raColumns = array( "Social<br/>participation" => "1-10",
+                            "Vision"                   => "11-21",
+                            "Hearing"                  => "22-29",
+                            "Touch"                    => "30-40",
+                            "Taste /<br/>Smell"        => "41-45",
+                            "Body<br/>Awareness"       => "46-55",
+                            "Balance<br/>and Motion"   => "56-66",
+                            "Planning<br/>and Ideas"   => "67-75",
+
+        );
+
+
+
+        $s .= "<form method='post'>";
+
+        $s .= "<table width='100%'><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $s .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange )."</td>";
+        }
+        $s .= "</tr></table>";
+
+        $s .= "</form>";
+
+        return( $s );
+    }
+
+    private function column( SEEDCoreForm $oForm, $heading, $sRange )
+    {
+        $s = "<table class='score-table'>"
+            ."<tr>"
+            ."<th colspan='2'>$heading<br/><br/></th>"
+            ."</tr>";
+        foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
+            $s .= $this->item( $oForm, $n );
+        }
+        $s .= "</table>";
+
+        return( $s );
+    }
+
+    private function item( SEEDCoreForm $oForm, $n )
+    {
+        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text( "i$n", "", array('attrs'=>"class='score-item s-i-$n") )."</td></tr>";
         return( $s );
     }
 }
