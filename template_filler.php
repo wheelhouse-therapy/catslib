@@ -82,7 +82,8 @@ class template_filler {
             case 'therapist':
                 return NULL; // Insuficent information
             case 'client':
-                return NULL; // Insuficent information
+                $key = SEEDInput_Int("client");
+                return (new ClientsDB($this->oApp->kfdb))->GetClient($key);
             default:
                 return NULL; // Unknown Table
         }
@@ -95,6 +96,10 @@ class template_filler {
         if($table == 'client' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
             $bCol = FALSE;
             $col = $this->resolveTable($table)->Expand("[[client_first_name]] [[client_last_name]]");
+        }
+        if($table == 'client' && (strtolower($col) == 'age' || strtolower($col) == 'clients_age' || strtolower($col) == 'client_age')){
+            $bCol = FALSE;
+            $col = date_diff(new DateTime('now'), new DateTime($this->resolveTable($table)->Value('dob')))->format('%y Years');
         }
         if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'clinic')){
             $bCol = FALSE;
@@ -120,7 +125,7 @@ class template_filler {
     private function processSingleTag($tag){
         switch(strtolower($tag)){
             case 'date':
-                return date("m/d/Y");
+                return date("M d, Y");
         }
         return FALSE;
     }
