@@ -1,10 +1,13 @@
 <?php
 
-/* While in development, enable all error reporting. When this code is in real-world use, this should be commented out.
- */
-error_reporting(E_ALL | E_STRICT);
-ini_set('display_errors', 1);
-ini_set('html_errors', 1);
+if( $_SERVER['HTTP_HOST'] == 'localhost' ) {
+    /* Enable all error reporting on development machines (when your url starts with http://localhost).
+     * This is not true on the real server (the 'HOST' variable is catherapyservices.ca)
+     */
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_errors', 1);
+    ini_set('html_errors', 1);
+}
 
 
 /* CATSDIR is the location of the cats root directory. If you're doing something weird like running cats from
