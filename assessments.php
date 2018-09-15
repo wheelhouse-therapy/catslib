@@ -17,7 +17,7 @@ class Assessments
                .score-table {}
                .score-table th { height:60px; }
                .score-num   { width:1em; }
-               .score-item  { width:1em; }
+               .score-item  { width:3em; }
                </style>";
 
 
@@ -43,7 +43,7 @@ class Assessments
         $s .= "</tr></table>";
 
         $s .= "</form>";
-
+        $s .= "<script src='w/js/assessments.js'></script>";
         return( $s );
     }
 
@@ -63,7 +63,7 @@ class Assessments
 
     private function item( SEEDCoreForm $oForm, $n )
     {
-        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text( "i$n", "", array('attrs'=>"class='score-item s-i-$n") )."</td></tr>";
+        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text( "i$n", "", array('attrs'=>"class='score-item s-i-$n' data-num='$n'") )."</td></tr>";
         return( $s );
     }
 }
