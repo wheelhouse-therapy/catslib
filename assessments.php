@@ -41,7 +41,7 @@ class Assessments
             $s .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange )."</td>";
         }
         $s .= "</tr></table>";
-        $s .= $this->getDataList($oForm,array("n","s","o","f"));
+        $s .= $this->getDataList($oForm,array("never","occasionaly","frequently","always"));
         $s .= "</form>";
         $s .= "<script src='w/js/assessments.js'></script>";
         return( $s );
@@ -71,7 +71,7 @@ class Assessments
         $s ="<datalist id='options'>";
         if($raOptions != NULL){
             foreach($raOptions as $option){
-                $s .= $oForm->Option("", $option, "");
+                $s .= $oForm->Option("", substr($option, 0,1), $option);
             }
         }
         $s .= "</datalist>";
