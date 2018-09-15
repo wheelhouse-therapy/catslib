@@ -3,6 +3,7 @@ require_once "client-modal.php" ;
 require_once 'Clinics.php';
 class ClientList
 {
+    private $oApp;
     public $kfdb;
 
     public $oClientsDB, $oProsDB, $oClients_ProsDB, $oClinicsDB;
@@ -20,6 +21,7 @@ class ClientList
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
+        $this->oApp = $oApp;
         $this->kfdb = $oApp->kfdb;
 
         $this->oClientsDB = new ClientsDB( $oApp->kfdb );
@@ -96,6 +98,14 @@ class ClientList
             // A pro has been clicked. Who are their clients?
             $myClients = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Pros._key='{$this->pro_key}'" );
         }
+
+        $oPeople = new PeopleDB( $this->oApp );
+        $raClients = $oPeople->GetList('C', "" );
+        $raProsInt = $oPeople->GetList('PI', "");
+        $raProsExt = $oPeople->GetList('PE', "");
+        $s .= "<div>Clients are: <ul>".SEEDCore_ArrayExpandRows( $raClients, "<li>[[_key]] : [[P_first_name]] [[P_last_name]]</li>" )."</ul></div>";
+        $s .= "<div>Internal pros are: <ul>".SEEDCore_ArrayExpandRows( $raProsInt, "<li>[[_key]] : [[P_first_name]] [[P_last_name]]</li>" )."</ul></div>";
+
 
         $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
         $raPros = $this->oProsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));

@@ -367,6 +367,10 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::people_create );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (1,0,'Eric')" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (2,0,'Joe')" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (3,0,'Jose')" );
+
         $kfdb->SetDebug(0);
     }
     if( !tableExists( $kfdb, DBNAME.".clients2" ) ) {
@@ -374,6 +378,8 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::clients_create );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients2 (_key,fk_people) values (1,1)" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clients2 (_key,fk_people) values (2,2)" );
         $kfdb->SetDebug(0);
     }
     if( !tableExists( $kfdb, DBNAME.".pros_internal" ) ) {
@@ -381,6 +387,7 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::pros_internal_create );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".pros_internal (_key,fk_people) values (1,3)" );
         $kfdb->SetDebug(0);
     }
     if( !tableExists( $kfdb, DBNAME.".pros_external" ) ) {
@@ -464,28 +471,33 @@ class PeopleDB extends Keyframe_NamedRelations
 {
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
-        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), @$raConfig['logdir'] );
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
     {
         $raKfrel = array();
-        $this->tDef['C']  = array( "Table" => "seeds.sl_collection", "Fields" => _sldb_defs::fldSLCollection() );
-        $this->tDef['I']  = array( "Table" => "seeds.sl_inventory",  "Fields" => _sldb_defs::fldSLInventory() );
-        $this->tDef['A']  = array( "Table" => "seeds.sl_accession",  "Fields" => _sldb_defs::fldSLAccession() );
-        $this->tDef['D']  = array( "Table" => "seeds.sl_adoption",   "Fields" => _sldb_defs::fldSLAdoption() );
-        $this->tDef['G']  = array( "Table" => "seeds.sl_germ",       "Fields" => _sldb_defs::fldSLGerm() );
-        $this->tDef['P']  = array( "Table" => "seeds.sl_pcv",        "Fields" => _sldb_defs::fldSLPCV() );
-        $this->tDef['S']  = array( "Table" => "seeds.sl_species",    "Fields" => _sldb_defs::fldSLSpecies() );
-        $this->tDef['PY'] = array( "Table" => "seeds.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
-        $this->tDef['SY'] = array( "Table" => "seeds.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
+        $tDef = array();
+        $sLogfile = $logdir ? "$logdir/people.log" : "";
+        $tDef['P']  = array( "Table" => DBNAME.".people",        "Fields" => 'Auto' );
+        $tDef['C']  = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
+        $tDef['PI'] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
+        $tDef['PE'] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
 
-        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
-        $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
-        $raKfrel['I'] = $this->newKfrel( $kfdb, $uid, array( "I" => $this->tDef['I'] ), $sLogfile );
-        $raKfrel['A'] = $this->newKfrel( $kfdb, $uid, array( "A" => $this->tDef['A'] ), $sLogfile );
-        $raKfrel['D'] = $this->newKfrel( $kfdb, $uid, array( "D" => $this->tDef['D'] ), $sLogfile );
-        $raKfrel['G'] = $this->newKfrel( $kfdb, $uid, array( "G" => $this->tDef['G'] ), $sLogfile );
+        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array( 'P' => $tDef['P'] ), $sLogfile );
+        $raKfrel['C']  = $this->newKfrel( $kfdb, $uid, array( 'C'=>$tDef['C'],   'P' => $tDef['P'] ), $sLogfile );
+        $raKfrel['PI'] = $this->newKfrel( $kfdb, $uid, array( 'PI'=>$tDef['PI'], 'P' => $tDef['P'] ), $sLogfile );
+        $raKfrel['PE'] = $this->newKfrel( $kfdb, $uid, array( 'PE'=>$tDef['PE'], 'P' => $tDef['P'] ), $sLogfile );
+        return( $raKfrel );
+    }
+
+    private function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
+    /****************************************************************
+        $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
+     */
+    {
+        $parms = $sLogfile ? array('logfile'=>$sLogfile) : array();
+        return( new KeyFrame_Relation( $kfdb, array( "Tables" => $raTableDefs ), $uid, $parms ) );
     }
 }
 
