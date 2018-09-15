@@ -75,15 +75,16 @@ class template_filler {
     
     private function resolveTable($table){
         $table = $this->resolveTableName($table);
+        $oPeople = new PeopleDB( $this->oApp );
         switch(strtolower($table)){
             case 'clinic':
                 $clinics = new Clinics($this->oApp);
                 return (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
             case 'therapist':
-                return NULL; // Insuficent information
+                return $oPeople->getKFRCond("PI","P_uid=".$this->oApp->sess->GetUID());
             case 'client':
                 $key = SEEDInput_Int("client");
-                return (new ClientsDB($this->oApp->kfdb))->GetClient($key);
+                return $oPeople->getKFR("C", $key);
             default:
                 return NULL; // Unknown Table
         }
