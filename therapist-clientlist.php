@@ -97,8 +97,8 @@ class ClientList
             $myClients = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Pros._key='{$this->pro_key}'" );
         }
 
-        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
-        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA("clinic = ".$this->clinics->GetCurrentClinic());
+        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
+        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
 
         $s .= "<div class='container-fluid'><div class='row'>"
              ."<div class='col-md-6'>"
@@ -110,7 +110,7 @@ class ClientList
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a></div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a>%[[clinic]]</div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -122,11 +122,19 @@ class ClientList
                  document.getElementById('new_pro').submit();
                  }</script><form id='new_pro'><input type='hidden' value='' name='new_pro_name' id='new_pro_name'><input type='hidden' name='cmd' value='new_pro'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[pro_name]]</a> is a [[pro_role]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[pro_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
                  .($this->pro_key ? $this->drawProForm( $raPros, $myClients, $raClients ) : "")
              ."</div>"
              ."</div></div>";
 
+             foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
+                 if($this->clinics->isCoreClinic()){
+                     $s = str_replace("%".$clinic['_key'], " @ the ".$clinic['clinic_name']." clinic", $s);
+                 }
+                 else {
+                     $s = str_replace("%".$clinic['_key'], "", $s);
+                 }
+             }
         return( $s );
     }
 
@@ -152,7 +160,7 @@ class ClientList
                      ."<input type='hidden' name='client_key' id='clientId' value='{$this->client_key}'/>"
                      .$oFormClient->HiddenKey()
                      ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
-                     ."<p>Client # {$this->client_key}</p>"
+                     .($this->clinics->isCoreClinic()?"<p>Client # {$this->client_key}</p>":"")
                      ."<table class='container-fluid table table-striped table-sm'>"
                      .$this->drawFormRow( "First Name", $oFormClient->Text('client_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
                      .$this->drawFormRow( "Last Name", $oFormClient->Text('client_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
@@ -165,7 +173,7 @@ class ClientList
                      .$this->drawFormRow( "Date Of Birth", $oFormClient->Date('dob',"",array("attrs"=>"style='border:1px solid gray'")) )
                      .$this->drawFormRow( "Phone Number", $oFormClient->Text('phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
                      .$this->drawFormRow( "Email", $oFormClient->Email('email',"",array("attrs"=>"placeholder='Email'") ) )
-                     .$this->drawFormRow("Clinic", $this->oClinicsDB->GetClinic($this->clinics->GetCurrentClinic())->Value("clinic_name"))
+                     .$this->drawFormRow("Clinic", $this->getClinicList($ra))
                      ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
                         .($ra['email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
@@ -242,7 +250,7 @@ class ClientList
                     ."<input type='hidden' name='cmd' value='update_pro'/>"
                     ."<input type='hidden' name='pro_key' value='{$this->pro_key}'/>"
                     ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
-                    ."<p>Professional # {$this->pro_key}</p>"
+                    .($this->clinics->isCoreClinic()?"<p>Professional # {$this->pro_key}</p>":"")
                     ."<table class='container-fluid table table-striped'>"
                     ."<tr>"
                         ."<td class='col-md-4'><p>Name</p>"
@@ -290,7 +298,7 @@ class ClientList
                     ."<tr>"
                         ."<td class='col-md-4'><p>Rate</p></td>"
                             ."<td class='col-md-8'><input type='number' name='rate' value='".htmlspecialchars($ra['rate'])."' placeholder='Rate' step='1' min='0' /></td>"
-                            .$this->drawFormRow("Clinic", $this->oClinicsDB->GetClinic($this->clinics->GetCurrentClinic())->Value("clinic_name"))
+                            .$this->drawFormRow("Clinic", $this->getClinicList($ra))
                     ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save'/></td>"
                     ."</tr>"
@@ -321,6 +329,22 @@ class ClientList
         }
         return( $s );
     }
+
+    private function getClinicList($ra){
+        $s = "<select name='clinic' ".($this->clinics->isCoreClinic()?"":"disabled ").">";
+        $raClinics = $this->oClinicsDB->KFRel()->GetRecordSetRA("");
+        foreach($raClinics as $clinic){
+            if($ra['clinic'] == $clinic['_key']){
+                $s .= "<option selected value='".$clinic['_key']."' >".$clinic['clinic_name']."</option>";
+            }
+            else{
+                $s .= "<option value='".$clinic['_key']."' >".$clinic['clinic_name']."</option>";
+            }
+        }
+        $s .= "</select>";
+        return $s;
+    }
+
 }
 
 ?>
