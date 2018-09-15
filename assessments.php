@@ -63,7 +63,7 @@ class Assessments
 
     private function item( SEEDCoreForm $oForm, $n )
     {
-        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options'"))."</td></tr>";
+        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"))."</td></tr>";
         return( $s );
     }
     
