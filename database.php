@@ -362,6 +362,37 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(0);
     }
 
+    if( !tableExists( $kfdb, DBNAME.".people" ) ) {
+        echo "Creating the People table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::people_create );
+        $kfdb->SetDebug(0);
+    }
+    if( !tableExists( $kfdb, DBNAME.".clients2" ) ) {
+        echo "Creating the Clients table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::clients_create );
+        $kfdb->SetDebug(0);
+    }
+    if( !tableExists( $kfdb, DBNAME.".pros_internal" ) ) {
+        echo "Creating the Professionals Internal table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::pros_internal_create );
+        $kfdb->SetDebug(0);
+    }
+    if( !tableExists( $kfdb, DBNAME.".pros_external" ) ) {
+        echo "Creating the Professionals External table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::pros_external_create );
+        $kfdb->SetDebug(0);
+    }
+
+
+
     // Also make the SEEDSession tables
     if( !tableExists( $kfdb, DBNAME.".SEEDSession_Users" ) ) {
         echo "Creating the Session tables";
@@ -426,6 +457,127 @@ function createTables( KeyframeDatabase $kfdb )
 function tableExists( KeyframeDatabase $kfdb, $tablename )
 {
     return( $kfdb->TableExists( $tablename ) );
+}
+
+
+class PeopleDB extends Keyframe_NamedRelations
+{
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), @$raConfig['logdir'] );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $raKfrel = array();
+        $this->tDef['C']  = array( "Table" => "seeds.sl_collection", "Fields" => _sldb_defs::fldSLCollection() );
+        $this->tDef['I']  = array( "Table" => "seeds.sl_inventory",  "Fields" => _sldb_defs::fldSLInventory() );
+        $this->tDef['A']  = array( "Table" => "seeds.sl_accession",  "Fields" => _sldb_defs::fldSLAccession() );
+        $this->tDef['D']  = array( "Table" => "seeds.sl_adoption",   "Fields" => _sldb_defs::fldSLAdoption() );
+        $this->tDef['G']  = array( "Table" => "seeds.sl_germ",       "Fields" => _sldb_defs::fldSLGerm() );
+        $this->tDef['P']  = array( "Table" => "seeds.sl_pcv",        "Fields" => _sldb_defs::fldSLPCV() );
+        $this->tDef['S']  = array( "Table" => "seeds.sl_species",    "Fields" => _sldb_defs::fldSLSpecies() );
+        $this->tDef['PY'] = array( "Table" => "seeds.sl_pcv_syn",    "Fields" => _sldb_defs::fldSLPCVSyn() );
+        $this->tDef['SY'] = array( "Table" => "seeds.sl_species_syn","Fields" => _sldb_defs::fldSLSpeciesSyn() );
+
+        $sLogfile = $logdir ? "$logdir/slcollection.log" : "";
+        $raKfrel['C'] = $this->newKfrel( $kfdb, $uid, array( "C" => $this->tDef['C'] ), $sLogfile );
+        $raKfrel['I'] = $this->newKfrel( $kfdb, $uid, array( "I" => $this->tDef['I'] ), $sLogfile );
+        $raKfrel['A'] = $this->newKfrel( $kfdb, $uid, array( "A" => $this->tDef['A'] ), $sLogfile );
+        $raKfrel['D'] = $this->newKfrel( $kfdb, $uid, array( "D" => $this->tDef['D'] ), $sLogfile );
+        $raKfrel['G'] = $this->newKfrel( $kfdb, $uid, array( "G" => $this->tDef['G'] ), $sLogfile );
+    }
+}
+
+class CATSDB_SQL
+{
+const people_create =
+    "CREATE TABLE ".DBNAME.".people (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        uid          INTEGER NOT NULL DEFAULT 0,
+
+        first_name   VARCHAR(200) NOT NULL DEFAULT '',
+        last_name    VARCHAR(200) NOT NULL DEFAULT '',
+        address      VARCHAR(200) NOT NULL DEFAULT '',
+        city         VARCHAR(200) NOT NULL DEFAULT '',
+        province     VARCHAR(200) NOT NULL DEFAULT 'ON',
+        postal_code  VARCHAR(200) NOT NULL DEFAULT '',
+        dob          VARCHAR(200) NOT NULL DEFAULT '',
+        phone_number VARCHAR(200) NOT NULL DEFAULT '',
+        email        VARCHAR(200) NOT NULL DEFAULT '')
+";
+
+const clients_create =
+    "CREATE TABLE ".DBNAME.".clients2 (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_people        INTEGER NOT NULL DEFAULT 0,
+        parents_name     VARCHAR(200) NOT NULL DEFAULT '',
+        parents_separate BIT(1) NOT NULL DEFAULT b'0',
+        referal          VARCHAR(500) NOT NULL DEFAULT '',
+        background_info  VARCHAR(500) NOT NULL DEFAULT '',
+        clinic           INTEGER NOT NULL DEFAULT 1)
+
+        -- client_first_name VARCHAR(200) NOT NULL DEFAULT '',
+        -- client_last_name VARCHAR(200) NOT NULL DEFAULT '',
+        -- address VARCHAR(200) NOT NULL DEFAULT '',
+        -- city VARCHAR(200) NOT NULL DEFAULT '',
+        -- province VARCHAR(200) NOT NULL DEFAULT 'ON',
+        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
+        -- dob VARCHAR(200) NOT NULL DEFAULT '',
+        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
+        -- email VARCHAR(200) NOT NULL DEFAULT '',
+    ";
+
+const pros_internal_create =
+    "CREATE TABLE ".DBNAME.".pros_internal (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_people   INTEGER NOT NULL DEFAULT 0,
+        role        VARCHAR(200) NOT NULL DEFAULT '',
+        rate        INTEGER NOT NULL DEFAULT 0,
+        clinic      INTEGER NOT NULL DEFAULT 1)
+    ";
+
+const pros_external_create =
+    "CREATE TABLE ".DBNAME.".pros_external (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_people  INTEGER NOT NULL DEFAULT 0,
+        pro_role   VARCHAR(200) NOT NULL DEFAULT '',
+        fax_number VARCHAR(200) NOT NULL DEFAULT '',
+        rate       INTEGER NOT NULL DEFAULT 0,
+        clinic     INTEGER NOT NULL DEFAULT 1)
+
+        -- pro_name VARCHAR(200) NOT NULL DEFAULT '',
+        -- address VARCHAR(200) NOT NULL DEFAULT '',
+        -- city VARCHAR(200) NOT NULL DEFAULT '',
+        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
+        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
+        -- email VARCHAR(200) NOT NULL DEFAULT '',
+    ";
+
 }
 
 ?>
