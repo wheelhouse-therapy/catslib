@@ -6,10 +6,9 @@ class ClientList
     private $oApp;
     public $kfdb;
 
-    public $oClientsDB, $oProsDB, $oClients_ProsDB, $oClinicsDB;
+    public $oPeopleDB, $oClients_ProsDB, $oClinicsDB;
 
-    private $client_fields = array("client_name","parents_name","address","city","province","postal_code","dob","phone_number","email","family_doc","paediatrician","slp","psychologist","referal","background_info");
-    private $pro_fields    = array("pro_name","pro_role","address","city","postal_code","phone_number","fax_number","email");
+    private $pro_fields    = array("P_first_name","P_last_name","pro_role","P_address","P_city","P_postal_code","P_phone_number","fax_number","P_email");
     //Computer Valid Keys for Roles
     public $pro_roles_key = array("GP","Paediatrician", "Psychologist", "SLP", "PT", "OT", "Specialist_Dr", "Resource_Teacher", "Teacher_Tutor", "Other");
     //map of computer keys to human readable text
@@ -24,8 +23,7 @@ class ClientList
         $this->oApp = $oApp;
         $this->kfdb = $oApp->kfdb;
 
-        $this->oClientsDB = new ClientsDB( $oApp->kfdb );
-        $this->oProsDB = new ProsDB( $oApp->kfdb );
+        $this->oPeopleDB = new PeopleDB( $this->oApp );
         $this->oClients_ProsDB = new Clients_ProsDB( $oApp->kfdb );
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
 
@@ -41,7 +39,7 @@ class ClientList
     {
         $s = "";
 
-        $oFormClient = new KeyframeForm( $this->oClientsDB->KFRel(), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+        $oFormClient = new KeyframeForm( $this->oPeopleDB->KFRel("C"), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
 
         // Put this before the GetClients call so the changes are shown in the list
         $cmd = SEEDInput_Str('cmd');
@@ -50,7 +48,7 @@ class ClientList
                 $oFormClient->Update();
                 break;
             case "update_pro":
-                $kfr = $this->oProsDB->GetPro( $this->pro_key );
+                $kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key );
                 foreach( $this->pro_fields as $field ) {
                     $kfr->SetValue( $field, SEEDInput_Str($field) );
                 }
@@ -64,16 +62,16 @@ class ClientList
                 break;
             case "new_client":
                 $name = SEEDInput_Str("new_client_name");
-                $kfr = $this->oClientsDB->KFRel()->CreateRecord();
-                $kfr->SetValue("client_first_name",$name);
+                $kfr = $this->oPeopleDB->KFRel("C")->CreateRecord();
+                $kfr->SetValue("P_first_name",$name);
                 $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->client_key = $kfr->Key();
                 break;
             case "new_pro":
                 $name = SEEDInput_Str("new_pro_name");
-                $kfr = $this->oProsDB->KFRel()->CreateRecord();
-                $kfr->SetValue("pro_name", $name);
+                $kfr = $this->oPeopleDB->KFRel("PE")->CreateRecord();
+                $kfr->SetValue("P_first_name", $name);
                 $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->pro_key = $kfr->Key();
@@ -82,7 +80,7 @@ class ClientList
 
         /* Set the form to use the selected client.
          */
-        if( $this->client_key && ($kfrClient = $this->oClientsDB->GetClient( $this->client_key )) ) {
+        if( $this->client_key && ($kfrClient = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {
             $oFormClient->SetKFR( $kfrClient );
         }
 
@@ -107,8 +105,8 @@ class ClientList
         $s .= "<div>Internal pros are: <ul>".SEEDCore_ArrayExpandRows( $raProsInt, "<li>[[_key]] : [[P_first_name]] [[P_last_name]]</li>" )."</ul></div>";
 
 
-        $raClients = $this->oClientsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
-        $raPros = $this->oProsDB->KFRel()->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
+        $raClients = $this->oPeopleDB->KFRel("C")->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
+        $raPros = $this->oPeopleDB->KFRel("PE")->GetRecordSetRA(($this->clinics->isCoreClinic()?"":"clinic = ".$this->clinics->GetCurrentClinic()));
 
         $s .= "<div class='container-fluid'><div class='row'>"
              ."<div class='col-md-6'>"
@@ -120,7 +118,7 @@ class ClientList
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[client_first_name]] [[client_last_name]]</a>%[[clinic]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
                  .($this->client_key ? $this->drawClientForm( $oFormClient, $raClients, $myPros, $raPros) : "")
              ."</div>"
              ."<div class='col-md-6'>"
@@ -155,6 +153,7 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
+            var_dump($ra);
             if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
                 continue;
             }
@@ -162,7 +161,7 @@ class ClientList
                 $sPros = "<div style='padding:10px;border:1px solid #888'>"
                         .SEEDCore_ArrayExpandRows( $myPros, "[[Pros_pro_name]] is my [[Pros_pro_role]]<br />" )
                         ."</div>";
-                $sPros .= drawModal($ra, $this->oProsDB,$this->pro_roles_name);
+                $sPros .= drawModal($ra, $this->oPeopleDB,$this->pro_roles_name);
                 $oFormClient->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200' ) ) );
                 $sForm =
                       "<form>"
@@ -172,8 +171,8 @@ class ClientList
                      ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                      .($this->clinics->isCoreClinic()?"<p>Client # {$this->client_key}</p>":"")
                      ."<table class='container-fluid table table-striped table-sm'>"
-                     .$this->drawFormRow( "First Name", $oFormClient->Text('client_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
-                     .$this->drawFormRow( "Last Name", $oFormClient->Text('client_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
+                     .$this->drawFormRow( "First Name", $oFormClient->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
+                     .$this->drawFormRow( "Last Name", $oFormClient->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
                      .$this->drawFormRow( "Parents Name", $oFormClient->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
                      .$this->drawFormRow( "Parents Separate", $oFormClient->Checkbox('parents_separate') )
                      .$this->drawFormRow( "Address", $oFormClient->Text('address',"",array("attrs"=>"placeholder='Address'") ) )
@@ -186,7 +185,7 @@ class ClientList
                      .$this->drawFormRow("Clinic", $this->getClinicList($ra))
                      ."<tr>"
                         ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
-                        .($ra['email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
+                        .($ra['P_email']?"<tdclass='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
                         ."<script>"
                             ."function sendcreds(e){
                                 e.preventDefault();

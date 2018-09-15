@@ -1,6 +1,6 @@
 <?php
 
-function drawModal($ra, $oProsDB, $pro_roles_name){
+function drawModal($ra, $oPeopleDB, $pro_roles_name){
     $s = "<script>
             /* must apply only after HTML has loaded */
             $(document).ready(function () {
@@ -37,7 +37,7 @@ function drawModal($ra, $oProsDB, $pro_roles_name){
             <div class=\"modal-dialog\">
                 <div class=\"modal-content\">
                     <div class=\"modal-header\">
-                        <h4 class=\"modal-title\">Connect Providers to ".$ra['client_first_name']." ".$ra['client_last_name']."</h4>
+                        <h4 class=\"modal-title\">Connect Providers to ".$ra['P_first_name']." ".$ra['P_last_name']."</h4>
                     </div>
                     <div class=\"modal-body\">
                         <form id=\"contact_form\" action=\"modal-submit.php\" method=\"POST\">
@@ -48,11 +48,11 @@ function drawModal($ra, $oProsDB, $pro_roles_name){
              foreach ($pro_roles_name as $k => $role){
                  if($k == "Other"){
                      $s .= "$role <select name='$k'><option selected value='0'>Select Provider"
-                     .SEEDCore_ArrayExpandRows($oProsDB->KFRel()->GetRecordSetRA("pro_role NOT IN (".SEEDCore_ArrayExpandSeries($otherless, ",'[[]]'",TRUE,array("sTemplateFirst"=>"'[[]]'")).")"), "<option value='[[_key]]' />[[pro_name]] ([[pro_role]])")
+                     .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel("PE")->GetRecordSetRA("pro_role NOT IN (".SEEDCore_ArrayExpandSeries($otherless, ",'[[]]'",TRUE,array("sTemplateFirst"=>"'[[]]'")).")"), "<option value='[[_key]]' />[[pro_name]] ([[pro_role]])")
                      ."</select><br />";
                  }else {
                      $s .= "$role <select name='$k'><option selected value='0'>Select Provider"
-                     .SEEDCore_ArrayExpandRows($oProsDB->KFRel()->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[pro_name]]")
+                     .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel("PE")->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[pro_name]]")
                      ."</select><br />";
                  }
               }
