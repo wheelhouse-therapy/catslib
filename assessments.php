@@ -41,7 +41,7 @@ class Assessments
             $s .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange )."</td>";
         }
         $s .= "</tr></table>";
-
+        $s .= $this->getDataList($oForm,array("n","s","o","f"));
         $s .= "</form>";
         $s .= "<script src='w/js/assessments.js'></script>";
         return( $s );
@@ -63,9 +63,21 @@ class Assessments
 
     private function item( SEEDCoreForm $oForm, $n )
     {
-        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text( "i$n", "", array('attrs'=>"class='score-item s-i-$n' data-num='$n'") )."</td></tr>";
+        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options'"))."</td></tr>";
         return( $s );
     }
+    
+    private function getDataList(SEEDCoreForm $oForm,$raOptions = NULL){
+        $s ="<datalist id='options'>";
+        if($raOptions != NULL){
+            foreach($raOptions as $option){
+                $s .= $oForm->Option("", $option, "");
+            }
+        }
+        $s .= "</datalist>";
+        return $s;
+    }
+    
 }
 
 
