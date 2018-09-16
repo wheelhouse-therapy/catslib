@@ -176,9 +176,9 @@ class CATS_UI
 
 class CATS_MainUI extends CATS_UI
 {
-    
+
     private $i = 0;
-    
+
     function __construct( SEEDAppConsole $oApp )
     {
         parent::__construct( $oApp );
@@ -225,7 +225,7 @@ class CATS_MainUI extends CATS_UI
     {
         $raTherapistScreens = array(
             array( 'therapist-calendar',        "Calendar" ),
-            array( 'therapist-clientlist',      "Enter or Edit Clients and Providers" ),
+            array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
             array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
@@ -331,11 +331,18 @@ class CATS_MainUI extends CATS_UI
                 global $catsDefKFDB;
                 $db = $catsDefKFDB['kfdbDatabase'];
                 $oApp = $this->oApp;
-                $oApp->kfdb->Execute("drop table $db.clients");
-                $oApp->kfdb->Execute("drop table $db.clients_pros");
-                $oApp->kfdb->Execute("drop table $db.professionals");
+                $oApp->kfdb->Execute("drop table $db.clients2");
+                $oApp->kfdb->Execute("drop table $db.pros_internal");
+                $oApp->kfdb->Execute("drop table $db.pros_external");
+                $oApp->kfdb->Execute("drop table $db.clientsxpros");
+// remove soon
+$oApp->kfdb->Execute("drop table $db.clients");
+$oApp->kfdb->Execute("drop table $db.clients_pros");
+$oApp->kfdb->Execute("drop table $db.professionals");
                 $oApp->kfdb->Execute("drop table $db.SEEDSession_Users");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersMetadata");
                 $oApp->kfdb->Execute("drop table $db.SEEDSession_Groups");
+                $oApp->kfdb->Execute("drop table $db.SEEDSession_GroupsMetadata");
                 $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersXGroups");
                 $oApp->kfdb->Execute("drop table $db.SEEDSession_Perms");
                 $oApp->kfdb->Execute("drop table $db.cats_appointments");
