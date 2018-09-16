@@ -39,8 +39,9 @@ class ClientList
     {
         $s = "";
 
-        $oFormClient = new KeyframeForm( $this->oPeopleDB->KFRel("C"), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
-        $oFormPro = new KeyframeForm( $this->oPeopleDB->KFRel("PE"), "A" );
+        $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel("C"), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+        $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel("PI"), "A" );
+        $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel("PE"), "A" );
 
         // Put this before the GetClients call so the changes are shown in the list
         $cmd = SEEDInput_Str('cmd');
@@ -48,6 +49,10 @@ class ClientList
             case "update_client":
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
+                break;
+            case "update_therapist":
+                $oFormTherapist->Update();
+                $this->updatePeople( $oFormTherapist );
                 break;
             case "update_pro":
                 $oFormPro->Update();
@@ -90,7 +95,7 @@ class ClientList
             $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'" );
         }
         if( $this->therapist_key && ($kfr = $this->oPeopleDB->GetKFR("PI", $this->therapist_key )) ) {
-            $oFormClient->SetKFR( $kfr );
+            $oFormTherapist->SetKFR( $kfr );
             // A therapist has been clicked. Who are their clients?
             $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'" );
         }
@@ -108,41 +113,55 @@ class ClientList
         $s .= "<div class='container-fluid'><div class='row'>"
              ."<div class='col-md-4'>"
                  ."<h3>Clients</h3>"
-                 ."<button onclick='add_new();'>Add Client</button>"
-                 ."<script>function add_new(){var value = prompt('Enter Clients First Name');
+                 ."<button onclick='add_new_client();'>Add Client</button>"
+                 ."<script>function add_new_client(){var value = prompt('Enter Client\'s First Name');
                  if(!value){return;}
                  document.getElementById('new_client_name').value = value;
                  document.getElementById('new_client').submit();
                  }</script><form id='new_client'><input type='hidden' value='' name='new_client_name' id='new_client_name'><input type='hidden' name='cmd' value='new_client'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
-                 .($this->client_key ? $this->drawClientForm( $oFormClient, $myPros, $raPros) : "")
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
              ."</div>"
              ."<div class='col-md-4'>"
-                 ."<h3>Therapists</h3>"
-                 ."<button onclick='add_new();'>Add Therapist</button>"
-                 ."<script>function add_new(){var value = prompt('Enter Therapist\'s First Name');
+                 ."<h3>CATS Staff</h3>"
+                 ."<button onclick='add_new_staff();'>Add Staff Member</button>"
+                 ."<script>function add_new_staff(){var value = prompt('Enter Staff Member\'s First Name');
                  if(!value){return;}
                  document.getElementById('new_therapist_name').value = value;
                  document.getElementById('new_therapist').submit();
                  }</script><form id='new_therapist'><input type='hidden' value='' name='new_therapist_name' id='new_therapist_name'><input type='hidden' name='cmd' value='new_therapist'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div style='padding:5px;'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
-                 .($this->therapist_key ? $this->drawProForm( $oFormPro, $raTherapists, $myClients, $raClients) : "")
+                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' style='padding:5px;'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>External Providers</h3>"
-                 ."<button onclick='add_new_pro();'>Add Professional</button>"
-                 ."<script>function add_new_pro(){var value = prompt('Enter Professionals Name');
+                 ."<button onclick='add_new_pro();'>Add External Provider</button>"
+                 ."<script>function add_new_pro(){var value = prompt('Enter External Provider\'s Name');
                  if(!value){return;}
                  document.getElementById('new_pro_name').value = value;
                  document.getElementById('new_pro').submit();
                  }</script><form id='new_pro'><input type='hidden' value='' name='new_pro_name' id='new_pro_name'><input type='hidden' name='cmd' value='new_pro'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div style='padding:5px;'><a href='?pro_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
-                 .($this->pro_key ? $this->drawProForm( $oFormPro, $raPros, $myClients, $raClients ) : "")
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' style='padding:5px;'><a href='?pro_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
              ."</div>"
-             ."</div></div>";
+             ."</div></div>"
+             ."<style>"
+                 ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
+                     ." { font-weight:bold;color:green;background-color:#dfd; }"
+             ."</style>";
+
+
+             $s .= "<div class='container'><div class='row'>";
+             if( $this->client_key ) {
+                 $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
+             }
+             if( $this->therapist_key ) {
+                 $s .= $this->drawProForm( $oFormTherapist, $myClients, $raClients, true );
+             }
+             if( $this->pro_key ) {
+                 $s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
+             }
+             $s .= "</div></div>";
 
              foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
                  if($this->clinics->isCoreClinic()){
@@ -241,6 +260,7 @@ class ClientList
 
 
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
+             ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
                  ."<div class='col-md-9'>".$sForm."</div>"
                  ."<div class='col-md-3'>".$sTherapists.$sPros."</div>"
@@ -258,89 +278,98 @@ class ClientList
                ."</tr>" );
     }
 
-    function drawProForm( SEEDCoreForm $oForm, $raPros, $myClients, $raClients )
+    function drawProForm( SEEDCoreForm $oForm, $myClients, $raClients, $bTherapist )
+    /*******************************************************************************
+        The user clicked on a therapist / external provider's name so show their form
+     */
     {
         $s = "";
 
-        // The user clicked on a professionals name so show their form
-        foreach( $raPros as $ra ) {
-            if( $ra['clinic'] != $this->clinics->GetCurrentClinic()){
-                continue;
+        $sClients = "<div style='padding:10px;border:1px solid #888'>Clients:<br/>";
+        foreach( $myClients as $ra ) {
+            if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( 'C', $ra['fk_clients2'] )) ) {
+                $sClients .= $kfr->Expand( "[[P_first_name]] [[P_last_name]]<br />" );
             }
-            if( $ra['_key'] == $this->pro_key ) {
-                if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
-                    continue;
-                }
-                $sClients = "<div style='padding:10px;border:1px solid #888'>"
-                    .SEEDCore_ArrayExpandRows( $myClients, "[[client_first_name]] [[client_last_name]]<br />" )
-                    ."</div>";
-                $sClients .= "<form>"
-                        ."<input type='hidden' name='cmd' value='update_pro_add_client'/>"
-                        ."<input type='hidden' name='pro_key' value='{$this->pro_key}'/>"
-                        ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
-                        ."<select name='add_client_key'><option value='0'> Choose a client</option>"
-                        .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
-                        ."</select><input type='submit' value='add'></form>";
-
-                $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
-                foreach ($this->pro_roles_name as $role) {
-                    if($ra['pro_role'] == $role){
-                        $selRoles .= "<option selected />".$role;
-                    } elseif($role == "Other" && !in_array($ra['pro_role'], $this->pro_roles_name)){
-                        $selRoles .= "<option selected />".$role;
-                    } else{
-                        $selRoles .= "<option />".$role;
-                    }
-                }
-                $selRoles .= "</select>"
-                            ."<input type='text' ".(in_array($ra['pro_role'], $this->pro_roles_name)?"style='display:none' disabled ":"")."required id='other' name='pro_role' maxlength='200' value='".(in_array($ra['pro_role'], $this->pro_roles_name)?"":htmlspecialchars($ra['pro_role']))."' placeholder='Role' />";
-
-                $sForm =
-                      "<form>"
-                     ."<input type='hidden' name='cmd' value='update_pro'/>"
-                     ."<input type='hidden' name='pro_key' id='proId' value='{$this->pro_key}'/>"
-                     .$oForm->HiddenKey()
-                     ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
-                     .($this->clinics->isCoreClinic() ? "<p>Pro # {$this->pro_key}</p>":"")
-                     ."<table class='container-fluid table table-striped table-sm'>"
-                     .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
-                     .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
-                     .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
-                     .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
-                     .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
-                     .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
-                     .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
-                     .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
-                     .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
-                     .$this->drawFormRow( "Role", $selRoles )
-                     .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".htmlspecialchars($ra['rate'])."' placeholder='Rate' step='1' min='0' />" )
-                     .$this->drawFormRow( "Clinic", $this->getClinicList($oForm->Value('clinic') ) )
-                     ."<tr>"
-                         ."<td class='col-md-12'><input type='submit' value='Save'/></td>"
-                     ."</tr>"
-                     ."</table>"
-                     ."</form>"
-                    ."<script>function doUpdateForm() {
-                        var sel = document.getElementById('mySelect').value;
-                        if( sel == 'Other' ) {
-                            document.getElementById('other').style.display = 'inline';
-                            document.getElementById('other').disabled = false;
-                        } else {
-                            document.getElementById('other').style.display = 'none';
-                            document.getElementById('other').disabled = true;
-                        }
-                    }
-                    </script>";
-
-                $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
-                     ."<div class='row'>"
-                     ."<div class='col-md-9'>".$sForm."</div>"
-                     ."<div class='col-md-3'>".$sClients."</div>"
-                     ."</div>"
-                     ."</div>";
+            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
+                $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
         }
-        return( $s );
+        $sClients .=
+                 "</div>"
+                ."<form>"
+                ."<input type='hidden' name='cmd' value='update_pro_add_client'/>"
+                ."<input type='hidden' name='pro_key' value='{$this->pro_key}'/>"
+                ."<select name='add_client_key'><option value='0'> Choose a client</option>"
+                .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>" )
+                ."</select><input type='submit' value='add'></form>";
+
+        $myRole = $oForm->Value('pro_role');
+        $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
+        $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
+        foreach ($this->pro_roles_name as $role) {
+            if( $role == $myRole ) {
+                $selRoles .= "<option selected />".$role;
+            } elseif($role == "Other" && !$myRoleIsNormal){
+                $selRoles .= "<option selected />".$role;
+            } else{
+                $selRoles .= "<option />".$role;
+            }
+        }
+        $selRoles .= "</select>"
+                    ."<input type='text' ".($myRoleIsNormal?"style='display:none' disabled ":"")
+                        ."required id='other' name='pro_role' maxlength='200' "
+                        ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
+
+        $sForm =
+              "<form>"
+             .($bTherapist ? ("<input type='hidden' name='therapist_key' id='therapistId' value='{$this->therapist_key}'/>"
+                             ."<input type='hidden' name='cmd' value='update_therapist'/>"
+                             .($this->clinics->isCoreClinic() ? "<p>Therapist # {$this->therapist_key}</p>":"")
+                                 )
+                           : ("<input type='hidden' name='pro_key' id='proId' value='{$this->pro_key}'/>"
+                             ."<input type='hidden' name='cmd' value='update_pro'/>"
+                             .($this->clinics->isCoreClinic() ? "<p>Provider # {$this->pro_key}</p>":"")
+                           ))
+             .$oForm->HiddenKey()
+             ."<table class='container-fluid table table-striped table-sm'>"
+             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
+             .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
+             .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
+             .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
+             .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
+             .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
+             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
+             .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
+             .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
+             .$this->drawFormRow( "Role", $selRoles )
+             .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Rate' step='1' min='0' />" )
+             .$this->drawFormRow( "Clinic", $this->getClinicList($oForm->Value('clinic') ) )
+             ."<tr>"
+                 ."<td class='col-md-12'><input type='submit' value='Save'/></td>"
+             ."</tr>"
+             ."</table>"
+             ."</form>"
+            ."<script>function doUpdateForm() {
+                var sel = document.getElementById('mySelect').value;
+                if( sel == 'Other' ) {
+                    document.getElementById('other').style.display = 'inline';
+                    document.getElementById('other').disabled = false;
+                } else {
+                    document.getElementById('other').style.display = 'none';
+                    document.getElementById('other').disabled = true;
+                }
+            }
+            </script>";
+
+        $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
+             ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
+             ."<div class='row'>"
+             ."<div class='col-md-9'>".$sForm."</div>"
+             ."<div class='col-md-3'>".$sClients."</div>"
+             ."</div>"
+             ."</div>";
+
+         return( $s );
     }
 
     private function getClinicList( $clinicId )
