@@ -52,11 +52,7 @@ class ClientList
                 $this->updatePeople( $oFormClient );
                 break;
             case "update_pro":
-                $kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key );
-                foreach( $this->pro_fields as $field ) {
-                    $kfr->SetValue( $field, SEEDInput_Str($field) );
-                }
-                $kfr->PutDBRow();
+                $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
                 break;
             case "update_pro_add_client":
@@ -316,7 +312,7 @@ class ClientList
                      .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
                      .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
                      .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
-                     .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
+                     .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
                      .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
                      .$this->drawFormRow( "Role", $selRoles )
                      .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".htmlspecialchars($ra['rate'])."' placeholder='Rate' step='1' min='0' />" )
