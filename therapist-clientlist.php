@@ -187,7 +187,6 @@ class ClientList
 
         // The user clicked on a client name so show their form
         foreach( $raClients as $ra ) {
-            //var_dump($ra);
             if($ra['clinic'] != $this->clinics->GetCurrentClinic()){
                 continue;
             }

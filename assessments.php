@@ -42,7 +42,7 @@ class Assessments
         }
         $s .= "</tr></table>";
         $s .= $this->getDataList($oForm,array("never","occasionaly","frequently","always"));
-        $s .= "</form>";
+        $s .= "<input type='submit'></form><span id='total'></span>";
         $s .= "<script src='w/js/assessments.js'></script>";
         return( $s );
     }
@@ -63,7 +63,7 @@ class Assessments
 
     private function item( SEEDCoreForm $oForm, $n )
     {
-        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"))."</td></tr>";
+        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"))."<span class='score'></span></td></tr>";
         return( $s );
     }
     

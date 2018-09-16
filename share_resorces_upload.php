@@ -1,5 +1,6 @@
 <?php
 require_once '_start.php';
+require_once 'share_resources.php';
 
 if (!file_exists(CATSDIR_RESOURCES."pending")) {
     @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
@@ -17,13 +18,13 @@ if (file_exists($target_file)) {
     $uploadOk = 0;
 }
 // Check file size
-if ($_FILES["fileToUpload"]["size"] > 500000) {
+if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
     $s .= "Sorry, your file is too large.";
     $uploadOk = 0;
 }
 // Allow certain file formats
-if($documentFileType != "pdf" && $documentFileType != "doc" && $documentFileType != "docx" && $documentFileType != "txt" && $documentFileType != "rtf" ) {
-    $s .= "Sorry, only PDF, doc, docx, rtf & txt files are allowed.";
+if($documentFileType != "docx") {
+    $s .= "Sorry, only docx files are allowed.";
     $uploadOk = 0;
 }
 // Check if $uploadOk is set to 0 by an error
@@ -40,4 +41,5 @@ if ($uploadOk == 0) {
         $s .= "Sorry, there was an error uploading your file.";
     }
 }
+
 ?>
