@@ -552,20 +552,10 @@ const clients_create =
 
         fk_people        INTEGER NOT NULL DEFAULT 0,
         parents_name     VARCHAR(200) NOT NULL DEFAULT '',
-        parents_separate BIT(1) NOT NULL DEFAULT b'0',
-        referal          VARCHAR(500) NOT NULL DEFAULT '',
+        parents_separate TINYINT NOT NULL DEFAULT 0,        # should be able to use BIT(1) type, but fails on MariaDb (linux)
+        referral         VARCHAR(500) NOT NULL DEFAULT '',
         background_info  VARCHAR(500) NOT NULL DEFAULT '',
         clinic           INTEGER NOT NULL DEFAULT 1)
-
-        -- client_first_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- client_last_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- address VARCHAR(200) NOT NULL DEFAULT '',
-        -- city VARCHAR(200) NOT NULL DEFAULT '',
-        -- province VARCHAR(200) NOT NULL DEFAULT 'ON',
-        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
-        -- dob VARCHAR(200) NOT NULL DEFAULT '',
-        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
-        -- email VARCHAR(200) NOT NULL DEFAULT '',
     ";
 
 const pros_internal_create =
@@ -579,6 +569,7 @@ const pros_internal_create =
 
         fk_people   INTEGER NOT NULL DEFAULT 0,
         role        VARCHAR(200) NOT NULL DEFAULT '',
+        fax_number VARCHAR(200) NOT NULL DEFAULT '',
         rate        INTEGER NOT NULL DEFAULT 0,
         clinic      INTEGER NOT NULL DEFAULT 1)
     ";
@@ -597,13 +588,6 @@ const pros_external_create =
         fax_number VARCHAR(200) NOT NULL DEFAULT '',
         rate       INTEGER NOT NULL DEFAULT 0,
         clinic     INTEGER NOT NULL DEFAULT 1)
-
-        -- pro_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- address VARCHAR(200) NOT NULL DEFAULT '',
-        -- city VARCHAR(200) NOT NULL DEFAULT '',
-        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
-        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
-        -- email VARCHAR(200) NOT NULL DEFAULT '',
     ";
 
 const clientsxpros_create =
