@@ -405,8 +405,8 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::clientsxpros_create );
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pro_internal,fk_pro_external) values (null,1,3,0)" );
-        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pro_internal,fk_pro_external) values (null,2,0,4)" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pros_internal,fk_pros_external) values (null,1,1,0)" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pros_internal,fk_pros_external) values (null,2,0,1)" );
         $kfdb->SetDebug(0);
     }
 

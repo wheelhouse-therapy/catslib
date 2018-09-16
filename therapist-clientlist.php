@@ -84,17 +84,21 @@ class ClientList
 
         /* Set the form to use the selected client.
          */
-        if( $this->client_key && ($kfrClient = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {
-            $oFormClient->SetKFR( $kfrClient );
+        if( $this->client_key && ($kfr = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {
+            $oFormClient->SetKFR( $kfr );
             // A client has been clicked. Who are their pros?
-            $myPros = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Clients._key='{$this->client_key}'" );
+            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'" );
+        }
+        if( $this->therapist_key && ($kfr = $this->oPeopleDB->GetKFR("PI", $this->therapist_key )) ) {
+            $oFormClient->SetKFR( $kfr );
+            // A therapist has been clicked. Who are their clients?
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'" );
         }
         if( $this->pro_key && ($kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key )) ) {
             $oFormPro->SetKFR( $kfr );
             // A pro has been clicked. Who are their clients?
-            $myClients = $this->oClients_ProsDB->KFRel()->GetRecordSetRA("Pros._key='{$this->pro_key}'" );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->therapist_key}'" );
         }
-
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
         $raClients    = $this->oPeopleDB->GetList('C', $condClinic);
@@ -173,10 +177,19 @@ class ClientList
     {
         $s = "";
 
-        $sPros = "<div style='padding:10px;border:1px solid #888'>"
-                .SEEDCore_ArrayExpandRows( $myPros, "[[Pros_pro_name]] is my [[Pros_pro_role]]<br />" )
-                ."</div>";
-        $sPros .= drawModal($oForm->GetValuesRA(), $this->oPeopleDB,$this->pro_roles_name);
+        $sTherapists = "<div style='padding:10px;border:1px solid #888'>";
+        $sPros       = "<div style='padding:10px;border:1px solid #888'>";
+        foreach( $myPros as $ra ) {
+            if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( 'PI', $ra['fk_pros_internal'] )) ) {
+                $sTherapists .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
+            }
+            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
+                $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
+            }
+        }
+        $sTherapists .= "</div>";
+        $sPros       .= "</div>".drawModal($oForm->GetValuesRA(), $this->oPeopleDB, $this->pro_roles_name );
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200' ) ) );
         $sForm =
               "<form>"
@@ -230,7 +243,7 @@ class ClientList
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<div class='row'>"
                  ."<div class='col-md-9'>".$sForm."</div>"
-                 ."<div class='col-md-3'>".$sPros."</div>"
+                 ."<div class='col-md-3'>".$sTherapists.$sPros."</div>"
              ."</div>"
              ."</div>";
 
