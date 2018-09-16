@@ -209,7 +209,7 @@ class ClientList
         $sTherapists .= "</div>";
         $sPros       .= "</div>".drawModal($oForm->GetValuesRA(), $this->oPeopleDB, $this->pro_roles_name );
 
-        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200' ) ) );
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $sForm =
               "<form>"
              ."<input type='hidden' name='cmd' value='update_client'/>"
@@ -230,40 +230,43 @@ class ClientList
              .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm->Value('clinic') ) )
-             ."<tr>"
+             ."<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
-                .($oForm->Value('P_email')?"<td class='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
-                ."<script>"
-                    ."function sendcreds(e){
-                        e.preventDefault();
-                        var credsDiv = document.getElementById('credsDiv');
-                        var cid = document.getElementById('clientId').value;
-                        $.ajax({
-                            type: 'POST',
-                            data: { cmd: 'therapist---credentials', client: cid },
-                            url: 'jx.php',
-                            success: function(data, textStatus, jqXHR) {
-                                var jsData = JSON.parse(data);
-                                var sSpecial = jsData.bOk ? jsData.sOut : 'Failed to send Email';
-                                credsDiv.innerHTML =  sSpecial;
-                            },
-                            error: function(jqXHR, status, error) {
-                                console.log(status + \": \" + error);
-                                debugger;
-                            }
-                        });
-                    }
-                  </script>"
+             ."</tr>"
+             ."<tr class='row'>"
+                 .($oForm->Value('P_email')
+                     ?"<td class='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
+             ."</tr>"
              ."</tr>"
              ."</table>"
+             ."<script>"
+                 ."function sendcreds(e){
+                     e.preventDefault();
+                     var credsDiv = document.getElementById('credsDiv');
+                     var cid = document.getElementById('clientId').value;
+                     $.ajax({
+                         type: 'POST',
+                         data: { cmd: 'therapist---credentials', client: cid },
+                         url: 'jx.php',
+                         success: function(data, textStatus, jqXHR) {
+                             var jsData = JSON.parse(data);
+                             var sSpecial = jsData.bOk ? jsData.sOut : 'Failed to send Email';
+                             credsDiv.innerHTML =  sSpecial;
+                         },
+                         error: function(jqXHR, status, error) {
+                             console.log(status + \": \" + error);
+                             debugger;
+                         }
+                     });
+                 }
+               </script>"
              ."</form>";
-
 
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
-                 ."<div class='col-md-9'>".$sForm."</div>"
-                 ."<div class='col-md-3'>".$sTherapists.$sPros."</div>"
+                 ."<div class='col-md-8'>".$sForm."</div>"
+                 ."<div class='col-md-4'>".$sTherapists.$sPros."</div>"
              ."</div>"
              ."</div>";
 
@@ -272,9 +275,9 @@ class ClientList
 
     private function drawFormRow( $label, $control )
     {
-        return( "<tr>"
-                   ."<td class='col-md-4'><p>$label</p></td>"
-                   ."<td class='col-md-8'>$control</td>"
+        return( "<tr class='row'>"
+                   ."<td class='col-md-5'><p>$label</p></td>"
+                   ."<td class='col-md-7'>$control</td>"
                ."</tr>" );
     }
 
@@ -320,6 +323,7 @@ class ClientList
                         ."required id='other' name='pro_role' maxlength='200' "
                         ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
 
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $sForm =
               "<form>"
              .($bTherapist ? ("<input type='hidden' name='therapist_key' id='therapistId' value='{$this->therapist_key}'/>"
@@ -344,8 +348,8 @@ class ClientList
              .$this->drawFormRow( "Role", $selRoles )
              .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Rate' step='1' min='0' />" )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm->Value('clinic') ) )
-             ."<tr>"
-                 ."<td class='col-md-12'><input type='submit' value='Save'/></td>"
+             ."<tr class='row'>"
+                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
              ."</table>"
              ."</form>"
@@ -364,8 +368,8 @@ class ClientList
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
-             ."<div class='col-md-9'>".$sForm."</div>"
-             ."<div class='col-md-3'>".$sClients."</div>"
+             ."<div class='col-md-8'>".$sForm."</div>"
+             ."<div class='col-md-4'>".$sClients."</div>"
              ."</div>"
              ."</div>";
 
