@@ -59,7 +59,11 @@ foreach ($dir as $fileinfo) {
         <select name='dir' required>
         <option selected value=''>Select a directory</option>";
         foreach($directories as $k => $v){
-            $s .= "<option value='".$k."'>".$v['name']."</option>";
+            $sdisabled = "";
+            if(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename())){
+                $sdisabled = "disabled";
+            }
+            $s .= "<option value='".$k."'$sdisabled>".$v['name']."</option>";
         }
         $s .= "</select>
         <input type='submit' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>

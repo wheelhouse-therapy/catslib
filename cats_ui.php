@@ -276,11 +276,8 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-submitresources":
                 $s .= "SUBMIT RESOURCES";
-                $s .= "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
-                    Select resource to upload:
-                    <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\">
-                    <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
-                    </form>";
+                include('share_resources.php');
+                $s .= share_resources();
                 break;
             case 'therapist-resources':
                 include('share_resorces_upload.php');
