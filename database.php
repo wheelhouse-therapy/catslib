@@ -410,6 +410,14 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(0);
     }
 
+    if( !tableExists( $kfdb, DBNAME.".assessments_scores" ) ) {
+        echo "Creating the Client X Pros table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::assessments_scores_create );
+        $kfdb->SetDebug(0);
+    }
+
 
 
     // Also make the SEEDSession tables
@@ -517,6 +525,33 @@ class PeopleDB extends Keyframe_NamedRelations
     }
 }
 
+class AssessmentsDB extends Keyframe_NamedRelations
+{
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $raKfrel = array();
+        $sLogfile = $logdir ? "$logdir/assessments.log" : "";
+
+        $raKfrel['A']  = $this->newKfrel( $kfdb, $uid, array( 'A' => array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' ) ), $sLogfile );
+
+        return( $raKfrel );
+    }
+
+    private function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
+    /****************************************************************
+        $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
+     */
+    {
+        $parms = $sLogfile ? array('logfile'=>$sLogfile) : array();
+        return( new KeyFrame_Relation( $kfdb, array( "Tables" => $raTableDefs ), $uid, $parms ) );
+    }
+}
+
 class CATSDB_SQL
 {
 const people_create =
@@ -602,6 +637,21 @@ const clientsxpros_create =
         fk_clients2       INTEGER NOT NULL DEFAULT 0,
         fk_pros_internal  INTEGER NOT NULL DEFAULT 0,
         fk_pros_external  INTEGER NOT NULL DEFAULT 0)
+    ";
+
+const assessments_scores_create =
+    "CREATE TABLE ".DBNAME.".assessments_scores (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_clients2       INTEGER NOT NULL DEFAULT 0,
+        fk_pros_external  INTEGER NOT NULL DEFAULT 0,
+        testid            INTEGER NOT NULL DEFAULT 0,
+        results           TEXT)
     ";
 }
 
