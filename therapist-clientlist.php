@@ -310,9 +310,7 @@ class ClientList
         $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
         $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
         foreach ($this->pro_roles_name as $role) {
-            if( $role == $myRole ) {
-                $selRoles .= "<option selected />".$role;
-            } elseif($role == "Other" && !$myRoleIsNormal){
+            if( $role == $myRole || ($role == "Other" && !$myRoleIsNormal)) {
                 $selRoles .= "<option selected />".$role;
             } else{
                 $selRoles .= "<option />".$role;
@@ -320,7 +318,7 @@ class ClientList
         }
         $selRoles .= "</select>"
                     ."<input type='text' ".($myRoleIsNormal?"style='display:none' disabled ":"")
-                        ."required id='other' name='pro_role' maxlength='200' "
+                    ."required id='other' name='".$oForm->Name('pro_role')."' maxlength='200' "
                         ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );

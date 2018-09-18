@@ -568,8 +568,8 @@ const pros_internal_create =
         _status     INTEGER DEFAULT 0,
 
         fk_people   INTEGER NOT NULL DEFAULT 0,
-        role        VARCHAR(200) NOT NULL DEFAULT '',
-        fax_number VARCHAR(200) NOT NULL DEFAULT '',
+        pro_role    VARCHAR(200) NOT NULL DEFAULT '',
+        fax_number  VARCHAR(200) NOT NULL DEFAULT '',
         rate        INTEGER NOT NULL DEFAULT 0,
         clinic      INTEGER NOT NULL DEFAULT 1)
     ";
