@@ -1,22 +1,11 @@
 <?php
 
+require_once 'share_resources.php';
+
 if (!file_exists(CATSDIR_RESOURCES."pending")) {
     @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
     echo "Pending Resources Directiory Created<br />";
 }
-
-//Array of arrays containing directory information of resource folders
-// The key of the first array defines the intermal key for the directory
-// The directory value of the second array defines the path to the directory
-// ALL directories are stored in the resources folder
-// The name value of the second array is the name displayed in the select element
-// It should be a discriptive name indicating what goes in the folder
-$directories = array("papers"    => array("directory" => "papers/",    "name" => "Papers"              ),
-                     "handouts"  => array("directory" => "handouts/",  "name" => "Handouts"            ),
-                     "reports"   => array("directory" => "reports/",   "name" => "Client Reports"      ),
-                     "forms"     => array("directory" => "forms/",     "name" => "Forms"               ),
-                     "marketing" => array("directory" => "marketing/", "name" => "Marketing Materials" )
-                    );
 
 foreach($directories as $k => $v){
     if (!file_exists(CATSDIR_RESOURCES.$v["directory"])) {
@@ -60,7 +49,10 @@ foreach ($dir as $fileinfo) {
         <option selected value=''>Select a directory</option>";
         foreach($directories as $k => $v){
             $sdisabled = "";
-            if(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename())){
+            if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
+                $sdisabled = "disabled";
+            }
+            else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 $sdisabled = "disabled";
             }
             $s .= "<option value='".$k."'$sdisabled>".$v['name']."</option>";

@@ -1,4 +1,31 @@
 <?php
+
+// Array of arrays containing directory information of resource folders
+// The key of the first array defines the intermal key for the directory
+// The directory value of the second array defines the path to the directory
+// ALL directories are stored in the resources folder
+// The name value of the second array is the name displayed in the select element
+// It should be a discriptive name indicating what goes in the folder
+// The extensions value of the second array is an array of all files extensions that are excepted in the directory
+// DO NOT include the dot in the file extension
+global $directories;
+$directories= array("papers"    => array("directory" => "papers/",    "name" => "Papers",             "extensions" => array("docx") ),
+                    "handouts"  => array("directory" => "handouts/",  "name" => "Handouts",           "extensions" => array("docx") ),
+                    "reports"   => array("directory" => "reports/",   "name" => "Client Reports",     "extensions" => array("docx") ),
+                    "forms"     => array("directory" => "forms/",     "name" => "Forms",              "extensions" => array("docx") ),
+                    "marketing" => array("directory" => "marketing/", "name" => "Marketing Materials","extensions" => array("docx") )
+);
+
+function getExtensions(){
+    $exts = array();
+    foreach($GLOBALS['directories'] as $k => $v){
+        foreach ($v['extensions'] as $ext){
+            array_push($exts, trim($ext, ". \t\n\r\0\x0B"));
+        }
+    }
+    return $exts;
+}
+
 function share_resources(){
     return "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
