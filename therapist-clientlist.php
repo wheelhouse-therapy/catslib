@@ -131,7 +131,7 @@ class ClientList
                  document.getElementById('new_therapist').submit();
                  }</script><form id='new_therapist'><input type='hidden' value='' name='new_therapist_name' id='new_therapist_name'><input type='hidden' name='cmd' value='new_therapist'/>
                  <input type='hidden' name='screen' value='therapist-clientlist'/></form>"
-                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' style='padding:5px;'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' style='padding:5px;'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>External Providers</h3>"
