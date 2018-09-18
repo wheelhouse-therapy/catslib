@@ -53,7 +53,7 @@ foreach ($dir as $fileinfo) {
                 $sdisabled = "disabled";
             }
             else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
-                $sdisabled = "disabled";
+                continue;
             }
             $s .= "<option value='".$k."'$sdisabled>".$v['name']."</option>";
         }
