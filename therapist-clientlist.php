@@ -66,22 +66,39 @@ class ClientList
                 break;
             case "new_client":
                 $name = SEEDInput_Str("new_client_name");
+                $kfrPeople = $this->oPeopleDB->KFRel("P")->CreateRecord();
+                $kfrPeople->SetValue("first_name", $name);
+                $kfrPeople->PutDBRow();
                 $kfr = $this->oPeopleDB->KFRel("C")->CreateRecord();
-                $kfr->SetValue("P_first_name",$name);
+                $kfr->SetValue("fk_people",$kfrPeople->Key());
                 $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->client_key = $kfr->Key();
                 break;
             case "new_pro":
                 $name = SEEDInput_Str("new_pro_name");
+                $kfrPeople = $this->oPeopleDB->KFRel("P")->CreateRecord();
+                $kfrPeople->SetValue("first_name", $name);
+                $kfrPeople->PutDBRow();
                 $kfr = $this->oPeopleDB->KFRel("PE")->CreateRecord();
-                $kfr->SetValue("P_first_name", $name);
+                $kfr->SetValue("fk_people",$kfrPeople->Key());
                 $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
                 $kfr->PutDBRow();
                 $this->pro_key = $kfr->Key();
                 break;
+            case "new_therapist":
+                $name = SEEDInput_Str("new_therapist_name");
+                $kfrPeople = $this->oPeopleDB->KFRel("P")->CreateRecord();
+                $kfrPeople->SetValue("first_name", $name);
+                $kfrPeople->PutDBRow();
+                $kfr = $this->oPeopleDB->KFRel("PI")->CreateRecord();
+                $kfr->SetValue("fk_people",$kfrPeople->Key());
+                $kfr->SetValue("clinic",$this->clinics->GetCurrentClinic());
+                $kfr->PutDBRow();
+                $this->therapist_key = $kfr->Key();
+                break;
         }
-
+        
         $clientPros = array();
         $proClients = array();
         $myPros = array();
