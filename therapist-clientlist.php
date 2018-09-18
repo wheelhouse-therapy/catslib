@@ -1,6 +1,8 @@
 <?php
 require_once "client-modal.php" ;
 require_once 'Clinics.php';
+require_once "therapist-clientlistxls.php";
+
 class ClientList
 {
     private $oApp;
@@ -38,6 +40,19 @@ class ClientList
     function DrawClientList()
     {
         $s = "";
+
+        $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
+                 ."<a href='jx.php?cmd=therapist-clientlistxls'><button>Download</button></a>"
+                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                 ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
+                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                 ."<form style='display:inline-block;' action='${_SERVER['PHP_SELF']}' method='post' enctype='multipart/form-data'>"
+                 ."<input type='submit' value='Upload'/>&nbsp;&nbsp;&nbsp;"
+                 ."<input type='hidden' name='MAX_FILE_SIZE' value='10000000' />"
+                 ."<input type='hidden' name='cmd' value='uploadxls' />"
+                 ."<input type='file' name='uploadfile' style='font-size:9pt'/>"
+                 ."</form>"
+             ."</div>";
 
         $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel("C"), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
         $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel("PI"), "A" );
@@ -97,8 +112,11 @@ class ClientList
                 $kfr->PutDBRow();
                 $this->therapist_key = $kfr->Key();
                 break;
+            case 'uploadxls':
+                $s .= $this->uploadSpreadsheet();
+                break;
         }
-        
+
         $clientPros = array();
         $proClients = array();
         $myPros = array();
@@ -127,7 +145,7 @@ class ClientList
         $raTherapists = $this->oPeopleDB->GetList('PI', $condClinic);
         $raPros       = $this->oPeopleDB->GetList('PE', $condClinic);
 
-        $s .= "<div class='container-fluid'><div class='row'>"
+        $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
              ."<div class='col-md-4'>"
                  ."<h3>Clients</h3>"
                  ."<button onclick='add_new_client();'>Add Client</button>"
@@ -401,6 +419,57 @@ class ClientList
         }
         $s .= "</select>";
         return $s;
+    }
+
+    private function uploadSpreadsheet()
+    /***********************************
+        Insert or update client / staff / providers from uploaded file
+     */
+    {
+        $s = $sErr = "";
+
+        $raRows = array();
+
+        $f = @$_FILES['uploadfile'];
+        if( $f && !@$f['error'] ) {
+            $raSheets = Therapist_ClientList_LoadXLSX( $this->oApp, $f['tmp_name'] );
+
+            /* There should be 3 arrays of arrays of rows: Clients, Staff, Providers
+             */
+            $nClients = $nStaff = $nProviders = 0;
+            foreach( $raSheets as $sheetName => $raRows ) {
+                if( $sheetName == 'Clients' ) {
+                    foreach( $raRows as $ra ) {
+                        if( $ra[0] &&
+                            ($kfrC = $this->oPeopleDB->GetKFR( 'C', $ra[0])) &&
+                            ($kfrP = $this->oPeopleDB->GetKFR( 'P', $kfrC->Value('fk_people'))) )
+                        {
+                            $kfrP->SetValue( 'first_name', $ra[1] );
+                            $kfrP->SetValue( 'last_name',  $ra[2] );
+                            $kfrP->SetValue( 'address',    $ra[3] );
+                            $kfrP->SetValue( 'city',       $ra[4] );
+                            $kfrP->PutDBRow();
+                            ++$nClients;
+                        }
+                    }
+                }
+            }
+            $s = "<div style='clear:both' class='alert alert-success'>Updated $nClients clients, $nStaff staff, $nProviders providers</div>";
+
+        } else {
+            $sErr = "The upload was not successful. ";
+            if( $f['size'] == 0 ) {
+                $sErr .= "No file was uploaded.  Please try again.";
+            } else if( !isset($f['error']) ) {
+                $sErr .= "No error was recorded.  Please tell Bob.";
+            } else {
+                $sErr .= "Please tell Bob that error # ${f['error']} was reported.";
+            }
+        }
+
+        if( $sErr ) $s = "<div style='clear:both' class='alert alert-danger'>$sErr</div>";
+
+        return( $s );
     }
 }
 
