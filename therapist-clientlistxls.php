@@ -36,39 +36,52 @@ class Therapist_ClientListSpreadsheet
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
 
+        // Array of common DB fields
+        $raPeople = array(
+            'P_first_name'   => 'First name',
+            'P_last_name'    => 'Last name',
+            'P_address'      => 'Address',
+            'P_city'         => 'City',
+            'P_province'     => 'Province',
+            'P_postal_code'  => 'Postal Code',
+            'P_dob'          => 'Date of Birth',
+            'P_phone_number' => 'Phone Number',
+            'P_email'        => 'Email',
+            'clinic'         => 'Clinic'
+            
+        );
+        
         /* Sheet 0 is Clients
          */
         $raClients    = $this->oPeopleDB->GetList('C', $condClinic);
-        $raClientCols = array(
-            '_key'         => "Client number",
-            'P_first_name' => 'First name',
-            'P_last_name'  => 'Last name',
-            'P_address'    => 'Address',
-            'P_city'       => 'City',
+        $raClientCols = $raPeople + array(
+            '_key'             => "Client number",
+            'parents_name'     => "Parents Name",
+            'parents_separate' => "Parents Separate",
+            'referral'         => "Referral",
+            'background_info'  => "Background Info"
         );
         $this->storeSheet( $oXls, 0, "Clients", $raClients, $raClientCols );
 
         /* Sheet 1 is Staff
          */
         $raStaff = $this->oPeopleDB->GetList('PI', $condClinic);
-        $raStaffCols = array(
+        $raStaffCols = $raPeople + array(
             '_key'         => "Staff number",
-            'P_first_name' => 'First name',
-            'P_last_name'  => 'Last name',
-            'P_address'    => 'Address',
-            'P_city'       => 'City',
+            'pro_role'     => "Role",
+            'fax_number'   => "Fax Number",
+            'rate'         => "Rate"
         );
         $this->storeSheet( $oXls, 1, "Staff", $raStaff, $raStaffCols );
 
         /* Sheet 2 is External providers
          */
         $raPros = $this->oPeopleDB->GetList('PE', $condClinic);
-        $raProsCols = array(
+        $raProsCols = $raPeople + array(
             '_key'         => "Provider number",
-            'P_first_name' => 'First name',
-            'P_last_name'  => 'Last name',
-            'P_address'    => 'Address',
-            'P_city'       => 'City',
+            'pro_role'     => "Role",
+            'fax_number'   => "Fax Number",
+            'rate'         => "Rate"
         );
         $this->storeSheet( $oXls, 2, "Providers", $raPros, $raProsCols );
 
