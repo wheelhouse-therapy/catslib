@@ -14,17 +14,17 @@ $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
 // Check if file already exists
 $s .= "<a href='".CATSDIR."?screen=therapist-submitresources'><button>Back</button></a><br />";
 if (file_exists($target_file)) {
-    $s .= "Sorry, file already exists.";
+    $s .= "Sorry, file already exists.<br />";
     $uploadOk = 0;
 }
 // Check file size
 if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
-    $s .= "Sorry, your file is too large.";
+    $s .= "Sorry, your file is too large.<br />";
     $uploadOk = 0;
 }
 // Allow certain file formats
-if($documentFileType != "docx") {
-    $s .= "Sorry, only docx files are allowed.";
+if(!in_array($documentFileType, getExtensions())) {
+    $s .= "Sorry, only ".implode(", ", array_unique(getExtensions()))." files are allowed.<br />";
     $uploadOk = 0;
 }
 // Check if $uploadOk is set to 0 by an error
