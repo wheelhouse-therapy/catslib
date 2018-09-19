@@ -18,6 +18,7 @@ class Assessments
                .score-table th { height:60px; }
                .score-num   { width:1em; }
                .score-item  { width:3em; }
+               .score { padding-left: 5px; }
                </style>";
 
 
@@ -56,6 +57,7 @@ class Assessments
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n );
         }
+        $s .= "<tr><td></td><td><span class='sectionTotal'></span></td></tr>";
         $s .= "</table>";
 
         return( $s );
