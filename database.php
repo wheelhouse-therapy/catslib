@@ -370,6 +370,7 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (1,0,'Eric')" );
         $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (2,0,'Joe')" );
         $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (3,0,'Jose')" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".people (_key,uid,first_name) values (4,0,'Darth Vader')" );
 
         $kfdb->SetDebug(0);
     }
@@ -395,6 +396,25 @@ function createTables( KeyframeDatabase $kfdb )
 
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::pros_external_create );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".pros_external (_key,fk_people) values (1,4)" );
+        $kfdb->SetDebug(0);
+    }
+
+    if( !tableExists( $kfdb, DBNAME.".clientsxpros" ) ) {
+        echo "Creating the Client X Pros table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::clientsxpros_create );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pros_internal,fk_pros_external) values (null,1,1,0)" );
+        $kfdb->Execute( "INSERT INTO ".DBNAME.".clientsxpros (_key,fk_clients2,fk_pros_internal,fk_pros_external) values (null,2,0,1)" );
+        $kfdb->SetDebug(0);
+    }
+
+    if( !tableExists( $kfdb, DBNAME.".assessments_scores" ) ) {
+        echo "Creating the Client X Pros table";
+
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::assessments_scores_create );
         $kfdb->SetDebug(0);
     }
 
@@ -483,11 +503,42 @@ class PeopleDB extends Keyframe_NamedRelations
         $tDef['C']  = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
         $tDef['PI'] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
         $tDef['PE'] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
+        $tDef['CX'] = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
 
-        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array( 'P' => $tDef['P'] ), $sLogfile );
+
+        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array(                    'P' => $tDef['P'] ), $sLogfile );
         $raKfrel['C']  = $this->newKfrel( $kfdb, $uid, array( 'C'=>$tDef['C'],   'P' => $tDef['P'] ), $sLogfile );
         $raKfrel['PI'] = $this->newKfrel( $kfdb, $uid, array( 'PI'=>$tDef['PI'], 'P' => $tDef['P'] ), $sLogfile );
         $raKfrel['PE'] = $this->newKfrel( $kfdb, $uid, array( 'PE'=>$tDef['PE'], 'P' => $tDef['P'] ), $sLogfile );
+        $raKfrel['CX'] = $this->newKfrel( $kfdb, $uid, array( 'CX'=>$tDef['CX'] ), $sLogfile );
+
+        return( $raKfrel );
+    }
+
+    private function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
+    /****************************************************************
+        $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
+     */
+    {
+        $parms = $sLogfile ? array('logfile'=>$sLogfile) : array();
+        return( new KeyFrame_Relation( $kfdb, array( "Tables" => $raTableDefs ), $uid, $parms ) );
+    }
+}
+
+class AssessmentsDB extends Keyframe_NamedRelations
+{
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $raKfrel = array();
+        $sLogfile = $logdir ? "$logdir/assessments.log" : "";
+
+        $raKfrel['A']  = $this->newKfrel( $kfdb, $uid, array( 'A' => array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' ) ), $sLogfile );
+
         return( $raKfrel );
     }
 
@@ -536,20 +587,10 @@ const clients_create =
 
         fk_people        INTEGER NOT NULL DEFAULT 0,
         parents_name     VARCHAR(200) NOT NULL DEFAULT '',
-        parents_separate BIT(1) NOT NULL DEFAULT b'0',
-        referal          VARCHAR(500) NOT NULL DEFAULT '',
+        parents_separate TINYINT NOT NULL DEFAULT 0,        # should be able to use BIT(1) type, but fails on MariaDb (linux)
+        referral         VARCHAR(500) NOT NULL DEFAULT '',
         background_info  VARCHAR(500) NOT NULL DEFAULT '',
         clinic           INTEGER NOT NULL DEFAULT 1)
-
-        -- client_first_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- client_last_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- address VARCHAR(200) NOT NULL DEFAULT '',
-        -- city VARCHAR(200) NOT NULL DEFAULT '',
-        -- province VARCHAR(200) NOT NULL DEFAULT 'ON',
-        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
-        -- dob VARCHAR(200) NOT NULL DEFAULT '',
-        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
-        -- email VARCHAR(200) NOT NULL DEFAULT '',
     ";
 
 const pros_internal_create =
@@ -562,7 +603,8 @@ const pros_internal_create =
         _status     INTEGER DEFAULT 0,
 
         fk_people   INTEGER NOT NULL DEFAULT 0,
-        role        VARCHAR(200) NOT NULL DEFAULT '',
+        pro_role    VARCHAR(200) NOT NULL DEFAULT '',
+        fax_number  VARCHAR(200) NOT NULL DEFAULT '',
         rate        INTEGER NOT NULL DEFAULT 0,
         clinic      INTEGER NOT NULL DEFAULT 1)
     ";
@@ -581,15 +623,36 @@ const pros_external_create =
         fax_number VARCHAR(200) NOT NULL DEFAULT '',
         rate       INTEGER NOT NULL DEFAULT 0,
         clinic     INTEGER NOT NULL DEFAULT 1)
-
-        -- pro_name VARCHAR(200) NOT NULL DEFAULT '',
-        -- address VARCHAR(200) NOT NULL DEFAULT '',
-        -- city VARCHAR(200) NOT NULL DEFAULT '',
-        -- postal_code VARCHAR(200) NOT NULL DEFAULT '',
-        -- phone_number VARCHAR(200) NOT NULL DEFAULT '',
-        -- email VARCHAR(200) NOT NULL DEFAULT '',
     ";
 
+const clientsxpros_create =
+    "CREATE TABLE ".DBNAME.".clientsxpros (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_clients2       INTEGER NOT NULL DEFAULT 0,
+        fk_pros_internal  INTEGER NOT NULL DEFAULT 0,
+        fk_pros_external  INTEGER NOT NULL DEFAULT 0)
+    ";
+
+const assessments_scores_create =
+    "CREATE TABLE ".DBNAME.".assessments_scores (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_clients2       INTEGER NOT NULL DEFAULT 0,
+        fk_pros_external  INTEGER NOT NULL DEFAULT 0,
+        testid            INTEGER NOT NULL DEFAULT 0,
+        results           TEXT)
+    ";
 }
 
 ?>
