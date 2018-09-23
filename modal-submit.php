@@ -1,15 +1,8 @@
 <?php
-include_once "_config.php" ;
-require_once "database.php" ;
-require_once "cats_ui.php" ;
+require_once "_config.php" ;
 require_once "therapist-clientlist.php" ;
-if( !($kfdb = new KeyframeDatabase( "ot", "ot" )) ||
-    !$kfdb->Connect( "ot" ) )
-{
-    die( "Cannot connect to database<br/><br/>You probably have to execute these two MySQL commands<br/>"
-        ."CREATE DATABASE ot;<br/>GRANT ALL ON ot.* to 'ot'@'localhost' IDENTIFIED BY 'ot'" );
-}
-$oCL = new ClientList($kfdb);
+
+$oCL = new ClientList($oApp->kfdb);
 //Get Client Key
 $client_key = $_POST['client_key'];
 //Convert post key-value array to value array ignoring blank
