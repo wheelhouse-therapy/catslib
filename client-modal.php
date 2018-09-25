@@ -40,7 +40,8 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
                         <h4 class=\"modal-title\">Connect Providers to ".$ra['P_first_name']." ".$ra['P_last_name']."</h4>
                     </div>
                     <div class=\"modal-body\">
-                        <form id=\"contact_form\" action=\"modal-submit.php\" method=\"POST\">
+                        <form id=\"contact_form\" action=\"jx.php\" method=\"POST\">
+                            <input type='hidden' name='cmd' value='therapist--modal' />
                             <input type='hidden' name='client_key' value='{$ra['_key']}' />";
              $otherless = array_filter($pro_roles_name,function($var){
                 return($var != "Other");  
