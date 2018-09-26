@@ -13,6 +13,10 @@ if($cmd == 'download'){
 if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
     $dir_name = CATSDIR_RESOURCES.$dir_name;
 }
+if(!file_exists($dir_name)){
+    $s .= "<h2> No files in directory</h2>";
+    return;
+}
 $dir = new DirectoryIterator($dir_name);
 if(iterator_count($dir) == 2){
     $s .= "<h2> No files in directory</h2>";
