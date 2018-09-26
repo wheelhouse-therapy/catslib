@@ -2,6 +2,7 @@
 
 include_once( "assessments.php" );
 require_once 'Clinics.php';
+require_once 'therapist-clientlist.php';
 
 /* Classes to help draw the user interface
  */
