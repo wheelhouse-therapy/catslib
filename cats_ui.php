@@ -1,6 +1,7 @@
 <?php
 
 include_once( "assessments.php" );
+require_once 'Clinics.php';
 
 /* Classes to help draw the user interface
  */
