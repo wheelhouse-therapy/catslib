@@ -15,8 +15,6 @@ foreach($directories as $k => $v){
 }
 
 $dir_name = CATSDIR_RESOURCES."pending/";
-
-$s .= "<a href='?screen=home'><button>Back</button></a><br />";
 $cmd = SEEDInput_Str( 'cmd' );
 if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
