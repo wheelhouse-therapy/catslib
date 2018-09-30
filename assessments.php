@@ -2,6 +2,8 @@
 
 class Assessments
 {
+    private $oApp;
+
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
@@ -10,22 +12,25 @@ class Assessments
     function ScoreUI()
     {
         $s = "";
-        $kAssessment = 0;
-
-        $oForm = new SEEDCoreForm( "A" );
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
         $oPeopleDB = new PeopleDB( $this->oApp );
         $oAssessmentsDB = new AssessmentsDB( $this->oApp );
+        $oForm = new KeyFrameForm( $oAssessmentsDB->Kfrel('A'), "A" );
 
-
-        if( SEEDInput_Int( 'assessmentSave') ) {
+        /* 1: bNew from the button in the assessments list (kA is irrelevant)
+         * 2: kA non-zero from a link in the assessments list
+         * 3: saved a new form so oForm-Key==0
+         * 4: updated a form so oForm-Key<>0
+         */
+        $kAsmt = 0;
+        if( !($bNew = SEEDInput_Int('new')) &&
+            !($kAsmt = SEEDInput_Int('kA')) &&
+            SEEDInput_Int('assessmentSave') )
+        {
             $oForm->Load();
 
-            $kfr = ($kAssessment = $oForm->Value('assessmentKey')) ? $oAssessmentsDB->GetKFR( 'A', $kAssessment )
-                                                                   : $oAssessmentsDB->Kfrel('A')->CreateRecord();
-            $kfr->SetValue( 'fk_clients2', $oForm->Value( 'fk_clients2' ) );
             $raItems = array();
             foreach( $oForm->GetValuesRA() as $k => $v ) {
                 if( substr($k,0,1) == 'i' && ($item = intval(substr($k,1))) ) {
@@ -33,12 +38,12 @@ class Assessments
                 }
             }
             ksort($raItems);
-            $kfr->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
+            $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
             $this->oApp->kfdb->SetDebug(2);
-            $kfr->PutDBRow();
+            $oForm->Store();
             $this->oApp->kfdb->SetDebug(0);
+            $kAsmt = $oForm->GetKey();
         }
-
 
         $s .= "<style>
                .score-table {}
@@ -62,34 +67,87 @@ class Assessments
 
         $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
 
+        $sAsmt = $sList = "";
+
+        /* Draw the list of assessments
+         */
+        $sList = "<form action='{$_SERVER['PHP_SELF']}' method='get'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
+        $raAssessments = $oAssessmentsDB->GetList( "AxCxP", "" );
+        foreach( $raAssessments as $ra ) {
+            $sList .= "<div class='assessment-link'><a href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
+        }
+
+
+        /* Draw the current assessment
+         */
+        if( $bNew ) {
+            $sAsmt = $this->drawNewAsmtForm( $oForm, $raClients, $raColumns );
+        } else if( $kAsmt ) {
+            if( !$oForm->GetKey() ) {
+                $oForm->SetKFR( $oAssessmentsDB->GetKFR( 'A', $kAsmt ) );
+            }
+            $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+            foreach( $raResults as $k => $v ) {
+                $oForm->SetValue( "i$k", $v );
+            }
+            $sAsmt = $this->drawAsmt( $oForm, $raColumns );
+        }
+
+
+        $s .= "<div class='container-fluid'><div class='row'>"
+                 ."<div class='col-md-2' style='border-right:1px solid #bbb'>$sList</div>"
+                 ."<div class='col-md-10'>$sAsmt</div>"
+             ."</div>";
+
+        return( $s );
+    }
+
+    private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
+    {
+        $sAsmt = "<table width='100%'><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, false )."</td>";
+        }
+        $sAsmt .= "</tr></table>";
+
+        return( $sAsmt );
+    }
+
+    private function drawNewAsmtForm( SEEDCoreForm $oForm, $raClients, $raColumns )
+    {
+        $sAsmt = "";
+
         $opts = array();
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
         }
-        $s .= "<form method='post'>";
-        $s .= "<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>";
+        $sAsmt .= "<form method='post'>"
+                 ."<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>";
 
-        $s .= "<table width='100%'><tr>";
+        $sAsmt .= "<table width='100%'><tr>";
         foreach( $raColumns as $label => $sRange ) {
-            $s .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange )."</td>";
+            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, true )."</td>";
         }
-        $s .= "</tr></table>";
-        $s .= $this->getDataList($oForm,array("never","occasionaly","frequently","always"));
-        $s .= "<input hidden name='assessmentSave' value='1'/>"
-             .$oForm->Hidden( 'assessmentKey', array('value'=>$kAssessment) )
-             ."<input type='submit'></form><span id='total'></span>";
-        $s .= "<script src='w/js/assessments.js'></script>";
-        return( $s );
+        $sAsmt .= "</tr></table>";
+
+        $sAsmt .= $this->getDataList($oForm,array("never","occasionally","frequently","always"))
+                 ."<input hidden name='assessmentSave' value='1'/>"
+                 .$oForm->HiddenKey()
+                 ."<input type='submit'></form>"
+                 ."<span id='total'></span>"
+                 ."<script src='w/js/assessments.js'></script>";
+        return( $sAsmt );
     }
 
-    private function column( SEEDCoreForm $oForm, $heading, $sRange )
+
+    private function column( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
     {
         $s = "<table class='score-table'>"
             ."<tr>"
             ."<th colspan='2'>$heading<br/><br/></th>"
             ."</tr>";
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
-            $s .= $this->item( $oForm, $n );
+            $s .= $this->item( $oForm, $n, $bEditable );
         }
         $s .= "<tr><td></td><td><span class='sectionTotal'></span></td></tr>";
         $s .= "</table>";
@@ -97,9 +155,15 @@ class Assessments
         return( $s );
     }
 
-    private function item( SEEDCoreForm $oForm, $n )
+    private function item( SEEDCoreForm $oForm, $n, $bEditable )
     {
-        $s = "<tr><td class='score-num'>$n</td><td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"))."<span class='score'></span></td></tr>";
+        if( $bEditable ) {
+            $s = "<tr><td class='score-num'>$n</td>"
+                ."<td>".$oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"))."<span class='score'></span></td></tr>";
+        } else {
+            $s = "<tr><td class='score-num'>$n</td>"
+                ."<td><strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$oForm->Value( "i$n" )."</strong><span class='score'></span></td></tr>";
+        }
         return( $s );
     }
 
