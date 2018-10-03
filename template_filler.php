@@ -96,13 +96,17 @@ class template_filler {
         $table = $this->resolveTableName($table);
         if($table == 'client' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
             $bCol = FALSE;
-            $col = $this->resolveTable($table)->Expand("[[client_first_name]] [[client_last_name]]");
+            $col = $this->resolveTable($table)->Expand("[[P_first_name]] [[P_last_name]]");
         }
         if($table == 'client' && (strtolower($col) == 'age' || strtolower($col) == 'clients_age' || strtolower($col) == 'client_age')){
             $bCol = FALSE;
             $col = date_diff(new DateTime('now'), new DateTime($this->resolveTable($table)->Value('dob')))->format('%y Years');
         }
-        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'clinic')){
+        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'therapists')){
+            $bCol = FALSE;
+            $col = $this->resolveTable($table)->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]");
+        }
+        if(strtolower($col) == 'full_address' && $table == 'clinic'){
             $bCol = FALSE;
             $col = $this->resolveTable($table)->Expand("[[address]]\n[[city]] [[postal_code]]");
         }
