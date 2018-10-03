@@ -398,36 +398,31 @@ function tableExists( KeyframeDatabase $kfdb, $tablename )
 }
 
 
-class PeopleDB extends Keyframe_NamedRelations
+class CATSBaseDB extends Keyframe_NamedRelations
+/***************
+    Basic definitions of CATS database tables and methods to create kfrels
+ */
 {
+    protected $t = array();  // table definitions used by all derived db classes in CATS
+
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
+        // People tables
+        $this->t['P']  = array( "Table" => DBNAME.".people",        "Fields" => 'Auto' );
+        $this->t['C']  = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
+        $this->t['PI'] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
+        $this->t['PE'] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
+        $this->t['CX'] = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
+
+        // Assessment tables
+        $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
+
+        // set up $this->t first because KeyFrame_NamedRelations calls initKfrel which needs that
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
 
-    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
-    {
-        $raKfrel = array();
-        $tDef = array();
-        $sLogfile = $logdir ? "$logdir/people.log" : "";
-        $tDef['P']  = array( "Table" => DBNAME.".people",        "Fields" => 'Auto' );
-        $tDef['C']  = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
-        $tDef['PI'] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
-        $tDef['PE'] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
-        $tDef['CX'] = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
-
-
-        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array(                    'P' => $tDef['P'] ), $sLogfile );
-        $raKfrel['C']  = $this->newKfrel( $kfdb, $uid, array( 'C'=>$tDef['C'],   'P' => $tDef['P'] ), $sLogfile );
-        $raKfrel['PI'] = $this->newKfrel( $kfdb, $uid, array( 'PI'=>$tDef['PI'], 'P' => $tDef['P'] ), $sLogfile );
-        $raKfrel['PE'] = $this->newKfrel( $kfdb, $uid, array( 'PE'=>$tDef['PE'], 'P' => $tDef['P'] ), $sLogfile );
-        $raKfrel['CX'] = $this->newKfrel( $kfdb, $uid, array( 'CX'=>$tDef['CX'] ), $sLogfile );
-
-        return( $raKfrel );
-    }
-
-    private function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
-    /****************************************************************
+    protected function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
+    /******************************************************************
         $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
      */
     {
@@ -436,11 +431,34 @@ class PeopleDB extends Keyframe_NamedRelations
     }
 }
 
-class AssessmentsDB extends Keyframe_NamedRelations
+
+class PeopleDB extends CATSBaseDB
 {
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
-        parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
+        parent::__construct( $oApp, $raConfig );
+    }
+
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $raKfrel = array();
+        $sLogfile = $logdir ? "$logdir/people.log" : "";
+
+        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array(                       'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel['C']  = $this->newKfrel( $kfdb, $uid, array( 'C' =>$this->t['C'],  'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel['PI'] = $this->newKfrel( $kfdb, $uid, array( 'PI'=>$this->t['PI'], 'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel['PE'] = $this->newKfrel( $kfdb, $uid, array( 'PE'=>$this->t['PE'], 'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel['CX'] = $this->newKfrel( $kfdb, $uid, array( 'CX'=>$this->t['CX'] ),                       $sLogfile );
+
+        return( $raKfrel );
+    }
+}
+
+class AssessmentsDB extends CATSBaseDB
+{
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp, $raConfig );
     }
 
     protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
@@ -448,20 +466,13 @@ class AssessmentsDB extends Keyframe_NamedRelations
         $raKfrel = array();
         $sLogfile = $logdir ? "$logdir/assessments.log" : "";
 
-        $raKfrel['A']  = $this->newKfrel( $kfdb, $uid, array( 'A' => array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' ) ), $sLogfile );
+        $raKfrel['A']     = $this->newKfrel( $kfdb, $uid, array( 'A' => $this->t['A'] ), $sLogfile );
+        $raKfrel['AxCxP'] = $this->newKfrel( $kfdb, $uid, array( 'A' => $this->t['A'], 'C' => $this->t['C'], 'P' => $this->t['P'] ), $sLogfile );
 
         return( $raKfrel );
     }
-
-    private function newKfrel( $kfdb, $uid, $raTableDefs, $sLogfile )
-    /****************************************************************
-        $raTableDefs is an array('Alias'=>array('Table'=>...), ... )
-     */
-    {
-        $parms = $sLogfile ? array('logfile'=>$sLogfile) : array();
-        return( new KeyFrame_Relation( $kfdb, array( "Tables" => $raTableDefs ), $uid, $parms ) );
-    }
 }
+
 
 class CATSDB_SQL
 {
