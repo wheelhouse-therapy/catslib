@@ -39,6 +39,7 @@ elseif ($cmd == "reject"){
 $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
+        //TODO Add tooltips to icons
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
         <form style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
@@ -46,14 +47,13 @@ foreach ($dir as $fileinfo) {
         <select name='dir' required>
         <option selected value=''>Select a directory</option>";
         foreach($directories as $k => $v){
-            $sdisabled = "";
             if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-                $sdisabled = "disabled";
+                //TODO Pass directories to js to change icon
             }
             else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
             }
-            $s .= "<option value='".$k."'$sdisabled>".$v['name']."</option>";
+            $s .= "<option value='".$k."'>".$v['name']."</option>";
         }
         $s .= "</select>
         <input type='submit' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>

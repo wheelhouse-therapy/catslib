@@ -23,7 +23,7 @@ if(iterator_count($dir) == 2){
     return;
 }
 $clinic = (new Clinics($this->oApp))->GetCurrentClinic();
-$clients = (new ClientsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("clinic='$clinic'");
+$clients = (new PeopleDB($this->oApp))->KFRel("C")->GetRecordSetRA("clinic='$clinic'");
 $s .= "<!-- the div that represents the modal dialog -->
         <div class=\"modal fade\" id=\"file_dialog\" role=\"dialog\">
             <div class=\"modal-dialog\">
@@ -37,7 +37,7 @@ $s .= "<!-- the div that represents the modal dialog -->
                             <input type='hidden' name='file' id='file' value='' />
                             <select name='client' required>
                                 <option selected value=''>Select a Client</option>"
-                            .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>")
+                            .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                             ."</select>
                         </form>
                     </div>
