@@ -43,24 +43,41 @@ foreach ($dir as $fileinfo) {
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
         <form style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
-        <input type='hidden' name='file' value='".$fileinfo->getFilename()."' />
-        <select name='dir' required>
-        <option selected value=''>Select a directory</option>";
+        <input type='hidden' name='file' value='".$fileinfo->getFilename()."' />";
+        $excluded = array();
+        $options = "<option selected value=''>Select a directory</option>";
         foreach($directories as $k => $v){
             if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-                //TODO Pass directories to js to change icon
+                array_push($excluded, $v['directory']);
             }
             else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
             }
-            $s .= "<option value='".$k."'>".$v['name']."</option>";
+            $options .= "<option value='".$k."'>".$v['name']."</option>";
         }
-        $s .= "</select>
-        <input type='submit' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>
+        $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
+        <input type='submit' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>
         </form>
-        <a href='?cmd=reject&file=".$fileinfo->getFilename()."'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>
+        <a href='?cmd=reject&file=".$fileinfo->getFilename()."'><img data-tooltip='Reject Resource' src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>
         <br />";
     }
+}
+
+function js($replace){
+    $s = "{
+            var replace = ".json_encode($replace).";
+            var index = this.selectedIndex;
+            var options = this.options;
+            var submit = this.nextElementSibling;
+            if($.inArray(options[index],replace) !== -1){
+                submit.style.backgroundImage = url(".CATSDIR_IMG."overwrite-resource.png);
+                submit.dataset.tooltip = 'Overwrite Resource';
+            }else{
+                submit.style.backgroundImage = url(".CATSDIR_IMG."accept-resource.png);
+                submit.dataset.tooltip = 'Accept Resource';
+            }
+         }";
+    return $s;
 }
 
 ?>
