@@ -48,7 +48,7 @@ foreach ($dir as $fileinfo) {
         $options = "<option selected value=''>Select a directory</option>";
         foreach($directories as $k => $v){
             if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-                array_push($excluded, $v['directory']);
+                array_push($excluded, $k);
             }
             else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
@@ -62,21 +62,27 @@ foreach ($dir as $fileinfo) {
         <br />";
     }
 }
+$url = "/cats" . substr(CATSDIR_IMG, 1);
+
+$s .= "
+<script>
+function replace(event, ra) {
+        var index = event.target.selectedIndex;
+        var options = event.target.options;
+        var submit = event.target.nextElementSibling;
+        if($.inArray(options[index].value,ra) !== -1){
+            $(submit).css('background-image','url(".CATSDIR_IMG."overwrite-resource.png)');
+            submit.dataset.tooltip = 'Overwrite Resource';
+        }else{
+            $(submit).css('background-image','url(".CATSDIR_IMG."accept-resource.png)');
+            submit.dataset.tooltip = 'Accept Resource';
+        }
+}
+</script>
+";
 
 function js($replace){
-    $s = "{
-            var replace = ".json_encode($replace).";
-            var index = this.selectedIndex;
-            var options = this.options;
-            var submit = this.nextElementSibling;
-            if($.inArray(options[index],replace) !== -1){
-                submit.style.backgroundImage = url(".CATSDIR_IMG."overwrite-resource.png);
-                submit.dataset.tooltip = 'Overwrite Resource';
-            }else{
-                submit.style.backgroundImage = url(".CATSDIR_IMG."accept-resource.png);
-                submit.dataset.tooltip = 'Accept Resource';
-            }
-         }";
+    $s = "replace(event, " . json_encode($replace) . ");";
     return $s;
 }
 
