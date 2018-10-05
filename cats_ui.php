@@ -247,16 +247,16 @@ class CATS_MainUI extends CATS_UI
                 break;
 
             case "therapist-handouts":
-                $dir_name = "handouts/";
                 include('view_resources.php');
+                $s .= ResourcesDownload( $this->oApp, "handouts/" );
                 break;
             case "therapist-formscharts":
-                $dir_name = "forms/";
                 include('view_resources.php');
+                $s .= ResourcesDownload( $this->oApp, "forms/" );
                 break;
             case 'therapist-reports':
-                $dir_name = "reports/";
                 include('view_resources.php');
+                $s .= ResourcesDownload( $this->oApp, "reports/" );
                 break;
             case "therapist-linedpapers":
                 include("papers.php");
