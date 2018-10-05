@@ -22,8 +22,10 @@ if(iterator_count($dir) == 2){
     $s .= "<h2> No files in directory</h2>";
     return;
 }
-$clinic = (new Clinics($this->oApp))->GetCurrentClinic();
-$clients = (new PeopleDB($this->oApp))->KFRel("C")->GetRecordSetRA("clinic='$clinic'");
+if( !($oClinics = new Clinics($this->oApp)) || !($iClinic = $oClinics->GetCurrentClinic()) ) {
+    return;
+}
+$clients = (new PeopleDB($this->oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'");
 $s .= "<!-- the div that represents the modal dialog -->
         <div class=\"modal fade\" id=\"file_dialog\" role=\"dialog\">
             <div class=\"modal-dialog\">
