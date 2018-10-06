@@ -122,7 +122,7 @@ class ClientList
         if( $this->pro_key && ($kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key )) ) {
             $oFormPro->SetKFR( $kfr );
             // A pro has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->therapist_key}'" );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'" );
         }
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
@@ -274,7 +274,7 @@ class ClientList
                  ."<div class='col-md-4'>".$sTherapists.$sPros."</div>"
              ."</div>"
              ."</div>";
-
+             $s .= $this->clinicJS($oForm);
          return( $s );
     }
 
@@ -297,9 +297,6 @@ class ClientList
         foreach( $myClients as $ra ) {
             if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( 'C', $ra['fk_clients2'] )) ) {
                 $sClients .= $kfr->Expand( "[[P_first_name]] [[P_last_name]]<br />" );
-            }
-            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
-                $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
         }
         $sClients .=
@@ -375,14 +372,14 @@ class ClientList
              ."<div class='col-md-4'>".$sClients."</div>"
              ."</div>"
              ."</div>";
-
+             $s .= $this->clinicJS($oForm);
          return( $s );
     }
 
     private function getClinicList( $oForm)
     {
         $clinicId = $oForm->Value("clinic");
-        $s = "<select name='".$oForm->Name('clinic')."' ".($this->clinics->isCoreClinic()?"":"disabled ").">";
+        $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' ".($this->clinics->isCoreClinic()?"":"disabled ").">";
         $raClinics = $this->oClinicsDB->KFRel()->GetRecordSetRA("");
         foreach($raClinics as $clinic){
             $sSelected = (($oForm->Value("_key") == 0 && $this->clinics->GetCurrentClinic() == $clinic['_key']) || $clinicId == $clinic['_key']) ? "selected" : "";
@@ -392,6 +389,18 @@ class ClientList
         return $s;
     }
 
+    private function clinicJS($oForm){
+        $s = "<script>"
+            ."addEventListener('DOMContentLoaded', function() {
+                document.getElementById('".$oForm->Name("clinic")."').form.addEventListener('submit', function(){
+                    document.getElementById('".$oForm->Name("clinic")."').disabled = false;
+                    debugger;
+                });
+            });
+            </script>";
+        return $s;
+    }
+    
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file
