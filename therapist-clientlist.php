@@ -88,7 +88,7 @@ class ClientList
         $proClients = array();
         $myPros = array();
         $myClients = array();
-        
+
         $sNew = "";
 
         if($this->client_key == -1){
@@ -106,7 +106,7 @@ class ClientList
             $oFormPro->SetKFR($this->oPeopleDB->KFRel("PE")->CreateRecord());
             $sNew = "pro";
         }
-        
+
         /* Set the form to use the selected client.
          */
         if( $this->client_key && ($kfr = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {

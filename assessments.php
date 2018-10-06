@@ -14,7 +14,10 @@ class Assessments
         $s = "";
 
 
-        $s .= "<script>var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";</script>";
+        $s .= "<script>
+                var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
+                var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
+                </script>";
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
@@ -42,9 +45,7 @@ class Assessments
             }
             ksort($raItems);
             $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
-            $this->oApp->kfdb->SetDebug(2);
             $oForm->Store();
-            $this->oApp->kfdb->SetDebug(0);
             $kAsmt = $oForm->GetKey();
         }
 
@@ -74,7 +75,7 @@ class Assessments
 
         /* Draw the list of assessments
          */
-        $sList = "<form action='{$_SERVER['PHP_SELF']}' method='get'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
+        $sList = "<form action='{$_SERVER['PHP_SELF']}' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
         $raAssessments = $oAssessmentsDB->GetList( "AxCxP", "" );
         foreach( $raAssessments as $ra ) {
             $sList .= "<div class='assessment-link'><a href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
@@ -94,6 +95,11 @@ class Assessments
                 $oForm->SetValue( "i$k", $v );
             }
             $sAsmt = $this->drawAsmt( $oForm, $raColumns );
+
+            // Put the results in a js array for processing on the client
+            $s .= "<script>
+                   var raResultsSPM = ".json_encode($raResults).";
+                   </script>";
         }
 
 
