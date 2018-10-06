@@ -95,6 +95,11 @@ class Assessments
                 $oForm->SetValue( "i$k", $v );
             }
             $sAsmt = $this->drawAsmt( $oForm, $raColumns );
+
+            // Put the results in a js array for processing on the client
+            $s .= "<script>
+                   var raResultsSPM = ".json_encode($raResults).";
+                   </script>";
         }
 
 
