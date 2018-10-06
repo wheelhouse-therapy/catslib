@@ -13,8 +13,8 @@ foreach ($oCL->pro_roles_key as $role){
     }
 }
 foreach ($ra as $pro_key){
-    $kfr = $oCL->oClients_ProsDB->KFRelBase()->CreateRecord();
-    $kfr->SetValue("fk_clients", $client_key);
-    $kfr->SetValue("fk_professionals", $pro_key);
+    $kfr = $oCL->oPeopleDB->KFRel("CX")->CreateRecord();
+    $kfr->SetValue("fk_clients2", $client_key);
+    $kfr->SetValue("fk_pros_external", $pro_key);
     $kfr->PutDBRow();
 }

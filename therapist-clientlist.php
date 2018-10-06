@@ -8,7 +8,7 @@ class ClientList
     private $oApp;
     public $kfdb;
 
-    public $oPeopleDB, $oClients_ProsDB, $oClinicsDB;
+    public $oPeopleDB, $oClinicsDB;
 
     private $pro_fields    = array("P_first_name","P_last_name","pro_role","P_address","P_city","P_postal_code","P_phone_number","fax_number","P_email");
     //map of computer keys to human readable text
@@ -25,7 +25,6 @@ class ClientList
         $this->kfdb = $oApp->kfdb;
 
         $this->oPeopleDB = new PeopleDB( $this->oApp );
-        $this->oClients_ProsDB = new Clients_ProsDB( $oApp->kfdb );
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
 
         $clinics = new Clinics($oApp);
@@ -73,10 +72,11 @@ class ClientList
                 $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
                 break;
-            case "update_pro_add_client":
-                $kfr = $this->oClients_ProsDB->KFRelBase()->CreateRecord();
-                $kfr->SetValue("fk_professionals", $this->pro_key);
-                $kfr->SetValue("fk_clients", SEEDInput_Int("add_client_key"));
+            case "link":
+                $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
+                $kfr->SetValue("fk_pros_external", SEEDInput_Int("add_external_key"));
+                $kfr->SetValue("fk_clients2", SEEDInput_Int("add_client_key"));
+                $kfr->SetValue("fk_pros_internal", SEEDInput_Int("add_internal_key"));
                 $kfr->PutDBRow();
                 break;
             case 'uploadxls':
@@ -305,8 +305,8 @@ class ClientList
         $sClients .=
                  "</div>"
                 ."<form>"
-                ."<input type='hidden' name='cmd' value='update_pro_add_client'/>"
-                ."<input type='hidden' name='pro_key' value='{$this->pro_key}'/>"
+                ."<input type='hidden' name='cmd' value='link'/>"
+                ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
                 .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
                 .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                 ."</select><input type='submit' value='add'></form>":"");
