@@ -18,7 +18,7 @@ class Assessments
                 var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
                 var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
                 </script>";
-var_dump($_REQUEST);
+
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
         $oPeopleDB = new PeopleDB( $this->oApp );
