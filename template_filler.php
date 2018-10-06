@@ -3,36 +3,29 @@
 require(SEEDROOT.'/vendor/autoload.php');
 
 class template_filler {
-    
+
     private $oApp;
-    
+    private $oPeopleDB;
+
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
+        $this->oPeopleDB = new PeopleDB( $this->oApp );
     }
-    
+
     public function fill_resource($resourcename){
-        
+
         $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
-            if(!$this->expandTag($tag)){
-                continue; // Improper tag. Do Not Replace
-            }
-            list($table,$col) = $this->expandTag($tag);
-            if($table != NULL){
-                // It is not a single tag treat normaly
-                if(!($kfr = $this->resolveTable($table))){
-                    continue; // Could not resolve table. Do Not Replace
-                }
-                list($bCol,$col) = $this->resolveColumn($table, $col);
-            }
-            else{
-                $bCol = FALSE;
-                $col = $this->processSingleTag($col);
-            }
-            $templateProcessor->setValue($tag,$bCol?$kfr->Value($col):$col);
+            $v = $this->expandTag($tag);
+            $templateProcessor->setValue($tag, $v);
         }
-        
+
+/* Aha, the trick for substitution is to just use $templateProcessor->save().
+   The reason is that the templateProcessor reads the xml in the docx, str_replaces the tags, and puts the xml back in a temp docx.
+   Then below phpword loads that temp docx and saves it again. This screws up complex documents that phpword doesn't know how to handle.
+   BUT, the temp docx is the original xml with just our tags replaced so it's exactly what we want anyway.
+
         $ext = "";
         switch(strtolower(substr($resourcename,strrpos($resourcename, ".")))){
             case '.docx':
@@ -53,88 +46,90 @@ class template_filler {
         }
         $phpWord = \PhpOffice\PhpWord\IOFactory::load($templateProcessor->save(),$ext);
         $phpWord->save(substr($resourcename,strrpos($resourcename, '/')+1),$ext,TRUE);
+*/
+
+        // Took this from PhpOffice\PhpWord\PhpWord::save()
+        header('Content-Description: File Transfer');
+        header('Content-Disposition: attachment; filename="' . basename($resourcename) . '"');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        header('Content-Transfer-Encoding: binary');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Expires: 0');
+
+        // Save the substituted template to a temp file and pass it to the php://output, then exit so no other output corrupts the file.
+        // PHP automatically deletes the temp file when the script ends.
+        $tempfile = $templateProcessor->save();
+        if( ($fp = fopen( $tempfile, "rb" )) ) {
+            fpassthru( $fp );
+            fclose( $fp );
+        }
+
         die();
-        
     }
-    
-    private function expandTag($tag){
-        if($this->processSingleTag($tag)){
-            // Single tags are things like date which dont require a database table
-            return array(NULL,$tag);
+
+    private function expandTag($tag)
+    {
+        $raTag = explode( ':', $tag, 2 );
+        switch( count($raTag) ) {
+            case 2:  // [0] is a table, [1] is a col
+                return( $this->resolveTableTag( $raTag[0], $raTag[1] ) );
+            case 1:  // single-name tag
+                return( $this->resolveSingleTag( $raTag[0] ) );
+            default:
+                return( "" );
+
         }
-        $pos = strpos($tag, ":");
-        if (FALSE === $pos){
-            return FALSE;
-        }
-        $table = substr($tag, 0,$pos);
-        $col = substr($tag, $pos+1);
-        
-        return array($table,$col);
-        
     }
-    
-    private function resolveTable($table){
-        $table = $this->resolveTableName($table);
-        $oPeople = new PeopleDB( $this->oApp );
+
+    private function resolveTableTag( $table, $col )
+    {
+        $s = "";
+
         switch(strtolower($table)){
             case 'clinic':
                 $clinics = new Clinics($this->oApp);
-                return (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
+                $kfr = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
+                break;
             case 'therapist':
-                return $oPeople->getKFRCond("PI","P_uid=".$this->oApp->sess->GetUID());
+                $kfr = $this->oPeopleDB->getKFRCond("PI","P_uid=".$this->oApp->sess->GetUID());
+                beak;
             case 'client':
                 $key = SEEDInput_Int("client");
-                return $oPeople->getKFR("C", $key);
+                $kfr = $this->oPeopleDB->getKFR("C", $key);
+                break;
             default:
-                return NULL; // Unknown Table
+                goto done; // Unknown Table
         }
-        
-    }
-    
-    private function resolveColumn($table,$col){
-        $bCol = TRUE;
-        $table = $this->resolveTableName($table);
+
         if($table == 'client' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
-            $bCol = FALSE;
-            $col = $this->resolveTable($table)->Expand("[[P_first_name]] [[P_last_name]]");
+            $s = $kfr->Expand("[[P_first_name]] [[P_last_name]]");
         }
         if($table == 'client' && (strtolower($col) == 'age' || strtolower($col) == 'clients_age' || strtolower($col) == 'client_age')){
-            $bCol = FALSE;
-            $col = date_diff(new DateTime('now'), new DateTime($this->resolveTable($table)->Value('dob')))->format('%y Years');
+            $s = date_diff(new DateTime('now'), new DateTime($kfr->Value('P_dob')))->format('%y Years');
         }
-        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'therapists')){
-            $bCol = FALSE;
-            $col = $this->resolveTable($table)->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]");
+        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'therapist')){
+            $s = $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]");
         }
         if(strtolower($col) == 'full_address' && $table == 'clinic'){
-            $bCol = FALSE;
-            $col = $this->resolveTable($table)->Expand("[[address]]\n[[city]] [[postal_code]]");
+            $s = $kfr->Expand("[[address]]\n[[city]] [[postal_code]]");
         }
-        return array($bCol,$col);
+
+        done:
+        return( $s );
     }
-    
-    private function resolveTableName($table){
-        switch(strtolower($table)){
-            case 'clinics':
-                return 'clinic';
-            case 't':
-            case 'therapists':
-                return 'therapist';
-            case 'clients':
-                return 'client';
-            default:
-                return $table; // Unable to resolve
-        }
-    }
-    
-    private function processSingleTag($tag){
+
+    private function resolveSingleTag( $tag )
+    {
+        $s = "";
+
         switch(strtolower($tag)){
             case 'date':
-                return date("M d, Y");
+                $s = date("M d, Y");
+                break;
         }
-        return FALSE;
+
+        return( $s );
     }
-    
 }
 
 ?>
