@@ -14,7 +14,10 @@ class Assessments
         $s = "";
 
 
-        $s .= "<script>var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";</script>";
+        $s .= "<script>
+                var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
+                var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
+                </script>";
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
