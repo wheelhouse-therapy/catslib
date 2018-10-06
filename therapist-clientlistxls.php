@@ -33,8 +33,9 @@ class Therapist_ClientListSpreadsheet
             ->setKeywords('')
             ->setCategory('CATS clients, staff, providers list');
 
+        $filename = "cats-people.xlsx";
 
-        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic='".$this->clinics->GetCurrentClinic()."'");
 
         // Array of common DB fields
         $raPeople = array(
@@ -47,19 +48,19 @@ class Therapist_ClientListSpreadsheet
             'P_dob'          => 'Date of Birth',
             'P_phone_number' => 'Phone Number',
             'P_email'        => 'Email',
-            'clinic'         => 'Clinic'
-            
         );
-        
+
         /* Sheet 0 is Clients
          */
         $raClients    = $this->oPeopleDB->GetList('C', $condClinic);
         $raClientCols = $raPeople + array(
             '_key'             => "Client number",
+            'fk_people'        => "P key",
             'parents_name'     => "Parents Name",
             'parents_separate' => "Parents Separate",
             'referral'         => "Referral",
-            'background_info'  => "Background Info"
+            'background_info'  => "Background Info",
+            'clinic'           => 'Clinic'
         );
         $this->storeSheet( $oXls, 0, "Clients", $raClients, $raClientCols );
 
@@ -68,9 +69,11 @@ class Therapist_ClientListSpreadsheet
         $raStaff = $this->oPeopleDB->GetList('PI', $condClinic);
         $raStaffCols = $raPeople + array(
             '_key'         => "Staff number",
+            'fk_people'    => "P key",
             'pro_role'     => "Role",
             'fax_number'   => "Fax Number",
-            'rate'         => "Rate"
+            'rate'         => "Rate",
+            'clinic'       => 'Clinic'
         );
         $this->storeSheet( $oXls, 1, "Staff", $raStaff, $raStaffCols );
 
@@ -79,24 +82,20 @@ class Therapist_ClientListSpreadsheet
         $raPros = $this->oPeopleDB->GetList('PE', $condClinic);
         $raProsCols = $raPeople + array(
             '_key'         => "Provider number",
+            'fk_people'    => "P key",
             'pro_role'     => "Role",
             'fax_number'   => "Fax Number",
-            'rate'         => "Rate"
+            'rate'         => "Rate",
+            'clinic'       => 'Clinic'
         );
         $this->storeSheet( $oXls, 2, "Providers", $raPros, $raProsCols );
-
-        // Miscellaneous glyphs, UTF-8
-//        $spreadsheet->setActiveSheetIndex(0)
-//            ->setCellValue('A4', 'Miscellaneous glyphs')
-//            ->setCellValue('A5', 'éàèùâêîôûëïüÿäöüç');
-
 
         // Set active sheet index to the first sheet, so Excel opens this as the first sheet
         $oXls->setActiveSheetIndex(0);
 
         // Redirect output to a client’s web browser (Xlsx)
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="01simple.xlsx"');
+        header("Content-Disposition: attachment;filename=\"$filename\"");
         header('Cache-Control: max-age=0');
         // If you're serving to IE 9, then the following may be needed
         header('Cache-Control: max-age=1');

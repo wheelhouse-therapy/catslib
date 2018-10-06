@@ -45,12 +45,14 @@ class ClientList
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
                  ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
+/* TODO: upload isn't working
                  ."<form style='display:inline-block;' action='${_SERVER['PHP_SELF']}' method='post' enctype='multipart/form-data'>"
                  ."<input type='submit' value='Upload'/>&nbsp;&nbsp;&nbsp;"
                  ."<input type='hidden' name='MAX_FILE_SIZE' value='10000000' />"
                  ."<input type='hidden' name='cmd' value='uploadxls' />"
                  ."<input type='file' name='uploadfile' style='font-size:9pt'/>"
                  ."</form>"
+*/
              ."</div>";
 
         $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel("C"), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
@@ -400,7 +402,7 @@ class ClientList
             </script>";
         return $s;
     }
-    
+
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file
