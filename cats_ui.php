@@ -625,6 +625,7 @@ class UsersGroupsPermsUI
             ."||| Email || [[Text:email]]\n"
             ."||| Status|| <select name='eStatus'>".$this->getUserStatusSelectionFormTemplate()."</select>\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid1", "groupname")."\n"
+            ."||| <input type='submit'>"
                 ;
 
         return( $s );
@@ -634,7 +635,8 @@ class UsersGroupsPermsUI
     {
         $s = "|||BOOTSTRAP_TABLE(class='col-md-6',class='col-md-6')\n"
             ."||| Name            || [[Text:groupname]]\n"
-            ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
+                ."||| Inherited Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid_inherited", "groupname", TRUE)."\n"
+                    ."||| <input type='submit'>"
                 ;
 
         return( $s );
@@ -647,6 +649,7 @@ class UsersGroupsPermsUI
             ."||| Mode  || [[Text:modes]]\n"
             ."||| User  || ".$this->getSelectTemplate("SEEDSession_Users", "uid", "realname", TRUE)."\n"
             ."||| Group || ".$this->getSelectTemplate("SEEDSession_Groups", "gid", "groupname", TRUE)."\n"
+            ."||| <input type='submit'>"
                 ;
 
         return( $s );
