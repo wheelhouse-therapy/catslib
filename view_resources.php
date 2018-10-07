@@ -60,7 +60,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
             </div>";
     foreach ($dir as $fileinfo) {
         if (!$fileinfo->isDot()) {
-            $s .= "<a href='javascript:void(0)' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >".$fileinfo->getFilename()."</a><br />";
+            $s .= "<a href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >".$fileinfo->getFilename()."</a><br />";
         }
     };
 

@@ -7,13 +7,25 @@ class template_filler {
     private $oApp;
     private $oPeopleDB;
 
+    private $kfrClient = null;
+    private $kfrClinic = null;
+    private $kfrStaff = null;
+
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
         $this->oPeopleDB = new PeopleDB( $this->oApp );
     }
 
-    public function fill_resource($resourcename){
+    public function fill_resource($resourcename)
+    {
+        $kClient = SEEDInput_Int('client');
+        $this->kfrClient = $this->oPeopleDB->getKFR("C", $kClient);
+
+        $clinics = new Clinics($this->oApp);
+        $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
+
+        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='".$this->oApp->sess->GetUID()."'");
 
         $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
@@ -85,33 +97,41 @@ class template_filler {
     {
         $s = "";
 
-        switch(strtolower($table)){
-            case 'clinic':
-                $clinics = new Clinics($this->oApp);
-                $kfr = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
-                break;
-            case 'therapist':
-                $kfr = $this->oPeopleDB->getKFRCond("PI","P_uid=".$this->oApp->sess->GetUID());
-                beak;
-            case 'client':
-                $key = SEEDInput_Int("client");
-                $kfr = $this->oPeopleDB->getKFR("C", $key);
-                break;
-            default:
-                goto done; // Unknown Table
+        $table = strtolower($table);
+        $col = strtolower($col);
+
+        if( $table == 'clinic' && $this->kfrClinic ) {
+            switch( $col ) {
+                case 'full_address':
+                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[postal_code]]");
+                default:
+                    $s = $this->kfrClinic->Value( $col );
+            }
         }
 
-        if($table == 'client' && (strtolower($col) == 'name' || strtolower($col) == 'clients_name' || strtolower($col) == 'client_name')){
-            $s = $kfr->Expand("[[P_first_name]] [[P_last_name]]");
+        if( $table == 'staff' && $this->kfrStaff ) {
+            // process common fields of People
+            if( ($s = $this->peopleCol( $col, $this->kfrStaff )) ) {
+                goto done;
+            }
+            switch( $col ) {
+                default:
+                    $s = $this->kfrStaff->Value( $col );
+            }
         }
-        if($table == 'client' && (strtolower($col) == 'age' || strtolower($col) == 'clients_age' || strtolower($col) == 'client_age')){
-            $s = date_diff(new DateTime('now'), new DateTime($kfr->Value('P_dob')))->format('%y Years');
-        }
-        if(strtolower($col) == 'full_address' && ($table == 'client' || $table == 'therapist')){
-            $s = $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]");
-        }
-        if(strtolower($col) == 'full_address' && $table == 'clinic'){
-            $s = $kfr->Expand("[[address]]\n[[city]] [[postal_code]]");
+
+        if( $table == 'client' && $this->kfrClient ) {
+            // process common fields of People
+            if( ($s = $this->peopleCol( $col, $this->kfrClient )) ) {
+                goto done;
+            }
+            switch( $col ) {
+                case 'age':
+                    $s = date_diff(new DateTime('now'), new DateTime($this->kfrClient->Value('P_dob')))->format('%y Years');
+                    break;
+                default:
+                    $s = $this->kfrClient->Value( $col );
+            }
         }
 
         done:
@@ -130,6 +150,47 @@ class template_filler {
 
         return( $s );
     }
+
+    private function peopleCol( $col, KeyframeRecord $kfr )
+    {
+        $map = array( 'first_name'    => 'P_first_name',
+                      'firstname'     => 'P_first_name',
+                      'last_name'     => 'P_last_name',
+                      'lastname'      => 'P_last_name',
+                      'address'       => 'P_address',
+                      'city'          => 'P_city',
+                      'province'      => 'P_province',
+                      'postal_code'   => 'P_postal_code',
+                      'postalcode'    => 'P_postal_code',
+                      'postcode'      => 'P_postal_code',
+                      'dob'           => 'P_dob',
+                      'date_of_birth' => 'P_dob',
+                      'phone'         => 'P_phone_number',
+                      'phonenumber'   => 'P_phone_number',
+                      'phone_number'  => 'P_phone_number',
+                      'email'         => 'P_email',
+        );
+
+        // Process tags that are in the People table so they have a P_ prefix
+        if( ($colP = @$map[$col]) ) {
+            return( $kfr->Value($colP) );
+        }
+
+        // Process tags that are common to Clients and Staff
+        switch( $col ) {
+            case 'name':
+                return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
+            case 'full_address':
+            case 'fulladdress':
+                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+        }
+
+        // Empty string means the col wasn't processed.
+        // That will also be returned above if a field is blank e.g. P_address, but that's okay because the calling function only
+        // has to do something if the return is non-blank.
+        return( "" );
+    }
+
 }
 
 ?>
