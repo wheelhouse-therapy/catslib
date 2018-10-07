@@ -115,6 +115,9 @@ class template_filler {
                 goto done;
             }
             switch( $col ) {
+                case 'role':
+                    $s = $this->kfrStaff->Value( 'pro_role' );
+                    break;
                 default:
                     $s = $this->kfrStaff->Value( $col );
             }
@@ -184,6 +187,14 @@ class template_filler {
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
         }
+
+        // Process gender tags
+        $m = ($kfr->Value('gender')!='F');
+        switch( $col ) {
+            case 'He':  return( $m ? "He" : "She" );
+            case 'he':  return( $m ? "he" : "she" );
+        }
+
 
         // Empty string means the col wasn't processed.
         // That will also be returned above if a field is blank e.g. P_address, but that's okay because the calling function only
