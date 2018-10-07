@@ -183,7 +183,7 @@ class ClientList
         The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
-        $peopleFields = array( 'first_name', 'last_name', 'address', 'city', 'province', 'postal_code', 'dob', 'phone_number', 'email' );
+        $peopleFields = array( 'gender','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
@@ -227,6 +227,7 @@ class ClientList
              ."<table class='container-fluid table table-striped table-sm'>"
              .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
              .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
+             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
              .$this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
              .$this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') )
              .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
@@ -347,6 +348,7 @@ class ClientList
              .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
+             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
              .$this->drawFormRow( "Role", $selRoles )
              .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Rate' step='1' min='0' />" )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
