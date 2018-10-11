@@ -227,7 +227,7 @@ class ClientList
              ."<table class='container-fluid table table-striped table-sm'>"
              .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
              .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
-             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
+             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm))
              .$this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
              .$this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') )
              .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
@@ -348,7 +348,7 @@ class ClientList
              .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
-             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
+             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm) )
              .$this->drawFormRow( "Role", $selRoles )
              .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Rate' step='1' min='0' />" )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
@@ -405,6 +405,23 @@ class ClientList
         return $s;
     }
 
+    private function getPronounList($oForm){
+        
+        $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
+        $s = "<select name='".$oForm->Name("P_gender")."' required >";
+        $s .= "<option value=''>Select Pronouns</option>";
+        foreach($pronouns as $key => $name){
+            if($oForm->Value("P_gender") == $key){
+                $s .= "<option value='$key' selected >$name</option>";
+            }
+            else{
+                $s .= "<option value='$key' >$name</option>";
+            }
+        }
+        $s .= "</select>";
+        return $s;
+    }
+    
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file
