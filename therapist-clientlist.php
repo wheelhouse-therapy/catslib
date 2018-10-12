@@ -183,7 +183,7 @@ class ClientList
         The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
-        $peopleFields = array( 'gender','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
+        $peopleFields = array( 'pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
@@ -408,10 +408,10 @@ class ClientList
     private function getPronounList($oForm){
         
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
-        $s = "<select name='".$oForm->Name("P_gender")."' required >";
+        $s = "<select name='".$oForm->Name("P_pronouns")."' required >";
         $s .= "<option value=''>Select Pronouns</option>";
         foreach($pronouns as $key => $name){
-            if($oForm->Value("P_gender") == $key){
+            if($oForm->Value("P_pronouns") == $key){
                 $s .= "<option value='$key' selected >$name</option>";
             }
             else{
