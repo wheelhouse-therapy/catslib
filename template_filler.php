@@ -130,7 +130,7 @@ class template_filler {
             }
             switch( $col ) {
                 case 'age':
-                    $s = date_diff(new DateTime('now'), new DateTime($this->kfrClient->Value('P_dob')))->format('%y Years');
+                    $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                     break;
                 default:
                     $s = $this->kfrClient->Value( $col );
@@ -186,6 +186,7 @@ class template_filler {
             case 'full_address':
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+            //Process pronoun tags.
             case 'he':
             case 'they':
                 return $this->getPronoun("S", $kfr);
@@ -195,13 +196,6 @@ class template_filler {
             case 'his':
             case 'their':
                 return $this->getPronoun("P", $kfr);
-        }
-
-        // Process gender tags
-        $m = ($kfr->Value('gender')!='F');
-        switch( $col ) {
-            case 'He':  return( $m ? "He" : "She" );
-            case 'he':  return( $m ? "he" : "she" );
         }
 
 
@@ -217,7 +211,7 @@ class template_filler {
      * @param KeyframeRecord $kfr - record of person
      */
     private function getPronoun($form, KeyframeRecord $kfr){
-        switch($kfr->Value("pronouns")){
+        switch($kfr->Value("P_pronouns")){
             case 'M':
                 switch($form){
                     case "S":
