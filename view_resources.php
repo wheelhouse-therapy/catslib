@@ -8,6 +8,28 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
 {
     $s = "";
 
+    $s .= "<style>
+           .resources-files-tag { display:inline-block;
+                                  font-size:9pt; background-color:#def; padding:0px 3px;
+                                  border:1px solid #aaa; border-radius:2px;
+                                }
+           </style>";
+
+    $s .= "<script>
+           $(document).ready(function() {
+               $('.resources-files-tag-new').click( function() {
+                   $(this).before( $(\"<form class='resources-files-tag-input' style='display:inline-block'><input class='resources-files-tag' type='text' value='' placeholder='New tag'/></form>\" )).parent().find('input').focus();
+                   $(this).parent().find('.resources-files-tag-input').submit(
+                            function(e) {
+                                e.preventDefault();
+                                var v = $(this).find('input').val();
+                                alert('Send the new tag ['+v+'] by ajax!');
+                                $(this).html(\"<div class='resources-files-tag'>\"+v+\"</div>\");
+                            });
+               });
+           });
+           </script>";
+
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
@@ -113,9 +135,9 @@ class ResourcesFiles
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
-            $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:2px;font-size:9pt;background-color:#def;padding:0px 3px'>$tag</div> ";
+            $s .= "<div class='resources-files-tag'>$tag</div> ";
         }
-        $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:2px;font-size:9pt;background-color:#def;padding:0px 3px'>+</div> ";
+        $s .= "<div class='resources-files-tag resources-files-tag-new'>+</div>";
         return( $s );
     }
 }
