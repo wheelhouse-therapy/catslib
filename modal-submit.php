@@ -2,7 +2,7 @@
 require_once '_config.php';
 require_once "therapist-clientlist.php" ;
 
-$oCL = new ClientList($oApp->kfdb);
+$oCL = new ClientList($oApp);
 //Get Client Key
 $client_key = $_POST['client_key'];
 //Convert post key-value array to value array ignoring blank
