@@ -18,6 +18,10 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
         exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
     }
 
+    $oResourcesFiles = new ResourcesFiles( $oApp );
+
+    $folder = str_replace( '/', '', $dir_name );        // resources, handouts, etc, for looking up the related tags
+
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
         $dir_name = CATSDIR_RESOURCES.$dir_name;
     }
@@ -58,11 +62,21 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
                     </div>
                 </div>
             </div>";
+    $s .= "<table border='0'>";
     foreach ($dir as $fileinfo) {
-        if (!$fileinfo->isDot()) {
-            $s .= "<a href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >".$fileinfo->getFilename()."</a><br />";
-        }
-    };
+        if( $fileinfo->isDot() ) continue;
+        $s .= "<tr>"
+                 ."<td valign='top'>"
+                     ."<a style='white-space: nowrap' href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >"
+                         .$fileinfo->getFilename()
+                     ."</a>"
+                 ."</td>"
+                 ."<td style='padding-left:20px' valign='top'>"
+                     .$oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() )
+                 ."</td>"
+             ."</tr>";
+    }
+    $s .= "</table>";
 
     $s .= "<script>
             function select_client(file){
@@ -80,6 +94,30 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
            </script>";
 
     return( $s );
+}
+
+class ResourcesFiles
+{
+    private $oApp;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function DrawTags( $folder, $filename )
+    {
+        $s = "";
+
+        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE folder='".addslashes($folder)."' AND filename='".addslashes($filename)."'" );
+        $raTags = explode( "\t", $ra['tags'] );
+        foreach( $raTags as $tag ) {
+            if( !$tag ) continue;
+            $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:2px;font-size:9pt;background-color:#def;padding:0px 3px'>$tag</div> ";
+        }
+        $s .= "<div style='display:inline-block;border:1px solid #aaa;border-radius:2px;font-size:9pt;background-color:#def;padding:0px 3px'>+</div> ";
+        return( $s );
+    }
 }
 
 ?>
