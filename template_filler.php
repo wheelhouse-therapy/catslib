@@ -186,6 +186,7 @@ class template_filler {
             case 'full_address':
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+            //Process pronoun tags.
             case 'he':
             case 'they':
                 return $this->getPronoun("S", $kfr);
@@ -195,13 +196,6 @@ class template_filler {
             case 'his':
             case 'their':
                 return $this->getPronoun("P", $kfr);
-        }
-
-        // Process gender tags
-        $m = ($kfr->Value('gender')!='F');
-        switch( $col ) {
-            case 'He':  return( $m ? "He" : "She" );
-            case 'he':  return( $m ? "he" : "she" );
         }
 
 
