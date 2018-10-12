@@ -186,6 +186,15 @@ class template_filler {
             case 'full_address':
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+            case 'he':
+            case 'they':
+                return $this->getPronoun("S", $kfr);
+            case 'him':
+            case 'them':
+                return $this->getPronoun("O", $kfr);
+            case 'his':
+            case 'their':
+                return $this->getPronoun("P", $kfr);
         }
 
         // Process gender tags
@@ -202,6 +211,43 @@ class template_filler {
         return( "" );
     }
 
+    /**
+     * @param String $form - Form of Pronoun
+     * S - subjective, O - objective, P - posesive
+     * @param KeyframeRecord $kfr - record of person
+     */
+    private function getPronoun($form, KeyframeRecord $kfr){
+        switch($kfr->Value("pronouns")){
+            case 'M':
+                switch($form){
+                    case "S":
+                        return "he";
+                    case "O":
+                        return "him";
+                    case "P":
+                        return "his";
+                }
+            case 'F':
+                switch($form){
+                    case "S":
+                        return "she";
+                    case "O":
+                        return "her";
+                    case "P":
+                        return "her";
+                }
+            case 'O':
+                switch($form){
+                    case "S":
+                        return "they";
+                    case "O":
+                        return "them";
+                    case "P":
+                        return "their";
+                }
+        }
+    }
+    
 }
 
 ?>

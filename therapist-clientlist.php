@@ -183,7 +183,7 @@ class ClientList
         The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
-        $peopleFields = array( 'gender','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
+        $peopleFields = array( 'pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
@@ -231,7 +231,7 @@ class ClientList
              ."<table class='container-fluid table table-striped table-sm'>"
              .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
              .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
-             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
+             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm))
              .$this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
              .$this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') )
              .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
@@ -239,7 +239,7 @@ class ClientList
              .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
              .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
              .$this->drawFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) )
-             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
+             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
              ."<tr class='row'>"
@@ -353,10 +353,10 @@ class ClientList
              .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
              .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
              .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
-             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
+             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
              .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
-             .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
+             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm) )
              .$this->drawFormRow( "Role", $selRoles )
              .$this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")))
              .$this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")))
@@ -415,6 +415,23 @@ class ClientList
         return $s;
     }
 
+    private function getPronounList($oForm){
+        
+        $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
+        $s = "<select name='".$oForm->Name("P_pronouns")."' required >";
+        $s .= "<option value=''>Select Pronouns</option>";
+        foreach($pronouns as $key => $name){
+            if($oForm->Value("P_pronouns") == $key){
+                $s .= "<option value='$key' selected >$name</option>";
+            }
+            else{
+                $s .= "<option value='$key' >$name</option>";
+            }
+        }
+        $s .= "</select>";
+        return $s;
+    }
+    
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file

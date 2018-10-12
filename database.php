@@ -496,7 +496,7 @@ const people_create =
 
         uid          INTEGER NOT NULL DEFAULT 0,
 
-        gender       CHAR(1) NOT NULL DEFAULT '',       -- probably you use M and F
+        pronouns     ENUM ('','M','F','O') NOT NULL DEFAULT '',
         first_name   VARCHAR(200) NOT NULL DEFAULT '',
         last_name    VARCHAR(200) NOT NULL DEFAULT '',
         address      VARCHAR(200) NOT NULL DEFAULT '',
