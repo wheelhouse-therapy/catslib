@@ -321,13 +321,8 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(0);
     }
 
-    if( !tableExists( $kfdb, DBNAME.".assessments_scores" ) ) {
-        echo "Creating the Client X Pros table";
-
-        $kfdb->SetDebug(2);
-        $kfdb->Execute( CATSDB_SQL::assessments_scores_create );
-        $kfdb->SetDebug(0);
-    }
+    ensureTable( $kfdb, "assessments_scores" );
+    ensureTable( $kfdb, "resources_files" );
 
 
 
@@ -390,6 +385,20 @@ function createTables( KeyframeDatabase $kfdb )
                                            ."VALUES (NULL, NOW(), NOW(), '{$ra[0]}', '{$ra[1]}', {$ra[2]}, {$ra[3]})");
         }
     }
+}
+
+function ensureTable( KeyframeDatabase $kfdb, $tablename )
+{
+    $ok = false;
+
+    if( !$kfdb->TableExists( DBNAME.'.'.$tablename ) ) {
+        echo "Creating the $tablename table";
+
+        $kfdb->SetDebug(2);
+        $ok = $kfdb->Execute( constant("CATSDB_SQL::{$tablename}_create") );
+        $kfdb->SetDebug(0);
+    }
+    return( $ok );
 }
 
 function tableExists( KeyframeDatabase $kfdb, $tablename )
@@ -496,7 +505,8 @@ const people_create =
         postal_code  VARCHAR(200) NOT NULL DEFAULT '',
         dob          VARCHAR(200) NOT NULL DEFAULT '',
         phone_number VARCHAR(200) NOT NULL DEFAULT '',
-        email        VARCHAR(200) NOT NULL DEFAULT '')
+        email        VARCHAR(200) NOT NULL DEFAULT '',
+        extra        TEXT)                              -- we keep getting asked to add more fields so feel free to put them here urlencoded
 ";
 
 const clients_create =
@@ -575,6 +585,20 @@ const assessments_scores_create =
         fk_pros_external  INTEGER NOT NULL DEFAULT 0,
         testid            INTEGER NOT NULL DEFAULT 0,
         results           TEXT)
+    ";
+
+const resources_files_create =
+    "CREATE TABLE ".DBNAME.".resources_files (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        folder            TEXT NOT NULL,
+        filename          TEXT NOT NULL,
+        tags              TEXT NOT NULL)
     ";
 }
 
