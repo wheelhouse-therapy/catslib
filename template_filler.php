@@ -206,7 +206,7 @@ class template_filler {
      * @param KeyframeRecord $kfr - record of person
      */
     private function getPronoun($form, KeyframeRecord $kfr){
-        switch($kfr->Value("pronouns")){
+        switch($kfr->Value("P_pronouns")){
             case 'M':
                 switch($form){
                     case "S":
