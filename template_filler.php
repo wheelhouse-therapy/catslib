@@ -127,7 +127,7 @@ class template_filler {
             }
             switch( $col ) {
                 case 'age':
-                    $s = date_diff(new DateTime('now'), new DateTime($this->kfrClient->Value('P_dob')))->format('%y Years');
+                    $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                     break;
                 default:
                     $s = $this->kfrClient->Value( $col );
