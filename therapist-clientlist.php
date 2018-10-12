@@ -190,6 +190,10 @@ class ClientList
             foreach( $peopleFields as $v ) {
                 $kfr->SetValue( $v, $oForm->Value("P_$v") );
             }
+            $raExtra = array();
+            if( $oForm->Value('P_extra_credentials') )  $raExtra['credentials'] = $oForm->Value('P_extra_credentials');
+            if( $oForm->Value('P_extra_regnumber') )    $raExtra['regnumber'] = $oForm->Value('P_extra_regnumber');
+            if( count($raExtra) )  $kfr->SetValue( 'extra', SEEDCore_ParmsRA2URL( $raExtra ) );
             $kfr->PutDBRow();
             $oForm->SetValue("fk_people", $kfr->Key());
             $oForm->Store();
@@ -326,6 +330,10 @@ class ClientList
                     ."required id='other' name='".$oForm->Name('pro_role')."' maxlength='200' "
                         ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
 
+        $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
+        $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
+        $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $sForm =
               "<form>"
@@ -350,7 +358,9 @@ class ClientList
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
              .$this->drawFormRow( "Gender", $oForm->Text('P_gender',"",array("attrs"=>"required placeholder='M / F'") ) )
              .$this->drawFormRow( "Role", $selRoles )
-             .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Rate' step='1' min='0' />" )
+             .$this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")))
+             .$this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")))
+             .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
              ."<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
