@@ -17,7 +17,8 @@ class Assessments
         $s .= "<script>
                 var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
                 var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
-                </script>";
+                </script>
+                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
@@ -113,7 +114,21 @@ class Assessments
 
     private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $sAsmt = "<table width='100%'><tr>";
+        $sAsmt = "<h1> Sensory Processing Measure Scoring </h1>
+                    <span style='margin-left: 20%' id='name'> Name: </span>
+                        <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
+                    <table id='results'>
+                        <tr><th> Results </th><th> Score </th><th> Interpretation </th>
+	                       <th> Percentile </th><th> Reverse Percentile </th></tr>
+	
+                    </table>
+                    <template id='rowtemp'>
+                        <tr><td class='section'> </td><td class='score'> </td><td class='interp'> </td>
+	                       <td class='per'> </td><td class='rev'> </td></tr>
+	
+                    </template>
+                    <script src='w/js/asmt-overview.js'></script>";
+        $sAsmt .= "<table width='100%'><tr>";
         foreach( $raColumns as $label => $sRange ) {
             $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, false )."</td>";
         }
