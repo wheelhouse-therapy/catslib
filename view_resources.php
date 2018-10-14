@@ -10,25 +10,36 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
 
     $s .= "<style>
            .resources-files-tag { display:inline-block;
-                                  font-size:9pt; background-color:#def; padding:0px 3px;
+                                  font-size:9pt; background-color:#def; margin:0px 3px; padding:0px 3px;
                                   border:1px solid #aaa; border-radius:2px;
                                 }
            </style>";
 
-    $s .= "<script>
-           $(document).ready(function() {
-               $('.resources-files-tag-new').click( function() {
-                   $(this).before( $(\"<form class='resources-files-tag-input' style='display:inline-block'><input class='resources-files-tag' type='text' value='' placeholder='New tag'/></form>\" )).parent().find('input').focus();
-                   $(this).parent().find('.resources-files-tag-input').submit(
-                            function(e) {
-                                e.preventDefault();
-                                var v = $(this).find('input').val();
-                                alert('Send the new tag ['+v+'] by ajax!');
-                                $(this).html(\"<div class='resources-files-tag'>\"+v+\"</div>\");
-                            });
-               });
+    $s .= <<<ResourcesFileScript
+       <script>
+       $(document).ready(function() {
+           $('.resources-files-tag-new').click( function() {
+               /* The [+] new-tag button opens an input control where the user can type a new tag
+                */
+               var tagNew = $("<form class='resources-files-tag-new-form' style='display:inline-block'>"
+                             +"<input class='resources-files-tag' type='text' value='' placeholder='New tag'/>"
+                             +"</form>" );
+
+               /* Put the new-tag form in front of the [+] button and put focus on its input.
+                * Apparently before() returns the unmodified jQuery i.e. $(this) so we have to use parent() to make this work.
+                */
+               $(this).before( tagNew ).parent().find('input').focus();
+               $(this).parent().find('.resources-files-tag-new-form').submit(
+                        function(e) {
+                            e.preventDefault();
+                            var v = $(this).find('input').val();
+                            alert('Send the new tag ['+v+'] by ajax!');
+                            $(this).html("<div class='resources-files-tag'>"+v+"</div>");
+                        });
            });
-           </script>";
+       });
+       </script>
+ResourcesFileScript;
 
     if(!$dir_name){
         $s .= "Directory not specified";
