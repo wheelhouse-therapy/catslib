@@ -187,13 +187,14 @@ class ResourcesFiles
     {
         $s = "";
 
+        $s .= "<div class='resources-tag resources-tag-new'>+</div>";
+
         $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE folder='".addslashes($folder)."' AND filename='".addslashes($filename)."'" );
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
             $s .= "<div class='resources-tag'>$tag</div> ";
         }
-        $s .= "<div class='resources-tag resources-tag-new'>+</div>";
         return( $s );
     }
 }
