@@ -41,10 +41,10 @@ ResourcesTagStyle;
                               +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag'/>"
                               +"</form>" );
 
-                /* Put the new-tag form in front of the [+] button and put focus on its input.
-                 * Apparently before() returns the unmodified jQuery i.e. $(this) so we have to use parent().
+                /* Put the new-tag form after the [+] button and put focus on its input.
+                 * Apparently after() returns the unmodified jQuery i.e. $(this) so we have to use parent().
                  */
-                $(this).before( tagNew );
+                $(this).after( tagNew );
                 $(this).parent().find('.resources-tag-new-input').focus();
                 /* When the user types something and hits Enter, send their text to the server and draw the new tag
                  * (it will be drawn by the server when the page is refreshed).
