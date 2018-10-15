@@ -56,6 +56,10 @@ ResourcesTagStyle;
                         var folder = $(this).parent().data('folder');
                         var filename = $(this).parent().data('filename');
                         SEEDJXAsync( "jx.php", {cmd:"resourcestag--newtag",folder:folder,filename:filename,tag:tag}, function(){}, function(){} );
+/* Todo: this puts the tag in place, and it should look the same when the server draws it on the next page refresh.
+         But, this is putting the tag into the <form> which isn't there after the page refresh so the spacing is just a little off.
+         Replace the <form> with the div.resources-tag, not just its innerhtml.
+*/
                         $(this).html("<div class='resources-tag'>"+tag+"</div>");
                     });
             });
