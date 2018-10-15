@@ -121,9 +121,28 @@ ResourcesTagScript;
                     </div>
                 </div>
             </div>";
+
+    $sFilter = SEEDInput_Str('resource-filter');
+
+    $s .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
+         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
+         ."</form></div>";
+
     $s .= "<table border='0'>";
     foreach ($dir as $fileinfo) {
         if( $fileinfo->isDot() ) continue;
+
+        if( $sFilter ) {
+            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
+            $dbFilename = addslashes($fileinfo->getFilename());
+            $dbFilter = addslashes($sFilter);
+            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
+                                    ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
+            continue;
+        }
+        found:
+        $oApp->kfdb->SetDebug(0);
+
         $s .= "<tr>"
                  ."<td valign='top'>"
                      ."<a style='white-space: nowrap' href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >"
