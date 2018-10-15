@@ -8,38 +8,60 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
 {
     $s = "";
 
-    $s .= "<style>
-           .resources-files-tag { display:inline-block;
-                                  font-size:9pt; background-color:#def; margin:0px 3px; padding:0px 3px;
-                                  border:1px solid #aaa; border-radius:2px;
-                                }
-           </style>";
+    $s .= <<<ResourcesTagStyle
+        <style>
+            /* Every resources tag and control
+             */
+            .resources-tag {
+                    display:inline-block;
+                    font-size:9pt; background-color:#def; margin:0px 2px; padding:0px 3px;
+                    border:1px solid #aaa; border-radius:2px;
+                  }
+            /* [+] new tag button
+             */
+            .resources-tag-new {
+                  }
+            /* New tag input control and containing form
+             */
+            .resources-tag-new-form {
+                     display:inline-block;
+                  }
+            .resources-tag-new-input {
+                  }
+        </style>
+ResourcesTagStyle;
 
-    $s .= <<<ResourcesFileScript
-       <script>
-       $(document).ready(function() {
-           $('.resources-files-tag-new').click( function() {
-               /* The [+] new-tag button opens an input control where the user can type a new tag
-                */
-               var tagNew = $("<form class='resources-files-tag-new-form' style='display:inline-block'>"
-                             +"<input class='resources-files-tag' type='text' value='' placeholder='New tag'/>"
-                             +"</form>" );
+    $s .= <<<ResourcesTagScript
+        <script>
+        $(document).ready(function() {
+            $('.resources-tag-new').click( function() {
+                /* The [+] new-tag button opens an input control where the user can type a new tag
+                 */
+                var tagNew = $("<form class='resources-tag-new-form'>"
+                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag'/>"
+                              +"</form>" );
 
-               /* Put the new-tag form in front of the [+] button and put focus on its input.
-                * Apparently before() returns the unmodified jQuery i.e. $(this) so we have to use parent() to make this work.
-                */
-               $(this).before( tagNew ).parent().find('input').focus();
-               $(this).parent().find('.resources-files-tag-new-form').submit(
-                        function(e) {
-                            e.preventDefault();
-                            var v = $(this).find('input').val();
-                            alert('Send the new tag ['+v+'] by ajax!');
-                            $(this).html("<div class='resources-files-tag'>"+v+"</div>");
-                        });
-           });
-       });
-       </script>
-ResourcesFileScript;
+                /* Put the new-tag form in front of the [+] button and put focus on its input.
+                 * Apparently before() returns the unmodified jQuery i.e. $(this) so we have to use parent().
+                 */
+                $(this).before( tagNew );
+                $(this).parent().find('.resources-tag-new-input').focus();
+                /* When the user types something and hits Enter, send their text to the server and draw the new tag
+                 * (it will be drawn by the server when the page is refreshed).
+                 */
+                $(this).parent().find('.resources-tag-new-form').submit(
+                    function(e) {
+                        e.preventDefault();
+                        var tag = $(this).find('input').val();
+                        var folder = $(this).parent().data('folder');
+                        var filename = $(this).parent().data('filename');
+                        SEEDJXAsync( "jx.php", {cmd:"resourcestag--newtag",folder:folder,filename:filename,tag:tag}, function(){}, function(){} );
+                        $(this).html("<div class='resources-tag'>"+tag+"</div>");
+                    });
+            });
+        });
+        </script>
+ResourcesTagScript;
 
     if(!$dir_name){
         $s .= "Directory not specified";
@@ -104,7 +126,7 @@ ResourcesFileScript;
                          .$fileinfo->getFilename()
                      ."</a>"
                  ."</td>"
-                 ."<td style='padding-left:20px' valign='top'>"
+                 ."<td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($folder)."' data-filename='".SEEDCore_HSC($fileinfo->getFilename())."'>"
                      .$oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() )
                  ."</td>"
              ."</tr>";
@@ -146,9 +168,9 @@ class ResourcesFiles
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
-            $s .= "<div class='resources-files-tag'>$tag</div> ";
+            $s .= "<div class='resources-tag'>$tag</div> ";
         }
-        $s .= "<div class='resources-files-tag resources-files-tag-new'>+</div>";
+        $s .= "<div class='resources-tag resources-tag-new'>+</div>";
         return( $s );
     }
 }
