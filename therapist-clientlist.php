@@ -194,7 +194,9 @@ class ClientList
                 }
                 $sCond .= $field." = '".$oForm->Value("P_".$field)."'";
             }
-            $kP = $this->oPeopleDB->GetKFRCond("P",$sCond)->Key();
+            if(($kfr = $this->oPeopleDB->GetKFRCond("P",$sCond))){
+                $kP = $kfr->Key();
+            }
         }
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
             foreach( $peopleFields as $v ) {
