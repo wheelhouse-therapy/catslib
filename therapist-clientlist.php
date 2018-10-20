@@ -65,14 +65,18 @@ class ClientList
             case "update_client":
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
+                $this->client_key = $oFormClient->Value('_key');
                 break;
             case "update_therapist":
                 $oFormTherapist->Update();
                 $this->updatePeople( $oFormTherapist );
+                $this->therapist_key = $oFormTherapist->Value('_key');
                 break;
             case "update_pro":
                 $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
+                $this->pro_key = $oFormPro->Value('_key');
+                
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
