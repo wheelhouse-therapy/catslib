@@ -588,6 +588,10 @@ const assessments_scores_create =
     ";
 
 const resources_files_create =
+    /* tags contains strings separated by tab characters
+     * e.g. '\tfoo\tbar\tblart\t'
+     *      so you can search using LIKE '%\t$search\t%'
+     */
     "CREATE TABLE ".DBNAME.".resources_files (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,

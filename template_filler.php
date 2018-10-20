@@ -2,6 +2,38 @@
 
 require(SEEDROOT.'/vendor/autoload.php');
 
+class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
+{
+    function __construct( $resourcename )
+    {
+        parent::__construct( $resourcename );
+    }
+
+    protected function fixBrokenMacros($documentPart)
+    {
+        $fixedDocumentPart = $documentPart;
+
+        $fixedDocumentPart = preg_replace_callback(
+            '|\$[^{]*\{[^}]*\}|U',
+            function ($match) {
+                $fix = strip_tags($match[0]);
+                if( substr($fix,0,6) == '${date' ||
+                    substr($fix,0,8) == '${client' ||
+                    substr($fix,0,7) == '${staff' ||
+                    substr($fix,0,8) == '${clinic' )
+                {
+                    return( $fix );
+                } else {
+                    return( $match[0] );
+                }
+            },
+            $fixedDocumentPart
+        );
+
+        return $fixedDocumentPart;
+    }
+}
+
 class template_filler {
 
     private $oApp;
@@ -27,7 +59,7 @@ class template_filler {
 
         $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='".$this->oApp->sess->GetUID()."'");
 
-        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($resourcename);
+        $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
             $v = $this->expandTag($tag);
             $templateProcessor->setValue($tag, $v);
@@ -241,7 +273,7 @@ class template_filler {
                 }
         }
     }
-    
+
 }
 
 ?>

@@ -65,14 +65,18 @@ class ClientList
             case "update_client":
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
+                $this->client_key = $oFormClient->Value('_key');
                 break;
             case "update_therapist":
                 $oFormTherapist->Update();
                 $this->updatePeople( $oFormTherapist );
+                $this->therapist_key = $oFormTherapist->Value('_key');
                 break;
             case "update_pro":
                 $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
+                $this->pro_key = $oFormPro->Value('_key');
+                
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
@@ -186,6 +190,18 @@ class ClientList
         $peopleFields = array( 'pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
+        if(!$kP){
+            $sCond = "";
+            foreach($peopleFields as $field){
+                if($sCond){
+                    $sCond .= " AND ";
+                }
+                $sCond .= $field." = '".$oForm->Value("P_".$field)."'";
+            }
+            if(($kfr = $this->oPeopleDB->GetKFRCond("P",$sCond))){
+                $kP = $kfr->Key();
+            }
+        }
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
             foreach( $peopleFields as $v ) {
                 $kfr->SetValue( $v, $oForm->Value("P_$v") );
