@@ -186,6 +186,16 @@ class ClientList
         $peopleFields = array( 'pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
+        if(!$kP){
+            $sCond = "";
+            foreach($peopleFields as $field){
+                if($sCond){
+                    $sCond .= " AND ";
+                }
+                $sCond .= $field." = '".$oForm->Value("P_".$field)."'";
+            }
+            $kP = $this->oPeopleDB->GetKFRCond("P",$sCond)->Key();
+        }
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
             foreach( $peopleFields as $v ) {
                 $kfr->SetValue( $v, $oForm->Value("P_$v") );
