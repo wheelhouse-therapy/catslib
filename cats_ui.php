@@ -227,17 +227,17 @@ class CATS_MainUI extends CATS_UI
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
-            array( 'therapist-handouts',        "Print Handouts" ),
+            array( 'therapist-reports',         "Print Client Reports"),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
+            array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
+            array( 'therapist-submitresources', "Submit Resources to Share" ),
+            array( 'therapist-assessments',     "Score Assessments"),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
             array( 'therapist-team',            "Meet the Team" ),
-            array( 'therapist-submitresources', "Submit Resources to Share" ),
-            array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-assessments',     "Score Assessments"),
+            array( 'therapist-calendar',        "Calendar" ),
         );
 
         $s = "";
