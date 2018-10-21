@@ -249,15 +249,18 @@ class CATS_MainUI extends CATS_UI
 
             case "therapist-handouts":
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "handouts/" );
+                $s .= "<h3>Handouts</h3>"
+                     .ResourcesDownload( $this->oApp, "handouts/" );
                 break;
             case "therapist-formscharts":
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "forms/" );
+                $s .= "<h3>Forms</h3>"
+                     .ResourcesDownload( $this->oApp, "forms/" );
                 break;
             case 'therapist-reports':
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "reports/" );
+                $s .= "<h3>Reports</h3>"
+                     .ResourcesDownload( $this->oApp, "reports/" );
                 break;
             case "therapist-linedpapers":
                 include("papers.php");
