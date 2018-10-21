@@ -272,7 +272,8 @@ class CATS_MainUI extends CATS_UI
                 $s .= "GET IDEAS";
                 break;
             case "therapist-assessments":
-                $s .= AssessmentsScore( $this->oApp );
+                $s .= "<h3>Assessments</h3>"
+                     .AssessmentsScore( $this->oApp );
                 break;
             case "therapist-materials":
                 $s .= DownloadMaterials( $this->oApp );

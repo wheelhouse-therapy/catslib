@@ -365,13 +365,33 @@ class Assessments
 
 }
 
-
+class Assessment_SPM extends Assessments
+{
+    function __construct( SEEDAppConsole $oApp )
+    {
+        parent::__construct( $oApp );
+    }
+}
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    $o = new Assessments( $oApp );
+    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm') );
 
-    return( $o->ScoreUI() );
+    $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
+        ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>"
+        ."<option value='spm'".($asmtType=='spm' ? 'selected' : '').">Sensory Processing Measure (SPM)</option>"
+        ."</select></form>"
+        ."<br/<br/>";
+
+    switch( $asmtType ) {
+        case 'spm':  $o = new Assessment_SPM( $oApp );  break;
+        default:     goto done;
+    }
+
+    $s .= $o->ScoreUI();
+
+    done:
+    return( $s );
 }
 
 
