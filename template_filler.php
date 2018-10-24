@@ -217,7 +217,7 @@ class template_filler {
                 return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
             case 'full_address':
             case 'fulladdress':
-                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
             //Process pronoun tags.
             case 'he':
             case 'they':
