@@ -106,7 +106,7 @@ class Assessments
 
     private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $sAsmt = "<h1> Sensory Processing Measure Scoring </h1>
+        $sAsmt = "<h2>".$this->sAssessmentTitle."</h2>
                     <span style='margin-left: 20%' id='name'> Name: </span>
                         <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
                     <table id='results'>
@@ -258,6 +258,8 @@ class Assessment_SPM extends Assessments
     {
         parent::__construct( $oApp );
     }
+
+    protected $sAssessmentTitle = "Sensory Processing Measure Scoring";
 
     protected function Columns()
     {
