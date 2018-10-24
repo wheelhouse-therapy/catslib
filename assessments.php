@@ -4,7 +4,8 @@ class Assessments
 {
     private $oApp;
 
-    function __construct( SEEDAppConsole $oApp )
+    // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
+    protected function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
     }
@@ -15,8 +16,8 @@ class Assessments
 
 
         $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
-                var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
+                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
+                var cols = ".json_encode($this->Columns()).";
                 </script>
                 <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
@@ -58,17 +59,7 @@ class Assessments
                .score { padding-left: 5px; }
                </style>";
 
-
-        $raColumns = array( "Social<br/>participation" => "1-10",
-                            "Vision"                   => "11-21",
-                            "Hearing"                  => "22-29",
-                            "Touch"                    => "30-40",
-                            "Taste /<br/>Smell"        => "41-45",
-                            "Body<br/>Awareness"       => "46-55",
-                            "Balance<br/>and Motion"   => "56-66",
-                            "Planning<br/>and Ideas"   => "67-75",
-
-        );
+        $raColumns = $this->raColumnRanges;
 
         $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
 
@@ -131,7 +122,7 @@ class Assessments
                     <script src='w/js/asmt-overview.js'></script>";
 
         $sReports = "";
-        foreach( explode( "\n", $this->SPM_Reports ) as $sReport ) {
+        foreach( explode( "\n", $this->Reports ) as $sReport ) {
             if( !$sReport ) continue;
             $n = intval(substr($sReport,0,2));
             $report = substr($sReport,3);
@@ -251,9 +242,43 @@ class Assessments
         return $s;
     }
 
+    protected function Columns()
+    {
+        // Override to provide the column names
+        return( array() );
+    }
 
 
-    public $raPercentilesSPM =
+
+}
+
+class Assessment_SPM extends Assessments
+{
+    function __construct( SEEDAppConsole $oApp )
+    {
+        parent::__construct( $oApp );
+    }
+
+    protected function Columns()
+    {
+        return( array_keys($this->raPercentiles[8]) );
+    }
+
+    protected $raColumnRanges = array(
+            "Social<br/>participation" => "1-10",
+            "Vision"                   => "11-21",
+            "Hearing"                  => "22-29",
+            "Touch"                    => "30-40",
+            "Taste /<br/>Smell"        => "41-45",
+            "Body<br/>Awareness"       => "46-55",
+            "Balance<br/>and Motion"   => "56-66",
+            "Planning<br/>and Ideas"   => "67-75",
+        );
+
+
+    /* The percentiles that apply to each score, per column
+     */
+    protected $raPercentiles =
         array(
          '8'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'24',   'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'' ),
          '9'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'58',   'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'16' ),
@@ -294,8 +319,7 @@ class Assessments
          '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
         );
 
-
-        public $SPM_Reports = "
+    protected $Reports = "
 11	Seems bothered by light, especially bright lights (blinks, squints, cries, closes eyes, etc.)
 12	Has trouble finding an object when it is part of a group of other things
 13	Closes one eye or tips his/her head back when looking at something or someone
@@ -362,15 +386,6 @@ class Assessments
 74	Has trouble coming up with ideas for new games and activities
 75	Tends to play the same activities over and over, rather than shift to new activities when given the chance
 ";
-
-}
-
-class Assessment_SPM extends Assessments
-{
-    function __construct( SEEDAppConsole $oApp )
-    {
-        parent::__construct( $oApp );
-    }
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
