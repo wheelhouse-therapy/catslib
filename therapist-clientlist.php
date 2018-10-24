@@ -65,18 +65,17 @@ class ClientList
             case "update_client":
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
-                $this->client_key = $oFormClient->Value('_key');
+                $this->client_key = $oFormClient->GetKey();
                 break;
             case "update_therapist":
                 $oFormTherapist->Update();
                 $this->updatePeople( $oFormTherapist );
-                $this->therapist_key = $oFormTherapist->Value('_key');
+                $this->therapist_key = $oFormTherapist->GetKey();
                 break;
             case "update_pro":
                 $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
-                $this->pro_key = $oFormPro->Value('_key');
-                
+                $this->pro_key = $oFormPro->GetKey();
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
@@ -89,7 +88,7 @@ class ClientList
                 $s .= $this->uploadSpreadsheet();
                 break;
         }
-
+        
         $clientPros = array();
         $proClients = array();
         $myPros = array();
