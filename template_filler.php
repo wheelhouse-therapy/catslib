@@ -135,7 +135,8 @@ class template_filler {
         if( $table == 'clinic' && $this->kfrClinic ) {
             switch( $col ) {
                 case 'full_address':
-                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[postal_code]]");
+                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
+                    break;
                 default:
                     $s = $this->kfrClinic->Value( $col );
             }
@@ -149,6 +150,14 @@ class template_filler {
             switch( $col ) {
                 case 'role':
                     $s = $this->kfrStaff->Value( 'pro_role' );
+                    break;
+                case 'credentials':
+                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
+                    $s = $ra['credentials' ];
+                    break;
+                case 'regnumber':
+                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
+                    $s = $ra['regnumber' ];
                     break;
                 default:
                     $s = $this->kfrStaff->Value( $col );
@@ -272,8 +281,8 @@ class template_filler {
                         return "their";
                 }
         }
+        return( "" );
     }
-
 }
 
 ?>
