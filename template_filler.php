@@ -1,7 +1,5 @@
 <?php
 
-require(SEEDROOT.'/vendor/autoload.php');
-
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
     function __construct( $resourcename )
@@ -43,21 +41,26 @@ class template_filler {
     private $kfrClinic = null;
     private $kfrStaff = null;
 
+    private $kClient = 0;
+    private $kStaff = 0;
+
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
-        $this->oPeopleDB = new PeopleDB( $this->oApp );
+        $this->oPeople = new People( $oApp );
+        $this->oPeopleDB = new PeopleDB( $oApp );
     }
 
     public function fill_resource($resourcename)
     {
-        $kClient = SEEDInput_Int('client');
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $kClient);
+        $this->kClient = SEEDInput_Int('client');
+        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='".$this->oApp->sess->GetUID()."'");
+        $this->kStaff = $this->oApp->sess->GetUID();
+        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
@@ -152,8 +155,9 @@ class template_filler {
                     $s = $this->kfrStaff->Value( 'pro_role' );
                     break;
                 case 'credentials':
-                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
-                    $s = $ra['credentials' ];
+                    if( ($raStaff = $this->oPeople->GetStaff( $this->kStaff )) ) {
+                        $s = @$raStaff['P_extra_credentials'];
+                    }
                     break;
                 case 'regnumber':
                     $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
