@@ -109,7 +109,11 @@ class Clinics {
             case "update_clinic":
                 $kfr = $ClinicsDB->GetClinic( $clinic_key );
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
-                    $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
+                    if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
+                        $kfr->SetValue( $field['alias'], strtolower(SEEDInput_Str('clinic_name'))."@catherapyservices.ca" );
+                    }else{
+                        $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
+                    }
                 }
                 $kfr->PutDBRow();
                 break;
@@ -173,6 +177,7 @@ class Clinics {
                 // The Developer account must be the leader of the core clinic
                 // Disable the selector so it cant be changed
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
+                .$this->drawFormRow("Email", $this->getEmail($ra))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>";
             $s .= $sForm;
@@ -180,6 +185,27 @@ class Clinics {
         return($s);
     }
    
+    private function getEmail($ra){
+        $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']);
+        $s = "<input type='checkbox' value='default' id='clinicEmail' name='email' onclick='notDefault()' ".($useDefault?"checked ":"").">Use Default Email</input>"
+            ."<input type='email' id='email' name='email' ".($useDefault?"style='display:none' disabled ":"")
+                .(!$useDefault?"value='".$ra['email']."' ":"")."required placeholder='Email' />"
+            ."<script>
+                function notDefault() {
+                    var checkBox = document.getElementById('clinicEmail');
+                    var text = document.getElementById('email');
+                    if (checkBox.checked == false){
+                        text.style.display = 'block';
+                        text.disabled = false;
+                    } else {
+                        text.style.display = 'none';
+                        text.disabled = true;
+                    }
+                }
+              </script>";
+        return $s;
+    }
+    
     private function getLeaderOptions($leader_key, $readonly){
         $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
