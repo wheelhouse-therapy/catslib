@@ -89,6 +89,8 @@ ResourcesTagScript;
         return;
     }
 
+    $s .= "<a href='".CATSDIR_DOCUMENTATION."template_filler'>Filler Documentation</a><br />";
+    
     $dir = new DirectoryIterator($dir_name);
     if(iterator_count($dir) == 2){
         $s .= "<h2> No files in directory</h2>";
