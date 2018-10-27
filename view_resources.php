@@ -90,7 +90,7 @@ ResourcesTagScript;
         return;
     }
 
-    $s .= "<a href='".CATSDIR_DOCUMENTATION."template_filler'>Filler Documentation</a><br />";
+    $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html'>Template Format Reference</a><br />";
     
     $dir = new DirectoryIterator($dir_name);
     if(iterator_count($dir) == 2){

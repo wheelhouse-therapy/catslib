@@ -232,10 +232,16 @@ class template_filler {
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
             //Process pronoun tags.
             case 'he':
+                return $this->getPronoun("s", $kfr);
+            case 'He':
                 return $this->getPronoun("S", $kfr);
             case 'him':
+                return $this->getPronoun("o", $kfr);
+            case 'Him':
                 return $this->getPronoun("O", $kfr);
             case 'his':
+                return $this->getPronoun("p", $kfr);
+            case 'His':
                 return $this->getPronoun("P", $kfr);
         }
 
@@ -256,28 +262,44 @@ class template_filler {
             case 'M':
                 switch($form){
                     case "S":
-                        return "he";
+                        return "He";
                     case "O":
-                        return "him";
+                        return "Him";
                     case "P":
+                        return "His";
+                    case "s":
+                        return "he";
+                    case "o":
+                        return "him";
+                    case "p":
                         return "his";
                 }
             case 'F':
                 switch($form){
                     case "S":
-                        return "she";
+                        return "She";
                     case "O":
-                        return "her";
                     case "P":
+                        return "Her";
+                    case "s":
+                        return "she";
+                    case "o":
+                    case "p":
                         return "her";
                 }
             case 'O':
                 switch($form){
                     case "S":
-                        return "they";
+                        return "They";
                     case "O":
-                        return "them";
+                        return "Them";
                     case "P":
+                        return "Their";
+                    case "s":
+                        return "they";
+                    case "o":
+                        return "them";
+                    case "p":
                         return "their";
                 }
         }
