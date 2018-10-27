@@ -1,7 +1,5 @@
 <?php
 
-require(SEEDROOT.'/vendor/autoload.php');
-
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
     function __construct( $resourcename )
@@ -43,21 +41,26 @@ class template_filler {
     private $kfrClinic = null;
     private $kfrStaff = null;
 
+    private $kClient = 0;
+    private $kStaff = 0;
+
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
-        $this->oPeopleDB = new PeopleDB( $this->oApp );
+        $this->oPeople = new People( $oApp );
+        $this->oPeopleDB = new PeopleDB( $oApp );
     }
 
     public function fill_resource($resourcename)
     {
-        $kClient = SEEDInput_Int('client');
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $kClient);
+        $this->kClient = SEEDInput_Int('client');
+        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='".$this->oApp->sess->GetUID()."'");
+        $this->kStaff = $this->oApp->sess->GetUID();
+        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
@@ -134,7 +137,8 @@ class template_filler {
         if( $table == 'clinic' && $this->kfrClinic ) {
             switch( $col ) {
                 case 'full_address':
-                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[postal_code]]");
+                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
+                    break;
                 default:
                     $s = $this->kfrClinic->Value( $col );
             }
@@ -148,6 +152,15 @@ class template_filler {
             switch( $col ) {
                 case 'role':
                     $s = $this->kfrStaff->Value( 'pro_role' );
+                    break;
+                case 'credentials':
+                    if( ($raStaff = $this->oPeople->GetStaff( $this->kStaff )) ) {
+                        $s = @$raStaff['P_extra_credentials'];
+                    }
+                    break;
+                case 'regnumber':
+                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
+                    $s = $ra['regnumber' ];
                     break;
                 default:
                     $s = $this->kfrStaff->Value( $col );
@@ -216,7 +229,7 @@ class template_filler {
                 return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
             case 'full_address':
             case 'fulladdress':
-                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
+                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
             //Process pronoun tags.
             case 'he':
                 return $this->getPronoun("S", $kfr);
@@ -268,8 +281,8 @@ class template_filler {
                         return "their";
                 }
         }
+        return( "" );
     }
-
 }
 
 ?>
