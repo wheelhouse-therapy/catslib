@@ -423,7 +423,6 @@ class ClientList
             ."addEventListener('DOMContentLoaded', function() {
                 document.getElementById('".$oForm->Name("clinic")."').form.addEventListener('submit', function(){
                     document.getElementById('".$oForm->Name("clinic")."').disabled = false;
-                    debugger;
                 });
             });
             </script>";
