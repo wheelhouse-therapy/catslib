@@ -132,15 +132,15 @@ class template_filler {
         $s = "";
 
         $table = strtolower($table);
-        $col = strtolower($col);
+        $col = array(strtolower($col),$col);
 
         if( $table == 'clinic' && $this->kfrClinic ) {
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'full_address':
                     $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
                     break;
                 default:
-                    $s = $this->kfrClinic->Value( $col );
+                    $s = $this->kfrClinic->Value( $col[0] );
             }
         }
 
@@ -149,7 +149,7 @@ class template_filler {
             if( ($s = $this->peopleCol( $col, $this->kfrStaff )) ) {
                 goto done;
             }
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'role':
                     $s = $this->kfrStaff->Value( 'pro_role' );
                     break;
@@ -163,7 +163,7 @@ class template_filler {
                     $s = $ra['regnumber' ];
                     break;
                 default:
-                    $s = $this->kfrStaff->Value( $col );
+                    $s = $this->kfrStaff->Value( $col[0] );
             }
         }
 
@@ -172,12 +172,12 @@ class template_filler {
             if( ($s = $this->peopleCol( $col, $this->kfrClient )) ) {
                 goto done;
             }
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'age':
                     $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                     break;
                 default:
-                    $s = $this->kfrClient->Value( $col );
+                    $s = $this->kfrClient->Value( $col[0] );
             }
         }
 
@@ -219,18 +219,22 @@ class template_filler {
         );
 
         // Process tags that are in the People table so they have a P_ prefix
-        if( ($colP = @$map[$col]) ) {
+        if( ($colP = @$map[$col[0]]) ) {
             return( $kfr->Value($colP) );
         }
 
         // Process tags that are common to Clients and Staff
-        switch( $col ) {
+        switch( $col[0] ) {
             case 'name':
                 return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
             case 'full_address':
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
-            //Process pronoun tags.
+        }
+        //Process pronoun tags.
+        // check against the original column name because we can have
+        // different variations of pronoun tags to allow for capitals
+        switch( substr($col[1], 0,1).strtolower(substr($col[1], 1)) ) {
             case 'he':
                 return $this->getPronoun("s", $kfr);
             case 'He':
