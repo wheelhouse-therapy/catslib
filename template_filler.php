@@ -121,7 +121,6 @@ class template_filler {
                 return( $this->resolveSingleTag( $raTag[0] ) );
             default:
                 return( "" );
-
         }
     }
 
@@ -220,13 +219,10 @@ class template_filler {
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
             //Process pronoun tags.
             case 'he':
-            case 'they':
                 return $this->getPronoun("S", $kfr);
             case 'him':
-            case 'them':
                 return $this->getPronoun("O", $kfr);
             case 'his':
-            case 'their':
                 return $this->getPronoun("P", $kfr);
         }
 
