@@ -33,9 +33,9 @@ define( "SEEDLIB", SEEDROOT."seedlib/" );
 // include everything that SEEDROOT gets via composer
 include( SEEDROOT."vendor/autoload.php" );
 
-require_once SEEDCORE."SEEDCoreForm.php";
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
+require_once SEEDCORE."SEEDCoreForm.php";
 require_once SEEDROOT."Keyframe/KeyframeForm.php" ;
 require_once SEEDROOT."Keyframe/KeyframeDB.php" ;
 require_once SEEDROOT."DocRep/DocRepDB.php" ;
@@ -44,7 +44,7 @@ require_once SEEDROOT."DocRep/DocRepDB.php" ;
 require_once "database.php";
 require_once "cats_ui.php";
 require_once "documents.php";
-
+require_once "people.php";
 
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
@@ -65,6 +65,10 @@ $oApp = new SEEDAppConsole(
                                     'logdir' => CATSDIR_LOG )
                            )
 );
-$oApp->kfdb->SetDebug(1);
+
+
+if( $_SERVER['HTTP_HOST'] == 'localhost' ) {
+    $oApp->kfdb->SetDebug(1);
+}
 
 ?>

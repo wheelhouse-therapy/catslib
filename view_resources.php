@@ -1,4 +1,5 @@
 <?php
+
 require_once 'template_filler.php';
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
