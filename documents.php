@@ -145,7 +145,7 @@ class CATSDocumentManager
 
 .cats_docpreview_folder {
 }
-.cats_docpreview_doc {
+.cats_docform {
         background-color:#eee;
         border:1px solid #777;
         border-radius: 10px;
@@ -173,27 +173,27 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
     $sRight = $sRightClass = "";
     switch( ($pTab = $oApp->sess->SmartGPC( 'tab' )) ) {
         case "rename0":
-            $sRight = $o->oDocMan->Rename0();
-            $sRightClass = "cats_docform";
+            //$sRight = $o->oDocMan->Rename0();
+            //$sRightClass = "cats_docform";
             break;
         case "edit0":
-            $sRight = $o->oDocMan->Edit0();
-            $sRightClass = "cats_docform";
+            //$sRight = $o->oDocMan->Edit0();
+            //$sRightClass = "cats_docform";
             break;
         case "joke0":
-            $sRight = "Did you hear the one about the cat who needed OT? He got therapurr.";
-            $sRightClass = "cats_docform";
+            //$sRight = "Did you hear the one about the cat who needed OT? He got therapurr.";
+            //$sRightClass = "cats_docform";
             break;
 
         default:
             if( $o->oDocMan->oDoc ) {
                 switch( $o->oDocMan->oDoc->GetType() ) {
                     case 'FOLDER':
-                        $sRightClass= 'cats_docpreview_folder';
+                        //$sRightClass= 'cats_docpreview_doc';
                         break;
                     case 'DOC':
-                        $sRight = $o->oDocMan->PreviewDoc();
-                        $sRightClass = "cats_docpreview_doc";
+                        //$sRight = $o->oDocMan->PreviewDoc();
+                        //$sRightClass = "cats_docpreview_doc";
                         break;
                     case 'IMAGE':
                         break;
@@ -211,7 +211,7 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
                  ."<div class='col-md-6'>".$o->oDocMan->DrawDocTree( 0 )."</div>"
                  ."<div class='col-md-6'>"
                      .($o->oDocMan->GetSelectedDocKey() ? ("<div class='cats_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
-                     ."<div class='$sRightClass'>".$o->oDocMan->TreeForms()."</div>"
+                     ."<div class='cats_docform'>".$o->oDocMan->TreeForms()."</div>"
                  ."</div>"
              ."</div>"
         ."</div></div>";
