@@ -56,9 +56,9 @@ foreach ($dir as $fileinfo) {
             $options .= "<option value='".$k."'>".$v['name']."</option>";
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
-        <input type='submit' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png);width: 24px;height: 24px;border:  none;background-size: 20px;background-repeat:  no-repeat;'>
+        <input id='accept' type='submit' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'>
         </form>
-        <a href='?cmd=reject&file=".$fileinfo->getFilename()."'><img data-tooltip='Reject Resource' src='".CATSDIR_IMG."reject-resource.png' style='max-width:20px;'/></a>
+        <a id='reject' href='?cmd=reject&file=".$fileinfo->getFilename()."'><img data-tooltip='Reject Resource' src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />";
     }
 }
