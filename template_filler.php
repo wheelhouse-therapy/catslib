@@ -210,8 +210,6 @@ class template_filler {
                       'postal_code'   => 'P_postal_code',
                       'postalcode'    => 'P_postal_code',
                       'postcode'      => 'P_postal_code',
-                      'dob'           => 'P_dob',
-                      'date_of_birth' => 'P_dob',
                       'phone'         => 'P_phone_number',
                       'phonenumber'   => 'P_phone_number',
                       'phone_number'  => 'P_phone_number',
@@ -230,6 +228,9 @@ class template_filler {
             case 'full_address':
             case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
+            case 'dob':
+            case 'date_of_birth':
+                return date_format(date_create($kfr->Value("P_dob")), "M d, Y");
         }
         //Process pronoun tags.
         // check against the original column name because we can have
