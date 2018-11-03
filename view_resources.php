@@ -1,4 +1,5 @@
 <?php
+
 require_once 'template_filler.php';
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
@@ -8,28 +9,88 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
 {
     $s = "";
 
-    $s .= "<style>
-           .resources-files-tag { display:inline-block;
-                                  font-size:9pt; background-color:#def; padding:0px 3px;
-                                  border:1px solid #aaa; border-radius:2px;
-                                }
-           </style>";
+    $s .= <<<ResourcesTagStyle
+        <style>
+            /* Every resources tag and control
+             */
+            .resources-tag {
+                    display:inline-block;
+                    font-size:9pt; background-color:#def; margin:0px 2px; padding:0px 3px;
+                    border:1px solid #aaa; border-radius:2px;
+                  }
+            /* [+] new tag button
+             */
+            .resources-tag-new {
+                  }
+            /* New tag input control and containing form
+             */
+            .resources-tag-new-form {
+                     display:inline-block;
+                  }
+            .resources-tag-new-input {
+                  }
+        </style>
+ResourcesTagStyle;
 
-    $s .= "<script>
-           $(document).ready(function() {
-               $('.resources-files-tag-new').click( function() {
-                   $(this).before( $(\"<form class='resources-files-tag-input' style='display:inline-block'><input class='resources-files-tag' type='text' value='' placeholder='New tag'/></form>\" )).parent().find('input').focus();
-                   $(this).parent().find('.resources-files-tag-input').submit(
-                            function(e) {
-                                e.preventDefault();
-                                var v = $(this).find('input').val();
-                                alert('Send the new tag ['+v+'] by ajax!');
-                                $(this).html(\"<div class='resources-files-tag'>\"+v+\"</div>\");
-                            });
-               });
-           });
-           </script>";
+    $s .= <<<ResourcesTagScript
+        <script>
+        $(document).ready(function() {
+            $('.resources-tag-new').click( function() {
+                /* The [+] new-tag button opens an input control where the user can type a new tag
+                 */
+                var tagNew = $("<form class='resources-tag-new-form'>"
+                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag'/>"
+                              +"</form>" );
 
+                /* Put the new-tag form after the [+] button and put focus on its input.
+                 * Apparently after() returns the unmodified jQuery i.e. $(this) so we have to use parent().
+                 */
+                $(this).after( tagNew );
+                $(this).parent().find('.resources-tag-new-input').focus();
+                /* When the user types something and hits Enter, send their text to the server and draw the new tag
+                 * (it will be drawn by the server when the page is refreshed).
+                 */
+                $(this).parent().find('.resources-tag-new-form').submit(
+                    function(e) {
+                        e.preventDefault();
+                        var tag = $(this).find('input').val();
+                        var folder = $(this).parent().data('folder');
+                        var filename = $(this).parent().data('filename');
+                        SEEDJXAsync( "jx.php", {cmd:"resourcestag--newtag",folder:folder,filename:filename,tag:tag}, function(){}, function(){} );
+/* Todo: this puts the tag in place, and it should look the same when the server draws it on the next page refresh.
+         But, this is putting the tag into the <form> which isn't there after the page refresh so the spacing is just a little off.
+         Replace the <form> with the div.resources-tag, not just its innerhtml.
+*/
+                        $(this).html("<div class='resources-tag'>"+tag+"</div>");
+                    });
+            });
+        });
+        </script>
+ResourcesTagScript;
+
+    $resourceMode = <<<DownloadMode
+        <div id='ResourceMode'>
+        Current Mode: [mode]
+        <a href='?resource-mode=%s'><button>%s Mode</button></a>
+        <a href='?resource-mode=%s'><button>%s Mode</button></a>
+        </div>
+DownloadMode;
+    
+    $mode = $oApp->sess->SmartGPC("resource-mode");
+    switch ($mode){
+        case 'replace':
+            $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
+            break;
+        case 'no_replace':
+            $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
+            break;
+        case 'blank':
+            $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
+            break;
+    }
+    $s .= sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
+        ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
+    
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
@@ -52,6 +113,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
         return;
     }
 
+    $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html'>Template Format Reference</a><br />";
+    
     $dir = new DirectoryIterator($dir_name);
     if(iterator_count($dir) == 2){
         $s .= "<h2> No files in directory</h2>";
@@ -84,16 +147,35 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
                     </div>
                 </div>
             </div>";
+
+    $sFilter = SEEDInput_Str('resource-filter');
+
+    $s .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
+         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
+         ."</form></div>";
+
     $s .= "<table border='0'>";
     foreach ($dir as $fileinfo) {
         if( $fileinfo->isDot() ) continue;
+
+        if( $sFilter ) {
+            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
+            $dbFilename = addslashes($fileinfo->getFilename());
+            $dbFilter = addslashes($sFilter);
+            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
+                                    ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
+            continue;
+        }
+        found:
+        $oApp->kfdb->SetDebug(0);
+
         $s .= "<tr>"
                  ."<td valign='top'>"
-                     ."<a style='white-space: nowrap' href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >"
+                     ."<a style='white-space: nowrap' ".downloadPath($mode, $dir_name,$fileinfo)." >"
                          .$fileinfo->getFilename()
                      ."</a>"
                  ."</td>"
-                 ."<td style='padding-left:20px' valign='top'>"
+                 ."<td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($folder)."' data-filename='".SEEDCore_HSC($fileinfo->getFilename())."'>"
                      .$oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() )
                  ."</td>"
              ."</tr>";
@@ -118,6 +200,17 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
     return( $s );
 }
 
+function downloadPath($mode, $dir_name, $fileinfo){
+    switch($mode){
+        case 'replace':
+            return "href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
+        case 'no_replace':
+            return "href='".$dir_name.$fileinfo->getFilename()."'";
+        case 'blank':
+            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0'";
+    }
+}
+
 class ResourcesFiles
 {
     private $oApp;
@@ -131,13 +224,14 @@ class ResourcesFiles
     {
         $s = "";
 
+        $s .= "<div class='resources-tag resources-tag-new'>+</div>";
+
         $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE folder='".addslashes($folder)."' AND filename='".addslashes($filename)."'" );
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
-            $s .= "<div class='resources-files-tag'>$tag</div> ";
+            $s .= "<div class='resources-tag'>$tag</div> ";
         }
-        $s .= "<div class='resources-files-tag resources-files-tag-new'>+</div>";
         return( $s );
     }
 }

@@ -1,37 +1,17 @@
 <?php
 
+require_once SEEDROOT."DocRep/DocRepUI.php";
 
-class CATSDocumentManager
+class CATSDocApp extends DocRepApp1
 {
     private $oApp;
     private $oDocRepDB;
     private $oDocRepUI;
-    public  $oDoc = null;
 
-    function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
+    function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc, DocRepDB2 $oDB, CATSDocRepUI $oUI )
     {
+        parent::__construct( $oUI, $oDB, $kSelectedDoc );
         $this->oApp = $oApp;
-        $this->oDocRepDB = new DocRepDB2( $oApp->kfdb, $oApp->sess->GetUID(), array( 'raPermClassesR'=>array(1), 'logdir'=>CATSDIR_LOG ) );
-        $this->oDocRepUI = new CATSDocRepUI( $this->oDocRepDB );
-        if( $kSelectedDoc ) $this->oDoc = $this->oDocRepDB->GetDocRepDoc( $kSelectedDoc );
-    }
-
-    function DrawDocTree( $kTree )
-    {
-        $kSelectedDoc = $this->GetSelectedDocKey();
-        $s = $this->oDocRepUI->DrawTree( $kTree, array('kSelectedDoc'=>$kSelectedDoc) );
-
-        return( $s );
-    }
-
-    function PreviewDoc()
-    {
-        return( $this->oDoc ? $this->oDocRepUI->View( $this->oDoc ) : "" );
-    }
-
-    function GetSelectedDocKey()
-    {
-        return( $this->oDoc ? $this->oDoc->GetKey() : 0 );
     }
 
     function Edit0()
@@ -90,7 +70,7 @@ class CATSDocRepUI extends DocRepUI
     }
 }
 
-class DownloadMaterials
+class CATSDocumentManager
 {
     private $oApp;
     public  $oDocMan;
@@ -98,23 +78,33 @@ class DownloadMaterials
     function __construct( SEEDAppSessionAccount $oApp, $kSelectedDoc )
     {
         $this->oApp = $oApp;
-        $this->oDocMan = new CATSDocumentManager( $oApp, $kSelectedDoc );
+        $oDocRepDB = new DocRepDB2( $oApp->kfdb, $oApp->sess->GetUID(), array( 'raPermClassesR'=>array(1), 'logdir'=>CATSDIR_LOG ) );
+        $oDocRepUI = new CATSDocRepUI( $oDocRepDB );
+
+        $this->oDocMan = new CATSDocApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );
     }
 
-    function DrawTabs()
+    function DrawMainTabs()
     {
+        return( "" );
+    }
+
+    function DrawTreeTabs()
+    {
+        $s = $this->oDocMan->TreeTabs();
+        return( $s );
         $s = "<div class='row'>"
             .$this->tab( "View",   "view0" )
             .$this->tab( "Edit",   "edit0" )
             .$this->tab( "Rename", "rename0" )
-            .$this->tab( "Tell a Joke", "joke0" )
+            //.$this->tab( "Tell a Joke", "joke0" )
             ."</div>";
         return( $s );
     }
 
     private function tab( $label, $tabcmd )
     {
-        return( "<div class='col-md-1'>"
+        return( "<div class='col-md-2'>"
                ."<a href='{$_SERVER['PHP_SELF']}?tab=$tabcmd&k=".$this->oDocMan->GetSelectedDocKey()."'>$label</a>"
                ."</div>" );
 
@@ -129,11 +119,11 @@ class DownloadMaterials
 
     function Style()
     {
-        return( "
+        return( $this->oDocMan->Style()."
 <style>
 .DocRepTree_level { margin-left:30px; }
 
-.cats_doctreetabs {
+.cats_docmaintabs {
         margin: 30px 0 -20px 30px;
 }
 
@@ -145,16 +135,21 @@ class DownloadMaterials
         padding:20px;
 }
 
+.cats_doctreetabs {
+        margin-bottom:10px;
+}
+
 .cats_doctree_titleSelected {
         font-weight: bold;
 }
 
 .cats_docpreview_folder {
 }
-.cats_docpreview_doc {
+.cats_docform {
         background-color:#eee;
         border:1px solid #777;
         border-radius: 10px;
+        padding:20px;
 }
 
 </style>
@@ -164,13 +159,13 @@ class DownloadMaterials
 
 
 
-function DownloadMaterials( SEEDAppSessionAccount $oApp )
+function DocumentManager( SEEDAppSessionAccount $oApp )
 {
     $s = "";
 
     $kSelectedDoc = SEEDInput_Int('k');
 
-    $o = new DownloadMaterials( $oApp, $kSelectedDoc );
+    $o = new CATSDocumentManager( $oApp, $kSelectedDoc );
 
     $s .= $o->Style();
 
@@ -178,27 +173,27 @@ function DownloadMaterials( SEEDAppSessionAccount $oApp )
     $sRight = $sRightClass = "";
     switch( ($pTab = $oApp->sess->SmartGPC( 'tab' )) ) {
         case "rename0":
-            $sRight = $o->oDocMan->Rename0();
-            $sRightClass = "cats_docform";
+            //$sRight = $o->oDocMan->Rename0();
+            //$sRightClass = "cats_docform";
             break;
         case "edit0":
-            $sRight = $o->oDocMan->Edit0();
-            $sRightClass = "cats_docform";
+            //$sRight = $o->oDocMan->Edit0();
+            //$sRightClass = "cats_docform";
             break;
         case "joke0":
-            $sRight = "Did you hear the one about the cat who needed OT? He got therapurr.";
-            $sRightClass = "cats_docform";
+            //$sRight = "Did you hear the one about the cat who needed OT? He got therapurr.";
+            //$sRightClass = "cats_docform";
             break;
 
         default:
             if( $o->oDocMan->oDoc ) {
                 switch( $o->oDocMan->oDoc->GetType() ) {
                     case 'FOLDER':
-                        $sRightClass= 'cats_docpreview_folder';
+                        //$sRightClass= 'cats_docpreview_doc';
                         break;
                     case 'DOC':
-                        $sRight = $o->oDocMan->PreviewDoc();
-                        $sRightClass = "cats_docpreview_doc";
+                        //$sRight = $o->oDocMan->PreviewDoc();
+                        //$sRightClass = "cats_docpreview_doc";
                         break;
                     case 'IMAGE':
                         break;
@@ -209,14 +204,20 @@ function DownloadMaterials( SEEDAppSessionAccount $oApp )
             break;
     }
 
-    $s .= "<div class='cats_doctreetabs'><div class='container-fluid'>".$o->DrawTabs()."</div></div>";
+    $s .= "<div class='cats_docmaintabs'><div class='container-fluid'>".$o->DrawMainTabs()."</div></div>";
     $s .= "<div class='cats_doctree'>"
          ."<div class='container-fluid'>"
              ."<div class='row'>"
                  ."<div class='col-md-6'>".$o->oDocMan->DrawDocTree( 0 )."</div>"
-                 ."<div class='col-md-6 $sRightClass'>$sRight</div>"   // does the right thing if no selected doc
+                 ."<div class='col-md-6'>"
+                     .($o->oDocMan->GetSelectedDocKey() ? ("<div class='cats_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
+                     ."<div class='cats_docform'>".$o->oDocMan->TreeForms()."</div>"
+                 ."</div>"
              ."</div>"
         ."</div></div>";
+
+    $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
+
 
     return( $s );
 }

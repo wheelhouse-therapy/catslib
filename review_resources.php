@@ -56,9 +56,9 @@ foreach ($dir as $fileinfo) {
             $options .= "<option value='".$k."'>".$v['name']."</option>";
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
-        <input id='accept' type='submit' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'>
+        <button onclick='this.parentElement.submit()' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
         </form>
-        <a id='reject' href='?cmd=reject&file=".$fileinfo->getFilename()."'><img data-tooltip='Reject Resource' src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
+        <a href='?cmd=reject&file=".$fileinfo->getFilename()."' data-tooltip='Reject Resource'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />";
     }
 }
@@ -72,10 +72,10 @@ function replace(event, ra) {
         var submit = event.target.nextElementSibling;
         if($.inArray(options[index].value,ra) !== -1){
             $(submit).css('background-image','url(".CATSDIR_IMG."overwrite-resource.png)');
-            submit.dataset.tooltip = 'Overwrite Resource';
+            submit.firstElementChild.innerHTML = 'Overwrite Resource';
         }else{
             $(submit).css('background-image','url(".CATSDIR_IMG."accept-resource.png)');
-            submit.dataset.tooltip = 'Accept Resource';
+            submit.firstElementChild.innerHTML = 'Accept Resource';
         }
 }
 </script>

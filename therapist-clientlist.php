@@ -65,14 +65,17 @@ class ClientList
             case "update_client":
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
+                $this->client_key = $oFormClient->GetKey();
                 break;
             case "update_therapist":
                 $oFormTherapist->Update();
                 $this->updatePeople( $oFormTherapist );
+                $this->therapist_key = $oFormTherapist->GetKey();
                 break;
             case "update_pro":
                 $oFormPro->Update();
                 $this->updatePeople( $oFormPro );
+                $this->pro_key = $oFormPro->GetKey();
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
@@ -85,7 +88,7 @@ class ClientList
                 $s .= $this->uploadSpreadsheet();
                 break;
         }
-
+        
         $clientPros = array();
         $proClients = array();
         $myPros = array();
@@ -186,6 +189,18 @@ class ClientList
         $peopleFields = array( 'pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
 
         $kP = $oForm->Value('P__key');
+        if(!$kP){
+            $sCond = "";
+            foreach($peopleFields as $field){
+                if($sCond){
+                    $sCond .= " AND ";
+                }
+                $sCond .= $field." = '".$oForm->Value("P_".$field)."'";
+            }
+            if(($kfr = $this->oPeopleDB->GetKFRCond("P",$sCond))){
+                $kP = $kfr->Key();
+            }
+        }
         if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
             foreach( $peopleFields as $v ) {
                 $kfr->SetValue( $v, $oForm->Value("P_$v") );
@@ -408,7 +423,6 @@ class ClientList
             ."addEventListener('DOMContentLoaded', function() {
                 document.getElementById('".$oForm->Name("clinic")."').form.addEventListener('submit', function(){
                     document.getElementById('".$oForm->Name("clinic")."').disabled = false;
-                    debugger;
                 });
             });
             </script>";

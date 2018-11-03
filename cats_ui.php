@@ -220,24 +220,27 @@ class CATS_MainUI extends CATS_UI
             .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "")
             ."</div>";
 
-
+            // Unset the mode var for resource download
+            $this->oApp->sess->VarSet('resource-mode', 'replace');
+            
         return( $s );
     }
 
     function DrawTherapist()
     {
         $raTherapistScreens = array(
-            array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
-            array( 'therapist-handouts',        "Print Handouts" ),
+            array( 'therapist-reports',         "Print Client Reports"),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
+            array( 'therapist-handouts',        "Print Handouts" ),
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
+            array( 'therapist-submitresources', "Submit Resources to Share" ),
+            array( 'therapist-assessments',     "Score Assessments"),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
+            array( 'therapist-documents',       "Documents" ),
             array( 'therapist-team',            "Meet the Team" ),
-            array( 'therapist-submitresources', "Submit Resources to Share" ),
-            array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-assessments',     "Score Assessments"),
+            array( 'therapist-calendar',        "Calendar" ),
         );
 
         $s = "";
@@ -249,15 +252,18 @@ class CATS_MainUI extends CATS_UI
 
             case "therapist-handouts":
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "handouts/" );
+                $s .= "<h3>Handouts</h3>"
+                     .ResourcesDownload( $this->oApp, "handouts/" );
                 break;
             case "therapist-formscharts":
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "forms/" );
+                $s .= "<h3>Forms</h3>"
+                     .ResourcesDownload( $this->oApp, "forms/" );
                 break;
             case 'therapist-reports':
                 include('view_resources.php');
-                $s .= ResourcesDownload( $this->oApp, "reports/" );
+                $s .= "<h3>Reports</h3>"
+                     .ResourcesDownload( $this->oApp, "reports/" );
                 break;
             case "therapist-linedpapers":
                 include("papers.php");
@@ -269,10 +275,14 @@ class CATS_MainUI extends CATS_UI
                 $s .= "GET IDEAS";
                 break;
             case "therapist-assessments":
-                $s .= AssessmentsScore( $this->oApp );
+                $s .= "<h3>Assessments</h3>"
+                     .AssessmentsScore( $this->oApp );
                 break;
             case "therapist-materials":
-                $s .= DownloadMaterials( $this->oApp );
+                $s .= "DOWNLOAD MATERIALS";
+                break;
+            case "therapist-documents":
+                $s .= DocumentManager( $this->oApp );
                 break;
             case "therapist-team":
                 $s .= "MEET THE TEAM";

@@ -4,7 +4,8 @@ class Assessments
 {
     private $oApp;
 
-    function __construct( SEEDAppConsole $oApp )
+    // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
+    protected function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
     }
@@ -15,8 +16,8 @@ class Assessments
 
 
         $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentilesSPM).";
-                var cols = ".json_encode(array_keys($this->raPercentilesSPM[8])).";
+                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
+                var cols = ".json_encode($this->Columns()).";
                 </script>
                 <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
@@ -58,17 +59,7 @@ class Assessments
                .score { padding-left: 5px; }
                </style>";
 
-
-        $raColumns = array( "Social<br/>participation" => "1-10",
-                            "Vision"                   => "11-21",
-                            "Hearing"                  => "22-29",
-                            "Touch"                    => "30-40",
-                            "Taste /<br/>Smell"        => "41-45",
-                            "Body<br/>Awareness"       => "46-55",
-                            "Balance<br/>and Motion"   => "56-66",
-                            "Planning<br/>and Ideas"   => "67-75",
-
-        );
+        $raColumns = $this->raColumnRanges;
 
         $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
 
@@ -79,7 +70,8 @@ class Assessments
         $sList = "<form action='{$_SERVER['PHP_SELF']}' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
         $raAssessments = $oAssessmentsDB->GetList( "AxCxP", "" );
         foreach( $raAssessments as $ra ) {
-            $sList .= "<div class='assessment-link'><a href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
+            $sStyle = $kAsmt == $ra['_key'] ? "font-weight:bold;color:green" : "";
+            $sList .= "<div class='assessment-link'><a  style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
         }
 
 
@@ -114,23 +106,41 @@ class Assessments
 
     private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $sAsmt = "<h1> Sensory Processing Measure Scoring </h1>
+        $sAsmt = "<h2>".$this->sAssessmentTitle."</h2>
                     <span style='margin-left: 20%' id='name'> Name: </span>
                         <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
                     <table id='results'>
                         <tr><th> Results </th><th> Score </th><th> Interpretation </th>
-	                       <th> Percentile </th><th> Reverse Percentile </th></tr>
-	
+                            <th> Percentile </th><th> Reverse Percentile </th></tr>
+
                     </table>
                     <template id='rowtemp'>
                         <tr><td class='section'> </td><td class='score'> </td><td class='interp'> </td>
-	                       <td class='per'> </td><td class='rev'> </td></tr>
-	
+                            <td class='per'> </td><td class='rev'> </td></tr>
+
                     </template>
                     <script src='w/js/asmt-overview.js'></script>";
+
+        $sReports = "";
+        foreach( explode( "\n", $this->Reports ) as $sReport ) {
+            if( !$sReport ) continue;
+            $n = intval(substr($sReport,0,2));
+            $report = substr($sReport,3);
+            $v = $oForm->Value( "i$n" );
+            if( $this->getScore( $n, $v ) > 2 ) $sReports .= $report."<br/>";
+        }
+        if( $sReports ) {
+            $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
+        }
+
+
         $sAsmt .= "<table width='100%'><tr>";
         foreach( $raColumns as $label => $sRange ) {
             $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, false )."</td>";
+        }
+        $sAsmt .= "</tr><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $sAsmt .= "<td valign='top' width='12%'>".$this->column_total( $oForm, $label, $sRange, false )."</td>";
         }
         $sAsmt .= "</tr></table>";
 
@@ -174,8 +184,21 @@ class Assessments
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n, $bEditable, $total );
         }
-        $s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
+        //$s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
         $s .= "</table>";
+
+        return( $s );
+    }
+
+    private function column_total( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
+    {
+        $s = "";
+
+        $total = 0;
+        foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
+            $sDummy = $this->item( $oForm, $n, $bEditable, $total );
+        }
+        $s .= "<span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span>";
 
         return( $s );
     }
@@ -219,9 +242,45 @@ class Assessments
         return $s;
     }
 
+    protected function Columns()
+    {
+        // Override to provide the column names
+        return( array() );
+    }
 
 
-    public $raPercentilesSPM =
+
+}
+
+class Assessment_SPM extends Assessments
+{
+    function __construct( SEEDAppConsole $oApp )
+    {
+        parent::__construct( $oApp );
+    }
+
+    protected $sAssessmentTitle = "Sensory Processing Measure Scoring";
+
+    protected function Columns()
+    {
+        return( array_keys($this->raPercentiles[8]) );
+    }
+
+    protected $raColumnRanges = array(
+            "Social<br/>participation" => "1-10",
+            "Vision"                   => "11-21",
+            "Hearing"                  => "22-29",
+            "Touch"                    => "30-40",
+            "Taste /<br/>Smell"        => "41-45",
+            "Body<br/>Awareness"       => "46-55",
+            "Balance<br/>and Motion"   => "56-66",
+            "Planning<br/>and Ideas"   => "67-75",
+        );
+
+
+    /* The percentiles that apply to each score, per column
+     */
+    protected $raPercentiles =
         array(
          '8'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'24',   'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'' ),
          '9'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'58',   'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'16' ),
@@ -261,13 +320,96 @@ class Assessments
          '43' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
         );
+
+    protected $Reports = "
+11	Seems bothered by light, especially bright lights (blinks, squints, cries, closes eyes, etc.)
+12	Has trouble finding an object when it is part of a group of other things
+13	Closes one eye or tips his/her head back when looking at something or someone
+14	Becomes distressed in unusual visual environments
+15	Has difficulty controlling eye movement when following objects like a ball with his/her eyes
+16	Has difficulty recognizing how objects are similar or different based on their colours, shapes or sizes
+17	Enjoys watching objects spin or move more than most kids his/her age
+18	Walks into objects or people as if they were not there
+19	Likes to flip light switches on and off repeatedly
+20	Dislikes certain types of lighting, such as midday sun, strobe lights, flickering lights or fluorescent lights
+21	Enjoys looking at moving objects out of the corner of his/her eye
+22	Seems bothered by ordinary household sounds, such as the vacuum cleaner, hair dryer or toilet flushing
+23	Responds negatively to loud noises by running away, crying, or holding hands over ears
+24	Appears not to hear certain sounds
+25	Seems disturbed by or intensely interested in sounds not usually noticed by other people
+26	Seems frightened of sounds that do not usually cause distress in other kids her/her age
+27	Seems easily distracted by background noises such as lawn mower outside, an air conditioner, a refrigerator, or fluorescent lights
+28	Likes to cause certain sounds to happen over and over again, such as by repeatedly flushing the toilet
+29	Shows distress at shrill or brassy sounds, such as whistles, party noisemakers, flutes and trumpets
+30	Pulls away from being touched lightly
+31	Seems to lack normal awareness of being touched
+32	Becomes distressed by the feel of new clothes
+33	Prefers to touch rather than to be touched
+34	Becomes distressed by having his/her fingernails or toenails cut
+35	Seems bothered when someone touches his/her face
+36	Avoids touching or playing with finger paint, paste, sand, clay, mud, glue, or other messy things
+37	Has an unusually high tolerance for pain
+38	Dislikes teeth brushing, more than other kids his/her age
+39	Seems to enjoy sensations that should be painful, such as crashing onto the floor or hitting his/her own body
+40	Has trouble finding things in a pocket, bag or backpack using touch only (without looking)
+41	Likes to taste nonfood items, such as glue or paint
+42	Gags at the thought of an unappealing food, such as cooked spinach
+43	Likes to smell nonfood objects and people
+44	Shows distress at smell that other children do not notice
+45	Seems to ignore or not notice strong odors that other children react to
+46	Grasps objects so tightly that it is difficult to use the object
+47	Seems driven to seek activities such as pushing, pulling, dragging, lifting and jumping
+48	Seems unsure of how far to raise or lower the body during movement such as sitting down or stepping over an object
+49	Grasps objects so loosely that it is difficult to use the object
+50	Seems to exert too much pressure for the task, such as walking heavily, slamming doors, or pressing too hard when using pencils or crayons
+51	Jumps a lot
+52	Tends to pet animals with too much force
+53	Bumps or pushes other children
+54	Chews on toys, clothes or other objects more than other children
+55	Breaks things from pressing or pushing too hard on them
+56	Seems excessively fearful of movement such as going up and down stairs, riding swings, teeter-totters, slides or other playground equipment
+57	Doesn't seem to have good balance
+58	Avoids balance activities, such as walking on curbs or uneven ground
+59	Falls out of a chair when shifting his/her body
+60	Fails to catch self when falling
+61	Seems not to get dizzy when others usually do
+62	Spins and whirls his/her body more than other children
+63	Shows distress when his/her head is tilted away from vertical position
+64	Shows poor coordination and appears to be clumsy
+65	Seems afraid of riding in elevators or escalators
+66	Leans on other people or furniture when sitting or when trying to stand up
+67	Performs inconsistently in daily tasks
+68	Has trouble figuring out how to carry multiple objects at the same time
+69	Seems confused about how to put away materials and belongings in their correct places
+70	Fails to perform tasks in proper sequence, such as getting dressed or setting the table
+71	Fails to complete tasks with multiple steps
+72	Has difficulty imitating demonstrated actions, such as movement games or songs with motions
+73	Has difficulty building to copy a model, such as using Legos or blocks to build something that matches a model
+74	Has trouble coming up with ideas for new games and activities
+75	Tends to play the same activities over and over, rather than shift to new activities when given the chance
+";
 }
-
-
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    $o = new Assessments( $oApp );
+    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm') );
 
-    return( $o->ScoreUI() );
+    $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
+        ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>"
+        ."<option value='spm'".($asmtType=='spm' ? 'selected' : '').">Sensory Processing Measure (SPM)</option>"
+        ."</select></form>"
+        ."<br/<br/>";
+
+    switch( $asmtType ) {
+        case 'spm':  $o = new Assessment_SPM( $oApp );  break;
+        default:     goto done;
+    }
+
+    $s .= $o->ScoreUI();
+
+    done:
+    return( $s );
 }
+
+
+?>

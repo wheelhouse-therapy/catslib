@@ -190,7 +190,7 @@ class Users_ClinicsDB
 
 function createTables( KeyframeDatabase $kfdb )
 {
-    DRSetup( $kfdb );
+    echo DRSetup( $kfdb );      // returns "" if tables don't have to be created
 
     // this query will return blank if the gid_inherited column isn't there
     if( !$kfdb->Query1( "select table_schema from information_schema.columns "
@@ -243,6 +243,7 @@ function createTables( KeyframeDatabase $kfdb )
             clinic_name VARCHAR(200) NOT NULL DEFAULT '',
             address VARCHAR(200) NOT NULL DEFAULT '',
             city VARCHAR(200) NOT NULL DEFAULT '',
+            email VARCHAR(200) NOT NULL DEFAULT '',
             postal_code VARCHAR(200) NOT NULL DEFAULT '',
             phone_number VARCHAR(200) NOT NULL DEFAULT '',
             fax_number VARCHAR(200) NOT NULL DEFAULT '',
@@ -588,6 +589,10 @@ const assessments_scores_create =
     ";
 
 const resources_files_create =
+    /* tags contains strings separated by tab characters
+     * e.g. '\tfoo\tbar\tblart\t'
+     *      so you can search using LIKE '%\t$search\t%'
+     */
     "CREATE TABLE ".DBNAME.".resources_files (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,

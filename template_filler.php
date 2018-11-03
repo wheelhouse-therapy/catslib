@@ -1,6 +1,36 @@
 <?php
 
-require(SEEDROOT.'/vendor/autoload.php');
+class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
+{
+    function __construct( $resourcename )
+    {
+        parent::__construct( $resourcename );
+    }
+
+    protected function fixBrokenMacros($documentPart)
+    {
+        $fixedDocumentPart = $documentPart;
+
+        $fixedDocumentPart = preg_replace_callback(
+            '|\$[^{]*\{[^}]*\}|U',
+            function ($match) {
+                $fix = strip_tags($match[0]);
+                if( substr($fix,0,6) == '${date' ||
+                    substr($fix,0,8) == '${client' ||
+                    substr($fix,0,7) == '${staff' ||
+                    substr($fix,0,8) == '${clinic' )
+                {
+                    return( $fix );
+                } else {
+                    return( $match[0] );
+                }
+            },
+            $fixedDocumentPart
+        );
+
+        return $fixedDocumentPart;
+    }
+}
 
 class template_filler {
 
@@ -11,23 +41,28 @@ class template_filler {
     private $kfrClinic = null;
     private $kfrStaff = null;
 
+    private $kClient = 0;
+    private $kStaff = 0;
+
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
-        $this->oPeopleDB = new PeopleDB( $this->oApp );
+        $this->oPeople = new People( $oApp );
+        $this->oPeopleDB = new PeopleDB( $oApp );
     }
 
     public function fill_resource($resourcename)
     {
-        $kClient = SEEDInput_Int('client');
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $kClient);
+        $this->kClient = SEEDInput_Int('client');
+        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='".$this->oApp->sess->GetUID()."'");
+        $this->kStaff = $this->oApp->sess->GetUID();
+        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
 
-        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($resourcename);
+        $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
             $v = $this->expandTag($tag);
             $templateProcessor->setValue($tag, $v);
@@ -89,7 +124,6 @@ class template_filler {
                 return( $this->resolveSingleTag( $raTag[0] ) );
             default:
                 return( "" );
-
         }
     }
 
@@ -98,14 +132,15 @@ class template_filler {
         $s = "";
 
         $table = strtolower($table);
-        $col = strtolower($col);
+        $col = array(strtolower($col),$col);
 
         if( $table == 'clinic' && $this->kfrClinic ) {
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'full_address':
-                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[postal_code]]");
+                    $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
+                    break;
                 default:
-                    $s = $this->kfrClinic->Value( $col );
+                    $s = $this->kfrClinic->Value( $col[0] );
             }
         }
 
@@ -114,12 +149,21 @@ class template_filler {
             if( ($s = $this->peopleCol( $col, $this->kfrStaff )) ) {
                 goto done;
             }
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'role':
                     $s = $this->kfrStaff->Value( 'pro_role' );
                     break;
+                case 'credentials':
+                    if( ($raStaff = $this->oPeople->GetStaff( $this->kStaff )) ) {
+                        $s = @$raStaff['P_extra_credentials'];
+                    }
+                    break;
+                case 'regnumber':
+                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
+                    $s = $ra['regnumber' ];
+                    break;
                 default:
-                    $s = $this->kfrStaff->Value( $col );
+                    $s = $this->kfrStaff->Value( $col[0] );
             }
         }
 
@@ -128,12 +172,12 @@ class template_filler {
             if( ($s = $this->peopleCol( $col, $this->kfrClient )) ) {
                 goto done;
             }
-            switch( $col ) {
+            switch( $col[0] ) {
                 case 'age':
                     $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                     break;
                 default:
-                    $s = $this->kfrClient->Value( $col );
+                    $s = $this->kfrClient->Value( $col[0] );
             }
         }
 
@@ -166,8 +210,6 @@ class template_filler {
                       'postal_code'   => 'P_postal_code',
                       'postalcode'    => 'P_postal_code',
                       'postcode'      => 'P_postal_code',
-                      'dob'           => 'P_dob',
-                      'date_of_birth' => 'P_dob',
                       'phone'         => 'P_phone_number',
                       'phonenumber'   => 'P_phone_number',
                       'phone_number'  => 'P_phone_number',
@@ -175,26 +217,36 @@ class template_filler {
         );
 
         // Process tags that are in the People table so they have a P_ prefix
-        if( ($colP = @$map[$col]) ) {
+        if( ($colP = @$map[$col[0]]) ) {
             return( $kfr->Value($colP) );
         }
 
         // Process tags that are common to Clients and Staff
-        switch( $col ) {
+        switch( $col[0] ) {
             case 'name':
                 return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
             case 'full_address':
             case 'fulladdress':
-                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_postal_code]]") );
-            //Process pronoun tags.
+                return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
+            case 'dob':
+            case 'date_of_birth':
+                return date_format(date_create($kfr->Value("P_dob")), "M d, Y");
+        }
+        //Process pronoun tags.
+        // check against the original column name because we can have
+        // different variations of pronoun tags to allow for capitals
+        switch( substr($col[1], 0,1).strtolower(substr($col[1], 1)) ) {
             case 'he':
-            case 'they':
+                return $this->getPronoun("s", $kfr);
+            case 'He':
                 return $this->getPronoun("S", $kfr);
             case 'him':
-            case 'them':
+                return $this->getPronoun("o", $kfr);
+            case 'Him':
                 return $this->getPronoun("O", $kfr);
             case 'his':
-            case 'their':
+                return $this->getPronoun("p", $kfr);
+            case 'His':
                 return $this->getPronoun("P", $kfr);
         }
 
@@ -215,33 +267,49 @@ class template_filler {
             case 'M':
                 switch($form){
                     case "S":
-                        return "he";
+                        return "He";
                     case "O":
-                        return "him";
+                        return "Him";
                     case "P":
+                        return "His";
+                    case "s":
+                        return "he";
+                    case "o":
+                        return "him";
+                    case "p":
                         return "his";
                 }
             case 'F':
                 switch($form){
                     case "S":
-                        return "she";
+                        return "She";
                     case "O":
-                        return "her";
                     case "P":
+                        return "Her";
+                    case "s":
+                        return "she";
+                    case "o":
+                    case "p":
                         return "her";
                 }
             case 'O':
                 switch($form){
                     case "S":
-                        return "they";
+                        return "They";
                     case "O":
-                        return "them";
+                        return "Them";
                     case "P":
+                        return "Their";
+                    case "s":
+                        return "they";
+                    case "o":
+                        return "them";
+                    case "p":
                         return "their";
                 }
         }
+        return( "" );
     }
-    
 }
 
 ?>

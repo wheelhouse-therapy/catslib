@@ -10,7 +10,7 @@ class Clinics {
         return $this->GetCurrentClinic() == 1;
     }
     
-    function GetCurrentClinic(){
+    function GetCurrentClinic($user = NULL){
         /*
          * Returns the current clinic the user is looking at
          * A result of NULL means a clinic has not been specefied
@@ -19,7 +19,12 @@ class Clinics {
          * A user with access to the core clinic will never return NULL through this call.
          * Clinic leaders default to the first clinic they lead.
          */
-        $clinicsra = $this->GetUserClinics();
+        
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        
+        $clinicsra = $this->GetUserClinics($user);
         foreach($clinicsra as $clinic){
             if($clinic['Clinics__key'] == $this->oApp->sess->SmartGPC('clinic')){
                 return $this->oApp->sess->SmartGPC('clinic');
@@ -30,7 +35,7 @@ class Clinics {
             if($clinic["Clinics_clinic_name"] == "Core"){
                 return $clinic["Clinics__key"];
             }
-            else if($clinic["Clinics_fk_leader"] == $this->oApp->sess->GetUID() && $k == NULL){
+            else if($clinic["Clinics_fk_leader"] == $user && $k == NULL){
                 $k = $clinic['Clinics__key']; // The user is the leader of this clinic
             }
             else if(count($clinicsra) == 1){
@@ -40,16 +45,21 @@ class Clinics {
         return $k;
     }
     
-    function GetUserClinics(){
+    function GetUserClinics($user = NULL){
         /*
          * Returns a list of clinics that the user is part of (accessable)
          * 
          * A clinic is considerd accessable to the user by CATS if they are part of that clinic
          * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
          */
+        
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
-        $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$this->oApp->sess->GetUID()."'");
-        $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$this->oApp->sess->GetUID()."'");
+        $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
+        $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         foreach($leading as $k => $ra){
             if($this->containsClinic($ra, $clinics)){
                 unset($leading[$k]);
@@ -109,7 +119,11 @@ class Clinics {
             case "update_clinic":
                 $kfr = $ClinicsDB->GetClinic( $clinic_key );
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
-                    $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
+                    if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
+                        $kfr->SetValue( $field['alias'], strtolower(SEEDInput_Str('clinic_name'))."@catherapyservices.ca" );
+                    }else{
+                        $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
+                    }
                 }
                 $kfr->PutDBRow();
                 break;
@@ -173,6 +187,7 @@ class Clinics {
                 // The Developer account must be the leader of the core clinic
                 // Disable the selector so it cant be changed
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
+                .$this->drawFormRow("Email", $this->getEmail($ra))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>";
             $s .= $sForm;
@@ -180,6 +195,27 @@ class Clinics {
         return($s);
     }
    
+    private function getEmail($ra){
+        $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']);
+        $s = "<input type='checkbox' value='default' id='clinicEmail' name='email' onclick='notDefault()' ".($useDefault?"checked ":"").">Use Default Email</input>"
+            ."<input type='email' id='email' name='email' ".($useDefault?"style='display:none' disabled ":"")
+                .(!$useDefault?"value='".$ra['email']."' ":"")."required placeholder='Email' />"
+            ."<script>
+                function notDefault() {
+                    var checkBox = document.getElementById('clinicEmail');
+                    var text = document.getElementById('email');
+                    if (checkBox.checked == false){
+                        text.style.display = 'block';
+                        text.disabled = false;
+                    } else {
+                        text.style.display = 'none';
+                        text.disabled = true;
+                    }
+                }
+              </script>";
+        return $s;
+    }
+    
     private function getLeaderOptions($leader_key, $readonly){
         $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
