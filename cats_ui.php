@@ -220,7 +220,9 @@ class CATS_MainUI extends CATS_UI
             .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "")
             ."</div>";
 
-
+            // Unset the mode var for resource download
+            $this->oApp->sess->VarSet('resource-mode', 'replace');
+            
         return( $s );
     }
 

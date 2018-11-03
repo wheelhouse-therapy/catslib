@@ -68,6 +68,29 @@ ResourcesTagStyle;
         </script>
 ResourcesTagScript;
 
+    $resourceMode = <<<DownloadMode
+        <div id='ResourceMode'>
+        Current Mode: [mode]
+        <a href='?resource-mode=%s'><button>%s Mode</button></a>
+        <a href='?resource-mode=%s'><button>%s Mode</button></a>
+        </div>
+DownloadMode;
+    
+    $mode = $oApp->sess->SmartGPC("resource-mode");
+    switch ($mode){
+        case 'replace':
+            $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
+            break;
+        case 'no_replace':
+            $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
+            break;
+        case 'blank':
+            $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
+            break;
+    }
+    $s .= sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
+        ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
+    
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
@@ -148,7 +171,7 @@ ResourcesTagScript;
 
         $s .= "<tr>"
                  ."<td valign='top'>"
-                     ."<a style='white-space: nowrap' href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\" >"
+                     ."<a style='white-space: nowrap' ".downloadPath($mode, $dir_name,$fileinfo)." >"
                          .$fileinfo->getFilename()
                      ."</a>"
                  ."</td>"
@@ -175,6 +198,17 @@ ResourcesTagScript;
            </script>";
 
     return( $s );
+}
+
+function downloadPath($mode, $dir_name, $fileinfo){
+    switch($mode){
+        case 'replace':
+            return "href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
+        case 'no_replace':
+            return "href='".$dir_name.$fileinfo->getFilename()."'";
+        case 'blank':
+            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0'";
+    }
 }
 
 class ResourcesFiles
