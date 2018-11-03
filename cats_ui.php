@@ -238,6 +238,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-assessments',     "Score Assessments"),
             array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
+            array( 'therapist-documents',       "Documents" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-calendar',        "Calendar" ),
         );
@@ -278,7 +279,10 @@ class CATS_MainUI extends CATS_UI
                      .AssessmentsScore( $this->oApp );
                 break;
             case "therapist-materials":
-                $s .= DownloadMaterials( $this->oApp );
+                $s .= "DOWNLOAD MATERIALS";
+                break;
+            case "therapist-documents":
+                $s .= DocumentManager( $this->oApp );
                 break;
             case "therapist-team":
                 $s .= "MEET THE TEAM";

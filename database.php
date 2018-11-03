@@ -190,7 +190,7 @@ class Users_ClinicsDB
 
 function createTables( KeyframeDatabase $kfdb )
 {
-    DRSetup( $kfdb );
+    echo DRSetup( $kfdb );      // returns "" if tables don't have to be created
 
     // this query will return blank if the gid_inherited column isn't there
     if( !$kfdb->Query1( "select table_schema from information_schema.columns "
