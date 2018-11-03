@@ -10,7 +10,7 @@ class Clinics {
         return $this->GetCurrentClinic() == 1;
     }
     
-    function GetCurrentClinic(){
+    function GetCurrentClinic($user = NULL){
         /*
          * Returns the current clinic the user is looking at
          * A result of NULL means a clinic has not been specefied
@@ -19,7 +19,12 @@ class Clinics {
          * A user with access to the core clinic will never return NULL through this call.
          * Clinic leaders default to the first clinic they lead.
          */
-        $clinicsra = $this->GetUserClinics();
+        
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        
+        $clinicsra = $this->GetUserClinics($user);
         foreach($clinicsra as $clinic){
             if($clinic['Clinics__key'] == $this->oApp->sess->SmartGPC('clinic')){
                 return $this->oApp->sess->SmartGPC('clinic');
@@ -30,7 +35,7 @@ class Clinics {
             if($clinic["Clinics_clinic_name"] == "Core"){
                 return $clinic["Clinics__key"];
             }
-            else if($clinic["Clinics_fk_leader"] == $this->oApp->sess->GetUID() && $k == NULL){
+            else if($clinic["Clinics_fk_leader"] == $user && $k == NULL){
                 $k = $clinic['Clinics__key']; // The user is the leader of this clinic
             }
             else if(count($clinicsra) == 1){
@@ -40,16 +45,21 @@ class Clinics {
         return $k;
     }
     
-    function GetUserClinics(){
+    function GetUserClinics($user = NULL){
         /*
          * Returns a list of clinics that the user is part of (accessable)
          * 
          * A clinic is considerd accessable to the user by CATS if they are part of that clinic
          * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
          */
+        
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
-        $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$this->oApp->sess->GetUID()."'");
-        $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$this->oApp->sess->GetUID()."'");
+        $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
+        $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         foreach($leading as $k => $ra){
             if($this->containsClinic($ra, $clinics)){
                 unset($leading[$k]);
