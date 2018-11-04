@@ -29,6 +29,39 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
                   }
             .resources-tag-new-input {
                   }
+            #break {
+                display: flex;
+                justify-content: flex-end;
+                min-height: 100px;
+                height: auto;
+            }
+            #ResourceMode {
+                box-sizing: border-box;
+                display: inline-flex;
+                flex-direction: column;
+                padding: 7px 10px;
+                border: 2px outset #ccc;
+                border-style: inset outset outset inset;
+                border-radius: 5px;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                background-color: #ccc;
+                flex-basis: 20%;
+                align-content: space-between;
+            }
+            #modeText {
+                display: flex;
+                height: 30px;
+                align-items: center;
+                padding: 5px;
+                margin-bottom: 5px;
+            }
+            #mode1 {
+                margin-bottom: 5px;
+            }
+            #mode2 {
+            }
+            
         </style>
 ResourcesTagStyle;
 
@@ -69,10 +102,12 @@ ResourcesTagStyle;
 ResourcesTagScript;
 
     $resourceMode = <<<DownloadMode
+        <div id='break'>
         <div id='ResourceMode'>
-        Current Mode: [mode]
-        <a href='?resource-mode=%s'><button>%s Mode</button></a>
-        <a href='?resource-mode=%s'><button>%s Mode</button></a>
+            <div id='modeText'><div><nobr>Current Mode:</nobr> [mode]</div></div>
+            <a id='mode1' href='?resource-mode=%s'><button>%s Mode</button></a>
+            <a id='mode2' href='?resource-mode=%s'><button>%s Mode</button></a>
+        </div>
         </div>
 DownloadMode;
     
