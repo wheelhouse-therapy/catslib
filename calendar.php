@@ -43,7 +43,7 @@ class Appointments
         $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
 
         $ra['payment'] = ($ra['total_minutes']/60)*$kfrAppt->Value('rate');
-        
+
         return( $ra );
     }
 
@@ -322,7 +322,7 @@ class Calendar
         /* Get a list of all the calendars that this user can see
          */
         list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars($this->oApp);
-        
+
         /* This user cannot see the calendar we are currently looking at. Clear the Smart GPC
          * of the unavailable calendar so the code below will point to the primary calendar
          */
@@ -343,7 +343,7 @@ class Calendar
             $s .= "<h5>No Calendars Available for this clinic</h5>";
             return $s;
         }
-        
+
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
          */
@@ -877,7 +877,7 @@ class CATS_GoogleCalendar
         $sCalendarIdPrimary = "";
 
         if( !$this->service ) goto done;
-        
+
         $opts = array();
         // calendars are paged; pageToken is not specified on the first time through, then nextPageToken is specified as long as it exists
         while( ($calendarList = $this->service->calendarList->listCalendarList( $opts )) ) {
@@ -902,7 +902,7 @@ class CATS_GoogleCalendar
         //Clinics
         $clinics = new Clinics($oApp);
         $clinicsDB = new ClinicsDB($oApp->kfdb);
-        
+
         $acl = $this->service->acl->listAcl($calID);
         foreach ($acl->getItems() as $rule) {
             $clinic = $clinicsDB->GetClinic($clinics->GetCurrentClinic())->Value('clinic_name');
@@ -912,7 +912,7 @@ class CATS_GoogleCalendar
         }
         return FALSE;
     }
-    
+
     function GetEvents( $calendarId, $startdate, $enddate )
     {
         $raEvents = array();
@@ -949,6 +949,5 @@ class CATS_GoogleCalendar
         $this->service->events->delete($calendarID,$id);
     }
 }
-
 
 ?>

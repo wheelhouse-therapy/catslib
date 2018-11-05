@@ -1,29 +1,30 @@
 <?php
+
 class Clinics {
     private $oApp;
-    
+
     function __construct( SEEDAppSessionAccount $oApp ) {
         $this->oApp = $oApp;
     }
-    
+
     function isCoreClinic(){
         return $this->GetCurrentClinic() == 1;
     }
-    
+
     function GetCurrentClinic($user = NULL){
         /*
          * Returns the current clinic the user is looking at
          * A result of NULL means a clinic has not been specefied
          * A list of accessable clinics should be presented at this point
-         * 
+         *
          * A user with access to the core clinic will never return NULL through this call.
          * Clinic leaders default to the first clinic they lead.
          */
-        
+
         if(!$user){
             $user = $this->oApp->sess->GetUID();
         }
-        
+
         $clinicsra = $this->GetUserClinics($user);
         foreach($clinicsra as $clinic){
             if($clinic['Clinics__key'] == $this->oApp->sess->SmartGPC('clinic')){
@@ -44,19 +45,19 @@ class Clinics {
         }
         return $k;
     }
-    
+
     function GetUserClinics($user = NULL){
         /*
          * Returns a list of clinics that the user is part of (accessable)
-         * 
+         *
          * A clinic is considerd accessable to the user by CATS if they are part of that clinic
          * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
          */
-        
+
         if(!$user){
             $user = $this->oApp->sess->GetUID();
         }
-        
+
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
         $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
         $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
@@ -89,7 +90,7 @@ class Clinics {
         }
         return($s);
     }
-    
+
     private function containsClinic($needle,$haystack){
         //This function checks if the clinic already exists in the list of user clinics
         $name = '';
@@ -107,9 +108,9 @@ class Clinics {
         }
         return FALSE;
     }
-    
+
     //These functions are for managing clinics.
-    
+
     function manageClinics(){
         $s = "";
         $clinic_key = SEEDInput_Int( 'clinic_key' );
@@ -136,7 +137,7 @@ class Clinics {
                 break;
         }
         $raClinics = $ClinicsDB->KFRel()->GetRecordSetRA("");
-        
+
         $s .= "<div class='container-fluid'><div class='row'>"
             ."<div class='col-md-6'>"
             ."<h3>Clinics</h3>"
@@ -152,7 +153,7 @@ class Clinics {
            ."</div>";
         return($s);
     }
-    
+
     private function drawFormRow( $label, $control )
     {
         return( "<tr>"
@@ -160,7 +161,7 @@ class Clinics {
             ."<td class='col-md-8'>$control</td>"
             ."</tr>" );
     }
-    
+
     private function drawClinicForm($raClinics,$clinic_key){
         $s = "";
         foreach ($raClinics as $ra){
@@ -171,7 +172,7 @@ class Clinics {
                 "<form>"
                 ."<input type='hidden' name='cmd' value='update_clinic'/>"
                 ."<input type='hidden' name='clinic_key' value='{$clinic_key}'/>"
-               
+
                 ."<p>Clinic # {$clinic_key}</p>"
                 ."<table class='container-fluid table table-striped table-sm'>"
                     // The first clinic must be called core and cannot have the name changed
@@ -194,7 +195,7 @@ class Clinics {
         }
         return($s);
     }
-   
+
     private function getEmail($ra){
         $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']);
         $s = "<input type='checkbox' value='default' id='clinicEmail' name='email' onclick='notDefault()' ".($useDefault?"checked ":"").">Use Default Email</input>"
@@ -215,7 +216,7 @@ class Clinics {
               </script>";
         return $s;
     }
-    
+
     private function getLeaderOptions($leader_key, $readonly){
         $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
@@ -238,5 +239,5 @@ class Clinics {
         $s .= "</select>";
         return($s);
     }
-    
+
 }

@@ -1,9 +1,5 @@
 <?php
 
-include_once( "assessments.php" );
-require_once 'Clinics.php';
-require_once 'therapist-clientlist.php';
-
 /* Classes to help draw the user interface
  */
 class CATS_UI
@@ -222,7 +218,7 @@ class CATS_MainUI extends CATS_UI
 
             // Unset the mode var for resource download
             $this->oApp->sess->VarSet('resource-mode', 'replace');
-            
+
         return( $s );
     }
 
