@@ -88,7 +88,7 @@ class ClientList
                 $s .= $this->uploadSpreadsheet();
                 break;
         }
-        
+
         $clientPros = array();
         $proClients = array();
         $myPros = array();
@@ -430,7 +430,7 @@ class ClientList
     }
 
     private function getPronounList($oForm){
-        
+
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
         $s = "<select name='".$oForm->Name("P_pronouns")."' required >";
         $s .= "<option value=''>Select Pronouns</option>";
@@ -445,7 +445,7 @@ class ClientList
         $s .= "</select>";
         return $s;
     }
-    
+
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file
