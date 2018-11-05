@@ -1,8 +1,5 @@
 <?php
 
-require_once 'Clinics.php';
-require_once SEEDROOT.'/vendor/autoload.php';
-
 class Therapist_ClientListSpreadsheet
 {
     private $oApp;

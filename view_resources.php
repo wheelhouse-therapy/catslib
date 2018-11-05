@@ -61,7 +61,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
             }
             #mode2 {
             }
-            
+
         </style>
 ResourcesTagStyle;
 
@@ -110,7 +110,7 @@ ResourcesTagScript;
         </div>
         </div>
 DownloadMode;
-    
+
     $mode = $oApp->sess->SmartGPC("resource-mode");
     switch ($mode){
         case 'replace':
@@ -125,7 +125,7 @@ DownloadMode;
     }
     $s .= sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
         ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
-    
+
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
@@ -149,7 +149,7 @@ DownloadMode;
     }
 
     $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html'>Template Format Reference</a><br />";
-    
+
     $dir = new DirectoryIterator($dir_name);
     if(iterator_count($dir) == 2){
         $s .= "<h2> No files in directory</h2>";
@@ -160,13 +160,13 @@ DownloadMode;
     }
     $clients = (new PeopleDB($oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'");
     $s .= "<!-- the div that represents the modal dialog -->
-            <div class=\"modal fade\" id=\"file_dialog\" role=\"dialog\">
-                <div class=\"modal-dialog\">
-                    <div class=\"modal-content\">
-                        <div class=\"modal-header\">
-                            <h4 class=\"modal-title\">Please select a client</h4>
+            <div class='modal fade' id='file_dialog' role='dialog'>
+                <div class='modal-dialog'>
+                    <div class='modal-content'>
+                        <div class='modal-header'>
+                            <h4 class='modal-title'>Please select a client</h4>
                         </div>
-                        <div class=\"modal-body\">
+                        <div class='modal-body'>
                             <form id='client_form'>
                                 <input type='hidden' name='cmd' value='download' />
                                 <input type='hidden' name='file' id='file' value='' />
@@ -176,7 +176,7 @@ DownloadMode;
                                 ."</select>
                             </form>
                         </div>
-                        <div class=\"modal-footer\">
+                        <div class='modal-footer'>
                             <input type='submit' value='Download' form='client_form' />
                         </div>
                     </div>
