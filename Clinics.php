@@ -109,6 +109,22 @@ class Clinics {
         return FALSE;
     }
 
+    /** Get array of clinic keys by email
+     * This should not be relided on to produce unique results
+     * Because emails may not me unique this method returns an array of matching clinic keys
+     * As Clinics can have the same email address on file
+     * @param String $email Email of the clinic to fetch
+     * @return array of keys of clinics which match the email
+     */
+    public function getClinicsByEmail(String $email){
+        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
+        $clinicKeys = array();
+        foreach($clinics as $k => $v){
+            array_push($clinicKeys, $v["Clinics__key"]);
+        }
+        return $clinicKeys;
+    }
+    
     //These functions are for managing clinics.
 
     function manageClinics(){
