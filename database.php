@@ -522,9 +522,11 @@ const clients_create =
         fk_people        INTEGER NOT NULL DEFAULT 0,
         parents_name     VARCHAR(200) NOT NULL DEFAULT '',
         parents_separate TINYINT NOT NULL DEFAULT 0,        # should be able to use BIT(1) type, but fails on MariaDb (linux)
+        school           VARCHAR(200) NOT NULL DEFAULT '',  # blank for not aplicable
         referral         VARCHAR(500) NOT NULL DEFAULT '',
         background_info  VARCHAR(500) NOT NULL DEFAULT '',
-        clinic           INTEGER NOT NULL DEFAULT 1)
+        clinic           INTEGER NOT NULL DEFAULT 1,
+        code             VARCHAR(20) NOT NULL DEFAULT '')
     ";
 
 const pros_internal_create =

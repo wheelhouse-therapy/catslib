@@ -1,5 +1,7 @@
 <?php
 
+require_once 'client_code_generator.php';
+
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
     function __construct( $resourcename )
@@ -175,6 +177,14 @@ class template_filler {
             switch( $col[0] ) {
                 case 'age':
                     $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
+                    break;
+                case 'code':
+                    if($this->kClient && $this->kfrClient->Value("P_first_name") && $this->kfrClient->Value("P_last_name")){
+                        $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($this->kClient);
+                    }
+                    else{
+                        $s = "";
+                    }
                     break;
                 default:
                     $s = $this->kfrClient->Value( $col[0] );

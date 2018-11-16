@@ -2,6 +2,7 @@
 require_once "client-modal.php" ;
 require_once 'Clinics.php';
 require_once "therapist-clientlistxls.php";
+require_once 'client_code_generator.php';
 
 class ClientList
 {
@@ -18,6 +19,7 @@ class ClientList
     private $therapist_key;
     private $pro_key;
     private $clinics;
+    private $oCCG;
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -34,6 +36,7 @@ class ClientList
         $this->therapist_key = SEEDInput_Int( 'therapist_key' );
         $this->pro_key = SEEDInput_Int( 'pro_key' );
         $this->clinics = new Clinics($oApp);
+        $this->oCCG = new ClientCodeGenerator($this->oApp);
     }
 
     function DrawClientList()
@@ -66,6 +69,17 @@ class ClientList
                 $oFormClient->Update();
                 $this->updatePeople( $oFormClient );
                 $this->client_key = $oFormClient->GetKey();
+                if($oFormClient->Value("P_first_name") && $oFormClient->Value("P_last_name")){
+                    // Only create client code once first and last name are set
+                    $this->oCCG->getClientCode($this->client_key);
+                }
+                break;
+            case "regenerate_client_code":
+                /* WARNING this will overwrite the existing code.
+                 * This action should only be preformed by a developer
+                 * as it can affect the codes of other clients
+                 */
+                $this->oCCG->regenerateCode($this->client_key);
                 break;
             case "update_therapist":
                 $oFormTherapist->Update();
@@ -253,10 +267,12 @@ class ClientList
              .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
              .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
              .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
+             .$this->drawFormRow( "School" , $this->schoolField($oForm->Value("school")))
              .$this->drawFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) )
              .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
+             .$this->drawFormRow( "Code", ($oForm->Value('_key')?$this->oCCG->getClientCode($oForm->Value('_key')):"Code generated once first and last name are set"))
              ."<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
@@ -300,6 +316,29 @@ class ClientList
          return( $s );
     }
 
+    private function schoolField(String $value){
+        $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]]>In School</input>
+         <input type='text' style='display:[[display]]' name='school' id='schoolField' value='[[value]]' [[disabled]] required placeholder='School' />
+         <script>
+	       function inSchool() {
+		      var checkBox = document.getElementById('schoolBox');
+		      var text = document.getElementById('schoolField');
+		      if (checkBox.checked == true){
+			     text.style.display = 'block';
+			     text.disabled = false;
+		      } else {
+			     text.style.display = 'none';
+			     text.disabled = true;
+		      }
+           }
+         </script>";
+        $s = str_replace("[[checked]]", ($value?"checked":""), $s);
+        $s = str_replace("[[disabled]]", ($value?"disabled":""), $s);
+        $s = str_replace("[[display]]", ($value?"block":"none"), $s);
+        $s = str_replace("[[value]]", $value, $s);
+        return $s;
+    }
+    
     private function drawFormRow( $label, $control )
     {
         return( "<tr class='row'>"
