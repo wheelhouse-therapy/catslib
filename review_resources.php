@@ -36,6 +36,10 @@ elseif ($cmd == "reject"){
         $s .= "<div class='alert alert-error'>An error occured while rejecting File ".$file."</div>";
     }
 }
+
+//TODO Remove once papers files are accessable
+$s .= "<div class='alert alert-warning'>Files in the Papers directory are currently <strong>NOT ACCESSABLE</strong> thru the CATS platform</div>";
+
 $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {

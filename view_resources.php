@@ -104,7 +104,7 @@ ResourcesTagScript;
     $resourceMode = <<<DownloadMode
         <div id='break'>
         <div id='ResourceMode'>
-            <div id='modeText'><div><nobr>Current Mode:</nobr> [mode]</div></div>
+            <div id='modeText'><div data-tooltip='[tooltip]'><nobr>Current Mode:</nobr> [mode]</div></div>
             <a id='mode1' href='?resource-mode=%s'><button>%s Mode</button></a>
             <a id='mode2' href='?resource-mode=%s'><button>%s Mode</button></a>
         </div>
@@ -114,25 +114,44 @@ DownloadMode;
     $mode = $oApp->sess->SmartGPC("resource-mode");
     switch ($mode){
         case 'replace':
+            $tooltip = "Program replaces tags with data";
             $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
+            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
             break;
         case 'no_replace':
+            $tooltip = "Download files with the substitution tags";
             $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
+            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
             break;
         case 'blank':
+            $tooltip = "No tags or data.<br />Use this if you are stocking your paper filing cabinet with a handout";
             $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
+            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
             break;
     }
-    $s .= sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
-        ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
+    $s .= "<div class='alert alert-info' style='[display]'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>"
+          .sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
+          ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
 
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
     }
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
-        $filler = new template_filler($oApp);
-        $filler->fill_resource($file);
+        if($mode!="no_replace"){
+            $filler = new template_filler($oApp);
+            $filler->fill_resource($file);
+        }
+        else{
+            header('Content-Description: File Transfer');
+            header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+            header('Content-Transfer-Encoding: binary');
+            if( ($fp = fopen( $file, "rb" )) ) {
+                fpassthru( $fp );
+                fclose( $fp );
+            }
+            die();
+        }
         exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
     }
 
@@ -192,7 +211,12 @@ DownloadMode;
     $s .= "<table border='0'>";
     foreach ($dir as $fileinfo) {
         if( $fileinfo->isDot() ) continue;
-
+        
+        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
+            $s = str_replace("[display]", "display:inline", $s);
+            continue;
+        }
+        
         if( $sFilter ) {
             if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
             $dbFilename = addslashes($fileinfo->getFilename());
@@ -216,7 +240,10 @@ DownloadMode;
              ."</tr>";
     }
     $s .= "</table>";
-
+    
+    //Replace the display if it has not already been replaced
+    $s = str_replace("[display]", "display:none", $s);
+    
     $s .= "<script>
             function select_client(file){
                 document.getElementById('file').value = file;
@@ -240,7 +267,7 @@ function downloadPath($mode, $dir_name, $fileinfo){
         case 'replace':
             return "href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
         case 'no_replace':
-            return "href='".$dir_name.$fileinfo->getFilename()."'";
+            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&resource-mode=no_replace'";
         case 'blank':
             return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0'";
     }

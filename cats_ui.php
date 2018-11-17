@@ -344,7 +344,7 @@ class CATS_MainUI extends CATS_UI
                 $oApp->kfdb->Execute("drop table $db.pros_internal");
                 $oApp->kfdb->Execute("drop table $db.pros_external");
                 $oApp->kfdb->Execute("drop table $db.clientsxpros");
-// remove soon
+// TODO remove soon
 $oApp->kfdb->Execute("drop table $db.clients");
 $oApp->kfdb->Execute("drop table $db.clients_pros");
 $oApp->kfdb->Execute("drop table $db.professionals");
@@ -357,7 +357,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $oApp->kfdb->Execute("drop table $db.cats_appointments");
                 $oApp->kfdb->Execute("drop table $db.clinics");
                 $oApp->kfdb->Execute("drop table $db.users_clinics");
-                $s .= "<div class='alert alert-success'> Oops I miss placed your data</div>";
+                $s .= "<div class='alert alert-success'>Oops I miss placed your data</div>";
                 break;
             case 'developer-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
