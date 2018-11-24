@@ -390,18 +390,40 @@ class Assessment_SPM extends Assessments
 ";
 }
 
+class Assessment_AASP extends Assessments {
+    
+    function __construct( SEEDAppConsole $oApp )
+    {
+        parent::__construct( $oApp );
+    }
+    
+    protected $sAssessmentTitle = "Adolenssent/Adult Sensory Profile";
+    
+    protected $raColumnRanges = array(
+        "Taste/Smell"           => "1-8",
+        "Movement"              => "9-16",
+        "Visual"                => "17-26",
+        "Touch"                 => "27-39",
+        "Activity<br/>Level"    => "40-49",
+        "Auditory"              => "50-60",
+    );
+    
+}
+
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm') );
+    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm', 'aasp') );
 
     $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
         ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>"
         ."<option value='spm'".($asmtType=='spm' ? 'selected' : '').">Sensory Processing Measure (SPM)</option>"
+        ."<option value='aasp'".($asmtType=='aasp' ? 'selected' : '').">Adolescent/Adult Sensory Profile (AASP)</option>"
         ."</select></form>"
         ."<br/<br/>";
 
     switch( $asmtType ) {
         case 'spm':  $o = new Assessment_SPM( $oApp );  break;
+        case 'aasp': $o = new Assessment_AASP($oApp); break;
         default:     goto done;
     }
 
