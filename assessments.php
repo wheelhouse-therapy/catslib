@@ -18,6 +18,7 @@ class Assessments
         $s .= "<script>
                 var raPercentilesSPM = ".json_encode($this->raPercentiles).";
                 var cols = ".json_encode($this->Columns()).";
+                var chars = ".json_encode($this->Inputs("script")).";
                 </script>
                 <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
@@ -164,7 +165,7 @@ class Assessments
         }
         $sAsmt .= "</tr></table>";
 
-        $sAsmt .= $this->getDataList($oForm,array("never","occasionally","frequently","always"))
+        $sAsmt .= $this->getDataList($oForm,$this->Inputs("datalist"))
                  ."<input hidden name='assessmentSave' value='1'/>"
                  .$oForm->HiddenKey()
                  ."<input type='submit'></form>"
@@ -248,8 +249,23 @@ class Assessments
         return( array() );
     }
 
+    private function Inputs($type){
+        switch($type){
+            case "datalist":
+                return $this->InputOptions();
+            case "script":
+                $raOptions = array();
+                foreach($this->InputOptions() as $option){
+                    array_push($raOptions, substr($option, 0,1));
+                }
+        }
+    }
 
-
+    protected function InputOptions(){
+        // Override to provide custom input options
+        return array("never","occasionally","frequently","always");
+    }
+    
 }
 
 class Assessment_SPM extends Assessments
