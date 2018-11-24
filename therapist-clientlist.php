@@ -267,7 +267,7 @@ class ClientList
              .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
              .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
              .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
-             .$this->drawFormRow( "School" , $this->schoolField($oForm->Value("school")))
+             .$this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"))))
              .$this->drawFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) )
              .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
@@ -318,22 +318,26 @@ class ClientList
 
     private function schoolField(String $value){
         $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]]>In School</input>
-         <input type='text' style='display:[[display]]' name='school' id='schoolField' value='[[value]]' [[disabled]] required placeholder='School' />
+         <input type='text' style='display:[[display]]' name='[name]' id='schoolField' value='[[value]]' [[disabled]] required placeholder='School' />
+         <input type='hidden' value='' id='schoolHidden' name='[name]' [[!disabled]] />
          <script>
 	       function inSchool() {
 		      var checkBox = document.getElementById('schoolBox');
 		      var text = document.getElementById('schoolField');
+              var hidden = document.getElementById('schoolHidden');
 		      if (checkBox.checked == true){
 			     text.style.display = 'block';
 			     text.disabled = false;
+                 hidden.disabled = true;
 		      } else {
 			     text.style.display = 'none';
 			     text.disabled = true;
+                 hidden.disabled = false;
 		      }
            }
          </script>";
         $s = str_replace("[[checked]]", ($value?"checked":""), $s);
-        $s = str_replace("[[disabled]]", ($value?"disabled":""), $s);
+        $s = str_replace(array("[[disabled]]","[[!disabled]]"), ($value?array("","disabled"):array("disabled","")), $s);
         $s = str_replace("[[display]]", ($value?"block":"none"), $s);
         $s = str_replace("[[value]]", $value, $s);
         return $s;
