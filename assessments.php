@@ -424,6 +424,10 @@ class Assessment_AASP extends Assessments {
         "Auditory"              => "50-60",
     );
     
+    protected function InputOptions(){
+        return array("1","2","3","4","5");
+    }
+    
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
