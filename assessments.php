@@ -263,7 +263,7 @@ class Assessments
 
     protected function InputOptions(){
         // Override to provide custom input options
-        return array("never","occasionally","frequently","always");
+        return array("1","2","3","4","5");
     }
     
 }
@@ -282,6 +282,10 @@ class Assessment_SPM extends Assessments
         return( array_keys($this->raPercentiles[8]) );
     }
 
+    protected function InputOptions(){
+        return array("never","occasionally","frequently","always");
+    }
+    
     protected $raColumnRanges = array(
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
@@ -290,7 +294,7 @@ class Assessment_SPM extends Assessments
             "Taste /<br/>Smell"        => "41-45",
             "Body<br/>Awareness"       => "46-55",
             "Balance<br/>and Motion"   => "56-66",
-            "Planning<br/>and Ideas"   => "67-75",
+            "Planning<br/>and Ideas"   => "67-75"
         );
 
 
@@ -334,7 +338,7 @@ class Assessment_SPM extends Assessments
          '41' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          '42' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          '43' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
-         '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
+         '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' )
         );
 
     protected $Reports = "
@@ -421,12 +425,20 @@ class Assessment_AASP extends Assessments {
         "Visual"                => "17-26",
         "Touch"                 => "27-39",
         "Activity<br/>Level"    => "40-49",
-        "Auditory"              => "50-60",
+        "Auditory"              => "50-60"
     );
     
-    protected function InputOptions(){
-        return array("1","2","3","4","5");
-    }
+}
+
+class Assesment_MABC extends Assessments {
+    
+    protected $sAssesmentTitle = "Movement Assessment Battery for Children";
+    
+    protected $raColumnRanges = array(
+        "MD"  => "1-4",
+        "A&C" => "5-7",
+        "Bal" => "8-11"
+    );
     
 }
 
@@ -452,6 +464,5 @@ function AssessmentsScore( SEEDAppConsole $oApp )
     done:
     return( $s );
 }
-
 
 ?>
