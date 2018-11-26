@@ -18,6 +18,7 @@ class Assessments
         $s .= "<script>
                 var raPercentilesSPM = ".json_encode($this->raPercentiles).";
                 var cols = ".json_encode($this->Columns()).";
+                var chars = ".json_encode($this->Inputs("script")).";
                 </script>
                 <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
@@ -263,7 +264,7 @@ spmChart;
         }
         $sAsmt .= "</tr></table>";
 
-        $sAsmt .= $this->getDataList($oForm,array("never","occasionally","frequently","always"))
+        $sAsmt .= $this->getDataList($oForm,$this->Inputs("datalist"))
                  ."<input hidden name='assessmentSave' value='1'/>"
                  .$oForm->HiddenKey()
                  ."<input type='submit'></form>"
@@ -347,8 +348,23 @@ spmChart;
         return( array() );
     }
 
+    private function Inputs($type){
+        switch($type){
+            case "datalist":
+                return $this->InputOptions();
+            case "script":
+                $raOptions = array();
+                foreach($this->InputOptions() as $option){
+                    array_push($raOptions, substr($option, 0,1));
+                }
+        }
+    }
 
-
+    protected function InputOptions(){
+        // Override to provide custom input options
+        return array("never","occasionally","frequently","always");
+    }
+    
 }
 
 class Assessment_SPM extends Assessments
@@ -489,18 +505,44 @@ class Assessment_SPM extends Assessments
 ";
 }
 
+class Assessment_AASP extends Assessments {
+    
+    function __construct( SEEDAppConsole $oApp )
+    {
+        parent::__construct( $oApp );
+    }
+    
+    protected $sAssessmentTitle = "Adolenssent/Adult Sensory Profile";
+    
+    protected $raColumnRanges = array(
+        "Taste/Smell"           => "1-8",
+        "Movement"              => "9-16",
+        "Visual"                => "17-26",
+        "Touch"                 => "27-39",
+        "Activity<br/>Level"    => "40-49",
+        "Auditory"              => "50-60",
+    );
+    
+    protected function InputOptions(){
+        return array("1","2","3","4","5");
+    }
+    
+}
+
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm') );
+    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm', 'aasp') );
 
     $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
         ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>"
         ."<option value='spm'".($asmtType=='spm' ? 'selected' : '').">Sensory Processing Measure (SPM)</option>"
+        ."<option value='aasp'".($asmtType=='aasp' ? 'selected' : '').">Adolescent/Adult Sensory Profile (AASP)</option>"
         ."</select></form>"
         ."<br/<br/>";
 
     switch( $asmtType ) {
         case 'spm':  $o = new Assessment_SPM( $oApp );  break;
+        case 'aasp': $o = new Assessment_AASP($oApp); break;
         default:     goto done;
     }
 
