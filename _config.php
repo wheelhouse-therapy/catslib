@@ -36,6 +36,7 @@ require_once SEEDROOT."vendor/autoload.php";
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
 require_once SEEDCORE."SEEDCoreForm.php";
+require_once SEEDCORE."SEEDMetaTable.php";
 require_once SEEDROOT."Keyframe/KeyframeForm.php" ;
 require_once SEEDROOT."Keyframe/KeyframeDB.php" ;
 require_once SEEDROOT."DocRep/DocRepDB.php" ;
