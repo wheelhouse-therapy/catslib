@@ -2,7 +2,8 @@
 
 $raAssessments = array(
     'spm' => "Sensory Processing Measure (SPM)",
-    'aasp' => "Adolescent/Adult Sensory Profile (AASP)"
+    'aasp' => "Adolescent/Adult Sensory Profile (AASP)",
+    'mabc' => "Movement Assessment Battery for Children"
 );
 
 
@@ -391,7 +392,7 @@ class Assessment_SPM extends Assessments
     protected function InputOptions(){
         return array("never","occasionally","frequently","always");
     }
-    
+
     protected $raColumnRanges = array(
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
@@ -532,18 +533,20 @@ class Assessment_AASP extends Assessments {
         "Auditory"              => "50-60"
     );
 
+    protected $raPercentiles = array();
 }
 
 class Assesment_MABC extends Assessments {
-    
+
     protected $sAssesmentTitle = "Movement Assessment Battery for Children";
-    
+
     protected $raColumnRanges = array(
         "MD"  => "1-4",
         "A&C" => "5-7",
         "Bal" => "8-11"
     );
 
+    protected $raPercentiles = array();
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
@@ -563,6 +566,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
     switch( $asmtType ) {
         case 'spm':  $o = new Assessment_SPM($oApp, $asmtType);  break;
         case 'aasp': $o = new Assessment_AASP($oApp, $asmtType); break;
+        case 'mabc': $o = new Assessment_MABC($oApp, $asmtType); break;
+
         default:     goto done;
     }
 
