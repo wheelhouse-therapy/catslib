@@ -213,10 +213,10 @@ function createTables( KeyframeDatabase $kfdb )
     /* Create / alter tables if the currDBVersion (the number stored in stringbucket) was less than $dbVersion
      */
     if( $currDBVersion < 1 ) {
-        // Changed assessments_score.testid from integer to string
+        // Changed assessments_score.testid from integer to string and rename to testType
         $kfdb->SetDebug(2);
-        $kfdb->Execute( "ALTER TABLE assessments_scores CHANGE testid testid VARCHAR(100)" );
-        $kfdb->Execute( "UPDATE assessments_scores SET testid='spm' WHERE testid='0'" );
+        $kfdb->Execute( "ALTER TABLE assessments_scores CHANGE testid testType VARCHAR(20) NOT NULL DEFAULT ''" );
+        $kfdb->Execute( "UPDATE assessments_scores SET testType='spm' WHERE testType='0'" );
         $kfdb->SetDebug(0);
     }
 
@@ -622,7 +622,7 @@ const assessments_scores_create =
 
         fk_clients2       INTEGER NOT NULL DEFAULT 0,
         fk_pros_external  INTEGER NOT NULL DEFAULT 0,
-        testid            INTEGER NOT NULL DEFAULT 0,
+        testType          VARCHAR(20) NOT NULL DEFAULT '',
         results           TEXT)
     ";
 
