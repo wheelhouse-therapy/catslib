@@ -7,15 +7,71 @@ $raAssessments = array(
 );
 
 
+class AssessmentsCore
+{
+    public  $oApp;
+    private $oAsmtDB;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+        $this->oAsmtDB = new AssessmentsDB( $this->oApp );
+    }
+
+    function GetSummaryTable( $kAsmtCurr )
+    /*************************************
+        Draw a table of assessments, highlight the given one
+     */
+    {
+        $s = "";
+
+        $raAssessments = $this->oAsmtDB->GetList( "AxCxP", "" );
+        $s .= "<table style='border:none'>";
+        foreach( $raAssessments as $ra ) {
+            $date = substr( $ra['_created'], 0, 10 );
+            $sStyle = $kAsmtCurr == $ra['_key'] ? "font-weight:bold;color:green" : "";
+            $s .= "<tr><td>$date</td>"
+                     ."<td><a style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
+                     ."<td>{$ra['testType']}</td></tr>";
+        }
+        $s .= "</table>";
+
+        return( $s );
+    }
+
+    function DrawAsmtResult( $kAsmt )
+    {
+        $s = "";
+
+        if( !$kAsmt ) goto done;
+
+        if( !($kfr = $this->oAsmtDB->GetKFR( 'A', $kAsmt )) )  goto done;
+
+        switch( $kfr->Value('testType') ) {
+            case 'spm':  $o = new Assessment_SPM( $this );  break;
+            case 'aasp': $o = new Assessment_AASP( $this ); break;
+            case 'mabc': $o = new Assessment_MABC( $this ); break;
+            default:     goto done;
+        }
+
+        $s = $o->DrawResults( $kfr );
+
+        done:
+        return( $s );
+    }
+}
+
 class Assessments
 {
     protected $oApp;
+    protected $oAsmt;
     protected $asmtCode;
 
     // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
-    protected function __construct( SEEDAppConsole $oApp, $asmtCode )
+    protected function __construct( AssessmentsCore $oAsmt, $asmtCode )
     {
-        $this->oApp = $oApp;
+        $this->oAsmt = $oAsmt;
+        $this->oApp = $oAsmt->oApp;
         $this->asmtCode = $asmtCode;
     }
 
@@ -110,6 +166,55 @@ class Assessments
                  ."<div class='col-md-2' style='border-right:1px solid #bbb'>$sList</div>"
                  ."<div class='col-md-10'>$sAsmt</div>"
              ."</div>";
+
+        return( $s );
+    }
+
+// move the code below to Assessment_SPM
+    function drawSPM( KeyframeRecord $kfr )
+    {
+        $s = "";
+
+
+        $s .= "<script>
+                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
+                var cols = ".json_encode($this->Columns()).";
+                var chars = ".json_encode($this->Inputs("script")).";
+                </script>
+                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
+        $s .= "<style>
+               .score-table {}
+               .score-table th { height:60px; }
+               .score-num   { width:1em; }
+               .score-item  { width:3em; }
+               .score { padding-left: 5px; }
+               </style>";
+
+        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
+        $oForm->SetKFR( $kfr );
+
+        $s .= "<style>
+               .score-table {}
+               .score-table th { height:60px; }
+               .score-num   { width:1em; }
+               .score-item  { width:3em; }
+               .score { padding-left: 5px; }
+               </style>";
+
+        $raColumns = $this->raColumnRanges;
+
+
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        $s .= $this->drawAsmt( $oForm, $raColumns );
+
+        // Put the results in a js array for processing on the client
+        $s .= "<script>
+               var raResultsSPM = ".json_encode($raResults).";
+               </script>";
 
         return( $s );
     }
@@ -379,9 +484,14 @@ spmChart;
 
 class Assessment_SPM extends Assessments
 {
-    function __construct( SEEDAppConsole $oApp, $asmtCode )
+    function __construct( AssessmentsCore $oAsmt )
     {
-        parent::__construct( $oApp, $asmtCode );
+        parent::__construct( $oAsmt, 'spm' );
+    }
+
+    function DrawResults( KeyframeRecord $kfr )
+    {
+        return( $this->drawSPM( $kfr ) );
     }
 
     protected function Columns()
@@ -519,9 +629,14 @@ class Assessment_SPM extends Assessments
 
 class Assessment_AASP extends Assessments {
 
-    function __construct( SEEDAppConsole $oApp, $asmtCode )
+    function __construct( AssessmentsCore $oAsmt )
     {
-        parent::__construct( $oApp, $asmtCode );
+        parent::__construct( $oAsmt, 'aasp' );
+    }
+
+    function DrawResults( $raResults )
+    {
+        return( "RESULTS" );
     }
 
     protected $raColumnRanges = array(
@@ -536,7 +651,17 @@ class Assessment_AASP extends Assessments {
     protected $raPercentiles = array();
 }
 
-class Assesment_MABC extends Assessments {
+class Assessment_MABC extends Assessments {
+
+    function __construct( AssessmentsCore $oAsmt )
+    {
+        parent::__construct( $oAsmt, 'mabc' );
+    }
+
+    function DrawResults( $raResults )
+    {
+        return( "RESULTS" );
+    }
 
     protected $sAssesmentTitle = "Movement Assessment Battery for Children";
 
@@ -549,29 +674,50 @@ class Assesment_MABC extends Assessments {
     protected $raPercentiles = array();
 }
 
+
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
     global $raAssessments;
 
-    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm', 'aasp') );
+    $s = "";
 
-    $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
+    $p_kAsmt = SEEDInput_Int('kA');
+    $p_sNewAsmtType = SEEDInput_Str('newAsmtType');
+
+    $oAsmt = new AssessmentsCore( $oApp );
+
+
+    /* This should be a New button with a control to choose the assessment type
+     */
+    $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm', 'aasp') );
+    $s .= "<div style='float:right'><form method='post'><select name='asmtType' onchange='submit();'>"
         ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>";
     foreach( $raAssessments as $code => $title ) {
         $s .= "<option value='$code'".($asmtType==$code ? 'selected' : '').">$title</option>";
     }
-    $s .= "</select></form>"
-         ."<br/<br/>";
+    $s .= "</select></form></div>";
 
-    switch( $asmtType ) {
-        case 'spm':  $o = new Assessment_SPM($oApp, $asmtType);  break;
-        case 'aasp': $o = new Assessment_AASP($oApp, $asmtType); break;
-        case 'mabc': $o = new Assessment_MABC($oApp, $asmtType); break;
 
-        default:     goto done;
+
+    if( $p_sNewAsmtType ) {
+        /* Show the input form for the given assessment type. Don't show the summary list.
+         */
+        $s = "";
+
+    } else {
+         $sLeft = $sRight = "";
+
+         $sLeft = $oAsmt->GetSummaryTable( $p_kAsmt );
+
+         if( $p_kAsmt ) { $sRight = $oAsmt->DrawAsmtResult( $p_kAsmt ); }
+
+         $s .= "<div class='container-fluid'><div class='row'>"
+                  ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
+                  ."<div class='col-md-9'>$sRight</div>"
+              ."</div>";
     }
 
-    $s .= $o->ScoreUI();
+    //$s .= $o->ScoreUI();
 
     done:
     return( $s );
