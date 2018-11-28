@@ -190,6 +190,42 @@ class Users_ClinicsDB
 
 function createTables( KeyframeDatabase $kfdb )
 {
+    /* When you add or change tables:
+     *     1: increment $dbVersion below to represent your new version of the database structure
+     *     2: put your create/alter commands in "if( $currDBVersion < NNN )" where NNN is the new $dbVersion number.
+     *
+     * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
+     * and stringbucket will be updated (so it doesn't happen twice).
+     */
+    $dbVersion = 1;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+
+    if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( SEEDMetaTable_StringBucket::SqlCreate );
+        $kfdb->SetDebug(0);
+    }
+    $oBucket = new SEEDMetaTable_StringBucket( $kfdb );
+    $currDBVersion = intval($oBucket->GetStr( 'cats', 'dbVersion') );
+    if( $currDBVersion != $dbVersion ) {
+        $oBucket->PutStr( 'cats', 'dbVersion', $dbVersion );
+    }
+
+    /* Create / alter tables if the currDBVersion (the number stored in stringbucket) was less than $dbVersion
+     */
+    if( $currDBVersion < 1 ) {
+        // Changed assessments_score.testid from integer to string and rename to testType
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "ALTER TABLE assessments_scores CHANGE testid testType VARCHAR(20) NOT NULL DEFAULT ''" );
+        $kfdb->Execute( "UPDATE assessments_scores SET testType='spm' WHERE testType='0'" );
+        $kfdb->SetDebug(0);
+    }
+
+
+    /* Old createTables code.
+     * This should be updated to reflect dbVersion, but it's also nice to just create tables based on existence so they can be dropped
+     * and recreated.
+     */
+
     echo DRSetup( $kfdb );      // returns "" if tables don't have to be created
 
     // this query will return blank if the gid_inherited column isn't there
@@ -586,7 +622,7 @@ const assessments_scores_create =
 
         fk_clients2       INTEGER NOT NULL DEFAULT 0,
         fk_pros_external  INTEGER NOT NULL DEFAULT 0,
-        testid            INTEGER NOT NULL DEFAULT 0,
+        testType          VARCHAR(20) NOT NULL DEFAULT '',
         results           TEXT)
     ";
 
