@@ -14,7 +14,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         $fixedDocumentPart = $documentPart;
 
         $fixedDocumentPart = preg_replace_callback(
-            '|\$[^{]*\{[^}]*\}|U',
+            /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
             function ($match) {
                 $fix = strip_tags($match[0]);
                 if( substr($fix,0,6) == '${date' ||
@@ -135,13 +135,13 @@ class template_filler {
 
         $table = strtolower($table);
         $col = array(strtolower($col),$col);
-
         if( $table == 'clinic' && $this->kfrClinic ) {
             switch( $col[0] ) {
                 case 'full_address':
                     $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
                     break;
                 default:
+                    $s = $col[0];
                     $s = $this->kfrClinic->Value( $col[0] );
             }
         }
@@ -190,7 +190,6 @@ class template_filler {
                     $s = $this->kfrClient->Value( $col[0] );
             }
         }
-
         done:
         return( $s );
     }
@@ -204,7 +203,6 @@ class template_filler {
                 $s = date("M d, Y");
                 break;
         }
-
         return( $s );
     }
 
