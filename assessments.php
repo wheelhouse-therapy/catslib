@@ -1,13 +1,21 @@
 <?php
 
+$raAssessments = array(
+    'spm' => "Sensory Processing Measure (SPM)",
+    'aasp' => "Adolescent/Adult Sensory Profile (AASP)"
+);
+
+
 class Assessments
 {
-    private $oApp;
+    protected $oApp;
+    protected $asmtCode;
 
     // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
-    protected function __construct( SEEDAppConsole $oApp )
+    protected function __construct( SEEDAppConsole $oApp, $asmtCode )
     {
         $this->oApp = $oApp;
+        $this->asmtCode = $asmtCode;
     }
 
     function ScoreUI()
@@ -107,7 +115,8 @@ class Assessments
 
     private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $sAsmt = "<h2>".$this->sAssessmentTitle."</h2>
+        global $raAssessments;
+        $sAsmt = "<h2>".$raAssessments[$this->asmtCode]."</h2>
                     <span style='margin-left: 20%' id='name'> Name: </span>
                         <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
                     <table id='results'>
@@ -364,17 +373,15 @@ spmChart;
         // Override to provide custom input options
         return array("1","2","3","4","5");
     }
-    
+
 }
 
 class Assessment_SPM extends Assessments
 {
-    function __construct( SEEDAppConsole $oApp )
+    function __construct( SEEDAppConsole $oApp, $asmtCode )
     {
-        parent::__construct( $oApp );
+        parent::__construct( $oApp, $asmtCode );
     }
-
-    protected $sAssessmentTitle = "Sensory Processing Measure Scoring";
 
     protected function Columns()
     {
@@ -510,14 +517,12 @@ class Assessment_SPM extends Assessments
 }
 
 class Assessment_AASP extends Assessments {
-    
-    function __construct( SEEDAppConsole $oApp )
+
+    function __construct( SEEDAppConsole $oApp, $asmtCode )
     {
-        parent::__construct( $oApp );
+        parent::__construct( $oApp, $asmtCode );
     }
-    
-    protected $sAssessmentTitle = "Adolenssent/Adult Sensory Profile";
-    
+
     protected $raColumnRanges = array(
         "Taste/Smell"           => "1-8",
         "Movement"              => "9-16",
@@ -526,7 +531,7 @@ class Assessment_AASP extends Assessments {
         "Activity<br/>Level"    => "40-49",
         "Auditory"              => "50-60"
     );
-    
+
 }
 
 class Assesment_MABC extends Assessments {
@@ -538,23 +543,26 @@ class Assesment_MABC extends Assessments {
         "A&C" => "5-7",
         "Bal" => "8-11"
     );
-    
+
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
+    global $raAssessments;
+
     $asmtType = $oApp->sess->SmartGPC( 'asmtType', array('','spm', 'aasp') );
 
     $s = "<form method='post'><select name='asmtType' onchange='submit();'>"
-        ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>"
-        ."<option value='spm'".($asmtType=='spm' ? 'selected' : '').">Sensory Processing Measure (SPM)</option>"
-        ."<option value='aasp'".($asmtType=='aasp' ? 'selected' : '').">Adolescent/Adult Sensory Profile (AASP)</option>"
-        ."</select></form>"
-        ."<br/<br/>";
+        ."<option value=''".($asmtType=='' ? 'selected' : '').">-- Choose Assessment Type --</option>";
+    foreach( $raAssessments as $code => $title ) {
+        $s .= "<option value='$code'".($asmtType==$code ? 'selected' : '').">$title</option>";
+    }
+    $s .= "</select></form>"
+         ."<br/<br/>";
 
     switch( $asmtType ) {
-        case 'spm':  $o = new Assessment_SPM( $oApp );  break;
-        case 'aasp': $o = new Assessment_AASP($oApp); break;
+        case 'spm':  $o = new Assessment_SPM($oApp, $asmtType);  break;
+        case 'aasp': $o = new Assessment_AASP($oApp, $asmtType); break;
         default:     goto done;
     }
 
