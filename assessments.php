@@ -122,7 +122,7 @@ class Assessments
                     </template>
                     <script src='w/js/asmt-overview.js'></script>";
 
-        $sReports = "";
+        /*$sReports = "";
         foreach( explode( "\n", $this->Reports ) as $sReport ) {
             if( !$sReport ) continue;
             $n = intval(substr($sReport,0,2));
@@ -132,8 +132,107 @@ class Assessments
         }
         if( $sReports ) {
             $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
-        }
-
+        }*/
+        $sAsmt .= <<<spmChart
+        <link rel='stylesheet' href='w/css/spmChart.css'>
+                    <script src='w/js/spmChart.js'></script>
+                    <svg id='chart' class='hidden'
+	xmlns="http://www.w3.org/2000/svg"
+	viewBox="0 0 263.19417 183.18527">
+	<defs>
+		<clipPath id='cutOff'>
+			<rect width="250.43593" height="153.06314" x="18.888107" y="91.020195" />
+		</clipPath>
+	</defs>
+  <g id="spmChart" transform="translate(-6.4124658,-89.416847)">
+	<text class='percent' x="11.870281" y="92.607399">
+		<tspan x="11.870281" y="92.607399">100%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="130.95422">
+		<tspan x="11.870281" y="130.95422">90%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="169.30106">
+		<tspan x="11.870281"y="169.30106">80%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="207.64787">
+		<tspan x="11.870281" y="207.64787">70%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="245.99472">
+		<tspan x="11.870281" y="245.99472">60%</tspan>
+	</text>
+	<path class='percLine' d="M 18.852836,205.81657 H 269.60663" />
+	<path class='percLine' d="M 18.852836,167.51418 H 269.60663" />
+	<path class='percLine' d="M 18.852836,129.40811 H 269.60663" />
+	<path
+		id="dd"
+		class="guideline"
+		d="M 18.852836,102.49993057250973 H 269.60663"
+		onmouseover='grow(this); tip(event, "Definite Dysfunction (&ge;97%)")'
+		onmouseout='shrink(this)' />
+	<path
+		id="sp"
+		class="guideline"
+		d="M 18.852836,156.07202987670894 H 269.60663"
+		onmouseover='grow(this); tip(event, "Some Problems (&ge;83%)")'
+		onmouseout='shrink(this)' />
+	<rect
+		id="box"
+		width="250.43593"
+		height="153.06314"
+		x="18.888107"
+		y="91.020195"
+		class='percLine' />
+	<text class='xText' x="-139.54134" y="206.36235">
+		<tspan x="-139.54134" y="206.36235">Social Participation</tspan>
+	</text>
+	<text class='xText' x="-119.62378" y="226.27992">
+		<tspan x="-119.62378" y="226.27992">Vision</tspan>
+	</text>
+	<text class='xText' y="246.19751" x="-99.706169">
+		<tspan y="246.19751" x="-99.706169">Hearing</tspan>
+	</text>
+	<text class='xText' x="-79.788582" y="266.11511">
+		<tspan x="-79.788582" y="266.11511">Touch</tspan>
+	</text>
+	<text class='xText' y="286.03268" x="-59.870987">
+		<tspan y="286.03268" x="-59.870987">Body Awareness</tspan>
+	</text>
+	<text class='xText' x="-39.9534" y="305.95029">
+		<tspan x="-39.9534" y="305.95029">Balance and Motion</tspan>
+	</text>
+	<text class='xText' y="325.86783" x="-20.03581">
+		<tspan y="325.86783" x="-20.03581">Planning</tspan>
+	</text>
+	<text class='xText' x="-0.1182246" y="345.78546">
+		<tspan x="-0.11822455" y="345.78546">Total</tspan>
+	</text>
+	<path d="m 46.682496,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 74.512158,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 102.34182,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 130.17149,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 158.00114,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 185.8308,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 213.66046,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 241.49012,242.34399 v 3.4787" class='tickmark percLine' />
+	<path id='line'
+		class='hidden'
+		onmouseover='scoreGrow(); tip(event, "Scores", this)'
+		onmouseout='shrink(this)'
+		clip-path='url(#cutOff)' />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+  </g>
+</svg>
+<div id='info'>
+	<span id='info-text'></span>
+</div>
+spmChart;
 
         $sAsmt .= "<table width='100%'><tr>";
         foreach( $raColumns as $label => $sRange ) {
@@ -263,7 +362,7 @@ class Assessments
 
     protected function InputOptions(){
         // Override to provide custom input options
-        return array("never","occasionally","frequently","always");
+        return array("1","2","3","4","5");
     }
     
 }
@@ -282,6 +381,10 @@ class Assessment_SPM extends Assessments
         return( array_keys($this->raPercentiles[8]) );
     }
 
+    protected function InputOptions(){
+        return array("never","occasionally","frequently","always");
+    }
+    
     protected $raColumnRanges = array(
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
@@ -290,7 +393,7 @@ class Assessment_SPM extends Assessments
             "Taste /<br/>Smell"        => "41-45",
             "Body<br/>Awareness"       => "46-55",
             "Balance<br/>and Motion"   => "56-66",
-            "Planning<br/>and Ideas"   => "67-75",
+            "Planning<br/>and Ideas"   => "67-75"
         );
 
 
@@ -334,7 +437,7 @@ class Assessment_SPM extends Assessments
          '41' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          '42' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          '43' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
-         '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
+         '44' => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' )
         );
 
     protected $Reports = "
@@ -421,12 +524,20 @@ class Assessment_AASP extends Assessments {
         "Visual"                => "17-26",
         "Touch"                 => "27-39",
         "Activity<br/>Level"    => "40-49",
-        "Auditory"              => "50-60",
+        "Auditory"              => "50-60"
     );
     
-    protected function InputOptions(){
-        return array("1","2","3","4","5");
-    }
+}
+
+class Assesment_MABC extends Assessments {
+    
+    protected $sAssesmentTitle = "Movement Assessment Battery for Children";
+    
+    protected $raColumnRanges = array(
+        "MD"  => "1-4",
+        "A&C" => "5-7",
+        "Bal" => "8-11"
+    );
     
 }
 
@@ -452,6 +563,5 @@ function AssessmentsScore( SEEDAppConsole $oApp )
     done:
     return( $s );
 }
-
 
 ?>
