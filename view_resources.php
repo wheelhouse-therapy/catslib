@@ -2,11 +2,28 @@
 
 require_once 'template_filler.php';
 
-function ResourcesDownload( SEEDAppConsole $oApp, $dir_name )
+/**Array of valid Download Modes
+ * 
+ * This array contains information for the various download modes, indexed by their respective internal access code
+ * The internal access code is one letter long and is use in $download_modes for ResourcesDownload().
+ * Each letter in that string is parsed to determine the modes which are applicable for the current folder.
+ * 
+ * The 'code' entry in the array defines the code used when changing mode via HTTP.
+ * The 'title' entry in the array defines the button label displayed over HTTP
+ */
+$MODES = array('s' => array("code" => "replace"   , "title" => "Substitution"    ),
+               'n' => array("code" => "no_replace", "title" => "No Substitution" ),
+               'b' => array("code" => "blank"     , "title" => "Blank"           )
+    
+);
+
+function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
 {
+    global $MODES;
+    
     $s = "";
 
     $s .= <<<ResourcesTagStyle
@@ -105,34 +122,36 @@ ResourcesTagScript;
         <div id='break'>
         <div id='ResourceMode'>
             <div id='modeText'><div data-tooltip='[tooltip]'><nobr>Current Mode:</nobr> [mode]</div></div>
-            <a id='mode1' href='?resource-mode=%s'><button>%s Mode</button></a>
-            <a id='mode2' href='?resource-mode=%s'><button>%s Mode</button></a>
+            [[button1]]
+            [[button2]]
         </div>
         </div>
 DownloadMode;
-
-    $mode = $oApp->sess->SmartGPC("resource-mode");
-    switch ($mode){
-        case 'replace':
-            $tooltip = "Program replaces tags with data";
-            $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
-            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-            break;
-        case 'no_replace':
-            $tooltip = "Download files with the substitution tags";
-            $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
-            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-            break;
-        case 'blank':
-            $tooltip = "No tags or data.<br />Use this if you are stocking your paper filing cabinet with a handout";
-            $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
-            $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-            break;
+    if( count($MODES) >= strlen($download_modes) && strlen($download_modes) > 1){
+        $mode = $oApp->sess->SmartGPC("resource-mode");
+        switch ($mode){
+            case $MODES['s']['code']:
+                $tooltip = "Program replaces tags with data";
+                $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
+                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
+                break;
+            case $MODES['n']['code']:
+                $tooltip = "Download files with the substitution tags";
+                $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
+                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
+                break;
+            case $MODES['b']['code']:
+                $tooltip = "No tags or data.<br />Use this if you are stocking your paper filing cabinet with a handout";
+                $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
+                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
+                break;
+        }
+        $s .= "<div class='alert alert-info' style='[display]'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>"
+            .getModeOptions($resourceMode, $download_modes, $mode);
     }
-    $s .= "<div class='alert alert-info' style='[display]'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>"
-          .sprintf($resourceMode, ($mode=='replace'?'no_replace':'replace'), ($mode=='replace'?'No Substitution':'Substitution'),
-          ($mode=='blank'?'no_replace':'blank'), ($mode=='blank'?'No Substitution':'Blank'));
-
+    else if(strlen($download_modes) == 1){
+        $mode = $MODES[$download_modes]['code'];
+    }
     if(!$dir_name){
         $s .= "Directory not specified";
         return;
@@ -260,6 +279,27 @@ DownloadMode;
            </script>";
 
     return( $s );
+}
+
+function getModeOptions($resourcesMode, $downloadModes, $mode){
+    global $MODES;
+    $raModes = str_split($downloadModes);
+    $firstMode = current($raModes);
+    $midMode = next($raModes);
+    $lastMode = end($raModes);
+    switch(strlen($downloadModes)){
+        case 3:
+            $resourcesMode = str_replace("[[button2]]","<a id='mode2' href='?resource-mode=".($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['code']:$MODES[$lastMode]['code'])."'><button>"
+            .($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['title']:$MODES[$lastMode]['title'])." Mode</button></a>",$resourcesMode);
+        case 2:
+            $resourcesMode = str_replace("[[button1]]","<a id='mode1' href='?resource-mode=".($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['code']:$MODES[$firstMode]['code'])."'><button>"
+            .($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['title']:$MODES[$firstMode]['title'])." Mode</button></a>",$resourcesMode);
+            break;
+    }
+    
+    $resourcesMode = str_replace("[[button2]]", "", $resourcesMode);
+    
+    return $resourcesMode;
 }
 
 function downloadPath($mode, $dir_name, $fileinfo){

@@ -1,5 +1,7 @@
 <?php
 
+include('view_resources.php');
+
 /* Classes to help draw the user interface
  */
 class CATS_UI
@@ -237,6 +239,7 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-documents',       "Documents" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-calendar',        "Calendar" ),
+            array( 'therapist-clinicresources', "Print Clinic Resources")
         );
 
         $s = "";
@@ -246,18 +249,15 @@ class CATS_MainUI extends CATS_UI
                 $s .= $this->drawCircles( $raTherapistScreens );
                 break;
 
-            case "therapist-handouts":
-                include('view_resources.php');
+            case "therapist-handouts": 
                 $s .= "<h3>Handouts</h3>"
                      .ResourcesDownload( $this->oApp, "handouts/" );
                 break;
             case "therapist-formscharts":
-                include('view_resources.php');
                 $s .= "<h3>Forms</h3>"
                      .ResourcesDownload( $this->oApp, "forms/" );
                 break;
             case 'therapist-reports':
-                include('view_resources.php');
                 $s .= "<h3>Reports</h3>"
                      .ResourcesDownload( $this->oApp, "reports/" );
                 break;
@@ -299,6 +299,9 @@ class CATS_MainUI extends CATS_UI
                 require_once CATSLIB."calendar.php";
                 $o = new Calendar( $this->oApp );
                 $s .= $o->DrawCalendar();
+            case "therapist-clinicresources":
+                $s .= "<h3>Clinic Resources</h3>"
+                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
         }
         return( $s );
     }
