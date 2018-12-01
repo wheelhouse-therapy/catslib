@@ -48,7 +48,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
                   }
             #break {
                 display: flex;
-                justify-content: flex-end;
+                justify-content: space-around;
+                align-items: flex-start;
                 min-height: 100px;
                 height: auto;
             }
@@ -120,6 +121,7 @@ ResourcesTagScript;
 
     $resourceMode = <<<DownloadMode
         <div id='break'>
+        <div class='alert alert-info' style='[display] flex-basis: 75%; min-height: 50px;'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>
         <div id='ResourceMode'>
             <div id='modeText'><div data-tooltip='[tooltip]'><nobr>Current Mode:</nobr> [mode]</div></div>
             [[button1]]
@@ -146,8 +148,7 @@ DownloadMode;
                 $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
                 break;
         }
-        $s .= "<div class='alert alert-info' style='[display]'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>"
-            .getModeOptions($resourceMode, $download_modes, $mode);
+        $s .= getModeOptions($resourceMode, $download_modes, $mode);
     }
     else if(strlen($download_modes) == 1){
         $mode = $MODES[$download_modes]['code'];
@@ -232,7 +233,7 @@ DownloadMode;
         if( $fileinfo->isDot() ) continue;
         
         if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
-            $s = str_replace("[display]", "display:inline", $s);
+            $s = str_replace("[display]", "display:inline-block;", $s);
             continue;
         }
         
@@ -261,7 +262,7 @@ DownloadMode;
     $s .= "</table>";
     
     //Replace the display if it has not already been replaced
-    $s = str_replace("[display]", "display:none", $s);
+    $s = str_replace("[display]", "display:none;", $s);
     
     $s .= "<script>
             function select_client(file){
