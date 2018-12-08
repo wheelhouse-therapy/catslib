@@ -184,7 +184,7 @@ DownloadMode;
     }
     if(!file_exists($dir_name)){
         $s .= "<h2>Unknown directory $dir_name</h2>";
-        return;
+        return $s;
     }
 
     $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html'>Template Format Reference</a><br />";
@@ -192,7 +192,7 @@ DownloadMode;
     $dir = new DirectoryIterator($dir_name);
     if(iterator_count($dir) == 2){
         $s .= "<h2> No files in directory</h2>";
-        return;
+        return $s;
     }
     if( !($oClinics = new Clinics($oApp)) || !($iClinic = $oClinics->GetCurrentClinic()) ) {
         return;

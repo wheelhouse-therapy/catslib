@@ -1,6 +1,7 @@
 <?php
 
 require_once SEEDROOT."DocRep/DocRepUI.php";
+include_once "share_resources.php";
 
 class CATSDocApp extends DocRepApp1
 {
@@ -220,6 +221,134 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
 
 
     return( $s );
+}
+
+function ManageResources( SEEDAppSessionAccount $oApp ) {
+    $s = "<h2>Manage Resources</h2>";
+    
+    $script = <<<JavaScript
+<script>
+    function toggleDisplay(block){
+        if(document.getElementById(block).style.display == 'none')
+            document.getElementById(block).style.display = 'block';
+        else
+            document.getElementById(block).style.display = 'none';
+    }
+</script>
+JavaScript;
+    
+    $style = <<<CSS
+<style>
+    .cats_doctree_level { margin-left:30px; }
+    .cats_doctree {
+        border:1px solid #888;
+        background-color:#ddd;
+        border-radius:10px;
+        margin:20px;
+        padding:20px;
+    }
+    .cats_docform {
+        background-color:#eee;
+        border:1px solid #777;
+        border-radius: 10px;
+        padding:20px;
+    }
+</style>
+CSS;
+    
+    $s .= $script
+       .  $style;
+    
+    $oResources = new ResourceManager($oApp);
+    
+    $s .= $oResources->ManageResources();
+    
+    return $s;
+    
+}
+
+class ResourceManager{
+
+    private $oApp;
+    private $i = 0;
+    private $selected_File = 0;
+    
+    public function __construct(SEEDAppSessionAccount $oApp){
+        $this->oApp = $oApp;
+    }
+    
+    public function ManageResources(){
+        $this->selected_File = SEEDInput_Int("file");
+        return "<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
+    }
+    
+    private function listResources($dir){
+        $s = "";
+        $directory_iterator = new DirectoryIterator($dir);
+        
+        if(iterator_count($directory_iterator) == 2){
+            $s .= "No Resources<br />";
+            return $s;
+        }
+        foreach ($directory_iterator as $fileinfo){
+            if($fileinfo->isDot()){
+                continue;
+            }
+            $this->i++;
+            if($this->selected_File && $this->i && $this->selected_File == $this->i){
+                $this->processCommands($fileinfo);
+            }
+            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->i."\")'>".$fileinfo->getFilename()."</a><br />";
+            $s .= "<div class='[style]' id='".$this->i."' style='display:none'>";
+            if($fileinfo->isDir()){
+                $s = str_replace("[style]", "cats_doctree_level", $s);
+                $s .= $this->listResources($fileinfo->getRealPath());
+            }
+            elseif($fileinfo->isFile()){
+                $s = str_replace("[style]", "cats_docform", $s);
+                $s .= $this->drawCommands($fileinfo->getRealPath());
+            }
+            $s .= "</div>";
+        }
+        return $s;
+    }
+    
+    private function processCommands($file_info){
+        $cmd = SEEDInput_Str("cmd");
+    }
+    
+    private function drawCommands($file_path){
+        preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_path, $matches);
+        $directory = $matches[0];
+        $move = "<a href='javascript:void(0)' onclick='toggleDisplay(\"move".$this->i."\")'>move</a>";
+        $move .= "<div id='move".$this->i."' style='display:none'>"
+                ."<form>
+                  <input type='hidden' name='cmd' value='move' />
+                  <input type='hidden' name='file' value='".$this->i."' />
+                  <select name='folder' required><option value='' selected>-- Select Folder --</option>";
+        foreach ($GLOBALS['directories'] as $k=>$v){
+            if($v['directory'] != $directory."/"){
+               $move .="<option>".$v['name']."</option>";
+            }
+        }
+        $move .= "</select><input type='submit' value='move' /></form></div>";
+        
+        $rename = "<a href='javascript:void(0)' onclick='toggleDisplay(\"rename".$this->i."\")'>rename</a>";
+        $rename .= "<div id='rename".$this->i."' style='display:none'>"
+                  ."<form>"
+                  ."<input type='hidden' name='cmd' value='rename' />"
+                  ."<input type='hidden' name='file' value='".$this->i."' />"
+                  ."<input type='text' name='name' required />"
+                  ."<input type='submit' value='rename' />"
+                  ."</form>"
+                  ."</div>";
+        
+        $delete = "<a href='?cmd=delete&file=".$this->i."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
+        
+        $s = $move.$rename.$delete;
+        return $s;
+    }
+    
 }
 
 ?>

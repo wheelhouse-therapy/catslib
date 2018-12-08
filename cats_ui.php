@@ -1,6 +1,7 @@
 <?php
 
-include('view_resources.php');
+include_once('view_resources.php');
+include_once('share_resources.php');
 
 /* Classes to help draw the user interface
  */
@@ -285,7 +286,6 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-submitresources":
                 $s .= "SUBMIT RESOURCES";
-                include('share_resources.php');
                 $s .= share_resources();
                 break;
             case 'therapist-resources':
@@ -318,10 +318,14 @@ class CATS_MainUI extends CATS_UI
             case 'admin-resources':
                 include('review_resources.php');
                 break;
+            case 'admin-manageresources':
+                $s .= ManageResources($oApp);
+                break;
             default:
                 $raScreens = array(
                     array( 'admin-users',             "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
+                    array( 'admin-manageresources',  "Manage Resources ")
                 );
                 $s .= $this->drawCircles( $raScreens );
 

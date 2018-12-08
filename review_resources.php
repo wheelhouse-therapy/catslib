@@ -7,7 +7,7 @@ if (!file_exists(CATSDIR_RESOURCES."pending")) {
     echo "Pending Resources Directiory Created<br />";
 }
 
-foreach($directories as $k => $v){
+foreach($GLOBALS['directories'] as $k => $v){
     if (!file_exists(CATSDIR_RESOURCES.$v["directory"])) {
         @mkdir(CATSDIR_RESOURCES.$v["directory"], 0777, true);
         echo $v["name"]." Resources Directiory Created<br />";
@@ -20,7 +20,7 @@ if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
     $dir = SEEDInput_Str( 'dir' );
     $file = str_replace("+", " ", $file);
-    if(rename($dir_name.$file, CATSDIR_RESOURCES.$directories[$dir]['directory'].$file)){
+    if(rename($dir_name.$file, CATSDIR_RESOURCES.$GLOBALS['directories'][$dir]['directory'].$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
     }
     else{
@@ -40,17 +40,20 @@ elseif ($cmd == "reject"){
 //TODO Remove once papers files are accessable
 $s .= "<div class='alert alert-warning'>Files in the Papers directory are currently <strong>NOT ACCESSABLE</strong> thru the CATS platform</div>";
 
+$i = 0; // Internal Counter for form ID
+
 $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
+        $i++;
         //TODO Add tooltips to icons
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
-        <form style='display:inline'>
+        <form id='form".$i."' style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='file' value='".$fileinfo->getFilename()."' />";
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
-        foreach($directories as $k => $v){
+        foreach($GLOBALS['directories'] as $k => $v){
             if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
                 array_push($excluded, $k);
             }
@@ -60,7 +63,7 @@ foreach ($dir as $fileinfo) {
             $options .= "<option value='".$k."'>".$v['name']."</option>";
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
-        <button onclick='this.parentElement.submit()' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
+        <button type='submit' form='form".$i."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
         </form>
         <a href='?cmd=reject&file=".$fileinfo->getFilename()."' data-tooltip='Reject Resource'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />";
