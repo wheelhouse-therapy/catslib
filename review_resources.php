@@ -24,7 +24,7 @@ if($cmd == "accept"){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
     }
     else{
-        $s .= "<div class='alert alert-error'>An error occured while accepting File ".$file."</div>";
+        $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
     }
 }
 elseif ($cmd == "reject"){
@@ -33,7 +33,7 @@ elseif ($cmd == "reject"){
         $s .= "<div class='alert alert-danger'> File ".$file." has been rejected as a resource. This CANNOT be undone</div>";
     }
     else{
-        $s .= "<div class='alert alert-error'>An error occured while rejecting File ".$file."</div>";
+        $s .= "<div class='alert alert-danger'>An error occured while rejecting File ".$file."</div>";
     }
 }
 

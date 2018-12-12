@@ -279,7 +279,14 @@ class ResourceManager{
     
     public function ManageResources(){
         $this->selected_File = SEEDInput_Int("file");
-        return "<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
+        if(isset($_SESSION['ResourceCMDResult'])){
+            $cmdResult = $_SESSION['ResourceCMDResult'];
+            unset($_SESSION['ResourceCMDResult']);
+        }
+        else{
+            $cmdResult = "";
+        }
+        return $cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
     
     private function listResources($dir){
@@ -313,8 +320,48 @@ class ResourceManager{
         return $s;
     }
     
-    private function processCommands($file_info){
+    private function processCommands(DirectoryIterator $file_info){
         $cmd = SEEDInput_Str("cmd");
+        switch($cmd){
+            case "move":
+                preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_info->getRealPath(), $matches);
+                if(!$matches){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
+                    break;
+                }
+                $directory = $matches[0];
+                if(rename(CATSDIR_RESOURCES.$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                }
+                else{
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error Moving file ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                }
+                break;
+            case "rename":
+                preg_match("!.*(\\|\/)", $file_info->getPathname(), $matches);
+                if(!$matches){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining start of path for file ".$file_info->getFilename()."</div>";
+                    break;
+                }
+                if(rename($file_info->getPathname(), $matches[0].SEEDInput_Str("name"))){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
+                }
+                else {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name")."</div>";
+                }
+                break;
+            case "delete":
+                if(unlink($file_info->getRealPath())){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." has been deleted</div>";
+                }
+                else{
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error deleting file ".$file_info->getFilename()."</div>";
+                }
+                break;
+        }
+        header("HTTP/1.1 301 Moved Permanently");
+        header("Location: ?");
+        exit();
     }
     
     private function drawCommands($file_path){
@@ -328,7 +375,7 @@ class ResourceManager{
                   <select name='folder' required><option value='' selected>-- Select Folder --</option>";
         foreach ($GLOBALS['directories'] as $k=>$v){
             if($v['directory'] != $directory."/"){
-               $move .="<option>".$v['name']."</option>";
+               $move .="<option value='".$v['directory']."'>".$v['name']."</option>";
             }
         }
         $move .= "</select><input type='submit' value='move' /></form></div>";
