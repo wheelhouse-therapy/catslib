@@ -234,6 +234,23 @@ function ManageResources( SEEDAppSessionAccount $oApp ) {
         else
             document.getElementById(block).style.display = 'none';
     }
+    
+    function setContents(block, contents){
+    	block = document.getElementById(block);
+    	contents = document.getElementById(contents);
+    	if(block.innerHTML == contents.innerHTML){
+    		if(block.style.display == 'none'){
+    			block.style.display = 'block';
+    		}
+    		else {
+    			block.style.display = 'none';
+    		}
+    	}
+    	else{
+    		block.innerHTML = contents.innerHTML;
+    		block.style.display = 'block';
+    	}
+    }
 </script>
 JavaScript;
     
@@ -252,6 +269,14 @@ JavaScript;
         border:1px solid #777;
         border-radius: 10px;
         padding:20px;
+    }
+    .cats_form {
+        width:180px;
+        
+        -ms-box-sizing:content-box;
+        -moz-box-sizing:content-box;
+        box-sizing:content-box;
+        -webkit-box-sizing:content-box; 
     }
 </style>
 CSS;
@@ -306,7 +331,7 @@ class ResourceManager{
                 $this->processCommands($fileinfo);
             }
             $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->i."\")'>".$fileinfo->getFilename()."</a><br />";
-            $s .= "<div class='[style]' id='".$this->i."' style='display:none'>";
+            $s .= "<div class='[style]' id='".$this->i."' style='display:none; width: 50%;'>";
             if($fileinfo->isDir()){
                 $s = str_replace("[style]", "cats_doctree_level", $s);
                 $s .= $this->listResources($fileinfo->getRealPath());
@@ -367,32 +392,32 @@ class ResourceManager{
     private function drawCommands($file_path){
         preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_path, $matches);
         $directory = $matches[0];
-        $move = "<a href='javascript:void(0)' onclick='toggleDisplay(\"move".$this->i."\")'>move</a>";
+        $move = "<a href='javascript:void(0)' onclick='setContents(\"command".$this->i."\",\"move".$this->i."\")'>move</a>";
         $move .= "<div id='move".$this->i."' style='display:none'>"
-                ."<form>
+                ."<br /><form>
                   <input type='hidden' name='cmd' value='move' />
                   <input type='hidden' name='file' value='".$this->i."' />
-                  <select name='folder' required><option value='' selected>-- Select Folder --</option>";
+                  <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
         foreach ($GLOBALS['directories'] as $k=>$v){
             if($v['directory'] != $directory."/"){
                $move .="<option value='".$v['directory']."'>".$v['name']."</option>";
             }
         }
-        $move .= "</select><input type='submit' value='move' /></form></div>";
+        $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
         
-        $rename = "<a href='javascript:void(0)' onclick='toggleDisplay(\"rename".$this->i."\")'>rename</a>";
+        $rename = "<a href='javascript:void(0)' onclick='setContents(\"command".$this->i."\",\"rename".$this->i."\")'>rename</a>";
         $rename .= "<div id='rename".$this->i."' style='display:none'>"
-                  ."<form>"
+                  ."<br /><form>"
                   ."<input type='hidden' name='cmd' value='rename' />"
                   ."<input type='hidden' name='file' value='".$this->i."' />"
-                  ."<input type='text' name='name' required />"
-                  ."<input type='submit' value='rename' />"
+                  ."<input type='text' class='cats_form' name='name' required />"
+                  ."&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
         
         $delete = "<a href='?cmd=delete&file=".$this->i."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
         
-        $s = $move.$rename.$delete;
+        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='command".$this->i."' style='display:none'></div>";
         return $s;
     }
     
