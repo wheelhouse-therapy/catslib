@@ -197,7 +197,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 1;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 2;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -217,6 +217,12 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(2);
         $kfdb->Execute( "ALTER TABLE assessments_scores CHANGE testid testType VARCHAR(20) NOT NULL DEFAULT ''" );
         $kfdb->Execute( "UPDATE assessments_scores SET testType='spm' WHERE testType='0'" );
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 2){
+        // Changed assessments_score.testid from integer to string and rename to testType
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "ALTER TABLE clinics ADD akaunting_company INTEGER NOT NULL DEFAULT 0" );
         $kfdb->SetDebug(0);
     }
 
@@ -285,7 +291,8 @@ function createTables( KeyframeDatabase $kfdb )
             fax_number VARCHAR(200) NOT NULL DEFAULT '',
             rate INTEGER NOT NULL DEFAULT 110,
             associated_business VARCHAR(200) NOT NULL DEFAULT '',
-            fk_leader INTEGER NOT NULL DEFAULT 1)" );
+            fk_leader INTEGER NOT NULL DEFAULT 1
+            akaunting_company INTEGER NOT NULL DEFAULT 0 " );
 
         $kfdb->Execute( "INSERT INTO ".DBNAME.".clinics (_key,clinic_name,rate,associated_business) values (null,'Core',110,'CATS')" );
         $kfdb->SetDebug(0);
