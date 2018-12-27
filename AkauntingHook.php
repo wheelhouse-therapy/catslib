@@ -133,7 +133,7 @@ class AkauntingHook {
     
     private static function getAccountByName($name){
         foreach(self::$accounts as $k => $account){
-            if($account['name'] == $name){
+            if(strtolower($account['name']) == strtolower($name)){
                 return $k;
             }
         }
