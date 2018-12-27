@@ -60,6 +60,13 @@ $dirImg = CATSDIR_IMG;
 //Directory to the logo used on the CATS server
 define("CATS_LOGO", CATSDIR_IMG."cats_wide.png");
 
+// $email_processor is a global that must be defined in catsdef.php
+// The default server is set here
+if( !isset($email_processor['emailServer']) ) {
+    $email_processor['emailServer'] = "catherapyservices.ca";
+}
+
+
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(
                 array_merge( $catsDefKFDB,

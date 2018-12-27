@@ -8,21 +8,21 @@ use Ddeboer\Imap\MessageIterator;
 use Ddeboer\Imap\Message\EmailAddress;
 
 class EmailProcessor {
-    
+
     //Constants
     const HST = 1.13;
     const FOLDER = CATSDIR_FILES."/acounting/attachments/";
-    
+
     //Potential proccessing error code constants
     const DISCARDED_NO_AMOUNT   = -1;
     const DISCARDED_NO_DATE     = -2;
     const DISCARDED_ZERO_AMOUNT = -3;
     const DISCARDED_UNKNOWN_SENDER = -4;
-    
+
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
     const DASH_CUTOFF = 8;
-    
+
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
@@ -30,30 +30,30 @@ class EmailProcessor {
         "date"   => "/(?<= )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4})|(\\d{2}\\/\\d{2}\/\\d{2}(\\d{2})?)/i",
         "companyCreditCard" => "/ccc/i"
     );
-    
+
     private $connection;
-    
-    public function __construct($email, $psw){
-        $server = new Server("catherapyservices.ca");
+
+    public function __construct($server,$email, $psw){
+        $server = new Server($server);
         $this->connection = $server->authenticate($email,$psw);
         if(!file_exists(self::FOLDER)){
             @mkdir(self::FOLDER, 0777, true);
             echo "Attachments Directiory Created<br />";
         }
     }
-    
+
     public function processEmails($box = 'INBOX'){
         $mailbox = $this->connection->getMailbox($box);
         $search = new SearchExpression();
         $search->addCondition(new Unseen());
         $this->processMessages($mailbox->getMessages($search));
     }
-    
+
     private function processMessages(MessageIterator $messages){
         foreach($messages as $message){
             $attachment = microtime(TRUE);
             echo $attachment."<br />";
-            
+
             $raAttachments = $message->getAttachments();
             if(count($raAttachments) > 0){
                 $oAttachment = $raAttachments[0];
@@ -64,10 +64,10 @@ class EmailProcessor {
             else{
                 $attachment = NULL;
             }
-            
+
             preg_match("/(?<=\\.)\w+(?=@)/i", $message->getTo()[0]->getAddress(), $matches);
             $clinic = $matches[0];
-            
+
             $entries = array();
             $errors = array();
             $from = $message->getFrom();
@@ -75,7 +75,7 @@ class EmailProcessor {
             $date = $message->getDate();
             $body = $message->getBodyText();
             $subject = $message->getSubject();
-            
+
             //Pull the information out of subject
             $result = $this->processString($subject, $attachment, $clinic,$from);
             if($result instanceof AccountingEntry){
@@ -123,7 +123,7 @@ class EmailProcessor {
             $message->markAsSeen();
         }
     }
-    
+
     private function processString(String $value, String $attachment, String $clinic, EmailAddress $from){
         preg_match($this->PATTERNS['amount'], $value, $matches);
         if(count($matches) === 0){
@@ -146,11 +146,11 @@ class EmailProcessor {
         elseif ($amount > 0){
             $incomeOrExpense = "Expense";
         }
-        
+
         if(preg_match($this->PATTERNS['companyCreditCard'], $value) == 0 && !(SEEDCore_StartsWith($from->getAddress(), "sue") || SEEDCore_StartsWith($from->getAddress(), "alison"))){
             return self::DISCARDED_UNKNOWN_SENDER;
         }
-        
+
         if($incomeOrExpense){
             preg_match($this->PATTERNS["date"], $value, $matches);
             if(count($matches) === 0){
@@ -164,7 +164,7 @@ class EmailProcessor {
         }
         return self::DISCARDED_ZERO_AMOUNT;
     }
-    
+
     private function handleErrors(array $entries, array $errors){
         $responce = "";
         foreach($errors as $k => $v){
@@ -188,11 +188,11 @@ class EmailProcessor {
         }
         return $responce;
     }
-    
+
 }
 
 class AccountingEntry {
- 
+
     private $amount;
     private $type;
     private $clinic;
@@ -202,7 +202,7 @@ class AccountingEntry {
     private $ccc;
     private $desc;
     private $person;
-    
+
     function __construct($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person){
         $this->clinic = $clinic;
         $this->amount = $amount;
@@ -213,11 +213,11 @@ class AccountingEntry {
         $this->desc = $desc;
         $this->person = $person;
     }
-    
+
     public function getAmount(){
         return $this->amount;
     }
-    
+
     public function getType(){
         return $this->type;
     }
