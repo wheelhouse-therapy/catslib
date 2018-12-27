@@ -120,7 +120,16 @@ class Clinics {
         $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
         $clinicKeys = array();
         foreach($clinics as $k => $v){
-            array_push($clinicKeys, $v["Clinics__key"]);
+            array_push($clinicKeys, $v["_key"]);
+        }
+        return $clinicKeys;
+    }
+    
+    public function getClinicsByName(String $name){
+        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.clinic_name='".$name."'");
+        $clinicKeys = array();
+        foreach($clinics as $k => $v){
+            array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
     }

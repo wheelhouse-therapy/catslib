@@ -1,10 +1,11 @@
 <?php
-require(SEEDROOT.'/vendor/autoload.php');
+require_once(CATSLIB.'/vendor/autoload.php');
 
 use Ddeboer\Imap\Server;
 use Ddeboer\Imap\SearchExpression;
 use Ddeboer\Imap\Search\Flag\Unseen;
 use Ddeboer\Imap\MessageIterator;
+use Ddeboer\Imap\Message\EmailAddress;
 
 class EmailProcessor {
     
@@ -16,6 +17,7 @@ class EmailProcessor {
     const DISCARDED_NO_AMOUNT   = -1;
     const DISCARDED_NO_DATE     = -2;
     const DISCARDED_ZERO_AMOUNT = -3;
+    const DISCARDED_UNKNOWN_SENDER = -4;
     
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
@@ -75,8 +77,10 @@ class EmailProcessor {
             $subject = $message->getSubject();
             
             //Pull the information out of subject
-            $result = $this->processString($subject, $attachment, $clinic);
+            $result = $this->processString($subject, $attachment, $clinic,$from);
             if($result instanceof AccountingEntry){
+                $responce = AkauntingHook::submitJournalEntry($result);
+                var_dump($responce);
                 array_push($entries, $result);
             }
             else{
@@ -98,8 +102,10 @@ class EmailProcessor {
                         break;
                     }
                     $emptyLineCount = 0;
-                    $result = $this->processString($line, $attachment, $clinic);
+                    $result = $this->processString($line, $attachment, $clinic, $from);
                     if($result instanceof AccountingEntry){
+                        $responce = AkauntingHook::submitJournalEntry($result);
+                        var_dump($responce);
                         array_push($entries, $result);
                     }
                     else{
@@ -118,7 +124,7 @@ class EmailProcessor {
         }
     }
     
-    private function processString(String $value, String $attachment, String $clinic){
+    private function processString(String $value, String $attachment, String $clinic, EmailAddress $from){
         preg_match($this->PATTERNS['amount'], $value, $matches);
         if(count($matches) === 0){
             return self::DISCARDED_NO_AMOUNT;
@@ -140,6 +146,11 @@ class EmailProcessor {
         elseif ($amount > 0){
             $incomeOrExpense = "Expense";
         }
+        
+        if(preg_match($this->PATTERNS['companyCreditCard'], $value) == 0 && !(SEEDCore_StartsWith($from->getAddress(), "sue") || SEEDCore_StartsWith($from->getAddress(), "alison"))){
+            return self::DISCARDED_UNKNOWN_SENDER;
+        }
+        
         if($incomeOrExpense){
             preg_match($this->PATTERNS["date"], $value, $matches);
             if(count($matches) === 0){
@@ -147,7 +158,9 @@ class EmailProcessor {
             }
             $date = $matches[0];
             $category = preg_replace($this->PATTERNS, "", $value);
-            return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0));
+            preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
+            $person = $matches[0];
+            return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person);
         }
         return self::DISCARDED_ZERO_AMOUNT;
     }
@@ -187,16 +200,60 @@ class AccountingEntry {
     private $date;
     private $attachment;
     private $ccc;
+    private $desc;
+    private $person;
     
-    function __construct($amount, $type, $clinic, $date, $category, $attachment, $ccc){
+    function __construct($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person){
         $this->clinic = $clinic;
         $this->amount = $amount;
         $this->type = $type;
         $this->category = $category;
         $this->attachment = $attachment;
         $this->ccc = $ccc;
+        $this->desc = $desc;
+        $this->person = $person;
     }
     
+    public function getAmount(){
+        return $this->amount;
+    }
+    
+    public function getType(){
+        return $this->type;
+    }
+    public function getClinic()
+    {
+        return $this->clinic;
+    }
+
+    public function getCategory()
+    {
+        return $this->category;
+    }
+
+    public function getDate()
+    {
+        return $this->date;
+    }
+
+    public function getAttachment()
+    {
+        return $this->attachment;
+    }
+
+    public function getPerson()
+    {
+        if($this->ccc){
+            return "CCC";
+        }
+        return $this->person;
+    }
+
+    public function getDesc()
+    {
+        return $this->desc;
+    }
+
 }
 
 ?>
