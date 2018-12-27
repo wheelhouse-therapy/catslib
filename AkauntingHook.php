@@ -12,8 +12,12 @@ class AkauntingHook {
     private static $_token = NULL;
     private static $accounts = array();
 
+    private static $bDebug = true;     // set this to true to turn on debugging messages
+
+    private static function dbg( $s )  { if( self::$bDebug )  echo "$s<br/>"; }
+
     public static function login(String $email, String $password){
-        echo "Connecting to Akaunting...";
+        self::dbg("Connecting to Akaunting...");
         if (self::$session != NULL){
             throw new Exception("Already Loged in");
         }
@@ -23,12 +27,12 @@ class AkauntingHook {
         self::$_token = $matches[0];
         self::$session->cookies = new Requests_Cookie_Jar(Requests_Cookie::parse_from_headers($responce->headers));
         self::$session->post("/akaunting/auth/login", array(), array('_token' => self::$_token, 'email' => $email, 'password' => $password));
-        echo "connected<br />";
+        self::dbg("connected");
     }
 
     public static function logout(){
         if (self::$session == NULL){
-            throw new Exception("Not Loged in");
+            throw new Exception("Not Logged in");
         }
         self::$session->get("/akaunting/auth/logout");
         self::$session = NULL;
@@ -36,25 +40,25 @@ class AkauntingHook {
 
     public static function submitJournalEntries(array $entries) {
         if (self::$session == NULL){
-            throw new Exception("Not Loged in");
+            throw new Exception("Not Logged in");
         }
     }
 
     public static function submitJournalEntry(AccountingEntry $entry){
-        $ret = 0;
+        $ret = self::REJECTED_NOT_SETUP;
 
         $oApp = $GLOBALS['oApp'];
-        echo "Submitting Entry <br />";
+        self::dbg("Submitting Entry");
 
         $clinics = (new Clinics($oApp))->getClinicsByName($entry->getClinic());
         if( !count($clinics) ) {
-            echo "You don't have clinic '".$entry->getClinic()." defined";
+            self::dbg("You don't have clinic '".$entry->getClinic()."' defined");
             goto done;
         }
         $clinicId = $clinics[0];
-        $company = (new ClinicsDB($oApp->kfdb))->GetClinic($clinicId)->Value("akaunting_company");
-        if($company == 0){
-            return self::REJECTED_NOT_SETUP;
+        if( !($company = (new ClinicsDB($oApp->kfdb))->GetClinic($clinicId)->Value("akaunting_company")) ) {
+            self::dbg("Clinic $clinicId doesn't have an Akaunting company code");
+            goto done;
         }
 
         //Switch to the correct Clinic
@@ -74,7 +78,8 @@ class AkauntingHook {
             $account = self::getAccountByCode($entry->getCategory());
         }
         if($account == NULL){
-            return self::REJECTED_NO_ACCOUNT;
+            $ret = self::REJECTED_NO_ACCOUNT;
+            goto done;
         }
         if($entry->getPerson() == "CCC"){
             if($entry->getType() == "Expense"){
@@ -124,6 +129,7 @@ class AkauntingHook {
 
         //Make journal Entry
         $ret = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data)->status_code;
+
         done:
         return( $ret );
     }

@@ -50,6 +50,7 @@ class EmailProcessor {
     }
 
     private function processMessages(MessageIterator $messages){
+        echo "Processing ".count($messages)." messages<br/>";
         foreach($messages as $message){
             $attachment = microtime(TRUE);
             echo $attachment."<br />";
