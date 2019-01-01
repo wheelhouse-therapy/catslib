@@ -158,7 +158,8 @@ class EmailProcessor {
                 return self::DISCARDED_NO_DATE;
             }
             $date = $matches[0];
-            $category = preg_replace($this->PATTERNS, "", $value);
+            preg_match('|\w.*\w|',preg_replace($this->PATTERNS, "", $value), $matches);
+            $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
             $person = $matches[0];
             return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person);
@@ -209,6 +210,7 @@ class AccountingEntry {
         $this->amount = $amount;
         $this->type = $type;
         $this->category = $category;
+        $this->date = $date;
         $this->attachment = $attachment;
         $this->ccc = $ccc;
         $this->desc = $desc;
