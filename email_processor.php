@@ -63,7 +63,7 @@ class EmailProcessor {
                 fclose($attachmentFile);
             }
             else{
-                $attachment = NULL;
+                $attachment = '';
             }
 
             preg_match("/(?<=\\.)\w+(?=@)/i", $message->getTo()[0]->getAddress(), $matches);
