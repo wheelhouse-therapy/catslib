@@ -1,5 +1,7 @@
 <?php
 
+if(!defined("CATSLIB")){define("CATSLIB", "./");}
+
 require_once(CATSLIB.'/vendor/autoload.php');
 require_once('email_processor.php');
 
@@ -21,7 +23,10 @@ class AkauntingHook {
         if (self::$session != NULL){
             throw new Exception("Already Loged in");
         }
+        $hooks = new Requests_Hooks();
+        $hooks->register('requests.before_redirect_check', 'fixRedirects');
         self::$session = new Requests_Session("https://catherapyservices.ca/");
+        self::$session->options['hooks'] = $hooks;
         $responce = self::$session->get("/akaunting/auth/login");
         preg_match('|(?<=_token" value=").*?(?=")|', $responce->body, $matches);
         self::$_token = $matches[0];
@@ -62,15 +67,15 @@ class AkauntingHook {
         }
 
         //Switch to the correct Clinic
-        self::$session->get("/akaunting/companies/".$company."/set");
-
+        var_dump(self::$session->get("/akaunting/common/companies/".$company."/set")->headers);
+        
         //Fetch accounts
         self::fetchAccounts();
 
-        $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(),
-                      "item[0][account_id]" => "", "item[0][credit]" => "$0.00",
-                      "item[1][account_id]" => "", "item[1][debit]" => "$0.00"
-                );
+        $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(), "item" => array(
+                      array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
+                      array("account_id" => "", "debit" => "$",     "credit" => "$0.00")
+                ));
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
@@ -83,53 +88,54 @@ class AkauntingHook {
         }
         if($entry->getPerson() == "CCC"){
             if($entry->getType() == "Expense"){
-                $data["item[0][account_id]"] = self::getAccountByCode("201");
-                $data["item[0][credit]"] = $entry->getAmount();
-                $data["item[1][account_id]"] = $account;
-                $data["item[1][debit]"] = $entry->getAmount();
+                $data["item"][0]["account_id"] = self::getAccountByCode("201");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][1]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
             else{
-                $data["item[1][account_id]"] = self::getAccountByCode("201");
-                $data["item[1][debit]"] = $entry->getAmount();
-                $data["item[0][account_id]"] = $account;
-                $data["item[0][credit]"] = $entry->getAmount();
+                $data["item"][1]["account_id"] = self::getAccountByCode("201");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][0]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
         }
         elseif (strtolower($entry->getPerson()) == "sue") {
             if($entry->getType() == "Expense"){
-                $data["item[0][account_id]"] = self::getAccountByCode("210");
-                $data["item[0][credit]"] = $entry->getAmount();
-                $data["item[1][account_id]"] = $account;
-                $data["item[1][debit]"] = $entry->getAmount();
+                $data["item"][0]["account_id"] = self::getAccountByCode("210");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][1]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
             else{
-                $data["item[1][account_id]"] = self::getAccountByCode("210");
-                $data["item[1][debit]"] = $entry->getAmount();
-                $data["item[0][account_id]"] = $account;
-                $data["item[0][credit]"] = $entry->getAmount();
+                $data["item"][1]["account_id"] = self::getAccountByCode("210");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][0]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
         }
         elseif (strtolower($entry->getPerson()) == "alison") {
             if($entry->getType() == "Expense"){
-                $data["item[0][account_id]"] = self::getAccountByCode("211");
-                $data["item[0][credit]"] = $entry->getAmount();
-                $data["item[1][account_id]"] = $account;
-                $data["item[1][debit]"] = $entry->getAmount();
+                $data["item"][0]["account_id"] = self::getAccountByCode("211");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][1]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
             else{
-                $data["item[1][account_id]"] = self::getAccountByCode("211");
-                $data["item[1][debit]"] = $entry->getAmount();
-                $data["item[0][account_id]"] = $account;
-                $data["item[0][credit]"] = $entry->getAmount();
+                $data["item"][1]["account_id"] = self::getAccountByCode("211");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][0]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
         }
         if($entry->getAttachment()){
             $data['reference'] = $entry->getAttachment();
         }
-
         //Make journal Entry
-        $ret = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data)->status_code;
-
+        $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
+//var_dump($responce->body);
+        $ret = $responce->status_code;
+        
         done:
         return( $ret );
     }
@@ -162,7 +168,13 @@ class AkauntingHook {
         }
         return NULL;
     }
+    
+}
 
+function fixRedirects($return, $req_headers, $req_data, $options){
+    if ($return->status_code === 302){
+        $return->status_code = 303;
+    }
 }
 
 ?>

@@ -357,6 +357,9 @@ class ResourceManager{
                 $directory = $matches[0];
                 if(rename(CATSDIR_RESOURCES.$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(SEEDInput_Str("folder"),"/"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename())."'")){
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                    }
                 }
                 else{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error Moving file ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
@@ -370,6 +373,9 @@ class ResourceManager{
                 }
                 if(rename($file_info->getPathname(), $matches[0].SEEDInput_Str("name"))){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
+                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename()."' "))){
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                    }
                 }
                 else {
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name")."</div>";
@@ -378,6 +384,9 @@ class ResourceManager{
             case "delete":
                 if(unlink($file_info->getRealPath())){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." has been deleted</div>";
+                    if(!$this->oApp->kfdb->Execute("DELETE FROM resources_files WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename()."' "))){
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to delete tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                    }
                 }
                 else{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error deleting file ".$file_info->getFilename()."</div>";
