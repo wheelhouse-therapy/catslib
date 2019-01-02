@@ -349,7 +349,7 @@ class ResourceManager{
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
-                preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_info->getRealPath(), $matches);
+                preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\\/|\\\))\w*(?=\\/|\\\)!", $file_info->getRealPath(), $matches);
                 if(!$matches){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
                     break;
@@ -366,14 +366,15 @@ class ResourceManager{
                 }
                 break;
             case "rename":
-                preg_match("!.*(\\|\/)", $file_info->getPathname(), $matches);
+                preg_match("!.*(\\\\|\\/)!", $file_info->getPathname(), $matches);
                 if(!$matches){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining start of path for file ".$file_info->getFilename()."</div>";
                     break;
                 }
                 if(rename($file_info->getPathname(), $matches[0].SEEDInput_Str("name"))){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
-                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename()."' "))){
+                    $directory = preg_replace("!.*(\\\\|\\/)!", "", rtrim($matches[0],"/\\"));
+                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name"))."' WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename())."'")){
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }

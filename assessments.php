@@ -98,7 +98,7 @@ class AssessmentsCommon
 
 }
 
-class Assessments
+abstract class Assessments
 {
     protected $oApp;
     protected $oAsmt;
@@ -572,6 +572,40 @@ function DrawNewForm()
         return array("1","2","3","4","5");
     }
 
+    /**
+     * Get a list of tags availible for this assesment type
+     * Tags in the returned array should return a value when passed to getTagValue()
+     * @return array of availible tags.
+     * @see getTagValue($tag)
+     */
+    abstract public function getTags():array;
+    
+    /**
+     * Get value for a given tag
+     * Tags which can be used as a parameter should be returned by getTags()
+     * This method checks the parameter tag against the list returned by getTags() to enusure consistancy
+     * @param String $tag - tag to get the value for
+     * @return String - value of the passed tag for this assesment
+     * @see getTags()
+     */
+    public final function getTagValue(String $tag):String{
+        if(in_array($tag, $this->getTags())){
+            return $this->getTagField($tag);
+        }
+        throw new Exception("Invalid Tag:".$tag);
+    }
+    
+    /**
+     * Get value for the given tag
+     * Impementations do not have to be concerned with invalid tags as getTagValue($tag) checks for consistancy against the list returned by getTags()
+     * before it calls this method 
+     * @param String $tag - tag to get the value for
+     * @return String - value of the passed tag for this assesment
+     * @see getTags()
+     * @see getTagValue($tag)
+     */
+    abstract protected function getTagField(String $tag):String;
+    
 }
 
 class Assessment_SPM extends Assessments
@@ -595,6 +629,14 @@ class Assessment_SPM extends Assessments
         return array("never","occasionally","frequently","always");
     }
 
+    protected function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+    
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
+    }
+    
     protected $raColumnRanges = array(
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
@@ -717,6 +759,7 @@ class Assessment_SPM extends Assessments
 74	Has trouble coming up with ideas for new games and activities
 75	Tends to play the same activities over and over, rather than shift to new activities when given the chance
 ";
+
 }
 
 class Assessment_AASP extends Assessments {
@@ -731,6 +774,14 @@ class Assessment_AASP extends Assessments {
         return( "RESULTS" );
     }
 
+    protected function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+    
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
+    }
+    
     protected $raColumnRanges = array(
         "Taste/Smell"           => "1-8",
         "Movement"              => "9-16",
@@ -755,6 +806,14 @@ class Assessment_MABC extends Assessments {
         return( "RESULTS" );
     }
 
+    protected function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+    
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
+    }
+    
     protected $sAssesmentTitle = "Movement Assessment Battery for Children";
 
     protected $raColumnRanges = array(
