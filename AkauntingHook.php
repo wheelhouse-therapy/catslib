@@ -66,10 +66,9 @@ class AkauntingHook {
             goto done;
         }
 
-        // Switch to the correct Clinic
-        // Does this do something other than fetch info for the var_dump? i.e. if it didn't get called when !bDebug would that have a bad sideeffect?
-        $h = self::$session->get("/akaunting/common/companies/".$company."/set")->headers;
-        if( self::$bDebug ) var_dump($h);
+        // Switch to the correct Company
+        $h = self::$session->get("/akaunting/common/companies/".$company."/set");
+        if( self::$bDebug ) var_dump($h->headers);
 
         //Fetch accounts
         self::fetchAccounts();
