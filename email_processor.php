@@ -1,4 +1,6 @@
 <?php
+if(!defined("CATSLIB")){define("CATSLIB", "./");}
+
 require_once(CATSLIB.'/vendor/autoload.php');
 
 use Ddeboer\Imap\Server;
@@ -27,7 +29,7 @@ class EmailProcessor {
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
-        "date"   => "/(?<= )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4})|(\\d{2}\\/\\d{2}\/\\d{2}(\\d{2})?)/i",
+        "date"   => "/(?<= )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
         "companyCreditCard" => "/ccc/i"
     );
 
@@ -85,7 +87,7 @@ class EmailProcessor {
                 array_push($entries, $result);
             }
             else{
-                $errors['subject'] = $result;
+                    $errors['subject'] = $result;
             }
             if($body){
                 $lines = explode("\n", $body);
@@ -113,6 +115,10 @@ class EmailProcessor {
                         $errors["line_".$key] = $result;
                     }
                 }
+            }
+            if(count($entries) > 0 && !$this->verifyString($subject)){
+                // The subject is not a potential entry do not report the error
+                unset($errors['subject']);
             }
             if($responce = $this->handleErrors($entries,$errors)){
                 echo str_replace("\n", "<br />", $responce);
@@ -170,9 +176,6 @@ class EmailProcessor {
     private function handleErrors(array $entries, array $errors){
         $responce = "";
         foreach($errors as $k => $v){
-            if($k == "subject" && $v == self::DISCARDED_NO_AMOUNT && count($entries) != 0){
-                continue;
-            }
             switch ($v){
                 case self::DISCARDED_NO_AMOUNT:
                     $responce .= "Missing Amount ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
@@ -191,6 +194,22 @@ class EmailProcessor {
         return $responce;
     }
 
+    /**
+     * Check if a string is a potential entry
+     * It must match at least 2 of the regex strings used for parsing to be considered a potential entry
+     * @param String $value - string to check potentiality
+     * @return boolean - True if string matches 2 or more of the parsing regex expressions
+     */
+    private function verifyString(String $value){
+        $matches = 0;
+        foreach($this->PATTERNS as $regex){
+            if(preg_match($regex, $value)){
+                $matches++;
+            }
+        }
+        return $matches >= 2;
+    }
+    
 }
 
 class AccountingEntry {
@@ -210,7 +229,7 @@ class AccountingEntry {
         $this->amount = $amount;
         $this->type = $type;
         $this->category = $category;
-        $this->date = $date;
+        $this->date = $this->parseDate($date);
         $this->attachment = $attachment;
         $this->ccc = $ccc;
         $this->desc = $desc;
@@ -257,6 +276,28 @@ class AccountingEntry {
         return $this->desc;
     }
 
+    private function parseDate(String $date): String {
+        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4}/i", $date)){
+            //Clear up some of the double options
+            $date = str_replace("Sep", "Sept", $date);
+            $date = str_replace("June", "Jun", $date);
+            $date = str_replace("July", "Jul", $date);
+            
+            //Format switchers
+            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9]\/[0-9]{2,4}/i", $date)?"d":"j");
+            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{4}/i", $date)?"Y":"y");
+            
+            return DateTime::createFromFormat('M '.$day.'/'.$year, $date)->format('Y-m-d');
+        }
+        if(preg_match("/[0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?/", $date)){
+            $day = (preg_match("/[0-1]?[0-9]\\/[0-3][0-9]\/\\d{2}(\\d{2})?/", $date)?"d":"j");
+            $month = (preg_match("/[0-1][0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?/", $date)?"m":"n");
+            $year = (preg_match("/[0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{4}/", $date)?"Y":"y");
+            
+            return DateTime::createFromFormat($month.'/'.$day.'/'.$year, $date)->format('Y-m-d');
+        }
+    }
+    
 }
 
 ?>
