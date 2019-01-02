@@ -66,9 +66,11 @@ class AkauntingHook {
             goto done;
         }
 
-        //Switch to the correct Clinic
-        var_dump(self::$session->get("/akaunting/common/companies/".$company."/set")->headers);
-        
+        // Switch to the correct Clinic
+        // Does this do something other than fetch info for the var_dump? i.e. if it didn't get called when !bDebug would that have a bad sideeffect?
+        $h = self::$session->get("/akaunting/common/companies/".$company."/set")->headers;
+        if( self::$bDebug ) var_dump($h);
+
         //Fetch accounts
         self::fetchAccounts();
 
@@ -131,11 +133,12 @@ class AkauntingHook {
         if($entry->getAttachment()){
             $data['reference'] = $entry->getAttachment();
         }
+//var_dump($data);
         //Make journal Entry
         $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
 //var_dump($responce->body);
         $ret = $responce->status_code;
-        
+
         done:
         return( $ret );
     }
@@ -168,7 +171,7 @@ class AkauntingHook {
         }
         return NULL;
     }
-    
+
 }
 
 function fixRedirects($return, $req_headers, $req_data, $options){
