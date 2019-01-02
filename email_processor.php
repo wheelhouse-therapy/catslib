@@ -159,14 +159,10 @@ class EmailProcessor {
         }
 
         if($incomeOrExpense){
-            // Find the date in the input string, use parse_date to find the year/month/day and put those into the format that Akaunting accepts
             preg_match($this->PATTERNS["date"], $value, $matches);
-            if( !count($matches) ||
-                !($t = strtotime($matches[0])) )
-            {
+            if(count($matches) === 0){
                 return self::DISCARDED_NO_DATE;
             }
-            $date = date("Y-m-d", $t);  // Akaunting only accepts yyyy-mm-dd
 
             preg_match('|\w.*\w|',preg_replace($this->PATTERNS, "", $value), $matches);
             $category = $matches[0];
