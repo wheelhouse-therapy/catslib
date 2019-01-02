@@ -7,7 +7,7 @@ $raAssessments = array(
 );
 
 
-class AssessmentsCore
+class AssessmentsCommon
 {
     public  $oApp;
     private $oAsmtDB;
@@ -19,6 +19,35 @@ class AssessmentsCore
     }
 
     function KFRelAssessment() { return( $this->oAsmtDB->Kfrel('A') ); }
+
+    function GetAsmtObject( int $kAsmt )
+    {
+        $oRet = null;
+
+        if( ($kfr = $this->KFRelAssessment()->GetRecordByDBKey( $kAsmt )) ) {
+            $oRet = new $this->getObjectByType( $kfr->value('testType'), $kAsmt );
+        }
+
+        return( $oRet );
+    }
+
+    function GetNewAsmtObject( string $sNewAsmtType )
+    {
+        return( new $this->getObjectByType( $sNewAsmtType, 0 ) );
+    }
+
+    private function getObjectByType( string $asmtType, int $kA )
+    {
+        $o = null;
+
+        switch( $asmtType ) {
+            case 'spm':  $o = new Assessment_SPM( $this, $kA );  break;
+            case 'aasp': $o = new Assessment_AASP( $this, $kA ); break;
+            case 'mabc': $o = new Assessment_MABC( $this, $kA ); break;
+            default:     break;
+        }
+        return( $o );
+    }
 
     function GetSummaryTable( $kAsmtCurr )
     /*************************************
@@ -66,18 +95,7 @@ class AssessmentsCore
         return( $s );
     }
 
-    private function getAsmtObject( $asmtType )
-    {
-        $o = null;
 
-        switch( $asmtType ) {
-            case 'spm':  $o = new Assessment_SPM( $this );  break;
-            case 'aasp': $o = new Assessment_AASP( $this ); break;
-            case 'mabc': $o = new Assessment_MABC( $this ); break;
-            default:     break;
-        }
-        return( $o );
-    }
 }
 
 class Assessments
@@ -87,11 +105,32 @@ class Assessments
     protected $asmtCode;
 
     // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
-    protected function __construct( AssessmentsCore $oAsmt, $asmtCode )
+    protected function __construct( AssessmentsCommon $oAsmt, $asmtCode )
     {
         $this->oAsmt = $oAsmt;
         $this->oApp = $oAsmt->oApp;
         $this->asmtCode = $asmtCode;
+    }
+
+    function DrawAsmtForm()
+    {
+        $s = "";
+
+        return( $s );
+    }
+
+    function DrawAsmtResult()
+    {
+        $s = "";
+
+        return( $s );
+    }
+
+    function UpdateAsmt()
+    {
+        $ok = false;
+
+        return( $ok );
     }
 
     function ScoreUI()
@@ -537,7 +576,7 @@ function DrawNewForm()
 
 class Assessment_SPM extends Assessments
 {
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt )
     {
         parent::__construct( $oAsmt, 'spm' );
     }
@@ -682,7 +721,7 @@ class Assessment_SPM extends Assessments
 
 class Assessment_AASP extends Assessments {
 
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt )
     {
         parent::__construct( $oAsmt, 'aasp' );
     }
@@ -706,7 +745,7 @@ class Assessment_AASP extends Assessments {
 
 class Assessment_MABC extends Assessments {
 
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt )
     {
         parent::__construct( $oAsmt, 'mabc' );
     }
@@ -734,49 +773,59 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 
     $s = "";
 
+    /* kAsmt==0 && sAsmtAction==''       = landing screen
+     * kAsmt==0 && sAsmtAction==edit     = show blank form for new assessment (requires sNewAsmtType)
+     * kAsmt==0 && sAsmtAction==save     = save new assessment and show the result (requires sNewAsmtType)
+     * kAsmt    && sAsmtAction==''       = show result for assessment kAsmt
+     * kAsmt    && sAsmtAction=='edit'   = show filled form for editing assessment kAsmt
+     * kAsmt    && sAsmtAction=='save'   = update assessment kAsmt and show the result
+     */
     $p_kAsmt = SEEDInput_Int('kA');
-    $p_sNewAsmtType = SEEDInput_Str('newAsmtType');
+    $p_sNewAsmtType = SEEDInput_Str('sNewAsmtType');
+    $p_action = SEEDInput_Str('sAsmtAction');
 
-    $oAsmt = new AssessmentsCore( $oApp );
 
+    $oAC = new AssessmentsCommon( $oApp );
+    if( !($oAsmt = $p_kAsmt ? $oAC->GetAsmtObject( $p_kAsmt ) : $oAC->GetNewAsmtObject( $p_sNewAsmtType )) ) {
+        // Something is wrong. Just show the landing screen.
+        $p_kAsmt = 0;
+        $p_action = '';
+    }
 
-    if( $p_sNewAsmtType ) {
-        if( SEEDInput_Int('newAsmtTypeSave') ) {
-            /* Input form submitted, save the record
-             */
-        } else {
-            /* Show the input form for the given assessment type. Don't show the summary list.
-            */
-            $s = $oAsmt->DrawNewAsmtForm( $p_sNewAsmtType );
+    if( $p_action == 'edit' ) {
+        /* Show the input form for the given assessment/type. Don't show the summary list.
+         */
+        $s .= $oAsmt->DrawAsmtForm();
+
+    } else if( $p_action == 'save' ) {
+        /* New or Edit form submitted, save the record.
+         */
+        if( !$oAsmt->UpdateAsmt() ) {
+            $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
         }
-
+        $s .= $oAsmt->DrawAsmtResult();
     } else {
-        $sLeft = $sRight = "";
-
-        $sLeft = $oAsmt->GetSummaryTable( $p_kAsmt );
-
-        if( $p_kAsmt ) { $sRight = $oAsmt->DrawAsmtResult( $p_kAsmt ); }
-
-        $s .= "<div class='container-fluid'><div class='row'>"
-                 ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                 ."<div class='col-md-9'>$sRight</div>"
-             ."</div>";
+        /* Show the landing page or a particular assessment.
+         */
+        $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
+        $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult( $p_kAsmt ) : "";
 
         /* New button with a control to choose the assessment type
          */
         $sControl =
-              "<div style='float:right'>"
-             ."<form action='{$_SERVER['PHP_SELF']}' method='post'>"
-             ."<select name='newAsmtType'>"
+              "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+             ."<select name='sNewAsmtType'>"
              .SEEDCore_ArrayExpandRows( $raAssessments, "<option value='[[code]]'>[[title]]</option>" )
              ."</select>"
              ."&nbsp;<input type='submit' value='New'/>"
-             ."</form></div>";
+             ."</form>";
 
-        $s = $sControl.$s;
+        $s .= "<div style='float:right'>$sControl</div>"
+             ."<div class='container-fluid'><div class='row'>"
+                 ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
+                 ."<div class='col-md-9'>$sRight</div>"
+             ."</div>";
     }
-
-    //$s .= $o->ScoreUI();
 
     done:
     return( $s );
