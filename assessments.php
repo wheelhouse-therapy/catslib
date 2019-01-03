@@ -76,7 +76,6 @@ class AssessmentsCommon
 
 abstract class Assessments
 {
-    protected $oApp;
     protected $oAsmt;
     protected $asmtCode;
     protected $kfrAsmt;
@@ -85,7 +84,6 @@ abstract class Assessments
     protected function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
     {
         $this->oAsmt = $oAsmt;
-        $this->oApp = $oAsmt->oApp;
         $this->asmtCode = $asmtCode;
 
         $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
@@ -355,72 +353,76 @@ abstract class Assessments
 </div>
 spmChart;
 
-        $sAsmt .= "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, false )."</td>";
-        }
-        $sAsmt .= "</tr><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column_total( $oForm, $label, $sRange, false )."</td>";
-        }
-        $sAsmt .= "</tr></table>";
+        $sAsmt .= $this->drawColFormTable( $oForm, $this->raColumnRanges, false );
 
         return( $sAsmt );
     }
 
-// move this to Assessments_SPM
-function DrawNewForm()
-{
-    $s = "";
-
-    $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-
-    $clinics = new Clinics($this->oApp);
-    $clinics->GetCurrentClinic();
-    $oPeopleDB = new PeopleDB( $this->oApp );
-
-    $raColumns = $this->raColumnRanges;
-
-    $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
-
-    $s .= $this->drawNewAsmtForm( $oForm, $raClients, $raColumns );
-
-    return( $s );
-}
-    private function drawNewAsmtForm( SEEDCoreForm $oForm, $raClients, $raColumns )
+    function DrawColumnForm()
+    /************************
+        Draw a form composed columns of values. Parameters must be defined in derived classes.
+            raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
+     */
     {
-        $sAsmt = "";
+        $s = "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
 
+        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+
+        $s .= "<form method='post'>"
+             ."<div style='margin:20px 0px'>".$this->getClientSelect( $oForm )."</div>";
+
+        $s .= $this->drawColFormTable( $oForm, $this->raColumnRanges, true );
+
+        $s .= $this->getDataList($oForm,$this->Inputs("datalist"))
+                 ."<input hidden name='sAsmtAction' value='save'/>"
+                 ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
+                 .$oForm->HiddenKey()
+                 ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
+                 ."<span id='total'></span>"
+                 ."<script src='w/js/assessments.js'></script>";
+        return( $s );
+    }
+
+    private function getClientSelect( SEEDCoreForm $oForm )
+    {
+        $clinics = new Clinics($this->oAsmt->oApp);
+        $clinics->GetCurrentClinic();
+        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
         $opts = array();
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
         }
-        $sAsmt .= "<form method='post'>"
-                 ."<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>";
 
-        $sAsmt .= "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, true )."</td>";
-        }
-        $sAsmt .= "</tr></table>";
-
-        $sAsmt .= $this->getDataList($oForm,$this->Inputs("datalist"))
-                 ."<input hidden name='sAsmtAction' value='save'/>"
-                 ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
-                 .$oForm->HiddenKey()
-                 ."<input type='submit'></form>"
-                 ."<span id='total'></span>"
-                 ."<script src='w/js/assessments.js'></script>";
-        return( $sAsmt );
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>" );
     }
 
-
-    private function column( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
+    private function drawColFormTable( $oForm, $raColumns, $bEditable )
     {
-        $s = "<table class='score-table'>"
-            ."<tr>"
-            ."<th colspan='2'>$heading<br/><br/></th>"
-            ."</tr>";
+        $colwidth = (100/count($raColumns))."%";
+
+        $s = "<table width='100%'><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $s .= "<th valign='top'>$label<br/><br/></th>";
+        }
+        $s .= "</tr><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $s .= "<td valign='top' width='$colwidth'>".$this->column( $oForm, $sRange, $bEditable )."</td>";
+        }
+        if( !$bEditable ) {
+            $s .= "</tr><tr>";
+            foreach( $raColumns as $label => $sRange ) {
+                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
+            }
+        }
+        $s .= "</tr></table>";
+
+        return( $s );
+    }
+
+    private function column( SEEDCoreForm $oForm, $sRange, $bEditable )
+    {
+        $s = "<table class='score-table'>";
         $total = 0;
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n, $bEditable, $total );
@@ -431,7 +433,7 @@ function DrawNewForm()
         return( $s );
     }
 
-    private function column_total( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
+    private function column_total( SEEDCoreForm $oForm, $sRange, $bEditable )
     {
         $s = "";
 
@@ -451,25 +453,13 @@ function DrawNewForm()
             $s = $oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"));
         } else {
             $v = $oForm->Value( "i$n" );
-            $score = $this->getScore( $n, $v );
+            $score = $this->GetScore( $n, $v );
             $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
         }
 
         $total += intval($score);
         $s = "<tr><td class='score-num'>$n</td><td>".$s."<span class='score'>$score</span></td></tr>";
         return( $s );
-    }
-
-    private function getScore( $n, $v )
-    {
-        $score = "0";
-
-        if( ($n >= 1 && $n <= 10) || $n == 57 ) {
-            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
-        } else {
-            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
-        }
-        return( $score );
     }
 
     private function getDataList(SEEDCoreForm $oForm,$raOptions = NULL){
@@ -506,6 +496,12 @@ function DrawNewForm()
         // Override to provide custom input options
         return array("1","2","3","4","5");
     }
+
+    /**
+     * Get the score for an assessment question when that item has a given value
+     * @return int
+     */
+    abstract protected function GetScore( $item, $value ):int;
 
     /**
      * Get a list of tags availible for this assesment type
@@ -583,9 +579,7 @@ class Assessment_SPM extends Assessments
     {
         $s = "";
 
-        $s .= "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
-
-        $s .= $this->DrawNewForm();
+        $s .= $this->DrawColumnForm();
 
         return( $s );
     }
@@ -600,6 +594,21 @@ class Assessment_SPM extends Assessments
 
     protected function InputOptions(){
         return array("never","occasionally","frequently","always");
+    }
+
+    protected function GetScore( $n, $v ):int
+    /************************************
+        Return the score for item n when it has the value v
+     */
+    {
+        $score = "0";
+
+        if( ($n >= 1 && $n <= 10) || $n == 57 ) {
+            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
+        } else {
+            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
+        }
+        return( $score );
     }
 
     public function getTags(): array{
@@ -747,6 +756,11 @@ class Assessment_AASP extends Assessments {
         return( "RESULTS" );
     }
 
+    protected function GetScore( $n, $v ):int
+    {
+        return( 0 );
+    }
+
     public function getTags(): array{
         //TODO Return Array of valid tags
     }
@@ -777,6 +791,11 @@ class Assessment_MABC extends Assessments {
     function DrawResults( $raResults )
     {
         return( "RESULTS" );
+    }
+
+    protected function GetScore( $n, $v ):int
+    {
+        return( 0 );
     }
 
     public function getTags(): array{
