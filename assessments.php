@@ -641,7 +641,7 @@ class Assessment_SPM extends Assessments
         return array("never","occasionally","frequently","always");
     }
 
-    protected function getTags(): array{
+    public function getTags(): array{
         //TODO Return Array of valid tags
     }
 
@@ -786,7 +786,7 @@ class Assessment_AASP extends Assessments {
         return( "RESULTS" );
     }
 
-    protected function getTags(): array{
+    public function getTags(): array{
         //TODO Return Array of valid tags
     }
 
@@ -818,7 +818,7 @@ class Assessment_MABC extends Assessments {
         return( "RESULTS" );
     }
 
-    protected function getTags(): array{
+    public function getTags(): array{
         //TODO Return Array of valid tags
     }
 
