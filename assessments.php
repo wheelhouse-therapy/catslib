@@ -1,6 +1,6 @@
 <?php
 
-$raAssessments = array(
+$raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" )
@@ -11,11 +11,14 @@ class AssessmentsCommon
 {
     public  $oApp;
     private $oAsmtDB;
+    public  $raAssessments;
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
         $this->oAsmtDB = new AssessmentsDB( $this->oApp );
+        global $raGlobalAssessments;
+        $this->raAssessments = $raGlobalAssessments;
     }
 
     function KFRelAssessment() { return( $this->oAsmtDB->Kfrel('A') ); }
@@ -90,6 +93,17 @@ abstract class Assessments
 
     function GetAsmtKey()   { return( $this->kfrAsmt->Key() ); }
 
+    function StyleScript()
+    {
+        $s = "<script>
+              var raPercentilesSPM = ".json_encode($this->raPercentiles).";
+              var cols = ".json_encode($this->Columns()).";
+              var chars = ".json_encode($this->Inputs("script")).";
+              </script>";
+
+        return( $s );
+    }
+
     function DrawAsmtForm()
     {
         $s = "";
@@ -137,13 +151,6 @@ abstract class Assessments
         $s = "";
 
 
-        $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-                var cols = ".json_encode($this->Columns()).";
-                var chars = ".json_encode($this->Inputs("script")).";
-                </script>
-                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
-
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
         $oPeopleDB = new PeopleDB( $this->oApp );
@@ -173,14 +180,6 @@ abstract class Assessments
             $oForm->Store();
             $kAsmt = $oForm->GetKey();
         }
-
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
 
         $raColumns = $this->raColumnRanges;
 
@@ -229,8 +228,7 @@ abstract class Assessments
 
     protected function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        global $raAssessments;
-        $sAsmt = "<h2>".@$raAssessments[$this->asmtCode]['title']."</h2>
+        $sAsmt = "<h2>".@$this->raAssessments[$this->asmtCode]['title']."</h2>
                     <span style='margin-left: 20%' id='name'> Name: </span>
                         <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
                     <table id='results'>
@@ -374,20 +372,6 @@ spmChart;
 function DrawNewForm()
 {
     $s = "";
-
-    $s .= "<script>
-            var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-            var cols = ".json_encode($this->Columns()).";
-            var chars = ".json_encode($this->Inputs("script")).";
-            </script>
-            <link rel='stylesheet' href='w/css/asmt-overview.css' />";
-    $s .= "<style>
-           .score-table {}
-           .score-table th { height:60px; }
-           .score-num   { width:1em; }
-           .score-item  { width:3em; }
-           .score { padding-left: 5px; }
-           </style>";
 
     $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
 
@@ -572,33 +556,11 @@ class Assessment_SPM extends Assessments
 
         if( !($kfr = $this->kfrAsmt) )  goto done;
 
-        $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-                var cols = ".json_encode($this->Columns()).";
-                var chars = ".json_encode($this->Inputs("script")).";
-                </script>
-                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
-
         $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
         $oForm->SetKFR( $kfr );
 
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
 
         $raColumns = $this->raColumnRanges;
-
 
 
         $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
@@ -619,10 +581,9 @@ class Assessment_SPM extends Assessments
 
     function DrawAsmtForm()
     {
-        global $raAssessments;
         $s = "";
 
-        $s .= "<h2>".@$raAssessments[$this->asmtCode]['title']."</h2>";
+        $s .= "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
 
         $s .= $this->DrawNewForm();
 
@@ -826,8 +787,6 @@ class Assessment_MABC extends Assessments {
         //TODO Return Values for valid tags
     }
 
-    protected $sAssesmentTitle = "Movement Assessment Battery for Children";
-
     protected $raColumnRanges = array(
         "MD"  => "1-4",
         "A&C" => "5-7",
@@ -840,9 +799,17 @@ class Assessment_MABC extends Assessments {
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    global $raAssessments;
-
     $s = "";
+
+    $s .= "<link rel='stylesheet' href='w/css/asmt-overview.css' />";
+    $s .= "<style>
+           .score-table {}
+           .score-table th { height:60px; }
+           .score-num   { width:1em; }
+           .score-item  { width:3em; }
+           .score { padding-left: 5px; }
+           </style>";
+
 
     /* kAsmt==0 && sAsmtAction==''       = landing screen
      * kAsmt==0 && sAsmtAction==edit     = show blank form for new assessment (requires sAsmtType)
@@ -859,21 +826,32 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 //var_dump($_REQUEST);
 
     $oAC = new AssessmentsCommon( $oApp );
-    if( !($oAsmt = $p_kAsmt ? $oAC->GetAsmtObject( $p_kAsmt ) : $oAC->GetNewAsmtObject( $p_sAsmtType )) ) {
-        // Something is wrong. Just show the landing screen.
+    if( $p_kAsmt ) {
+        $oAsmt = $oAC->GetAsmtObject( $p_kAsmt );
+    } else if( $p_sAsmtType ) {
+        $oAsmt = $oAC->GetNewAsmtObject( $p_sAsmtType );
+    } else {
+        // Just show the landing screen.
+        $oAsmt = null;
         $p_kAsmt = 0;
         $p_action = '';
     }
 
+    // Output <style> and <script> for the current assessment if any
+    $s .= $oAsmt ? $oAsmt->StyleScript() : "";
+
+
     switch( $p_action ) {
         case 'edit':
-            /* Show the input form for the given assessment/type. Don't show the summary list because it takes too much space.
+            /* Show the input form for the given assessment type.
+             * The form is smart enough to do Edit or New depending on whether it was created with a kAsmt.
+             * Don't show the summary list because it takes too much space.
              */
             $s .= $oAsmt->DrawAsmtForm();
             break;
 
         case 'save':
-            /* New or Edit form submitted, save the record.  Then show the landing page by falling through to the default case.
+            /* New or Edit form submitted, save the record.  Then show the main page by falling through to the default case.
              */
             if( $oAsmt->UpdateAsmt() ) {
                 $s .= "<div class='alert alert-success'>Saved assessment</div>";
@@ -882,7 +860,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }
 
-            // fall through to the default case
+            // fall through to the default case to show the main page
 
         default:
             /* Show the landing page or a particular assessment.
@@ -895,7 +873,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             $sControl =
                   "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
                  ."<select name='sAsmtType'>"
-                 .SEEDCore_ArrayExpandRows( $raAssessments, "<option value='[[code]]'>[[title]]</option>" )
+                 .SEEDCore_ArrayExpandRows( $oAC->raAssessments, "<option value='[[code]]'>[[title]]</option>" )
                  ."</select>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
                  ."&nbsp;<input type='submit' value='New'/>"
