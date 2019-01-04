@@ -1,24 +1,56 @@
 <?php
 
-$raAssessments = array(
+$raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
-    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children" )
+    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" )
 );
 
 
-class AssessmentsCore
+class AssessmentsCommon
 {
     public  $oApp;
     private $oAsmtDB;
+    public  $raAssessments;
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
         $this->oAsmtDB = new AssessmentsDB( $this->oApp );
+        global $raGlobalAssessments;
+        $this->raAssessments = $raGlobalAssessments;
     }
 
     function KFRelAssessment() { return( $this->oAsmtDB->Kfrel('A') ); }
+
+    function GetAsmtObject( int $kAsmt )
+    {
+        $oRet = null;
+
+        if( ($kfr = $this->KFRelAssessment()->GetRecordFromDBKey( $kAsmt )) ) {
+            $oRet = $this->getObjectByType( $kfr->value('testType'), $kAsmt );
+        }
+
+        return( $oRet );
+    }
+
+    function GetNewAsmtObject( string $sAsmtType )
+    {
+        return( $this->getObjectByType( $sAsmtType, 0 ) );
+    }
+
+    private function getObjectByType( string $asmtType, int $kA )
+    {
+        $o = null;
+
+        switch( $asmtType ) {
+            case 'spm':  $o = new Assessment_SPM( $this, $kA );  break;
+            case 'aasp': $o = new Assessment_AASP( $this, $kA ); break;
+            case 'mabc': $o = new Assessment_MABC( $this, $kA ); break;
+            default:     break;
+        }
+        return( $o );
+    }
 
     function GetSummaryTable( $kAsmtCurr )
     /*************************************
@@ -40,71 +72,82 @@ class AssessmentsCore
 
         return( $s );
     }
-
-    function DrawAsmtResult( $kAsmt )
-    {
-        $s = "";
-
-        if( $kAsmt &&
-            ($kfr = $this->oAsmtDB->GetKFR( 'A', $kAsmt )) &&
-            ($o = $this->getAsmtObject( $kfr->Value('testType') )) )
-        {
-            $s = $o->DrawResults( $kfr );
-        }
-
-        done:
-        return( $s );
-    }
-
-    function DrawNewAsmtForm( $asmtType )
-    {
-        $s = "";
-
-        if( ($o = $this->getAsmtObject( $asmtType )) ) {
-            $s = $o->DrawNewForm();
-        }
-        return( $s );
-    }
-
-    private function getAsmtObject( $asmtType )
-    {
-        $o = null;
-
-        switch( $asmtType ) {
-            case 'spm':  $o = new Assessment_SPM( $this );  break;
-            case 'aasp': $o = new Assessment_AASP( $this ); break;
-            case 'mabc': $o = new Assessment_MABC( $this ); break;
-            default:     break;
-        }
-        return( $o );
-    }
 }
 
-class Assessments
+abstract class Assessments
 {
-    protected $oApp;
     protected $oAsmt;
     protected $asmtCode;
+    protected $kfrAsmt;
 
     // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
-    protected function __construct( AssessmentsCore $oAsmt, $asmtCode )
+    protected function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
     {
         $this->oAsmt = $oAsmt;
-        $this->oApp = $oAsmt->oApp;
         $this->asmtCode = $asmtCode;
+
+        $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
+    }
+
+    function GetAsmtKey()   { return( $this->kfrAsmt->Key() ); }
+
+    function StyleScript()
+    {
+        $s = "<script>
+              var raPercentilesSPM = ".json_encode($this->raPercentiles).";
+              var cols = ".json_encode($this->Columns()).";
+              var chars = ".json_encode($this->Inputs("script")).";
+              </script>";
+
+        return( $s );
+    }
+
+    function DrawAsmtForm()
+    {
+        $s = "";
+
+        return( $s );
+    }
+
+    function DrawAsmtResult()
+    {
+        $s = "";
+
+        return( $s );
+    }
+
+    function UpdateAsmt()
+    {
+        $ok = false;
+
+        $oForm = new KeyFrameForm( $this->oAsmt->KFRelAssessment(), "A" );
+        $oForm->SetKFR( $this->kfrAsmt );
+        $oForm->Load();
+
+        $raItems = array();
+        foreach( $oForm->GetValuesRA() as $k => $v ) {
+            if( substr($k,0,1) == 'i' && ($item = intval(substr($k,1))) ) {
+                $raItems[$item] = $v;
+            }
+        }
+        ksort($raItems);
+        $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
+        $oForm->SetValue( 'testType', $this->asmtCode );
+        $oForm->Store();
+
+        // Though it seems as if the kfr we set above should have been updated by reference, it isn't. So get the updated kfr out of the oForm.
+//        $kAsmt = $oForm->GetKey();
+        $this->kfrAsmt = $oForm->GetKFR();
+
+        $ok = true;
+
+        return( $ok );
     }
 
     function ScoreUI()
     {
         $s = "";
 
-
-        $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-                var cols = ".json_encode($this->Columns()).";
-                var chars = ".json_encode($this->Inputs("script")).";
-                </script>
-                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
@@ -135,14 +178,6 @@ class Assessments
             $oForm->Store();
             $kAsmt = $oForm->GetKey();
         }
-
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
 
         $raColumns = $this->raColumnRanges;
 
@@ -189,59 +224,9 @@ class Assessments
         return( $s );
     }
 
-// move the code below to Assessment_SPM
-    function drawSPM( KeyframeRecord $kfr )
+    protected function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $s = "";
-
-
-        $s .= "<script>
-                var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-                var cols = ".json_encode($this->Columns()).";
-                var chars = ".json_encode($this->Inputs("script")).";
-                </script>
-                <link rel='stylesheet' href='w/css/asmt-overview.css' />";
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
-
-        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
-        $oForm->SetKFR( $kfr );
-
-        $s .= "<style>
-               .score-table {}
-               .score-table th { height:60px; }
-               .score-num   { width:1em; }
-               .score-item  { width:3em; }
-               .score { padding-left: 5px; }
-               </style>";
-
-        $raColumns = $this->raColumnRanges;
-
-
-
-        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
-        foreach( $raResults as $k => $v ) {
-            $oForm->SetValue( "i$k", $v );
-        }
-        $s .= $this->drawAsmt( $oForm, $raColumns );
-
-        // Put the results in a js array for processing on the client
-        $s .= "<script>
-               var raResultsSPM = ".json_encode($raResults).";
-               </script>";
-
-        return( $s );
-    }
-
-    private function drawAsmt( SEEDCoreForm $oForm, $raColumns )
-    {
-        global $raAssessments;
-        $sAsmt = "<h2>".@$raAssessments[$this->asmtCode]['title']."</h2>
+        $sAsmt = "<h2>".@$this->raAssessments[$this->asmtCode]['title']."</h2>
                     <span style='margin-left: 20%' id='name'> Name: </span>
                         <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
                     <table id='results'>
@@ -267,186 +252,79 @@ class Assessments
         if( $sReports ) {
             $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
         }*/
-        $sAsmt .= <<<spmChart
-        <link rel='stylesheet' href='w/css/spmChart.css'>
-                    <script src='w/js/spmChart.js'></script>
-                    <svg id='chart' class='hidden'
-	xmlns="http://www.w3.org/2000/svg"
-	viewBox="0 0 263.19417 183.18527">
-	<defs>
-		<clipPath id='cutOff'>
-			<rect width="250.43593" height="153.06314" x="18.888107" y="91.020195" />
-		</clipPath>
-	</defs>
-  <g id="spmChart" transform="translate(-6.4124658,-89.416847)">
-	<text class='percent' x="11.870281" y="92.607399">
-		<tspan x="11.870281" y="92.607399">100%</tspan>
-	</text>
-	<text class='percent' x="11.870281" y="130.95422">
-		<tspan x="11.870281" y="130.95422">90%</tspan>
-	</text>
-	<text class='percent' x="11.870281" y="169.30106">
-		<tspan x="11.870281"y="169.30106">80%</tspan>
-	</text>
-	<text class='percent' x="11.870281" y="207.64787">
-		<tspan x="11.870281" y="207.64787">70%</tspan>
-	</text>
-	<text class='percent' x="11.870281" y="245.99472">
-		<tspan x="11.870281" y="245.99472">60%</tspan>
-	</text>
-	<path class='percLine' d="M 18.852836,205.81657 H 269.60663" />
-	<path class='percLine' d="M 18.852836,167.51418 H 269.60663" />
-	<path class='percLine' d="M 18.852836,129.40811 H 269.60663" />
-	<path
-		id="dd"
-		class="guideline"
-		d="M 18.852836,102.49993057250973 H 269.60663"
-		onmouseover='grow(this); tip(event, "Definite Dysfunction (&ge;97%)")'
-		onmouseout='shrink(this)' />
-	<path
-		id="sp"
-		class="guideline"
-		d="M 18.852836,156.07202987670894 H 269.60663"
-		onmouseover='grow(this); tip(event, "Some Problems (&ge;83%)")'
-		onmouseout='shrink(this)' />
-	<rect
-		id="box"
-		width="250.43593"
-		height="153.06314"
-		x="18.888107"
-		y="91.020195"
-		class='percLine' />
-	<text class='xText' x="-139.54134" y="206.36235">
-		<tspan x="-139.54134" y="206.36235">Social Participation</tspan>
-	</text>
-	<text class='xText' x="-119.62378" y="226.27992">
-		<tspan x="-119.62378" y="226.27992">Vision</tspan>
-	</text>
-	<text class='xText' y="246.19751" x="-99.706169">
-		<tspan y="246.19751" x="-99.706169">Hearing</tspan>
-	</text>
-	<text class='xText' x="-79.788582" y="266.11511">
-		<tspan x="-79.788582" y="266.11511">Touch</tspan>
-	</text>
-	<text class='xText' y="286.03268" x="-59.870987">
-		<tspan y="286.03268" x="-59.870987">Body Awareness</tspan>
-	</text>
-	<text class='xText' x="-39.9534" y="305.95029">
-		<tspan x="-39.9534" y="305.95029">Balance and Motion</tspan>
-	</text>
-	<text class='xText' y="325.86783" x="-20.03581">
-		<tspan y="325.86783" x="-20.03581">Planning</tspan>
-	</text>
-	<text class='xText' x="-0.1182246" y="345.78546">
-		<tspan x="-0.11822455" y="345.78546">Total</tspan>
-	</text>
-	<path d="m 46.682496,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 74.512158,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 102.34182,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 130.17149,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 158.00114,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 185.8308,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 213.66046,242.34399 v 3.4787" class='tickmark percLine' />
-	<path d="m 241.49012,242.34399 v 3.4787" class='tickmark percLine' />
-	<path id='line'
-		class='hidden'
-		onmouseover='scoreGrow(); tip(event, "Scores", this)'
-		onmouseout='shrink(this)'
-		clip-path='url(#cutOff)' />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
-  </g>
-</svg>
-<div id='info'>
-	<span id='info-text'></span>
-</div>
-spmChart;
 
-        $sAsmt .= "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, false )."</td>";
-        }
-        $sAsmt .= "</tr><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column_total( $oForm, $label, $sRange, false )."</td>";
-        }
-        $sAsmt .= "</tr></table>";
+        $sAsmt .= SPMChart();
+
+        $sAsmt .= $this->drawColFormTable( $oForm, $this->raColumnRanges, false );
 
         return( $sAsmt );
     }
 
-// move this to Assessments_SPM
-function DrawNewForm()
-{
-    $s = "";
-
-    $s .= "<script>
-            var raPercentilesSPM = ".json_encode($this->raPercentiles).";
-            var cols = ".json_encode($this->Columns()).";
-            var chars = ".json_encode($this->Inputs("script")).";
-            </script>
-            <link rel='stylesheet' href='w/css/asmt-overview.css' />";
-    $s .= "<style>
-           .score-table {}
-           .score-table th { height:60px; }
-           .score-num   { width:1em; }
-           .score-item  { width:3em; }
-           .score { padding-left: 5px; }
-           </style>";
-
-    $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-
-    $clinics = new Clinics($this->oApp);
-    $clinics->GetCurrentClinic();
-    $oPeopleDB = new PeopleDB( $this->oApp );
-
-    $raColumns = $this->raColumnRanges;
-
-    $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
-
-    $s .= $this->drawNewAsmtForm( $oForm, $raClients, $raColumns );
-
-    return( $s );
-}
-    private function drawNewAsmtForm( SEEDCoreForm $oForm, $raClients, $raColumns )
+    function DrawColumnForm()
+    /************************
+        Draw a form composed columns of values. Parameters must be defined in derived classes.
+            raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
+     */
     {
-        $sAsmt = "";
+        $s = "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
 
+        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+
+        $s .= "<form method='post'>"
+             ."<div style='margin:20px 0px'>".$this->getClientSelect( $oForm )."</div>";
+
+        $s .= $this->drawColFormTable( $oForm, $this->raColumnRanges, true );
+
+        $s .= $this->getDataList($oForm,$this->Inputs("datalist"))
+                 ."<input hidden name='sAsmtAction' value='save'/>"
+                 ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
+                 .$oForm->HiddenKey()
+                 ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
+                 ."<span id='total'></span>"
+                 ."<script src='w/js/assessments.js'></script>";
+        return( $s );
+    }
+
+    private function getClientSelect( SEEDCoreForm $oForm )
+    {
+        $clinics = new Clinics($this->oAsmt->oApp);
+        $clinics->GetCurrentClinic();
+        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
         $opts = array();
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
         }
-        $sAsmt .= "<form method='post'>"
-                 ."<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>";
 
-        $sAsmt .= "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $sAsmt .= "<td valign='top' width='12%'>".$this->column( $oForm, $label, $sRange, true )."</td>";
-        }
-        $sAsmt .= "</tr></table>";
-
-        $sAsmt .= $this->getDataList($oForm,$this->Inputs("datalist"))
-                 ."<input hidden name='assessmentSave' value='1'/>"
-                 .$oForm->HiddenKey()
-                 ."<input type='submit'></form>"
-                 ."<span id='total'></span>"
-                 ."<script src='w/js/assessments.js'></script>";
-        return( $sAsmt );
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>" );
     }
 
-
-    private function column( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
+    private function drawColFormTable( $oForm, $raColumns, $bEditable )
     {
-        $s = "<table class='score-table'>"
-            ."<tr>"
-            ."<th colspan='2'>$heading<br/><br/></th>"
-            ."</tr>";
+        $colwidth = (100/count($raColumns))."%";
+
+        $s = "<table width='100%'><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $s .= "<th valign='top'>$label<br/><br/></th>";
+        }
+        $s .= "</tr><tr>";
+        foreach( $raColumns as $label => $sRange ) {
+            $s .= "<td valign='top' width='$colwidth'>".$this->column( $oForm, $sRange, $bEditable )."</td>";
+        }
+        if( !$bEditable ) {
+            $s .= "</tr><tr>";
+            foreach( $raColumns as $label => $sRange ) {
+                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
+            }
+        }
+        $s .= "</tr></table>";
+
+        return( $s );
+    }
+
+    private function column( SEEDCoreForm $oForm, $sRange, $bEditable )
+    {
+        $s = "<table class='score-table'>";
         $total = 0;
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n, $bEditable, $total );
@@ -457,7 +335,7 @@ function DrawNewForm()
         return( $s );
     }
 
-    private function column_total( SEEDCoreForm $oForm, $heading, $sRange, $bEditable )
+    private function column_total( SEEDCoreForm $oForm, $sRange, $bEditable )
     {
         $s = "";
 
@@ -477,25 +355,13 @@ function DrawNewForm()
             $s = $oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"));
         } else {
             $v = $oForm->Value( "i$n" );
-            $score = $this->getScore( $n, $v );
+            $score = $this->GetScore( $n, $v );
             $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
         }
 
         $total += intval($score);
         $s = "<tr><td class='score-num'>$n</td><td>".$s."<span class='score'>$score</span></td></tr>";
         return( $s );
-    }
-
-    private function getScore( $n, $v )
-    {
-        $score = "0";
-
-        if( ($n >= 1 && $n <= 10) || $n == 57 ) {
-            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
-        } else {
-            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
-        }
-        return( $score );
     }
 
     private function getDataList(SEEDCoreForm $oForm,$raOptions = NULL){
@@ -515,7 +381,7 @@ function DrawNewForm()
         return( array() );
     }
 
-    private function Inputs($type){
+    protected function Inputs($type){
         switch($type){
             case "datalist":
                 return $this->InputOptions();
@@ -533,19 +399,95 @@ function DrawNewForm()
         return array("1","2","3","4","5");
     }
 
+    /**
+     * Get the score for an assessment question when that item has a given value
+     * @return int
+     */
+    abstract protected function GetScore( $item, $value ):int;
+
+    /**
+     * Get a list of tags availible for this assesment type
+     * Tags in the returned array should return a value when passed to getTagValue()
+     * @return array of availible tags.
+     * @see getTagValue($tag)
+     */
+    abstract protected function getTags():array;
+
+    /**
+     * Get value for a given tag
+     * Tags which can be used as a parameter should be returned by getTags()
+     * This method checks the parameter tag against the list returned by getTags() to enusure consistancy
+     * @param String $tag - tag to get the value for
+     * @return String - value of the passed tag for this assesment
+     * @see getTags()
+     */
+    public final function getTagValue(String $tag):String{
+        if(in_array($tag, $this->getTags())){
+            return $this->getTagField($tag);
+        }
+        throw new Exception("Invalid Tag:".$tag);
+    }
+
+    /**
+     * Get value for the given tag
+     * Impementations do not have to be concerned with invalid tags as getTagValue($tag) checks for consistancy against the list returned by getTags()
+     * before it calls this method
+     * @param String $tag - tag to get the value for
+     * @return String - value of the passed tag for this assesment
+     * @see getTags()
+     * @see getTagValue($tag)
+     */
+    abstract protected function getTagField(String $tag):String;
+
 }
 
 class Assessment_SPM extends Assessments
 {
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, 'spm' );
+        parent::__construct( $oAsmt, $kAsmt, 'spm' );
     }
 
-    function DrawResults( KeyframeRecord $kfr )
+    function DrawAsmtResult()
     {
-        return( $this->drawSPM( $kfr ) );
+        $s = "";
+
+        if( !($kfr = $this->kfrAsmt) )  goto done;
+
+        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
+        $oForm->SetKFR( $kfr );
+
+
+        $raColumns = $this->raColumnRanges;
+
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        $s .= $this->drawAsmt( $oForm, $raColumns );
+
+        // Put the results in a js array for processing on the client
+        $s .= "<script>
+               var raResultsSPM = ".json_encode($raResults).";
+               </script>";
+
+        done:
+        return( $s );
     }
+
+
+    function DrawAsmtForm()
+    {
+        $s = "";
+
+        $s .= $this->DrawColumnForm();
+
+        return( $s );
+    }
+
+
+
 
     protected function Columns()
     {
@@ -554,6 +496,29 @@ class Assessment_SPM extends Assessments
 
     protected function InputOptions(){
         return array("never","occasionally","frequently","always");
+    }
+
+    protected function GetScore( $n, $v ):int
+    /************************************
+        Return the score for item n when it has the value v
+     */
+    {
+        $score = "0";
+
+        if( ($n >= 1 && $n <= 10) || $n == 57 ) {
+            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
+        } else {
+            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
+        }
+        return( $score );
+    }
+
+    public function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
     }
 
     protected $raColumnRanges = array(
@@ -678,18 +643,32 @@ class Assessment_SPM extends Assessments
 74	Has trouble coming up with ideas for new games and activities
 75	Tends to play the same activities over and over, rather than shift to new activities when given the chance
 ";
+
 }
 
 class Assessment_AASP extends Assessments {
 
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, 'aasp' );
+        parent::__construct( $oAsmt, $kAsmt, 'aasp' );
     }
 
     function DrawResults( $raResults )
     {
         return( "RESULTS" );
+    }
+
+    protected function GetScore( $n, $v ):int
+    {
+        return( 0 );
+    }
+
+    public function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
     }
 
     protected $raColumnRanges = array(
@@ -706,9 +685,9 @@ class Assessment_AASP extends Assessments {
 
 class Assessment_MABC extends Assessments {
 
-    function __construct( AssessmentsCore $oAsmt )
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, 'mabc' );
+        parent::__construct( $oAsmt, $kAsmt, 'mabc' );
     }
 
     function DrawResults( $raResults )
@@ -716,7 +695,18 @@ class Assessment_MABC extends Assessments {
         return( "RESULTS" );
     }
 
-    protected $sAssesmentTitle = "Movement Assessment Battery for Children";
+    protected function GetScore( $n, $v ):int
+    {
+        return( 0 );
+    }
+
+    public function getTags(): array{
+        //TODO Return Array of valid tags
+    }
+
+    protected function getTagField(String $tag):String{
+        //TODO Return Values for valid tags
+    }
 
     protected $raColumnRanges = array(
         "MD"  => "1-4",
@@ -730,56 +720,200 @@ class Assessment_MABC extends Assessments {
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
-    global $raAssessments;
-
     $s = "";
 
+    $s .= "<link rel='stylesheet' href='w/css/asmt-overview.css' />";
+    $s .= "<style>
+           .score-table {}
+           .score-table th { height:60px; }
+           .score-num   { width:1em; }
+           .score-item  { width:3em; }
+           .score { padding-left: 5px; }
+           </style>";
+
+
+    /* kAsmt==0 && sAsmtAction==''       = landing screen
+     * kAsmt==0 && sAsmtAction==edit     = show blank form for new assessment (requires sAsmtType)
+     * kAsmt==0 && sAsmtAction==save     = save new assessment and show the result (requires sAsmtType)
+     * kAsmt    && sAsmtAction==''       = show result for assessment kAsmt
+     * kAsmt    && sAsmtAction=='edit'   = show filled form for editing assessment kAsmt
+     * kAsmt    && sAsmtAction=='save'   = update assessment kAsmt and show the result
+     */
     $p_kAsmt = SEEDInput_Int('kA');
-    $p_sNewAsmtType = SEEDInput_Str('newAsmtType');
+    $p_sAsmtType = SEEDInput_Str('sAsmtType');
+    $p_action = SEEDInput_Str('sAsmtAction');
 
-    $oAsmt = new AssessmentsCore( $oApp );
+//var_dump($p_kAsmt,$p_action,$p_sAsmtType);
+//var_dump($_REQUEST);
 
-
-    if( $p_sNewAsmtType ) {
-        if( SEEDInput_Int('newAsmtTypeSave') ) {
-            /* Input form submitted, save the record
-             */
-        } else {
-            /* Show the input form for the given assessment type. Don't show the summary list.
-            */
-            $s = $oAsmt->DrawNewAsmtForm( $p_sNewAsmtType );
-        }
-
+    $oAC = new AssessmentsCommon( $oApp );
+    if( $p_kAsmt ) {
+        $oAsmt = $oAC->GetAsmtObject( $p_kAsmt );
+    } else if( $p_sAsmtType ) {
+        $oAsmt = $oAC->GetNewAsmtObject( $p_sAsmtType );
     } else {
-        $sLeft = $sRight = "";
-
-        $sLeft = $oAsmt->GetSummaryTable( $p_kAsmt );
-
-        if( $p_kAsmt ) { $sRight = $oAsmt->DrawAsmtResult( $p_kAsmt ); }
-
-        $s .= "<div class='container-fluid'><div class='row'>"
-                 ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                 ."<div class='col-md-9'>$sRight</div>"
-             ."</div>";
-
-        /* New button with a control to choose the assessment type
-         */
-        $sControl =
-              "<div style='float:right'>"
-             ."<form action='{$_SERVER['PHP_SELF']}' method='post'>"
-             ."<select name='newAsmtType'>"
-             .SEEDCore_ArrayExpandRows( $raAssessments, "<option value='[[code]]'>[[title]]</option>" )
-             ."</select>"
-             ."&nbsp;<input type='submit' value='New'/>"
-             ."</form></div>";
-
-        $s = $sControl.$s;
+        // Just show the landing screen.
+        $oAsmt = null;
+        $p_kAsmt = 0;
+        $p_action = '';
     }
 
-    //$s .= $o->ScoreUI();
+    // Output <style> and <script> for the current assessment if any
+    $s .= $oAsmt ? $oAsmt->StyleScript() : "";
+
+
+    switch( $p_action ) {
+        case 'edit':
+            /* Show the input form for the given assessment type.
+             * The form is smart enough to do Edit or New depending on whether it was created with a kAsmt.
+             * Don't show the summary list because it takes too much space.
+             */
+            $s .= $oAsmt->DrawAsmtForm();
+            break;
+
+        case 'save':
+            /* New or Edit form submitted, save the record.  Then show the main page by falling through to the default case.
+             */
+            if( $oAsmt->UpdateAsmt() ) {
+                $s .= "<div class='alert alert-success'>Saved assessment</div>";
+                $p_kAsmt = $oAsmt->GetAsmtKey();    // if a new asmt was inserted show it below
+            } else {
+                $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
+            }
+
+            // fall through to the default case to show the main page
+
+        default:
+            /* Show the landing page or a particular assessment.
+             */
+            $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
+            $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
+
+            /* New button with a control to choose the assessment type
+             */
+            $sControl =
+                  "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+                 ."<select name='sAsmtType'>"
+                 .SEEDCore_ArrayExpandRows( $oAC->raAssessments, "<option value='[[code]]'>[[title]]</option>" )
+                 ."</select>"
+                 ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
+                 ."&nbsp;<input type='submit' value='New'/>"
+                 ."</form>";
+
+            $s .= "<div style='float:right'>$sControl</div>"
+                 ."<div class='container-fluid'><div class='row'>"
+                     ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
+                     ."<div class='col-md-9'>$sRight</div>"
+                 ."</div>";
+    }
 
     done:
     return( $s );
 }
 
-?>
+function SPMChart()
+{
+    $s = <<<spmChart
+<link rel='stylesheet' href='w/css/spmChart.css'>
+<script src='w/js/spmChart.js'></script>
+<svg id='chart' class='hidden'
+	xmlns="http://www.w3.org/2000/svg"
+	viewBox="0 0 263.19417 183.18527">
+	<defs>
+		<clipPath id='cutOff'>
+			<rect width="250.43593" height="153.06314" x="18.888107" y="91.020195" />
+		</clipPath>
+	</defs>
+  <g id="spmChart" transform="translate(-6.4124658,-89.416847)">
+	<text class='percent' x="11.870281" y="92.607399">
+		<tspan x="11.870281" y="92.607399">100%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="130.95422">
+		<tspan x="11.870281" y="130.95422">90%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="169.30106">
+		<tspan x="11.870281"y="169.30106">80%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="207.64787">
+		<tspan x="11.870281" y="207.64787">70%</tspan>
+	</text>
+	<text class='percent' x="11.870281" y="245.99472">
+		<tspan x="11.870281" y="245.99472">60%</tspan>
+	</text>
+	<path class='percLine' d="M 18.852836,205.81657 H 269.60663" />
+	<path class='percLine' d="M 18.852836,167.51418 H 269.60663" />
+	<path class='percLine' d="M 18.852836,129.40811 H 269.60663" />
+	<path
+		id="dd"
+		class="guideline"
+		d="M 18.852836,102.49993057250973 H 269.60663"
+		onmouseover='grow(this); tip(event, "Definite Dysfunction (&ge;97%)")'
+		onmouseout='shrink(this)' />
+	<path
+		id="sp"
+		class="guideline"
+		d="M 18.852836,156.07202987670894 H 269.60663"
+		onmouseover='grow(this); tip(event, "Some Problems (&ge;83%)")'
+		onmouseout='shrink(this)' />
+	<rect
+		id="box"
+		width="250.43593"
+		height="153.06314"
+		x="18.888107"
+		y="91.020195"
+		class='percLine' />
+	<text class='xText' x="-139.54134" y="206.36235">
+		<tspan x="-139.54134" y="206.36235">Social Participation</tspan>
+	</text>
+	<text class='xText' x="-119.62378" y="226.27992">
+		<tspan x="-119.62378" y="226.27992">Vision</tspan>
+	</text>
+	<text class='xText' y="246.19751" x="-99.706169">
+		<tspan y="246.19751" x="-99.706169">Hearing</tspan>
+	</text>
+	<text class='xText' x="-79.788582" y="266.11511">
+		<tspan x="-79.788582" y="266.11511">Touch</tspan>
+	</text>
+	<text class='xText' y="286.03268" x="-59.870987">
+		<tspan y="286.03268" x="-59.870987">Body Awareness</tspan>
+	</text>
+	<text class='xText' x="-39.9534" y="305.95029">
+		<tspan x="-39.9534" y="305.95029">Balance and Motion</tspan>
+	</text>
+	<text class='xText' y="325.86783" x="-20.03581">
+		<tspan y="325.86783" x="-20.03581">Planning</tspan>
+	</text>
+	<text class='xText' x="-0.1182246" y="345.78546">
+		<tspan x="-0.11822455" y="345.78546">Total</tspan>
+	</text>
+	<path d="m 46.682496,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 74.512158,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 102.34182,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 130.17149,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 158.00114,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 185.8308,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 213.66046,242.34399 v 3.4787" class='tickmark percLine' />
+	<path d="m 241.49012,242.34399 v 3.4787" class='tickmark percLine' />
+	<path id='line'
+		class='hidden'
+		onmouseover='scoreGrow(); tip(event, "Scores", this)'
+		onmouseout='shrink(this)'
+		clip-path='url(#cutOff)' />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+	<circle cx='1' cy='1' r='1' onmouseover='scoreGrow()' onmouseout='shrink(document.getElementById("line"))' class='point'  />
+  </g>
+</svg>
+<div id='info'>
+	<span id='info-text'></span>
+</div>
+spmChart;
+
+    return( $s );
+
+}
