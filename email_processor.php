@@ -164,6 +164,8 @@ class EmailProcessor {
                 return self::DISCARDED_NO_DATE;
             }
 
+            $date = $matches[0];
+            
             preg_match('|\w.*\w|',preg_replace($this->PATTERNS, "", $value), $matches);
             $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);

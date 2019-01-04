@@ -67,8 +67,7 @@ class AkauntingHook {
         }
 
         // Switch to the correct Company
-        $h = self::$session->get("/akaunting/common/companies/".$company."/set");
-        if( self::$bDebug ) var_dump($h->headers);
+        self::$session->get("/akaunting/common/companies/".$company."/set");
 
         //Fetch accounts
         self::fetchAccounts();
@@ -76,7 +75,7 @@ class AkauntingHook {
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
                       array("account_id" => "", "debit" => "$",     "credit" => "$0.00")
-                ));
+                ), "reference" => "System Entry. ");
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
@@ -130,12 +129,13 @@ class AkauntingHook {
             }
         }
         if($entry->getAttachment()){
-            $data['reference'] = $entry->getAttachment();
+            $data['reference'] .= "Attachment: ".$entry->getAttachment();
         }
-//var_dump($data);
+        else{
+            $data['reference'] .= "No Attachment Included";
+        }
         //Make journal Entry
         $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
-//var_dump($responce->body);
         $ret = $responce->status_code;
 
         done:
