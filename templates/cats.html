@@ -1,0 +1,20 @@
+# Main CATS template file
+
+%% cats
+<p>{{name}} is a {% if animal=='cat' %} kitty {% else %} chicken.{% endif %}</p>
+<p>[[Var:name]] is a {% if animal=='cat' %} [[mailto:kitty@kitchen.ca]] {% else %} chicken.{% endif %}</p>
+
+%% cats_header
+# This is the header that goes at the top of every page
+
+# make a link back to the home screen, if we aren't already there
+{% if screen_name != 'home' %}
+    {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home'><button>Home</button></a>" %}
+{% endif %}
+<div class='cats_header'>
+    <a href='?screen=home'><img src='{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
+    <div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>{{clinics|raw}}</div>
+    <div style='float:right;top: 5px;position: relative;'>
+        Welcome {{user_name|raw}} {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
+    </div>
+</div>
