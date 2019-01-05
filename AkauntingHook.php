@@ -43,13 +43,23 @@ class AkauntingHook {
         self::$session = NULL;
     }
 
-    public static function submitJournalEntries(array $entries) {
+    public static function submitJournalEntries(array $entries):array{
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
         }
+        $responces = array();
+        foreach($entries as $k=>$entry){
+            $responces[$k] = self::submitJournalEntry($entry);
+        }
+        return $responces;
     }
 
-    public static function submitJournalEntry(AccountingEntry $entry){
+    public static function submitJournalEntry(AccountingEntry $entry):int{
+        //Ensure we have connected to Akaunting before we attempt to submit entries
+        if (self::$session == NULL){
+            throw new Exception("Not Logged in");
+        }
+        
         $ret = self::REJECTED_NOT_SETUP;
 
         $oApp = $GLOBALS['oApp'];
@@ -171,6 +181,38 @@ class AkauntingHook {
         return NULL;
     }
 
+    public static function decodeErrors(array $errors):String{
+        $s = "";
+        foreach ($errors as $k=>$error){
+            $s .= self::decodeError($k,$error);
+        }
+        return $s;
+    }
+    
+    public static function decodeError(String $location, int $error):String{
+        $s = "Submition of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
+        switch ($error){
+            case self::REJECTED_NO_ACCOUNT:
+                $s .= "not being able to find an account to put the entry in.";
+                break;
+            case self::REJECTED_NOT_SETUP:
+                $s .= "the clinic is not being setup for automatic Akaunting entries.";
+                break;
+            default:
+                if($error >= 200 && $error < 300){
+                    $s .= "the entry successfully being submitted to Akaunting.";
+                }
+                elseif ($error >= 400 && $error < 600){
+                    $s .= "an Error while comunicating with Akaunting. Error:".$error;
+                }
+                else {
+                    $s .= "an Unknown Error. Error:".$error;
+                }
+                break;
+        }
+        return $s."\n";
+    }
+    
 }
 
 function fixRedirects($return, $req_headers, $req_data, $options){
