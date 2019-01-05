@@ -1,6 +1,6 @@
 <?php
 
-if( $_SERVER['HTTP_HOST'] == 'localhost' ) {
+if( @$_SERVER['HTTP_HOST'] == 'localhost' ) {
     /* Enable all error reporting on development machines (when your url starts with http://localhost).
      * This is not true on the real server (the 'HOST' variable is catherapyservices.ca)
      */
@@ -77,7 +77,7 @@ $oApp = new SEEDAppConsole(
 );
 
 
-if( $_SERVER['HTTP_HOST'] == 'localhost' ) {
+if( @$_SERVER['HTTP_HOST'] == 'localhost' ) {
     $oApp->kfdb->SetDebug(1);
 }
 
