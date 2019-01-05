@@ -1,0 +1,17 @@
+# Top-level CATS template that defines the <html> and <header> portions of the output
+
+%% cats_html
+############  
+# All variations of html pages extend this (to provide the html_body block)
+#
+<html>
+<header>{% include html_header %}</header>
+<body>{% block html_body %}{%endblock%}</body>
+</html>
+
+
+%% html_header
+##############  
+# All the header stuff goes here. 
+# If you have custom header content for a particular page, define a block here and provide it in the template for that page.  
+#

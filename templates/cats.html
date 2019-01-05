@@ -4,9 +4,12 @@
 <p>{{name}} is a {% if animal=='cat' %} kitty {% else %} chicken.{% endif %}</p>
 <p>[[Var:name]] is a {% if animal=='cat' %} [[mailto:kitty@kitchen.ca]] {% else %} chicken.{% endif %}</p>
 
+
 %% cats_header
-############## This is the header that goes at the top of every page
-# make a link back to the home screen, if we aren't already there
+############## 
+# This is the header that goes at the top of every page.
+
+# Make a link back to the home screen, if we aren't already there
 {% if screen_name != 'home' %}
     {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home'><button>Home</button></a>" %}
 {% endif %}
@@ -18,13 +21,15 @@
     </div>
 </div>
 
-%% cats_html
-############ The top-level template that generates <html>
+
+%% cats_extend_test
+###################
 {% block header %}put the header here{% endblock %}
+
 
 %% cats_page
 ############
-{% extends 'cats_html' %}
+{% extends 'cats_extend_test' %}
 {% block header %}
 {% include 'cats_header' %}
 {% endblock %}
