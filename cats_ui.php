@@ -46,7 +46,7 @@ class CATS_UI
          * Put html code in CATSLIB/templates/cats.html or create a new file there and add it to the array way up above.
          * Call ExpandTmpl with the named template and any variables that you need.
          */
-        $s = $this->oTmpl->ExpandTmpl( 'cats_header',
+        $s = $this->oTmpl->ExpandTmpl( 'cats_page',
                                        ['img_cats_logo'=>CATS_LOGO,
                                         'CATSDIR'=>CATSDIR,
                                         'screen_name'=>$this->screen,
