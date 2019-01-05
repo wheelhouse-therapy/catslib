@@ -82,8 +82,6 @@ class EmailProcessor {
             //Pull the information out of subject
             $result = $this->processString($subject, $attachment, $clinic,$from);
             if($result instanceof AccountingEntry){
-                $responce = AkauntingHook::submitJournalEntry($result);
-                var_dump($responce);
                 array_push($entries, $result);
             }
             else{
@@ -107,8 +105,6 @@ class EmailProcessor {
                     $emptyLineCount = 0;
                     $result = $this->processString($line, $attachment, $clinic, $from);
                     if($result instanceof AccountingEntry){
-                        $responce = AkauntingHook::submitJournalEntry($result);
-                        var_dump($responce);
                         array_push($entries, $result);
                     }
                     else{
@@ -117,17 +113,30 @@ class EmailProcessor {
                 }
             }
             if(count($entries) > 0 && !$this->verifyString($subject)){
-                // The subject is not a potential entry do not report the error
+                // The subject is not a potential entry. do not report the error
                 unset($errors['subject']);
             }
-            if($responce = $this->handleErrors($entries,$errors)){
-                echo str_replace("\n", "<br />", $responce);
-                echo "<br />";
-            }
-            var_dump($entries);
-            echo "<br />";
-            //TODO Link into accounting system
+            
+            // Mark the message as processed so we dont make duplicate entries
             $message->markAsSeen();
+            
+            // Send the entries to Akaunting and record the results
+            $results = AkauntingHook::submitJournalEntries($entries);
+            
+            /* Compile the responce to send to the sender which reports the results of their entries.
+             * This includes all errors raised by the email proccessor as well as errors raised by the Akaunting Hook.
+             * It Also notes entries which were submitted successfully.
+             */
+            $responce = $this->handleErrors($errors).AkauntingHook::decodeErrors($results);
+            
+            // Add a closing message
+            $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
+                         ."You can reach them at developer@catherapyservices.ca\n"
+                         ."\nCATS Automatic Akaunting Entry System";
+            
+            //Send the results
+            SEEDEmailSend($message->getTo()->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
+            
         }
     }
 
@@ -175,7 +184,7 @@ class EmailProcessor {
         return self::DISCARDED_ZERO_AMOUNT;
     }
 
-    private function handleErrors(array $entries, array $errors){
+    private function handleErrors(array $errors){
         $responce = "";
         foreach($errors as $k => $v){
             switch ($v){
