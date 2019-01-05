@@ -43,13 +43,23 @@ class AkauntingHook {
         self::$session = NULL;
     }
 
-    public static function submitJournalEntries(array $entries) {
+    public static function submitJournalEntries(array $entries):array{
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
         }
+        $responces = array();
+        foreach($entries as $k=>$entry){
+            $responces[$k] = self::submitJournalEntry($entry);
+        }
+        return $responces;
     }
 
-    public static function submitJournalEntry(AccountingEntry $entry){
+    public static function submitJournalEntry(AccountingEntry $entry):int{
+        //Ensure we have connected to Akaunting before we attempt to submit entries
+        if (self::$session == NULL){
+            throw new Exception("Not Logged in");
+        }
+        
         $ret = self::REJECTED_NOT_SETUP;
 
         $oApp = $GLOBALS['oApp'];
@@ -67,8 +77,7 @@ class AkauntingHook {
         }
 
         // Switch to the correct Company
-        $h = self::$session->get("/akaunting/common/companies/".$company."/set");
-        if( self::$bDebug ) var_dump($h->headers);
+        self::$session->get("/akaunting/common/companies/".$company."/set");
 
         //Fetch accounts
         self::fetchAccounts();
@@ -76,7 +85,7 @@ class AkauntingHook {
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
                       array("account_id" => "", "debit" => "$",     "credit" => "$0.00")
-                ));
+                ), "reference" => "System Entry. ");
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
@@ -130,12 +139,13 @@ class AkauntingHook {
             }
         }
         if($entry->getAttachment()){
-            $data['reference'] = $entry->getAttachment();
+            $data['reference'] .= "Attachment: ".$entry->getAttachment();
         }
-//var_dump($data);
+        else{
+            $data['reference'] .= "No Attachment Included";
+        }
         //Make journal Entry
         $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
-//var_dump($responce->body);
         $ret = $responce->status_code;
 
         done:
@@ -171,6 +181,38 @@ class AkauntingHook {
         return NULL;
     }
 
+    public static function decodeErrors(array $errors):String{
+        $s = "";
+        foreach ($errors as $k=>$error){
+            $s .= self::decodeError($k,$error);
+        }
+        return $s;
+    }
+    
+    public static function decodeError(String $location, int $error):String{
+        $s = "Submition of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
+        switch ($error){
+            case self::REJECTED_NO_ACCOUNT:
+                $s .= "not being able to find an account to put the entry in.";
+                break;
+            case self::REJECTED_NOT_SETUP:
+                $s .= "the clinic is not being setup for automatic Akaunting entries.";
+                break;
+            default:
+                if($error >= 200 && $error < 300){
+                    $s .= "the entry successfully being submitted to Akaunting.";
+                }
+                elseif ($error >= 400 && $error < 600){
+                    $s .= "an Error while comunicating with Akaunting. Error:".$error;
+                }
+                else {
+                    $s .= "an Unknown Error. Error:".$error;
+                }
+                break;
+        }
+        return $s."\n";
+    }
+    
 }
 
 function fixRedirects($return, $req_headers, $req_data, $options){

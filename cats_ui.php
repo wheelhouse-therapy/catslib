@@ -2,6 +2,7 @@
 
 include_once('view_resources.php');
 include_once('share_resources.php');
+include( SEEDCORE."SEEDTemplateMaker.php" );
 
 /* Classes to help draw the user interface
  */
@@ -10,9 +11,13 @@ class CATS_UI
     protected $oApp;
     protected $screen = "";
 
+
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
+
+        $raTmplMaker = array( 'fTemplates'=> [CATSLIB."templates/cats.html"] );
+        $this->oTmpl = SEEDTemplateMaker( $raTmplMaker );
     }
 
     function Header()
@@ -22,18 +27,34 @@ class CATS_UI
             exit;
         }
         $clinics = new Clinics($this->oApp);
-        return( "<div class='cats_header'>"
+        $s = "<div class='cats_header'>"
                    ."<a href='?screen=home'><img src='".CATS_LOGO."' style='max-width:300px;float:left;'/></a>"
-                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>".$clinics->displayUserClinics()."</div>"
+                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>"
+                       .$clinics->displayUserClinics()."</div>"
                    ."<div style='float:right;top: 5px;position: relative;'>"
                        ."Welcome ".$this->oApp->sess->GetName()." "
                        .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
                        ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
                    ."</div>"
                ."</div>"
-               ."<div style='clear:both'>&nbsp;</div>"
-              );
-     }
+               ."<div style='clear:both'>&nbsp;</div>";
+
+        /* The new string below should be exactly the same as the old string above.
+         * Concatenate them to see them together and confirm that they're identical (just change the "$s =" below to "$s .=")
+         * Then delete the string above and this comment, because ExpandTmpl is the new way to go.
+         *
+         * Put html code in CATSLIB/templates/cats.html or create a new file there and add it to the array way up above.
+         * Call ExpandTmpl with the named template and any variables that you need.
+         */
+        $s = $this->oTmpl->ExpandTmpl( 'cats_page',
+                                       ['img_cats_logo'=>CATS_LOGO,
+                                        'CATSDIR'=>CATSDIR,
+                                        'screen_name'=>$this->screen,
+                                        'user_name'=>$this->oApp->sess->GetName(),
+                                        'clinics'=>$clinics->displayUserClinics() ] );
+
+        return( $s );
+    }
 
      function OutputPage( $body )
      {
@@ -250,7 +271,7 @@ class CATS_MainUI extends CATS_UI
                 $s .= $this->drawCircles( $raTherapistScreens );
                 break;
 
-            case "therapist-handouts": 
+            case "therapist-handouts":
                 $s .= "<h3>Handouts</h3>"
                      .ResourcesDownload( $this->oApp, "handouts/" );
                 break;

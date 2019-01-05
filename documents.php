@@ -225,7 +225,7 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
 
 function ManageResources( SEEDAppSessionAccount $oApp ) {
     $s = "<h2>Manage Resources</h2>";
-    
+
     $script = <<<JavaScript
 <script>
     function toggleDisplay(block){
@@ -234,7 +234,7 @@ function ManageResources( SEEDAppSessionAccount $oApp ) {
         else
             document.getElementById(block).style.display = 'none';
     }
-    
+
     function setContents(block, contents){
     	block = document.getElementById(block);
     	contents = document.getElementById(contents);
@@ -253,7 +253,7 @@ function ManageResources( SEEDAppSessionAccount $oApp ) {
     }
 </script>
 JavaScript;
-    
+
     $style = <<<CSS
 <style>
     .cats_doctree_level { margin-left:30px; }
@@ -272,24 +272,24 @@ JavaScript;
     }
     .cats_form {
         width:180px;
-        
+
         -ms-box-sizing:content-box;
         -moz-box-sizing:content-box;
         box-sizing:content-box;
-        -webkit-box-sizing:content-box; 
+        -webkit-box-sizing:content-box;
     }
 </style>
 CSS;
-    
+
     $s .= $script
        .  $style;
-    
+
     $oResources = new ResourceManager($oApp);
-    
+
     $s .= $oResources->ManageResources();
-    
+
     return $s;
-    
+
 }
 
 class ResourceManager{
@@ -297,11 +297,11 @@ class ResourceManager{
     private $oApp;
     private $i = 0;
     private $selected_File = 0;
-    
+
     public function __construct(SEEDAppSessionAccount $oApp){
         $this->oApp = $oApp;
     }
-    
+
     public function ManageResources(){
         $this->selected_File = SEEDInput_Int("file");
         if(isset($_SESSION['ResourceCMDResult'])){
@@ -313,11 +313,11 @@ class ResourceManager{
         }
         return $cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
-    
+
     private function listResources($dir){
         $s = "";
         $directory_iterator = new DirectoryIterator($dir);
-        
+
         if(iterator_count($directory_iterator) == 2){
             $s .= "No Resources<br />";
             return $s;
@@ -344,7 +344,7 @@ class ResourceManager{
         }
         return $s;
     }
-    
+
     private function processCommands(DirectoryIterator $file_info){
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
@@ -398,7 +398,7 @@ class ResourceManager{
         header("Location: ?");
         exit();
     }
-    
+
     private function drawCommands($file_path){
         preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_path, $matches);
         $directory = $matches[0];
@@ -414,7 +414,7 @@ class ResourceManager{
             }
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
-        
+
         $rename = "<a href='javascript:void(0)' onclick='setContents(\"command".$this->i."\",\"rename".$this->i."\")'>rename</a>";
         $rename .= "<div id='rename".$this->i."' style='display:none'>"
                   ."<br /><form>"
@@ -424,13 +424,13 @@ class ResourceManager{
                   ."&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
-        
+
         $delete = "<a href='?cmd=delete&file=".$this->i."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
-        
+
         $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='command".$this->i."' style='display:none'></div>";
         return $s;
     }
-    
+
 }
 
 ?>
