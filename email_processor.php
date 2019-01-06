@@ -68,6 +68,10 @@ class EmailProcessor {
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
+            if(!$matches){
+                $responce = "This Message has been rejected since the system cannot determine the clinic from the to address.";
+                goto done;
+            }
             $clinic = $matches[0];
 
             $entries = array();
@@ -128,6 +132,7 @@ class EmailProcessor {
              */
             $responce = $this->handleErrors($errors).AkauntingHook::decodeErrors($results);
             
+            done:
             // Add a closing message
             $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
                          ."You can reach them at developer@catherapyservices.ca\n"
