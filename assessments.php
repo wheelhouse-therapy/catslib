@@ -814,6 +814,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 function SPMChart()
 {
     $s = <<<spmChart
+<br />
 <link rel='stylesheet' href='w/css/spmChart.css'>
 <script src='w/js/spmChart.js'></script>
 <svg id='chart' class='hidden'
@@ -884,7 +885,7 @@ function SPMChart()
 		<tspan y="325.86783" x="-20.03581">Planning</tspan>
 	</text>
 	<text class='xText' x="-0.1182246" y="345.78546">
-		<tspan x="-0.11822455" y="345.78546">Total</tspan>
+		<tspan x="-0.11822455" y="345.78546">Average</tspan>
 	</text>
 	<path d="m 46.682496,242.34399 v 3.4787" class='tickmark percLine' />
 	<path d="m 74.512158,242.34399 v 3.4787" class='tickmark percLine' />

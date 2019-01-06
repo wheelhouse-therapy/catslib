@@ -23,170 +23,32 @@ class CATS_UI
 
     function Header()
     {
-        if( !$this->oApp->sess->IsLogin() ) {
-            echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
-            exit;
-        }
-        $clinics = new Clinics($this->oApp);
-        $s = "<div class='cats_header'>"
-                   ."<a href='?screen=home'><img src='".CATS_LOGO."' style='max-width:300px;float:left;'/></a>"
-                   ."<div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>"
-                       .$clinics->displayUserClinics()."</div>"
-                   ."<div style='float:right;top: 5px;position: relative;'>"
-                       ."Welcome ".$this->oApp->sess->GetName()." "
-                       .($this->screen != "home" ? "<a href='".CATSDIR."?screen=home'><button>Home</button></a>" : "")
-                       ." <a href='".CATSDIR."?screen=logout'><button>Logout</button></a>"
-                   ."</div>"
-               ."</div>"
-               ."<div style='clear:both'>&nbsp;</div>";
-
-        /* The new string below should be exactly the same as the old string above.
-         * Concatenate them to see them together and confirm that they're identical (just change the "$s =" below to "$s .=")
-         * Then delete the string above and this comment, because ExpandTmpl is the new way to go.
-         *
-         * Put html code in CATSLIB/templates/cats.html or create a new file there and add it to the array way up above.
-         * Call ExpandTmpl with the named template and any variables that you need.
-         */
-        $s = $this->oTmpl->ExpandTmpl( 'cats_page',
-                                       ['img_cats_logo'=>CATS_LOGO,
-                                        'CATSDIR'=>CATSDIR,
-                                        'screen_name'=>$this->screen,
-                                        'user_name'=>$this->oApp->sess->GetName(),
-                                        'clinics'=>$clinics->displayUserClinics() ] );
-
-        return( $s );
+        
+        return "";
     }
 
      function OutputPage( $body )
      {
-    $s =
-    "<!DOCTYPE html>
-    <html lang='en'>
-    <head>
-    <meta charset='utf-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
-    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
-    <link rel='stylesheet' href='".CATSDIR_CSS."tooltip.css'>
-    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
-    <script src='".CATSDIR_JS."appointments.js'></script>
-    <script src='".W_CORE_URL."js/SEEDCore.js'></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
-    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
-    <link rel='stylesheet' href='w/css/tooltip.css'>
-    <style>
-    :root {
-        --color1: #63cdfc;
-        --color2: #388ed4;
-        --textColor: black;
-    }
-    body {
-        margin: 0 8px;
-    }
-    .toCircle {
-    	text-decoration: none;
-    	display: flex;
-    	justify-content: center;
-    	align-items: center;
-    	text-align: center;
-    	margin-bottom: 20px;
-    	margin-left: 10px;
-    	border-style: inset outset outset inset;
-        border-width: 3px;
-        border-radius: 50%;
-    }
-    @keyframes colorChange {
-        from {background-color: var(--color1); border-color: var(--color1);}
-        to {background-color: var(--color2); border-color: var(--color2);}
-    }
-    [class *= catsCircle] {
-        box-sizing: border-box;
-        height: 200px;
-    	width: 200px;
-    	color: var(--textColor) !important;
-    }
-    .catsCircle1 {
-    	animation: colorChange 10s ease-in-out infinite alternate;
-    }
-    .catsCircle2 {
-    	animation: colorChange 10s ease-in-out -5s infinite alternate;
-    }
-    span.selectedClinic {
-        font-size: 20pt;
-    }
-    div.cats_header {
-        overflow: visible;
-        position: sticky;
-        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
-        top: 0;
-        z-index: 1;
-        display: inline-block;
-        width: 100%;
-    }
-    </style>
-    <script>
-    function createCircle(elements, styles) {
-    	for (var x in elements) {
-		  var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-		  elements[x].style.height = diameter;
-		  elements[x].style.width = diameter;
-		  elements[x].style.color = textColor;
-		  elements[x].style.backgroundColor = color;
-		  elements[x].style.borderColor = color;
-	   }
-    return true;
-    }
-    function run() {
-        var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
-        var elements = [], styles = [];
-        for(var y = 0; y < x.length; y++) {
-	       elements.push(x[y]);
-	       styles.push(x[y].dataset.format.split(' '));
-        }
-        createCircle(elements, styles);
+    
 
-        $(document).ready( function () {
+    $body .= "<script> SEEDCore_CleanBrowserAddress(); </script>
 
-            /* Generic seedjx submission
-             */
-            $('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
-
-            /* the Appointment Review button launches catsappt--reviewd
-             */
-            $('.appt-newform').submit( function (e) {
-                e.preventDefault();
-                var gid = $(this).find('#appt-gid').val();
-                var cid = $(this).find('#appt-clientid').val();
-                var divSpecial = this.appt();
-
-                $.ajax({
-                    type: 'POST',
-                    data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
-                    url: 'jx.php',
-                    success: function(data, textStatus, jqXHR) {
-                        var jsData = JSON.parse(data);
-                        var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
-                        divSpecial.outerHTML = sSpecial;
-                    },
-                    error: function(jqXHR, status, error) {
-                        console.log(status + \": \" + error);
-                    }
-                });
-            });
-        });
-
+    <script> run(); </script>
+    <script src='w/js/tooltip.js'></script>
+    </body></html>";
+    
+    if( !$this->oApp->sess->IsLogin() ) {
+        echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
+        exit;
     }
-    </script>
-    </head>
-    <body>"
-
-    .$body
-
-    ."<script> SEEDCore_CleanBrowserAddress(); </script>"
-
-    ."<script> run(); </script>"
-    ."<script src='w/js/tooltip.js'></script>"
-    ."</body></html>";
-
+    $clinics = new Clinics($this->oApp);
+    $s = $this->oTmpl->ExpandTmpl( 'cats_page',
+        ['img_cats_logo'=>CATS_LOGO,
+            'CATSDIR'=>CATSDIR,
+            'screen_name'=>$this->screen,
+            'user_name'=>$this->oApp->sess->GetName(),
+            'clinics'=>$clinics->displayUserClinics(), 'body' => $body ] );
+    
         return( $s );
     }
 

@@ -22,14 +22,10 @@
 </div>
 
 
-%% cats_extend_test
-###################
-{% block header %}put the header here{% endblock %}
-
-
 %% cats_page
 ############
-{% extends 'cats_extend_test' %}
-{% block header %}
+{% extends 'cats_html' %}
+{% block html_body %}
 {% include 'cats_header' %}
+{{ body|raw }}
 {% endblock %}
