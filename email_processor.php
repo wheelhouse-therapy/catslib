@@ -67,8 +67,7 @@ class EmailProcessor {
             else{
                 $attachment = '';
             }
-
-            preg_match("/(?<=\\.)\w+(?=@)/i", $message->getTo()[0]->getAddress(), $matches);
+            preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
             $clinic = $matches[0];
 
             $entries = array();

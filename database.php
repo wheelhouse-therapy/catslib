@@ -220,12 +220,11 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(0);
     }
     if( $currDBVersion < 2){
-        // Changed assessments_score.testid from integer to string and rename to testType
+        // Add akaunting_company to clinics table for akaunting Hook
         $kfdb->SetDebug(2);
         $kfdb->Execute( "ALTER TABLE clinics ADD akaunting_company INTEGER NOT NULL DEFAULT 0" );
         $kfdb->SetDebug(0);
     }
-
 
     /* Old createTables code.
      * This should be updated to reflect dbVersion, but it's also nice to just create tables based on existence so they can be dropped
@@ -367,6 +366,7 @@ function createTables( KeyframeDatabase $kfdb )
 
     ensureTable( $kfdb, "assessments_scores" );
     ensureTable( $kfdb, "resources_files" );
+    ensureTable($kfdb, "template_replace");
 
 
 
@@ -649,6 +649,20 @@ const resources_files_create =
         folder            TEXT NOT NULL,
         filename          TEXT NOT NULL,
         tags              TEXT NOT NULL)
+    ";
+
+const template_replace_create = 
+    "CREATE TABLE ".DBNAME.".template_replace (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        tag                      TEXT NOT NULL, -- tag to apply substitution on
+        value                    TEXT NOT NULL, -- value to be replaced
+        replacement              TEXT NOT NULL)
     ";
 }
 
