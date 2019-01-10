@@ -89,7 +89,7 @@
     return true;
     }
     function run() {
-        var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
+        var x = document.querySelectorAll('.toCircle:not([class*="catsCircle"])');
         var elements = [], styles = [];
         for(var y = 0; y < x.length; y++) {
 	       elements.push(x[y]);
@@ -121,7 +121,7 @@
                         divSpecial.outerHTML = sSpecial;
                     },
                     error: function(jqXHR, status, error) {
-                        console.log(status + \": \" + error);
+                        console.log(status + ": " + error);
                     }
                 });
             });
