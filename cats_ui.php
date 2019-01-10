@@ -23,20 +23,20 @@ class CATS_UI
 
     function Header()
     {
-        
+
         return "";
     }
 
      function OutputPage( $body )
      {
-    
+
 
     $body .= "<script> SEEDCore_CleanBrowserAddress(); </script>
 
     <script> run(); </script>
     <script src='w/js/tooltip.js'></script>
     </body></html>";
-    
+
     if( !$this->oApp->sess->IsLogin() ) {
         echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
         exit;
@@ -45,10 +45,14 @@ class CATS_UI
     $s = $this->oTmpl->ExpandTmpl( 'cats_page',
         ['img_cats_logo'=>CATS_LOGO,
             'CATSDIR'=>CATSDIR,
+            'CATSDIR_CSS'=>CATSDIR_CSS,
+            'CATSDIR_JS'=>CATSDIR_JS,
+            'W_CORE_URL'=>W_CORE_URL,
+
             'screen_name'=>$this->screen,
             'user_name'=>$this->oApp->sess->GetName(),
             'clinics'=>$clinics->displayUserClinics(), 'body' => $body ] );
-    
+
         return( $s );
     }
 
