@@ -418,7 +418,7 @@ class ClientList
              .$this->drawFormRow( "Role", $selRoles )
              .$this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")))
              .$this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")))
-             .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" )
+             .$this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
              ."<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
