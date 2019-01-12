@@ -197,7 +197,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 2;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 3;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -223,6 +223,12 @@ function createTables( KeyframeDatabase $kfdb )
         // Add akaunting_company to clinics table for akaunting Hook
         $kfdb->SetDebug(2);
         $kfdb->Execute( "ALTER TABLE clinics ADD akaunting_company INTEGER NOT NULL DEFAULT 0" );
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 3){
+        // Add mailing_address to clinics table
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "ALTER TABLE clinics ADD mailing_address VARCHAR(200) NOT NULL DEFAULT ''" );
         $kfdb->SetDebug(0);
     }
 
@@ -366,7 +372,16 @@ function createTables( KeyframeDatabase $kfdb )
 
     ensureTable( $kfdb, "assessments_scores" );
     ensureTable( $kfdb, "resources_files" );
-    ensureTable($kfdb, "template_replace");
+    if(!tableExists( $kfdb, DBNAME.".tag_name_resolution")){
+        echo "Creating the TNRS Resolution table";
+        
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( CATSDB_SQL::tag_name_resolution_create );
+        $tnrs = new TagNameResolutionService($kfdb);
+        $tnrs->defineComplexResolution("staff", "role", "ot", "occupational therapist");
+        $tnrs->defineComplexResolution("staff", "role", "slp", "speech-language pathologist");
+        $kfdb->SetDebug(0);
+    }
 
 
 
@@ -469,7 +484,7 @@ class CATSBaseDB extends Keyframe_NamedRelations
 
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
-
+        
         // set up $this->t first because KeyFrame_NamedRelations calls initKfrel which needs that
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
@@ -526,6 +541,145 @@ class AssessmentsDB extends CATSBaseDB
     }
 }
 
+class TagNameResolutionService {
+    
+    private $kfrel;
+    
+    private $kfreldef = array(
+        "Tables" => array( "TagNameResolution" => array( "Table" => DBNAME.'.tag_name_resolution',
+            "Fields" => "Auto",
+        )));
+    
+    function KFRel()  { return( $this->kfrel ); }
+    
+    function __construct( KeyframeDatabase $kfdb, $uid = 0 )
+    {
+        $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."TRS.log") );
+    }
+    
+    /** Attempt to resolve a tag for a particular value
+     * ONLY WORKS WITH COMPLEX TAGS
+     * Invokes resolveTag(String $tag, String $value) with $table and $col joined
+     * @param String $table - table portion of complex tag
+     * @param String $col - column portion of complex tag
+     * @param String $value - value to be replaced
+     * @see resolveTag(String $tag, String $value)
+     */
+    function resolveComplexTag(String $table, String $col, String $value):String{
+        return $this->resolveTag($table.":".$col, $value);
+    }
+    
+    /** Attempt to resolve a tag for a particular value.
+     * If Resolution fails the original value is returned.
+     * Can be used with single or complex tags
+     * @param String $tag - Tag to resolve
+     * @param String $value - Value to replace
+     * @return String - Replacement value or original value if resolution faills
+     */
+    function resolveTag(String $tag, String $value):String{
+        
+        $kfr = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($value)."'");
+        
+        if($kfr){
+            $v = $kfr->Value("value");
+            $ra = preg_split("/[\s-]/", $v, null, PREG_OFFSET_CAPTURE);
+            for ($i = 0; $i < count($ra) && $i < strlen($value); $i++) {
+                if(ctype_upper($value[$i])){
+                    $ra[$i][0] = ucwords($ra[$i][0]);
+                }
+            }
+            $sResult = "";
+            foreach($ra as $raResult){
+                if($raResult[1] != 0){
+                    $sResult .= $v[$raResult-1];
+                }
+                $sResult .= $raResult[0];
+            }
+            $value = $sResult;
+        }
+        
+        return $value;
+        
+    }
+    
+    function defineComplexResolution(String $table, String $col, String $name, String $value):array{
+        return $this->defineResolution($table.":".$col, $name, $value);
+    }
+    
+    function defineResolution(String $tag, String $name, String $value):array{
+        $out = array("bOk" => true, "sError" => "");
+        if($this->resolveTag($tag, $name) != $name){
+            $out["bOk"] = false;
+            $out["sError"] = "Could not define new Resolution because the tag already has a definition for ".$name;
+            goto done;
+        }
+        $kfr = $this->kfrel->CreateRecord();
+        $kfr->SetValue("tag", $tag);
+        $kfr->SetValue("name", $name);
+        $kfr->SetValue("value", $value);
+        $out['bOk'] = $kfr->PutDBRow();
+        
+        done:
+        return $out;
+        
+    }
+    
+    const UPDATE_TAG = 0;
+    const UPDATE_NAME = 1;
+    const UPDATE_VALUE = 2;
+    
+    function editResolution(String $tag, String $name, String $value, String $newValue, int $value_type ){
+        $col = "";
+        $out = array("bOk" => true, "sError" => "");
+        switch ($value_type){
+            case $this->UPDATE_TAG:
+                $col = 'tag';
+                break;
+            case $this->UPDATE_NAME:
+                $col = 'name';
+                break;
+            case $this->UPDATE_VALUE:
+                $col = 'value';
+                break;
+        }
+        if(!$col){
+            $out["bOk"] = false;
+            $out["sError"] = "Could not determine update type";
+            goto done;
+        }
+        
+        $kfr = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($value)."'");
+        $kfr->SetValue($col,$newValue);
+        
+        $out['bOut'] = $kfr->PutDBRow();
+        
+        done:
+        return $out;
+        
+    }
+    
+    function listResolution(){
+        $key = SEEDInput_Int("key");
+        $cmd = SEEDInput_Str("cmd");
+        
+        switch($cmd){
+            case "save":
+                $tag = SEEDInput_Str("tag");
+                $name = SEEDInput_Str("name");
+                $value = SEEDInput_Str("value");
+                if(!$tag || !$name){
+                    break;
+                }
+                break;
+            case "delete":
+                $kfr = $this->kfrel->GetRecordFromDBKey($key);
+                $kfr->DeleteRow();
+                break;
+        }
+        
+    }
+    
+}
 
 class CATSDB_SQL
 {
@@ -651,8 +805,8 @@ const resources_files_create =
         tags              TEXT NOT NULL)
     ";
 
-const template_replace_create = 
-    "CREATE TABLE ".DBNAME.".template_replace (
+const tag_name_resolution_create = 
+    "CREATE TABLE ".DBNAME.".tag_name_resolution (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
         _created_by INTEGER,
@@ -660,9 +814,9 @@ const template_replace_create =
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-        tag                      TEXT NOT NULL, -- tag to apply substitution on
-        value                    TEXT NOT NULL, -- value to be replaced
-        replacement              TEXT NOT NULL)
+        tag                     TEXT NOT NULL, -- tag to resolve
+        name                    TEXT NOT NULL, -- value to be replaced
+        value                   TEXT NOT NULL) -- value to replace with
     ";
 }
 

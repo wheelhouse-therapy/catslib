@@ -38,6 +38,7 @@ class template_filler {
 
     private $oApp;
     private $oPeopleDB;
+    private $tnrs;
 
     private $kfrClient = null;
     private $kfrClinic = null;
@@ -51,6 +52,7 @@ class template_filler {
         $this->oApp = $oApp;
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
+        $this->tnrs = new TagNameResolutionService($oApp->kfdb);
     }
 
     public function fill_resource($resourcename)
@@ -67,6 +69,7 @@ class template_filler {
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
             $v = $this->expandTag($tag);
+            $v = $this->tnrs->resolveTag($tag, $v);
             $templateProcessor->setValue($tag, $v);
         }
 
@@ -318,6 +321,7 @@ class template_filler {
         }
         return( "" );
     }
+    
 }
 
 ?>
