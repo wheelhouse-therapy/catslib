@@ -16,8 +16,8 @@ class CATS_UI
     {
         $this->oApp = $oApp;
 
-        $raTmplMaker = array( 'fTemplates'=> [CATSLIB."templates/cats.html",
-                                              CATSLIB."templates/cats_html.html"] );
+        $raTmplMaker = array( 'fTemplates'=> [CATSLIB."templates/cats.twig",
+                                              CATSLIB."templates/cats_html.twig"] );
         $this->oTmpl = SEEDTemplateMaker( $raTmplMaker );
     }
 
