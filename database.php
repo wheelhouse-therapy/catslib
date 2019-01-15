@@ -624,41 +624,39 @@ class TagNameResolutionService {
         
     }
     
-    const UPDATE_TAG = 0;
-    const UPDATE_NAME = 1;
-    const UPDATE_VALUE = 2;
-    
-    function editResolution(String $tag, String $name, String $value, String $newValue, int $value_type ){
-        $col = "";
-        $out = array("bOk" => true, "sError" => "");
-        switch ($value_type){
-            case $this->UPDATE_TAG:
-                $col = 'tag';
-                break;
-            case $this->UPDATE_NAME:
-                $col = 'name';
-                break;
-            case $this->UPDATE_VALUE:
-                $col = 'value';
-                break;
-        }
-        if(!$col){
-            $out["bOk"] = false;
-            $out["sError"] = "Could not determine update type";
-            goto done;
-        }
-        
-        $kfr = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($value)."'");
-        $kfr->SetValue($col,$newValue);
-        
-        $out['bOut'] = $kfr->PutDBRow();
-        
-        done:
-        return $out;
-        
-    }
-    
     function listResolution(){
+        
+        //Set up the output templates
+        $sOut = "<h1>Manage Tag Name Resolution Service</h1>
+                 <h6>This system substitutes other values for defined tag value pairs.
+                 The values which are replaced are called Names and the replacements are Values.</h6>
+                 <style>
+                    td,th {
+	                   text-align: center;
+                    }
+                 </style>
+                 <table class='sticky-header table-striped' style='width:100%;'>
+                    <thead>
+                        <tr><th colspan='4'>[[status]]</th></tr>
+                        <tr><th colspan='3'><!--Place Holder--></th><th><a href='?cmd=new'><button>Add New</button></a></th></tr>
+                        <tr><th>Tag</th><th>Name</th><th>Value</th><th>Options</th></tr>
+                    </thead>
+                    <tbody>
+                        [[resolutions]]
+                    </tbody>
+                 </table>
+                 [[form]]
+                        </div>
+                    </div>
+                 <script>
+                    $(document).ready(function () {
+                        $('.sticky-header').floatThead({
+                            scrollingTop: 50
+                        });
+
+                    });
+                 </script>";
+        
         $key = SEEDInput_Int("key");
         $cmd = SEEDInput_Str("cmd");
         
@@ -668,15 +666,70 @@ class TagNameResolutionService {
                 $name = SEEDInput_Str("name");
                 $value = SEEDInput_Str("value");
                 if(!$tag || !$name){
+                    $sOut = $this->report($sOut, "danger", "Tag and/or Name cannot be empty");
                     break;
+                }
+                $kfr = $this->kfrel->GetRecordFromDBKey($key);
+                $kfr->SetValue("tag",$tag);
+                $kfr->SetValue("name",$name);
+                $kfr->SetValue("value",$value);
+                if($kfr->PutDBRow()){
+                    $sOut = $this->report($sOut, "success", "Configuration Successful");
+                }
+                else{
+                    $sOut = $this->report($sOut, "warning", "An Error occured while saving to database");
                 }
                 break;
             case "delete":
                 $kfr = $this->kfrel->GetRecordFromDBKey($key);
-                $kfr->DeleteRow();
+                if(!$kfr){
+                    $sOut = $this->report($sOut, "danger", "Cannot Delete Entry with key of 0");
+                    break;
+                }
+                if($kfr->DeleteRow()){
+                    $sOut = $this->report($sOut, "success", "Deleted Successfully, Note: THIS CANNOT BE UNDONE");
+                }
+                else{
+                    $sOut = $this->report($sOut, "warning", "An Error occured while deleteing from database");
+                }
                 break;
         }
         
+        $ra = $this->kfrel->GetRecordSetRA("");
+        $sOut = str_replace("[[resolutions]]", SEEDCore_ArrayExpandRows($ra, "<tr><td>[[tag]]</td><td>[[name]]</td><td>[[value]]</td><td><a href='?cmd=edit&key=[[_key]]'><button>Edit</button></a>&nbsp<a href='?cmd=delete&key=[[key]]'><button>Delete</button></a></td></tr>"),$sOut);
+        $form = "";
+        if($cmd == "edit" || $cmd == "new"){
+            if($cmd == "edit"){
+                $kfr = $this->kfrel->GetRecordFromDBKey($key);
+            }
+            else{
+                $kfr = $this->kfrel->CreateRecord();
+            }
+            $form .= "<div class='container'><div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>
+                      <div class='row'>
+                      <div class='col-md-8'>
+                      <table class='container-fluid table table-striped'><form>"
+                    ."<input type='hidden' name='key' value=".$kfr->Value("_key")." />"
+                    ."<input type='hidden' name='cmd'value='save' />"
+                    ."<tr class='row'><td class='col-md-5'><label for='tag'>Tag:</label></td><td class='col-md-7'><input type='text' id='tag' name='tag' value='".$kfr->Value("tag")."' autofocus required /></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><label for='name'>Name:</label></td><td class='col-md-7'><input type='text' id='name' name='name' value='".$kfr->Value("name")."' required /></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><label for='value'>Value:</label></td><td class='col-md-7'><input type='text' id='value' name='value' value='".$kfr->Value("value")."' /></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><input type='submit' value='Save' />"
+                    ."</form></td></tr></table></div></div></div>";
+        }
+        
+        $sOut = str_replace("[[form]]", $form, $sOut);
+        
+        //Remove the status place holder if its not needed
+        $sOut = str_replace("[[status]]", "", $sOut);
+        
+        return $sOut;
+        
+    }
+    
+    private function report(String $sOut,String $type, String $message):String{
+        $alertTemplate = "<div class='alert alert-[[state]]'>[[message]]</div>";
+        return str_replace("[[status]]", str_replace(array("[[state]]","[[message]]"), array($type,$message), $alertTemplate), $sOut);
     }
     
 }

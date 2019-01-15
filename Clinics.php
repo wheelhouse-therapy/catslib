@@ -147,6 +147,9 @@ class Clinics {
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
                     if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
                         $kfr->SetValue( $field['alias'], strtolower(SEEDInput_Str('clinic_name'))."@catherapyservices.ca" );
+                    }
+                    elseif($field['alias'] == 'mailing_address' && SEEDInput_Str('mailing_address') == 'add%91ress'){
+                        $kfr->SetValue( $field['alias'], SEEDInput_Str('address') );
                     }else{
                         $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
                     }
@@ -202,18 +205,19 @@ class Clinics {
                 ."<table class='container-fluid table table-striped table-sm'>"
                     // The first clinic must be called core and cannot have the name changed
                     // Disable the name box so it cant be changed
-                .$this->drawFormRow( "Clinic Name", "<input type='text' name='clinic_name' required maxlength='200' value='".htmlspecialchars($ra['clinic_name'])."' placeholder='Name'".($ra['clinic_name'] == 'Core'?" readonly":"")." />")
+                .$this->drawFormRow( "Clinic Name", "<input type='text' name='clinic_name' required maxlength='200' value='".htmlspecialchars($ra['clinic_name'])."' placeholder='Name'".($ra['clinic_name'] == 'Core'?" readonly":"")."autofocus />")
                 .$this->drawFormRow( "Address", "<input type='text' name='address' maxlength='200' value='".htmlspecialchars($ra['address'])."' placeholder='Address' />")
                 .$this->drawFormRow( "City", "<input type='text' name='city' maxlength='200' value='".htmlspecialchars($ra['city'])."' placeholder='City' />")
                 .$this->drawFormRow( "Postal Code", "<input type='text' name='postal_code' maxlength='200' value='".htmlspecialchars($ra['postal_code'])."' placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$' />")
+                .$this->drawFormRow("Mailing Address", $this->getMailingAddress($ra))
                 .$this->drawFormRow( "Phone Number", "<input type='text' name='phone_number' maxlength='200' value='".htmlspecialchars($ra['phone_number'])."' placeholder='Phone Number' pattern='^(\d{3}[-\s]?){2}\d{4}$' />")
                 .$this->drawFormRow( "Fax Number", "<input type='text' name='fax_number' maxlength='200' value='".htmlspecialchars($ra['fax_number'])."' placeholder='Fax Number' />")
                 .$this->drawFormRow( "Rate", "<input type='number' name='rate' value='".htmlspecialchars($ra['rate'])."' placeholder='Rate' step='1' min='0' />")
                 .$this->drawFormRow( "Associated Business", "<input type='text' name='associated_business' maxlength='200' value='".htmlspecialchars($ra['associated_business'])."' placeholder='Associated Business' />")
+                .$this->drawFormRow("Email", $this->getEmail($ra))
                 // The Developer account must be the leader of the core clinic
                 // Disable the selector so it cant be changed
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
-                .$this->drawFormRow("Email", $this->getEmail($ra))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>";
             $s .= $sForm;
@@ -221,6 +225,27 @@ class Clinics {
         return($s);
     }
 
+    private function getMailingAddress($ra){
+        $isAddress = $ra['address'] == $ra['mailing_address'];
+        $s = "<input type='checkbox' value='add%91ress' id='mailingAddress' name='mailing_address' onclick='notAddress()' ".($isAddress?"checked":"").">Same as Address</input>"
+            ."<input type='text' id='mailing_address' name='mailing_address' ".($isAddress?"style='display:none' disabled ":"")
+            .(!$isAddress?"value='".$ra['mailing_address']."' ":"")." maxlenght='200' required placeholder='Mailing Address' />"
+            ."<script>
+                function notAddress() {
+                    var checkBox = document.getElementById('mailingAddress');
+                    var text = document.getElementById('mailing_address');
+                    if (checkBox.checked == false){
+                        text.style.display = 'block';
+                        text.disabled = false;
+                    } else {
+                        text.style.display = 'none';
+                        text.disabled = true;
+                    }
+                }
+              </script>";
+        return $s;
+    }
+    
     private function getEmail($ra){
         $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']);
         $s = "<input type='checkbox' value='default' id='clinicEmail' name='email' onclick='notDefault()' ".($useDefault?"checked ":"").">Use Default Email</input>"

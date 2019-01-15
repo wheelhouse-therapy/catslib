@@ -258,7 +258,7 @@ class ClientList
              ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
              .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$this->client_key}</p>":""):"<p>New Client</p>")
              ."<table class='container-fluid table table-striped table-sm'>"
-             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
+             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) )
              .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
              .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm))
              .$this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
@@ -405,7 +405,7 @@ class ClientList
                            ))
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>"
-             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) )
+             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) )
              .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
              .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
              .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )

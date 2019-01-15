@@ -209,11 +209,16 @@ class CATS_MainUI extends CATS_UI
             case 'admin-manageresources':
                 $s .= ManageResources($oApp);
                 break;
+            case 'admin-manageTNRS':
+                $tnrs = new TagNameResolutionService($oApp->kfdb);
+                $s .= $tnrs->listResolution();
+                break;
             default:
                 $raScreens = array(
-                    array( 'admin-users',             "Manage Users" ),
+                    array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
-                    array( 'admin-manageresources',  "Manage Resources ")
+                    array( 'admin-manageresources',  "Manage Resources "),
+                    array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service") 
                 );
                 $s .= $this->drawCircles( $raScreens );
 
