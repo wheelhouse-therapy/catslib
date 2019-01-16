@@ -624,6 +624,26 @@ class TagNameResolutionService {
         
     }
     
+    
+    /**
+     * Check if resolution is defined
+     * @param String $tag - tag to use in tag name pair.
+     * @param String $name - name to use in tag name pair.
+     * @param $kfr - record to use for self compare.
+     * @return bool - true if and only if the tag name pair is not defined or maped to itself.
+     * Such that the tag name entry is null or its _key $kfr->Value('_key')
+     */
+    function isAvailable(String $tag, String $name, $kfr = null):bool{
+        $record = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($name)."'");
+        
+        if(!$record){
+            return true;
+        }
+        
+        return $kfr && $record->Key() == $kfr->Key(); // If the keys match than its the same 
+        
+    }
+    
     function listResolution(){
         
         //Set up the output templates
@@ -670,6 +690,19 @@ class TagNameResolutionService {
                     break;
                 }
                 $kfr = $this->kfrel->GetRecordFromDBKey($key);
+                if(!$kfr){
+                    $result = $this->defineResolution($tag, $name, $value);
+                    if(!$result['bOk']){
+                        $sOut = $this->report($sOut, 'warning', $result['sError']);
+                    }
+                    else{
+                        $sOut = $this->report($sOut, "success", "Configuration Successful");
+                    }
+                    break;
+                }
+                if(!$this->isAvailable($tag, $name, $kfr)){
+                    $sOut = $this->report($sOut, 'warning', "The Tag Name pair already has a resolution");
+                }
                 $kfr->SetValue("tag",$tag);
                 $kfr->SetValue("name",$name);
                 $kfr->SetValue("value",$value);
@@ -696,7 +729,7 @@ class TagNameResolutionService {
         }
         
         $ra = $this->kfrel->GetRecordSetRA("");
-        $sOut = str_replace("[[resolutions]]", SEEDCore_ArrayExpandRows($ra, "<tr><td>[[tag]]</td><td>[[name]]</td><td>[[value]]</td><td><a href='?cmd=edit&key=[[_key]]'><button>Edit</button></a>&nbsp<a href='?cmd=delete&key=[[key]]'><button>Delete</button></a></td></tr>"),$sOut);
+        $sOut = str_replace("[[resolutions]]", SEEDCore_ArrayExpandRows($ra, "<tr><td>[[tag]]</td><td>[[name]]</td><td>[[value]]</td><td><a href='?cmd=edit&key=[[_key]]'><button>Edit</button></a>&nbsp<a href='?cmd=delete&key=[[_key]]'><button>Delete</button></a></td></tr>"),$sOut);
         $form = "";
         if($cmd == "edit" || $cmd == "new"){
             if($cmd == "edit"){
