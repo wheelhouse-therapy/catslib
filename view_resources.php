@@ -1,6 +1,7 @@
 <?php
 
 require_once 'template_filler.php';
+require_once 'share_resources.php';
 
 /**Array of valid Download Modes
  * 
@@ -312,6 +313,77 @@ function downloadPath($mode, $dir_name, $fileinfo){
         case 'blank':
             return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0'";
     }
+}
+
+function viewSOPs(SEEDAppConsole $oApp){
+    $viewSOP = <<<viewSOP
+    <style>
+        html, body {
+            height: 100vh;
+            overflow:hidden;
+        }
+        .SOPview {
+            height: 88%;
+        }
+        .catsToolbar {
+            margin-bottom:2px
+        }
+    </style>
+    <div class='catsToolbar'><a href='?SOP_view=list'><button>Back to List</button></a></div>
+    <div class='SOPview'>
+        <embed src='[[SOP]]#navpanes=0&statusbar=0&scrollbar=0&view=fitH,100' type='application/pdf' style='width:100%;height:100%;'>
+    </div>
+viewSOP;
+    $listSOPs = "<h3>View Standard Operating Procedures</h3>";
+    $dir = new DirectoryIterator(CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory']);
+    if(iterator_count($dir) == 2){
+        $listSOPs .= "<h2> No files in directory</h2>";
+        goto brains;
+    }
+        
+    $sFilter = SEEDInput_Str('resource-filter');
+    
+    $listSOPs .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
+               ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
+               ."</form></div>";
+        
+    $listSOPs .= "<table border='0'>";
+    foreach ($dir as $fileinfo) {
+        if( $fileinfo->isDot() ) continue;
+        
+        if( $sFilter ) {
+            if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
+        }
+        
+        $listSOPs .= "<tr>"
+            ."<td valign='top'>"
+                ."<a style='white-space: nowrap' href='?SOP_view=item&SOP_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
+                    .$fileinfo->getFilename()
+                ."</a>"
+            ."</td>"
+            ."</tr>";
+    }
+    $listSOPs .= "</table>";
+    
+    //Brains of operations
+    brains:
+    $view = $oApp->sess->SmartGPC("SOP_view",array("list","item"));
+    $item = $oApp->sess->SmartGPC("SOP_item", array(""));
+    
+    switch ($view){
+        case "item":
+            //Complicated method to ensure the file is in the directory
+            foreach (array_diff(scandir(CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory']), array('..', '.')) as $file){
+                if(pathinfo($file,PATHINFO_FILENAME) == $item){
+                    // show file
+                    return str_replace("[[SOP]]", CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory'].$file, $viewSOP);
+                }
+            }
+            $oApp->sess->VarUnSet("SOP_item");
+        case "list":
+            return $listSOPs;
+    }
+    
 }
 
 class ResourcesFiles

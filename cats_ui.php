@@ -128,7 +128,8 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-documents',       "Documents" ),
             array( 'therapist-team',            "Meet the Team" ),
             array( 'therapist-calendar',        "Calendar" ),
-            array( 'therapist-clinicresources', "Print Clinic Resources")
+            array( 'therapist-clinicresources', "Print Clinic Resources"),
+            array( 'therapist-viewSOPs',        "View Standard Operating Procedures" )
         );
 
         $s = "";
@@ -190,6 +191,8 @@ class CATS_MainUI extends CATS_UI
             case "therapist-clinicresources":
                 $s .= "<h3>Clinic Resources</h3>"
                     .ResourcesDownload( $this->oApp, "clinic/", "n" );
+            case "therapist-viewSOPs":
+                $s .= viewSOPs($this->oApp);
         }
         return( $s );
     }
