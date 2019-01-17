@@ -9,12 +9,13 @@
 // The extensions value of the second array is an array of all files extensions that are excepted in the directory
 // DO NOT include the dot in the file extension
 global $directories;
-$directories= array("papers"          => array("directory" => "papers/",    "name" => "Papers",              "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "handouts"        => array("directory" => "handouts/",  "name" => "Handouts",            "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "reports"         => array("directory" => "reports/",   "name" => "Client Reports",      "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "forms"           => array("directory" => "forms/",     "name" => "Forms",               "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "marketing"       => array("directory" => "marketing/", "name" => "Marketing Materials", "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "clinicResources" => array("directory" => "clinic/",    "name" => "Clinic Resources",    "extensions" => array("docx", "pdf", "txt", "rtf", "doc") )
+$directories= array("papers"          => array("directory" => "papers/",    "name" => "Papers",                        "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "handouts"        => array("directory" => "handouts/",  "name" => "Handouts",                      "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "reports"         => array("directory" => "reports/",   "name" => "Client Reports",                "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "forms"           => array("directory" => "forms/",     "name" => "Forms",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "marketing"       => array("directory" => "marketing/", "name" => "Marketing Materials",           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "clinicResources" => array("directory" => "clinic/",    "name" => "Clinic Resources",              "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              )
 );
 
 function getExtensions(){
