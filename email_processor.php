@@ -237,8 +237,9 @@ class EmailProcessor {
      */
     private function verifyString(String $value){
         $matches = 0;
-        foreach($this->PATTERNS as $regex){
-            if(preg_match($regex, $value)){
+        foreach($this->PATTERNS as $name=>$regex){
+            // Dont count forward or reply regex matches towords is the string is valid
+            if(preg_match($regex, $value) && !($name == 'forward' || $name == 'reply')){
                 $matches++;
             }
         }
