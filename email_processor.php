@@ -157,7 +157,7 @@ class EmailProcessor {
                          ."\nCATS Automatic Akaunting Entry System";
             
             //Send the results
-            SEEDEmailSend($message->getTo()->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
             
         }
     }
