@@ -196,7 +196,7 @@ class AkauntingHook {
                 $s .= "not being able to find an account to put the entry in.";
                 break;
             case self::REJECTED_NOT_SETUP:
-                $s .= "the clinic is not being setup for automatic Akaunting entries.";
+                $s .= "the clinic is not setup for automatic Akaunting entries.";
                 break;
             default:
                 if($error >= 200 && $error < 300){

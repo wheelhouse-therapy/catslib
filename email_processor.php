@@ -70,6 +70,9 @@ class EmailProcessor {
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
             if(!$matches){
                 $responce = "This Message has been rejected since the system cannot determine the clinic from the to address.";
+                if($attachment){
+                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
+                }
                 goto done;
             }
             $clinic = $matches[0];
@@ -120,11 +123,25 @@ class EmailProcessor {
                 unset($errors['subject']);
             }
             
+            if(count($entries) == 0){
+                if($attachment){
+                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
+                }
+            }
+            
             // Mark the message as processed so we dont make duplicate entries
             $message->markAsSeen();
             
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
+            
+            if(!array_intersect(range(200,299), $results)){
+                //There are no entries which were accepted into akaunting
+                //Remove the attachment if there is one
+                if($attachment){
+                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
+                }
+            }
             
             /* Compile the responce to send to the sender which reports the results of their entries.
              * This includes all errors raised by the email proccessor as well as errors raised by the Akaunting Hook.
