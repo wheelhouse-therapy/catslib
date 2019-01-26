@@ -30,7 +30,7 @@ class EmailProcessor {
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
-        "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
+        "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
         "companyCreditCard" => "/ccc/i"
     );
 
@@ -216,7 +216,7 @@ class EmailProcessor {
                     break;
                 case self::DISCARDED_NO_DATE:
                     $responce .= "Missing Date ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
-                               ."Accepted formats are MMM(M) DD?YY(YY) and MM/DD/YY(YY). Values in brackets are optional.\n";
+                               ."Accepted formats are MMM(M) DD/YY(YY), MMM(M) DD, YY(YY) and MM/DD/YY(YY). Values in brackets are optional.\n";
                     break;
                 case self::DISCARDED_ZERO_AMOUNT:
                     $responce .= "Amount is zero ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
@@ -310,15 +310,15 @@ class AccountingEntry {
     }
 
     private function parseDate(String $date): String {
-        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4}/i", $date)){
+        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4}/i", $date)){
             //Clear up some of the double options
             $date = str_replace("Sep", "Sept", $date);
             $date = str_replace("June", "Jun", $date);
             $date = str_replace("July", "Jul", $date);
             
             //Format switchers
-            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9]\/[0-9]{2,4}/i", $date)?"d":"j");
-            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{4}/i", $date)?"Y":"y");
+            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9](?:, |\/)[0-9]{2,4}/i", $date)?"d":"j");
+            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{4}/i", $date)?"Y":"y");
             
             return DateTime::createFromFormat('M '.$day.'/'.$year, $date)->format('Y-m-d');
         }
