@@ -314,7 +314,7 @@ class AccountingEntry {
     private function parseDate(String $date): String {
         if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4}/i", $date)){
             //Clear up some of the double options
-            $date = str_replace("Sep", "Sept", $date);
+            $date = str_replace("Sep ", "Sept ", $date);
             $date = str_replace("June", "Jun", $date);
             $date = str_replace("July", "Jul", $date);
             
