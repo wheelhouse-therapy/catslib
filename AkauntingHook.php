@@ -85,7 +85,7 @@ class AkauntingHook {
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
                       array("account_id" => "", "debit" => "$",     "credit" => "$0.00")
-                ), "reference" => "System Entry. ");
+                ), "reference" => "System Entry. ", "currency_code" => "CAD");
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
