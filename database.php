@@ -374,7 +374,7 @@ function createTables( KeyframeDatabase $kfdb )
     ensureTable( $kfdb, "resources_files" );
     if(!tableExists( $kfdb, DBNAME.".tag_name_resolution")){
         echo "Creating the TNRS Resolution table";
-        
+
         $kfdb->SetDebug(2);
         $kfdb->Execute( CATSDB_SQL::tag_name_resolution_create );
         $tnrs = new TagNameResolutionService($kfdb);
@@ -484,7 +484,7 @@ class CATSBaseDB extends Keyframe_NamedRelations
 
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
-        
+
         // set up $this->t first because KeyFrame_NamedRelations calls initKfrel which needs that
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
@@ -542,21 +542,21 @@ class AssessmentsDB extends CATSBaseDB
 }
 
 class TagNameResolutionService {
-    
+
     private $kfrel;
-    
+
     private $kfreldef = array(
         "Tables" => array( "TagNameResolution" => array( "Table" => DBNAME.'.tag_name_resolution',
             "Fields" => "Auto",
         )));
-    
+
     function KFRel()  { return( $this->kfrel ); }
-    
+
     function __construct( KeyframeDatabase $kfdb, $uid = 0 )
     {
         $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."TRS.log") );
     }
-    
+
     /** Attempt to resolve a tag for a particular value
      * ONLY WORKS WITH COMPLEX TAGS
      * Invokes resolveTag(String $tag, String $value) with $table and $col joined
@@ -568,7 +568,7 @@ class TagNameResolutionService {
     function resolveComplexTag(String $table, String $col, String $value):String{
         return $this->resolveTag($table.":".$col, $value);
     }
-    
+
     /** Attempt to resolve a tag for a particular value.
      * If Resolution fails the original value is returned.
      * Can be used with single or complex tags
@@ -577,9 +577,9 @@ class TagNameResolutionService {
      * @return String - Replacement value or original value if resolution faills
      */
     function resolveTag(String $tag, String $value):String{
-        
-        $kfr = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($value)."'");
-        
+
+        $kfr = $this->kfrel->GetRecordFromDB("tag='".addslashes(strtolower($tag))."' AND name='".addslashes(strtolower($value))."'");
+
         if($kfr){
             $v = $kfr->Value("value");
             $ra = preg_split("/[\s-]/", $v, null, PREG_OFFSET_CAPTURE);
@@ -597,15 +597,15 @@ class TagNameResolutionService {
             }
             $value = $sResult;
         }
-        
+
         return $value;
-        
+
     }
-    
+
     function defineComplexResolution(String $table, String $col, String $name, String $value):array{
         return $this->defineResolution($table.":".$col, $name, $value);
     }
-    
+
     function defineResolution(String $tag, String $name, String $value):array{
         $out = array("bOk" => true, "sError" => "");
         if($this->resolveTag($tag, $name) != $name){
@@ -618,13 +618,13 @@ class TagNameResolutionService {
         $kfr->SetValue("name", $name);
         $kfr->SetValue("value", $value);
         $out['bOk'] = $kfr->PutDBRow();
-        
+
         done:
         return $out;
-        
+
     }
-    
-    
+
+
     /**
      * Check if resolution is defined
      * @param String $tag - tag to use in tag name pair.
@@ -633,19 +633,19 @@ class TagNameResolutionService {
      * @return bool - true if and only if the tag name pair is not defined or maped to itself.
      * Such that the tag name entry is null or its _key $kfr->Value('_key')
      */
-    function isAvailable(String $tag, String $name, $kfr = null):bool{
-        $record = $this->kfrel->GetRecordFromDB("tag='".strtolower($tag)."' AND name='".strtolower($name)."'");
-        
+    function isAvailable(String $tag, String $name, KeyframeRecord $kfr = null):bool{
+        $record = $this->kfrel->GetRecordFromDB("tag='".addslashes(strtolower($tag))."' AND name='".addslashes(strtolower($name))."'");
+
         if(!$record){
             return true;
         }
-        
-        return $kfr && $record->Key() == $kfr->Key(); // If the keys match than its the same 
-        
+
+        return $kfr && $record->Key() == $kfr->Key(); // If the keys match than its the same
+
     }
-    
+
     function listResolution(){
-        
+
         //Set up the output templates
         $sOut = "<h1>Manage Tag Name Resolution Service</h1>
                  <h6>This system substitutes other values for defined tag value pairs.
@@ -676,10 +676,10 @@ class TagNameResolutionService {
 
                     });
                  </script>";
-        
+
         $key = SEEDInput_Int("key");
         $cmd = SEEDInput_Str("cmd");
-        
+
         switch($cmd){
             case "save":
                 $tag = SEEDInput_Str("tag");
@@ -727,7 +727,7 @@ class TagNameResolutionService {
                 }
                 break;
         }
-        
+
         $ra = $this->kfrel->GetRecordSetRA("");
         $sOut = str_replace("[[resolutions]]", SEEDCore_ArrayExpandRows($ra, "<tr><td>[[tag]]</td><td>[[name]]</td><td>[[value]]</td><td><a href='?cmd=edit&key=[[_key]]'><button>Edit</button></a>&nbsp<a href='?cmd=delete&key=[[_key]]'><button>Delete</button></a></td></tr>"),$sOut);
         $form = "";
@@ -750,21 +750,21 @@ class TagNameResolutionService {
                     ."<tr class='row'><td class='col-md-5'><input type='submit' value='Save' />"
                     ."</form></td></tr></table></div></div></div>";
         }
-        
+
         $sOut = str_replace("[[form]]", $form, $sOut);
-        
+
         //Remove the status place holder if its not needed
         $sOut = str_replace("[[status]]", "", $sOut);
-        
+
         return $sOut;
-        
+
     }
-    
+
     private function report(String $sOut,String $type, String $message):String{
         $alertTemplate = "<div class='alert alert-[[state]]'>[[message]]</div>";
         return str_replace("[[status]]", str_replace(array("[[state]]","[[message]]"), array($type,$message), $alertTemplate), $sOut);
     }
-    
+
 }
 
 class CATSDB_SQL
@@ -891,7 +891,7 @@ const resources_files_create =
         tags              TEXT NOT NULL)
     ";
 
-const tag_name_resolution_create = 
+const tag_name_resolution_create =
     "CREATE TABLE ".DBNAME.".tag_name_resolution (
         _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
         _created    DATETIME,
