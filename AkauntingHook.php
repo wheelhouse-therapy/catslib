@@ -190,7 +190,7 @@ class AkauntingHook {
     }
     
     public static function decodeError(String $location, int $error):String{
-        $s = "Submition of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
+        $s = "Submition of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in.";
