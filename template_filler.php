@@ -145,7 +145,7 @@ class template_filler {
                     break;
                 default:
                     $s = $col[0];
-                    $s = $this->kfrClinic->Value( $col[0] );
+                    $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
 
@@ -168,7 +168,7 @@ class template_filler {
                     $s = $ra['regnumber' ];
                     break;
                 default:
-                    $s = $this->kfrStaff->Value( $col[0] );
+                    $s = $this->kfrStaff->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
 
@@ -190,7 +190,7 @@ class template_filler {
                     }
                     break;
                 default:
-                    $s = $this->kfrClient->Value( $col[0] );
+                    $s = $this->kfrClient->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
         done:
@@ -321,7 +321,7 @@ class template_filler {
         }
         return( "" );
     }
-    
+
 }
 
 ?>
