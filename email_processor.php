@@ -320,6 +320,9 @@ class AccountingEntry {
             $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9](?:, |\/)[0-9]{2,4}/i", $date)?"d":"j");
             $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{4}/i", $date)?"Y":"y");
             
+            //Clear up alternate date formats
+            $date = str_replace(", ", "/", $date);
+            
             return DateTime::createFromFormat('M '.$day.'/'.$year, $date)->format('Y-m-d');
         }
         if(preg_match("/[0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?/", $date)){
