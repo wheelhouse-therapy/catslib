@@ -47,6 +47,21 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
+    // Constants for dealing with different types of resources
+    /**
+     * Default resource type
+     * The filled file is sent to user like normal
+     */
+    public const STANDALONE_RESOURCE = 1;
+    /**
+     * The resource being filled is actually a part of another resource.
+     * The filled file should not be sent to the user as it is not complete
+     */
+    //TODO implement
+    public const RESOURCE_SECTION = 2;
+    // May not be needed it will depend on implementation
+    public const REPORT_SECTION = 3;
+    
     public function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
@@ -55,8 +70,29 @@ class template_filler {
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
     }
 
-    public function fill_resource($resourcename)
+    private function isResourceTypeValid($resourceType):bool{
+        // You Must add a new resource type to this switch statement or it will not validate
+        switch($resourceType){
+            case self::STANDALONE_RESOURCE:
+            case self::RESOURCE_SECTION:
+            case self::REPORT_SECTION:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    /** Replace tags in a resource with their corresponding data values
+     * @param String $resourcename - Path of resource to replace tags in
+     * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file output
+     */
+    public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
     {
+        
+        if(!$this->isResourceTypeValid($resourceType)){
+            return;
+        }
+        
         $this->kClient = SEEDInput_Int('client');
         $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
@@ -100,23 +136,27 @@ class template_filler {
         $phpWord->save(substr($resourcename,strrpos($resourcename, '/')+1),$ext,TRUE);
 */
 
-        // Took this from PhpOffice\PhpWord\PhpWord::save()
-        header('Content-Description: File Transfer');
-        header('Content-Disposition: attachment; filename="' . basename($resourcename) . '"');
-        header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        header('Content-Transfer-Encoding: binary');
-        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-        header('Expires: 0');
+        switch($resourceType){
+            case self::STANDALONE_RESOURCE:
+                // Took this from PhpOffice\PhpWord\PhpWord::save()
+                header('Content-Description: File Transfer');
+                header('Content-Disposition: attachment; filename="' . basename($resourcename) . '"');
+                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                header('Content-Transfer-Encoding: binary');
+                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                header('Expires: 0');
 
-        // Save the substituted template to a temp file and pass it to the php://output, then exit so no other output corrupts the file.
-        // PHP automatically deletes the temp file when the script ends.
-        $tempfile = $templateProcessor->save();
-        if( ($fp = fopen( $tempfile, "rb" )) ) {
-            fpassthru( $fp );
-            fclose( $fp );
+                // Save the substituted template to a temp file and pass it to the php://output, then exit so no other output corrupts the file.
+                // PHP automatically deletes the temp file when the script ends.
+                $tempfile = $templateProcessor->save();
+                if( ($fp = fopen( $tempfile, "rb" )) ) {
+                    fpassthru( $fp );
+                    fclose( $fp );
+                }
+
+                die();
+                break;
         }
-
-        die();
     }
 
     private function expandTag($tag)

@@ -72,6 +72,40 @@ class AssessmentsCommon
 
         return( $s );
     }
+    
+    /**
+     * Output a list of assesments for a client for inclusion in a report
+     * An empty array is returned if there are no assesments for the client
+     * @param int $client - client id to list assmts for
+     * @return array of html output to be placed in model
+     */
+    function listAssessments(int $client):array{
+        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form'>","footer"=>"<input type='submit' value='Download' form='assmt_form' />");
+        $bData = false;
+        foreach ($this->raAssessments as $assmt){
+            $raOut['body'] .= $assmt['title'].":<select>";
+            $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2=".$client." and testType=".$assmt['code'], array("sSortCol"=>"_created", "bSortDown"=> true) );
+            $raOut['body'] .= "<select name='".$assmt['code']."'".(count($raA) == 0 ? " readonly":"").">";
+            if(count($raA) == 0){
+                $raOut['body'] .= "<option>No Data Recorded</option>";
+            }
+            else{
+                $raOut['body'] .= "<option value='0' selected>Do Not Include</option>";
+                foreach ($raA as $ra){
+                    $date = substr( $ra['_created'], 0, 10 );
+                    $raOut['body'] .= "<option value='".$ra['_key']."'>".$date."</option>";
+                }
+                // Some data has been put in the form lets be sure to send this to the user
+                $bData = true;
+            }
+            $raOut['body'] .= "</select>";
+        }
+        $raOut['body'] .="</form>";
+        
+        return $bData ? $sOut : array();
+        
+    }
+    
 }
 
 abstract class Assessments
@@ -411,7 +445,7 @@ abstract class Assessments
      * @return array of availible tags.
      * @see getTagValue($tag)
      */
-    abstract protected function getTags():array;
+    abstract public function getTags():array;
 
     /**
      * Get value for a given tag
