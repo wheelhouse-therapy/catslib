@@ -1,0 +1,852 @@
+</w:t>
+</w:r>
+</w:p>
+
+<w:p w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>${</w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>client</w:t>
+</w:r>
+<w:proofErr w:type="gramStart"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>:firstname</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:proofErr w:type="gramEnd"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>
+}’s parent completed the Sensory Processing Measure (SPM) and also a parental interview to review sensory processing concerns.
+</w:t>
+</w:r>
+</w:p>
+<w:p w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Trebuchet MS" w:hAnsi="Trebuchet MS" w:cs="Arial"/>
+<w:sz w:val="22"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="0076491E">
+<w:rPr>
+<w:rFonts w:ascii="Trebuchet MS" w:hAnsi="Trebuchet MS" w:cs="Arial"/>
+<w:sz w:val="22"/>
+</w:rPr>
+<w:t xml:space="preserve"></w:t>
+</w:r>
+</w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="8738" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+<w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+<w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+<w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+<w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+<w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+</w:tblBorders>
+<w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="1693"/>
+<w:gridCol w:w="2777"/>
+<w:gridCol w:w="1354"/>
+<w:gridCol w:w="2914"/>
+</w:tblGrid>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1693" w:type="dxa"/>
+<w:vMerge w:val="restart"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+<w:t xml:space="preserve">SENSE</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2779" w:type="dxa"/>
+<w:vMerge w:val="restart"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+<w:t xml:space="preserve">Therapist’s findings / overall interpretation</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="4266" w:type="dxa"/>
+<w:gridSpan w:val="2"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>Data on which therapist’s findings are based</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:vMerge/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:vMerge/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+</w:rPr>
+<w:t>Standardized scores</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:i/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>
+Items reported ‘frequently’ or ‘always’ on the SPM (in italics)
+</w:t>
+</w:r>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>
+, or significant findings of parent interview or therapist observation
+</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+<w:lang w:val="en-CA" w:eastAsia="en-CA"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Vision</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="239"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="0049208B">
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+<w:highlight w:val="magenta"/>
+</w:rPr>
+<w:t>Leave this part for us to fill in</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="0049208B" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+<w:highlight w:val="magenta"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="0049208B">
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+<w:highlight w:val="magenta"/>
+</w:rPr>
+<w:t>Generated From test</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="0049208B">
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+<w:highlight w:val="magenta"/>
+</w:rPr>
+<w:t>Generated From test</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Audition</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="239"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Touch</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="239"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Taste/Smell/Oral Touch</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="252"/>
+<w:rPr>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Vestibular</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="252"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t>Body Awareness</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="239"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1365" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="3088" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr w:rsidR="0049208B" w:rsidRPr="0076491E" w:rsidTr="00915FD8">
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="1358" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+<w:t xml:space="preserve">TOTAL</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="2927" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="00915FD8">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:ind w:left="239"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+<w:r w:rsidRPr="000F4FAC">
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>-see below</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="4266" w:type="dxa"/>
+<w:gridSpan w:val="2"/>
+<w:shd w:val="clear" w:color="auto" w:fill="auto"/>
+</w:tcPr>
+<w:p w:rsidR="0049208B" w:rsidRPr="000F4FAC" w:rsidRDefault="0049208B" w:rsidP="0049208B">
+<w:pPr>
+<w:pStyle w:val="ListParagraph"/>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="1"/>
+</w:numPr>
+<w:ind w:left="239" w:hanging="180"/>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
+<w:p w:rsidR="00FE3B8C" w:rsidRDefault="00FE3B8C"/>
+<w:p w:rsidR="0049208B" w:rsidRDefault="0049208B">
+<w:r w:rsidRPr="0049208B">
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>Overall,</w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve"></w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>${</w:t>
+</w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>client</w:t>
+</w:r>
+<w:proofErr w:type="gramStart"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>:firstname</w:t>
+</w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:proofErr w:type="gramEnd"/>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t>}</w:t>
+</w:r>
+<w:r>
+<w:rPr>
+<w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+<w:t xml:space="preserve">is presenting as…</w:t>
+</w:r>
+</w:p>
+
+
+
+<w:p>
+<w:r>
+    <w:t>

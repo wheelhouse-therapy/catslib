@@ -193,6 +193,14 @@ class template_filler {
                     $s = $this->kfrClient->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
+
+        if( $table == 'assessment' ) {
+            // This is just to test how to inject docx xml into a Word file.
+            // There should be variants of this tag for different reports and report formats.
+            // Also, the file loaded below should be run through template_filler here, to expand tags in it.
+
+            $s = file_get_contents( CATSLIB."templates/assessment.xml" );
+        }
         done:
         return( $s );
     }
