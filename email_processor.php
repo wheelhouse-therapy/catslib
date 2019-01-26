@@ -2,6 +2,7 @@
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
 require_once(CATSLIB.'/vendor/autoload.php');
+require_once( SEEDCORE."SEEDEmail.php" );
 
 use Ddeboer\Imap\Server;
 use Ddeboer\Imap\SearchExpression;
