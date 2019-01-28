@@ -2,6 +2,7 @@
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
 require_once(CATSLIB.'/vendor/autoload.php');
+require_once( SEEDCORE."SEEDEmail.php" );
 
 use Ddeboer\Imap\Server;
 use Ddeboer\Imap\SearchExpression;
@@ -29,8 +30,10 @@ class EmailProcessor {
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
-        "date"   => "/(?<= )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
-        "companyCreditCard" => "/ccc/i"
+        "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
+        "companyCreditCard" => "/ccc/i",
+        "forward" => "/Fwd:/i",
+        "reply" => "/Re:/i"
     );
 
     private $connection;
@@ -55,16 +58,8 @@ class EmailProcessor {
         echo "Processing ".count($messages)." messages<br/>";
         foreach($messages as $message){
             $attachment = microtime(TRUE);
-            echo $attachment."<br />";
 
-            $raAttachments = $message->getAttachments();
-            if(count($raAttachments) > 0){
-                $oAttachment = $raAttachments[0];
-                $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
-                fwrite($attachmentFile, $oAttachment->getDecodedContent());
-                fclose($attachmentFile);
-            }
-            else{
+            if(count($message->getAttachments()) == 0){
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
@@ -120,11 +115,27 @@ class EmailProcessor {
                 unset($errors['subject']);
             }
             
+            if(count($entries) == 0){
+                if($attachment){
+                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
+                }
+            }
+            
             // Mark the message as processed so we dont make duplicate entries
             $message->markAsSeen();
             
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
+            
+            if(array_intersect(range(200,299), $results) && $attachment){
+                $raAttachments = $message->getAttachments();
+                if(count($raAttachments) > 0){
+                    $oAttachment = $raAttachments[0];
+                    $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
+                    fwrite($attachmentFile, $oAttachment->getDecodedContent());
+                    fclose($attachmentFile);
+                }
+            }
             
             /* Compile the responce to send to the sender which reports the results of their entries.
              * This includes all errors raised by the email proccessor as well as errors raised by the Akaunting Hook.
@@ -139,7 +150,7 @@ class EmailProcessor {
                          ."\nCATS Automatic Akaunting Entry System";
             
             //Send the results
-            SEEDEmailSend($message->getTo()->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
             
         }
     }
@@ -198,7 +209,7 @@ class EmailProcessor {
                     break;
                 case self::DISCARDED_NO_DATE:
                     $responce .= "Missing Date ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
-                               ."Accepted formats are MMM(M) DD?YY(YY) and MM/DD/YY(YY). Values in brackets are optional.\n";
+                               ."Accepted formats are MMM(M) DD/YY(YY), MMM(M) DD, YY(YY) and MM/DD/YY(YY). Values in brackets are optional.\n";
                     break;
                 case self::DISCARDED_ZERO_AMOUNT:
                     $responce .= "Amount is zero ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
@@ -217,8 +228,9 @@ class EmailProcessor {
      */
     private function verifyString(String $value){
         $matches = 0;
-        foreach($this->PATTERNS as $regex){
-            if(preg_match($regex, $value)){
+        foreach($this->PATTERNS as $name=>$regex){
+            // Dont count forward or reply regex matches towords is the string is valid
+            if(preg_match($regex, $value) && !($name == 'forward' || $name == 'reply')){
                 $matches++;
             }
         }
@@ -292,15 +304,18 @@ class AccountingEntry {
     }
 
     private function parseDate(String $date): String {
-        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{2,4}/i", $date)){
+        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4}/i", $date)){
             //Clear up some of the double options
-            $date = str_replace("Sep", "Sept", $date);
+            $date = str_replace("Sep ", "Sept ", $date);
             $date = str_replace("June", "Jun", $date);
             $date = str_replace("July", "Jul", $date);
             
             //Format switchers
-            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9]\/[0-9]{2,4}/i", $date)?"d":"j");
-            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9]\/[0-9]{4}/i", $date)?"Y":"y");
+            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9](?:, |\/)[0-9]{2,4}/i", $date)?"d":"j");
+            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{4}/i", $date)?"Y":"y");
+            
+            //Clear up alternate date formats
+            $date = str_replace(", ", "/", $date);
             
             return DateTime::createFromFormat('M '.$day.'/'.$year, $date)->format('Y-m-d');
         }

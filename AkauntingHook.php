@@ -85,7 +85,7 @@ class AkauntingHook {
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDesc(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
                       array("account_id" => "", "debit" => "$",     "credit" => "$0.00")
-                ), "reference" => "System Entry. ");
+                ), "reference" => "System Entry. ", "currency_code" => "CAD");
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
@@ -164,6 +164,9 @@ class AkauntingHook {
     }
 
     private static function getAccountByName($name){
+        if($value = self::getAccountByKeyWord($name)){
+            return $value;
+        }
         foreach(self::$accounts as $k => $account){
             if(strtolower($account['name']) == strtolower($name)){
                 return $k;
@@ -172,6 +175,42 @@ class AkauntingHook {
         return NULL;
     }
 
+    private static function getAccountByKeyWord($string){
+        /**
+         * The key is the account name as written in akaunting
+         * The value is a array of keywords which are equivilent to the the akaunting account
+         * @var array $keywords
+         */
+        $keywords = array(
+            'advertising'                               => array("ads","ad"),
+            'wages and salaries'                        => array("wages", "salary"),
+            'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
+            'meals & entertainment'                     => array("meal", "meals", "restaurant"),
+            'postage - for reports (not advertising)'   => array("stamps", "postage"),
+            'therapy supplies - toys/small items'       => array("toys", "toy"),
+            'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
+            'therapy supplies -- books and manuals'     => array("book", "books", "manual", "manuals"),
+            'therapy equipment'                         => array("equipment", "equip"),
+            'education expense'                         => array("course", "courses", "education", "pd"),
+            'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
+            'office supplies'                           => array("office", "office supply"),
+            'professional dues & memberships'           => array("caot", "osot", "dues"),
+            'telephone and internet'                    => array("phone", "phone bill", "telephone")
+        );
+        
+        foreach($keywords as $account=>$words){
+            foreach ($words as $words){
+                if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
+                    return self::getAccountByName($account);
+                }
+            }
+        }
+        
+        return NULL;
+        
+    }
+    
     private static function getAccountByCode($code){
         foreach(self::$accounts as $k => $account){
             if($account['code'] == $code){
@@ -183,20 +222,20 @@ class AkauntingHook {
 
     public static function decodeErrors(array $errors):String{
         $s = "";
-        foreach ($errors as $k=>$error){
-            $s .= self::decodeError($k,$error);
+        foreach ($errors as $error){
+            $s .= self::decodeError($error);
         }
         return $s;
     }
     
-    public static function decodeError(String $location, int $error):String{
-        $s = "Submition of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
+    public static function decodeError(int $error):String{
+        $s = "Submission of Entry resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in.";
                 break;
             case self::REJECTED_NOT_SETUP:
-                $s .= "the clinic is not being setup for automatic Akaunting entries.";
+                $s .= "the clinic is not setup for automatic Akaunting entries.";
                 break;
             default:
                 if($error >= 200 && $error < 300){
