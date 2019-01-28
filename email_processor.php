@@ -58,24 +58,13 @@ class EmailProcessor {
         echo "Processing ".count($messages)." messages<br/>";
         foreach($messages as $message){
             $attachment = microtime(TRUE);
-            echo $attachment."<br />";
 
-            $raAttachments = $message->getAttachments();
-            if(count($raAttachments) > 0){
-                $oAttachment = $raAttachments[0];
-                $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
-                fwrite($attachmentFile, $oAttachment->getDecodedContent());
-                fclose($attachmentFile);
-            }
-            else{
+            if(count($message->getAttachments()) == 0){
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
             if(!$matches){
                 $responce = "This Message has been rejected since the system cannot determine the clinic from the to address.";
-                if($attachment){
-                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
-                }
                 goto done;
             }
             $clinic = $matches[0];
@@ -138,11 +127,13 @@ class EmailProcessor {
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
             
-            if(!array_intersect(range(200,299), $results)){
-                //There are no entries which were accepted into akaunting
-                //Remove the attachment if there is one
-                if($attachment){
-                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
+            if(array_intersect(range(200,299), $results) && $attachment){
+                $raAttachments = $message->getAttachments();
+                if(count($raAttachments) > 0){
+                    $oAttachment = $raAttachments[0];
+                    $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
+                    fwrite($attachmentFile, $oAttachment->getDecodedContent());
+                    fclose($attachmentFile);
                 }
             }
             

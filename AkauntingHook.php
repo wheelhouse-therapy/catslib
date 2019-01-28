@@ -164,6 +164,9 @@ class AkauntingHook {
     }
 
     private static function getAccountByName($name){
+        if($value = self::getAccountByKeyWord($name)){
+            return $value;
+        }
         foreach(self::$accounts as $k => $account){
             if(strtolower($account['name']) == strtolower($name)){
                 return $k;
@@ -172,6 +175,42 @@ class AkauntingHook {
         return NULL;
     }
 
+    private static function getAccountByKeyWord($string){
+        /**
+         * The key is the account name as written in akaunting
+         * The value is a array of keywords which are equivilent to the the akaunting account
+         * @var array $keywords
+         */
+        $keywords = array(
+            'advertising'                               => array("ads","ad"),
+            'wages and salaries'                        => array("wages", "salary"),
+            'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
+            'meals & entertainment'                     => array("meal", "meals", "restaurant"),
+            'postage - for reports (not advertising)'   => array("stamps", "postage"),
+            'therapy supplies - toys/small items'       => array("toys", "toy"),
+            'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
+            'therapy supplies -- books and manuals'     => array("book", "books", "manual", "manuals"),
+            'therapy equipment'                         => array("equipment", "equip"),
+            'education expense'                         => array("course", "courses", "education", "pd"),
+            'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
+            'office supplies'                           => array("office", "office supply"),
+            'professional dues & memberships'           => array("caot", "osot", "dues"),
+            'telephone and internet'                    => array("phone", "phone bill", "telephone")
+        );
+        
+        foreach($keywords as $account=>$words){
+            foreach ($words as $words){
+                if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
+                    return self::getAccountByName($account);
+                }
+            }
+        }
+        
+        return NULL;
+        
+    }
+    
     private static function getAccountByCode($code){
         foreach(self::$accounts as $k => $account){
             if($account['code'] == $code){
