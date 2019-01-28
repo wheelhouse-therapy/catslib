@@ -655,13 +655,13 @@ class TagNameResolutionService {
 	                   text-align: center;
                     }
                  </style>
-                 <table class='sticky-header table-striped' style='width:100%;'>
+                 <table class='sticky-header better-table-striped' id='tagTable' style='width:100%;'>
                     <thead>
                         <tr><th colspan='4'>[[status]]</th></tr>
                         <tr><th colspan='3'><!--Place Holder--></th><th><a href='?cmd=new'><button>Add New</button></a></th></tr>
                         <tr><th>Tag</th><th>Name</th><th>Value</th><th>Options</th></tr>
                     </thead>
-                    <tbody>
+                    <tbody id='tagTableBody'>
                         [[resolutions]]
                     </tbody>
                  </table>
@@ -738,10 +738,11 @@ class TagNameResolutionService {
             else{
                 $kfr = $this->kfrel->CreateRecord();
             }
-            $form .= "<div class='container'><div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>
+            $form .= "<div class='container'><div class='container-fluid' id='formRoot'>
+                      <div class='row' style='justify-content: space-around'><h4>Add a Tag</h4></div>
                       <div class='row'>
-                      <div class='col-md-8'>
-                      <table class='container-fluid table table-striped'><form>"
+                      <div class='col-md-12'>
+                      <table class='table better-table-striped' style='margin-bottom:0'><form>"
                     ."<input type='hidden' name='key' value=".$kfr->Value("_key")." />"
                     ."<input type='hidden' name='cmd'value='save' />"
                     ."<tr class='row'><td class='col-md-5'><label for='tag'>Tag:</label></td><td class='col-md-7'><input type='text' id='tag' name='tag' value='".$kfr->Value("tag")."' autofocus required /></td></tr>"
