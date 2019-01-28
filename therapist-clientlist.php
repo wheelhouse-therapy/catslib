@@ -316,7 +316,8 @@ class ClientList
          return( $s );
     }
 
-    private function schoolField(String $value){
+    private function schoolField( $value )
+    {
         $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]]>In School</input>
          <input type='text' style='display:[[display]]' name='[name]' id='schoolField' value='[[value]]' [[disabled]] required placeholder='School' />
          <input type='hidden' value='' id='schoolHidden' name='[name]' [[!disabled]] />
@@ -342,7 +343,7 @@ class ClientList
         $s = str_replace("[[value]]", $value, $s);
         return $s;
     }
-    
+
     private function drawFormRow( $label, $control )
     {
         return( "<tr class='row'>"
