@@ -9,6 +9,8 @@ class AkauntingHook {
 
     const REJECTED_NO_ACCOUNT = -1;
     const REJECTED_NOT_SETUP = -2;
+    const REJECTED_NO_PERSON = -3;
+    const REJECTED_NO_CCC = -4;
 
     private static $session = NULL;
     private static $_token = NULL;
@@ -97,6 +99,10 @@ class AkauntingHook {
             goto done;
         }
         if($entry->getPerson() == "CCC"){
+            if(!self::getAccountByCode("201")){
+                $ret = self::REJECTED_NO_CCC;
+                goto done;
+            }
             if($entry->getType() == "Expense"){
                 $data["item"][0]["account_id"] = self::getAccountByCode("201");
                 $data["item"][0]["credit"] .= $entry->getAmount();
@@ -137,6 +143,10 @@ class AkauntingHook {
                 $data["item"][0]["account_id"] = $account;
                 $data["item"][1]["debit"] .= $entry->getAmount();
             }
+        }
+        else {
+            $ret = self::REJECTED_NO_PERSON;
+            goto done;
         }
         if($entry->getAttachment()){
             $data['reference'] .= "Attachment: ".$entry->getAttachment();
@@ -237,6 +247,11 @@ class AkauntingHook {
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
                 break;
+            case self::REJECTED_NO_PERSON:
+                $s .= "not being able to determine submitted the entry.";
+                break;
+            case self::REJECTED_NO_CCC:
+                $s .= "not being able to find the Akaunting account for CCC (code 201)";
             default:
                 if($error >= 200 && $error < 300){
                     $s .= "the entry successfully being submitted to Akaunting.";
