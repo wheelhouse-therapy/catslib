@@ -1,5 +1,8 @@
 <?php
 
+include( "assessments_mabc.php" );
+
+
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
@@ -72,7 +75,7 @@ class AssessmentsCommon
 
         return( $s );
     }
-    
+
     /**
      * Output a list of assesments for a client for inclusion in a report
      * An empty array is returned if there are no assesments for the client
@@ -101,11 +104,23 @@ class AssessmentsCommon
             $raOut['body'] .= "</select>";
         }
         $raOut['body'] .="</form>";
-        
+
         return $bData ? $sOut : array();
-        
     }
-    
+
+    function GetClientSelect( SEEDCoreForm $oForm )
+    {
+        $clinics = new Clinics($this->oApp);
+        $clinics->GetCurrentClinic();
+        $oPeopleDB = new PeopleDB( $this->oApp );
+        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
+        $opts = array( '--- Choose Client ---' => 0 );
+        foreach( $raClients as $ra ) {
+            $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
+        }
+
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )."</div>" );
+    }
 }
 
 abstract class Assessments
@@ -113,9 +128,9 @@ abstract class Assessments
     protected $oAsmt;
     protected $asmtCode;
     protected $kfrAsmt;
+    protected $bUseDataList = false;    // the data entry form uses <datalist>
 
-    // protected constructors are a way to enforce that this class cannot be instantiated by itself -- only a derived class can be used
-    protected function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
     {
         $this->oAsmt = $oAsmt;
         $this->asmtCode = $asmtCode;
@@ -136,19 +151,8 @@ abstract class Assessments
         return( $s );
     }
 
-    function DrawAsmtForm()
-    {
-        $s = "";
-
-        return( $s );
-    }
-
-    function DrawAsmtResult()
-    {
-        $s = "";
-
-        return( $s );
-    }
+    abstract function DrawAsmtForm( int $kClient );
+    abstract function DrawAsmtResult();
 
     function UpdateAsmt()
     {
@@ -160,7 +164,7 @@ abstract class Assessments
 
         $raItems = array();
         foreach( $oForm->GetValuesRA() as $k => $v ) {
-            if( substr($k,0,1) == 'i' && ($item = intval(substr($k,1))) ) {
+            if( substr($k,0,1) == 'i' &&  ($item = substr($k,1)) ) {  //($item = intval(substr($k,1))) ) {
                 $raItems[$item] = $v;
             }
         }
@@ -294,9 +298,59 @@ abstract class Assessments
         return( $sAsmt );
     }
 
-    function DrawColumnForm()
-    /************************
-        Draw a form composed columns of values. Parameters must be defined in derived classes.
+    function drawResult()
+    {
+        $s = "";
+
+        if( !($kfr = $this->kfrAsmt) )  goto done;
+
+        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
+        $oForm->SetKFR( $kfr );
+
+
+        $raColumns = $this->raColumnRanges;
+
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        $s .= $this->drawAsmt( $oForm, $raColumns );
+
+        // Put the results in a js array for processing on the client
+        $s .= "<script>
+               var raResultsSPM = ".json_encode($raResults).";
+               </script>";
+
+        done:
+        return( $s );
+    }
+
+    function drawResult2()
+    {
+        $s = "";
+
+        if( !($kfr = $this->kfrAsmt) )  goto done;
+
+        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
+        $oForm->SetKFR( $kfr );
+
+        $raColumns = $this->raColumnRanges;
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        $s .= $this->drawColFormTable2( $oForm, $this->raColumnRanges, false );
+
+        done:
+        return( $s );
+    }
+
+
+    function DrawColumnForm( int $kClient )
+    /**************************************
+        Draw a form composed of columns of values. Parameters must be defined in derived classes.
             raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
      */
     {
@@ -305,32 +359,49 @@ abstract class Assessments
         $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
 
         $s .= "<form method='post'>"
-             ."<div style='margin:20px 0px'>".$this->getClientSelect( $oForm )."</div>";
+             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
 
         $s .= $this->drawColFormTable( $oForm, $this->raColumnRanges, true );
 
-        $s .= $this->getDataList($oForm,$this->Inputs("datalist"))
-                 ."<input hidden name='sAsmtAction' value='save'/>"
-                 ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
-                 .$oForm->HiddenKey()
-                 ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
-                 ."<span id='total'></span>"
+        if( $this->bUseDataList ) {
+            $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
                  ."<script src='w/js/assessments.js'></script>";
+        }
+
+        $s .= "<input hidden name='sAsmtAction' value='save'/>"
+             ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
+             .$oForm->HiddenKey()
+             ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
+             ."<span id='total'></span>";
         return( $s );
     }
 
-    private function getClientSelect( SEEDCoreForm $oForm )
+    function DrawColumnForm2( int $kClient )
+    /***************************************
+        Draw a form composed of columns of values. Parameters must be defined in derived classes.
+            raColumnRanges : [ col-label => [item-label=>item-key,...], col-label => [...], ... ]
+     */
     {
-        $clinics = new Clinics($this->oAsmt->oApp);
-        $clinics->GetCurrentClinic();
-        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
-        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
-        $opts = array();
-        foreach( $raClients as $ra ) {
-            $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
+        $s = "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
+
+        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+
+        $s .= "<form method='post'>"
+             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
+
+        $s .= $this->drawColFormTable2( $oForm, $this->raColumnRanges, true );
+
+        if( $this->bUseDataList ) {
+            $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
+                 ."<script src='w/js/assessments.js'></script>";
         }
 
-        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )." Choose a client</div>" );
+        $s .= "<input hidden name='sAsmtAction' value='save'/>"
+             ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
+             .$oForm->HiddenKey()
+             ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
+             ."<span id='total'></span>";
+        return( $s );
     }
 
     private function drawColFormTable( $oForm, $raColumns, $bEditable )
@@ -356,12 +427,48 @@ abstract class Assessments
         return( $s );
     }
 
+    private function drawColFormTable2( $oForm, $raColumns, $bEditable )
+    {
+        $colwidth = (100/count($raColumns))."%";
+
+        $s = "<table width='100%'><tr>";
+        foreach( $raColumns as $label => $raItems ) {
+            $s .= "<th valign='top'>$label<br/><br/></th>";
+        }
+        $s .= "</tr><tr>";
+        foreach( $raColumns as $label => $raItems ) {
+            $s .= "<td valign='top' width='$colwidth'>".$this->column2( $oForm, $raItems, $bEditable )."</td>";
+        }
+        if( !$bEditable ) {
+            $s .= "</tr><tr>";
+            foreach( $raColumns as $label => $raItems ) {
+//                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
+            }
+        }
+        $s .= "</tr></table>";
+
+        return( $s );
+    }
+
     private function column( SEEDCoreForm $oForm, $sRange, $bEditable )
     {
         $s = "<table class='score-table'>";
         $total = 0;
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n, $bEditable, $total );
+        }
+        //$s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
+        $s .= "</table>";
+
+        return( $s );
+    }
+
+    private function column2( SEEDCoreForm $oForm, $raItems, $bEditable )
+    {
+        $s = "<table class='score-table'>";
+        $total = 0;
+        foreach( $raItems as $itemLabel => $itemKey ) {
+            $s .= $this->item2( $oForm, $itemLabel, $itemKey, $bEditable, $total );
         }
         //$s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
         $s .= "</table>";
@@ -394,7 +501,23 @@ abstract class Assessments
         }
 
         $total += intval($score);
-        $s = "<tr><td class='score-num'>$n</td><td>".$s."<span class='score'>$score</span></td></tr>";
+        $s = "<tr><td class='score-num'>$n&nbsp;</td><td>".$s."<span class='score'>$score</span></td></tr>";
+        return( $s );
+    }
+
+    private function item2( SEEDCoreForm $oForm, $itemLabel, $itemKey, $bEditable, &$total )
+    {
+        if( $bEditable ) {
+            $score = "";
+            $s = $oForm->Text("i$itemKey","",array('attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
+        } else {
+            $v = $oForm->Value( "i$itemKey" );
+            $score = $this->GetScore( $itemKey, $v );
+            $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
+        }
+
+        $total += intval($score);
+        $s = "<tr><td class='score-num'>$itemKey&nbsp;</td><td>".$s."<span class='score'>$score</span></td></tr>";
         return( $s );
     }
 
@@ -480,47 +603,19 @@ class Assessment_SPM extends Assessments
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oAsmt, $kAsmt, 'spm' );
+        $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
     function DrawAsmtResult()
     {
-        $s = "";
-
-        if( !($kfr = $this->kfrAsmt) )  goto done;
-
-        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
-        $oForm->SetKFR( $kfr );
-
-
-        $raColumns = $this->raColumnRanges;
-
-
-        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
-        foreach( $raResults as $k => $v ) {
-            $oForm->SetValue( "i$k", $v );
-        }
-        $s .= $this->drawAsmt( $oForm, $raColumns );
-
-        // Put the results in a js array for processing on the client
-        $s .= "<script>
-               var raResultsSPM = ".json_encode($raResults).";
-               </script>";
-
-        done:
-        return( $s );
+        return( $this->drawResult() );
     }
 
 
-    function DrawAsmtForm()
+    function DrawAsmtForm( int $kClient )
     {
-        $s = "";
-
-        $s .= $this->DrawColumnForm();
-
-        return( $s );
+        return( $this->DrawColumnForm( $kClient ) );
     }
-
-
 
 
     protected function Columns()
@@ -687,7 +782,12 @@ class Assessment_AASP extends Assessments {
         parent::__construct( $oAsmt, $kAsmt, 'aasp' );
     }
 
-    function DrawResults( $raResults )
+    function DrawAsmtForm( int $kClient )
+    {
+        return( "FORM" );
+    }
+
+    function DrawAsmtResult()
     {
         return( "RESULTS" );
     }
@@ -712,40 +812,6 @@ class Assessment_AASP extends Assessments {
         "Touch"                 => "27-39",
         "Activity<br/>Level"    => "40-49",
         "Auditory"              => "50-60"
-    );
-
-    protected $raPercentiles = array();
-}
-
-class Assessment_MABC extends Assessments {
-
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
-    {
-        parent::__construct( $oAsmt, $kAsmt, 'mabc' );
-    }
-
-    function DrawResults( $raResults )
-    {
-        return( "RESULTS" );
-    }
-
-    protected function GetScore( $n, $v ):int
-    {
-        return( 0 );
-    }
-
-    public function getTags(): array{
-        //TODO Return Array of valid tags
-    }
-
-    protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
-    }
-
-    protected $raColumnRanges = array(
-        "MD"  => "1-4",
-        "A&C" => "5-7",
-        "Bal" => "8-11"
     );
 
     protected $raPercentiles = array();
@@ -802,7 +868,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              * The form is smart enough to do Edit or New depending on whether it was created with a kAsmt.
              * Don't show the summary list because it takes too much space.
              */
-            $s .= $oAsmt->DrawAsmtForm();
+            if( ($kClient = SEEDInput_Int('fk_clients2')) ) {
+                $s .= $oAsmt->DrawAsmtForm( $kClient );
+            } else {
+                goto do_default;
+            }
             break;
 
         case 'save':
@@ -814,10 +884,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             } else {
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }
-
+            goto do_default;
             // fall through to the default case to show the main page
 
         default:
+            do_default:
             /* Show the landing page or a particular assessment.
              */
             $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
@@ -825,16 +896,19 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 
             /* New button with a control to choose the assessment type
              */
+            $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
                   "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+                 ."<h4>New Assessment</h4>"
+                 .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType'>"
                  .SEEDCore_ArrayExpandRows( $oAC->raAssessments, "<option value='[[code]]'>[[title]]</option>" )
                  ."</select>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
-                 ."&nbsp;<input type='submit' value='New'/>"
+                 ."<br/><input type='submit' value='New'/>"
                  ."</form>";
 
-            $s .= "<div style='float:right'>$sControl</div>"
+            $s .= "<div style='float:right; margin:20px;padding:20px; border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>"
                  ."<div class='container-fluid'><div class='row'>"
                      ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
                      ."<div class='col-md-9'>$sRight</div>"

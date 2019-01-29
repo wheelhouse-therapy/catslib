@@ -1,5 +1,5 @@
 <?php
-
+include_once('twig_mappings.php');
 include_once('view_resources.php');
 include_once('share_resources.php');
 include( SEEDCORE."SEEDTemplateMaker.php" );
@@ -17,7 +17,8 @@ class CATS_UI
         $this->oApp = $oApp;
 
         $raTmplMaker = array( 'fTemplates'=> [CATSLIB."templates/cats.twig",
-                                              CATSLIB."templates/cats_html.twig"] );
+                                              CATSLIB."templates/cats_html.twig",
+                                              CATSLIB."templates/extensions.twig"] );
         $this->oTmpl = SEEDTemplateMaker( $raTmplMaker );
     }
 
@@ -49,6 +50,7 @@ class CATS_UI
             'CATSDIR_JS'=>CATSDIR_JS,
             'W_CORE_URL'=>W_CORE_URL,
 
+            'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->screen],
             'screen_name'=>$this->screen,
             'user_name'=>$this->oApp->sess->GetName(),
             'clinics'=>$clinics->displayUserClinics(), 'body' => $body ] );
