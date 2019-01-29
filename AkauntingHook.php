@@ -242,7 +242,7 @@ class AkauntingHook {
         $s = "Submission of Entry resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
-                $s .= "not being able to find an account to put the entry in.";
+                $s .= "not being able to find an account to put the entry in. When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word";
                 break;
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
