@@ -87,7 +87,23 @@ class CATSDocumentManager
 
     function DrawMainTabs()
     {
-        return( "" );
+        $tabsetConfig = [
+               'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
+                                     'versions'  => ['label'=>'Versions'],
+                                     'files'     => ['label'=>'Files'],
+                                     'ghost'     => ['label'=>'Ghost']
+                                   ],
+                         // this doubles as sessPermsRequired and console::TabSetPermissions
+                         'perms' =>[ 'documents' => [],
+                                     'versions'  => [],
+                                     'files'     => [],
+                                     'ghost'     => ['A notyou'],
+                                                    '|'  // allows screen-login even if some tabs are ghosted
+                                   ],
+        ] ];
+
+        $oTS = new Console02TabSet( $this->oApp->oC, $tabsetConfig );
+        return( $oTS->TabSetDraw( 'main' ) );
     }
 
     function DrawTreeTabs()
