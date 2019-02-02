@@ -144,7 +144,7 @@ class template_filler {
     
     /** Replace tags in a resource with their corresponding data values
      * @param String $resourcename - Path of resource to replace tags in
-     * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file output
+     * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file handling
      */
     public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
     {
