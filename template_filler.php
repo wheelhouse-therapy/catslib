@@ -75,6 +75,20 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         return $output;
     }
     
+    /**
+     * Get the xml between the body tags. for injection into another document.
+     * Use in conjunction with insertSection($tag,$section) for proper injection into document.
+     * 
+     * @return String containing the xml which lies between the body tags of the document
+     */
+    public function getSection(){
+        preg_match('(?<=<w:body>).*(?=<\/w:body>)', $this->tempDocumentMainPart, $matches);
+        if($matches){
+            return $matches[0];
+        }
+        return "";
+    }
+    
 }
 
 class template_filler {
@@ -100,7 +114,6 @@ class template_filler {
      * The resource being filled is actually a part of another resource.
      * The filled file should not be sent to the user as it is not complete
      */
-    //TODO implement
     public const RESOURCE_SECTION = 2;
     /**
      * The resource being filled is a part of an assessment write up.
@@ -209,14 +222,7 @@ class template_filler {
                 break;
             case self::RESOURCE_SECTION:
             case self::REPORT_SECTION:
-                $s = "";
-                $tempfile = $templateProcessor->save();
-                if( ($fp = fopen( $tempfile, "rb" )) ) {
-                    //TODO extract data
-                    fwrite($fp, $s);
-                    fclose( $fp );
-                }
-                return $s;
+                return $templateProcessor->getSection();
         }
     }
 
