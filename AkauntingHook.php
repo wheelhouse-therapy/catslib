@@ -192,9 +192,10 @@ class AkauntingHook {
          * @var array $keywords
          */
         $keywords = array(
-            'advertising'                               => array("ads","ad"),
+            'advertising'                               => array("ads","ad", "advertising"),
             'wages and salaries'                        => array("wages", "salary"),
             'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'rent'                                      => array("rent"),
             'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
             'meals & entertainment'                     => array("meal", "meals", "restaurant"),
             'postage - for reports (not advertising)'   => array("stamps", "postage"),
@@ -202,11 +203,12 @@ class AkauntingHook {
             'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
             'therapy supplies -- books and manuals'     => array("book", "books", "manual", "manuals"),
             'therapy equipment'                         => array("equipment", "equip"),
+            'insurance'                                 => array("insurance"),
             'education expense'                         => array("course", "courses", "education", "pd"),
             'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
-            'office supplies'                           => array("office", "office supply"),
+            'office supplies'                           => array("office"),
             'professional dues & memberships'           => array("caot", "osot", "dues"),
-            'telephone and internet'                    => array("phone", "phone bill", "telephone")
+            'telephone and internet'                    => array("phone", "telephone")
         );
         
         foreach($keywords as $account=>$words){
