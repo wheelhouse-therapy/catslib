@@ -3,6 +3,62 @@
 require_once SEEDROOT."DocRep/DocRepUI.php";
 include_once "share_resources.php";
 
+class CATSDocTabSet extends Console02TabSet
+{
+    private $oApp;
+    private $kSelectedDoc;
+
+    function __construct( SEEDAppConsole $oApp, $kSelectedDoc )
+    {
+        $this->oApp = $oApp;
+        $this->kSelectedDoc = $kSelectedDoc;
+
+        $raConfig = [
+               'main'=> ['tabs' => [ 'documents' => ['label'=>'Documents'],
+                                     'versions'  => ['label'=>'Versions'],
+                                     'files'     => ['label'=>'Files'],
+                                     'ghost'     => ['label'=>'Ghost']
+                                   ],
+                         // this doubles as sessPermsRequired and console::TabSetPermissions
+                         'perms' =>[ 'documents' => [],
+                                     'versions'  => [],
+                                     'files'     => [],
+                                     'ghost'     => ['A notyou'],
+                                                    '|'  // allows screen-login even if some tabs are ghosted
+                                   ],
+        ] ];
+
+        parent::__construct( $oApp->oC, $raConfig );
+    }
+
+    function TabSet_main_documents_ControlDraw() { return( "<br/>" ); }
+    function TabSet_main_documents_ContentDraw()
+    {
+        $s = "";
+
+        $o = new CATSDocumentManager( $this->oApp, $this->kSelectedDoc );
+
+        $s .= $o->Style();
+
+        $s .= "<div class='cats_doctree'>"
+             ."<div class='container-fluid'>"
+                 ."<div class='row'>"
+                     ."<div class='col-md-6'>".$o->oDocMan->DrawDocTree( 0 )."</div>"
+                     ."<div class='col-md-6'>"
+                         .($o->oDocMan->GetSelectedDocKey() ? ("<div class='cats_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
+                         ."<div class='cats_docform'>".$o->oDocMan->TreeForms()."</div>"
+                     ."</div>"
+                 ."</div>"
+            ."</div></div>";
+
+        $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
+
+        return( $s );
+    }
+
+}
+
+
 class CATSDocApp extends DocRepApp1
 {
     private $oApp;
@@ -85,11 +141,6 @@ class CATSDocumentManager
         $this->oDocMan = new CATSDocApp( $oApp, $kSelectedDoc, $oDocRepDB, $oDocRepUI );
     }
 
-    function DrawMainTabs()
-    {
-        return( "" );
-    }
-
     function DrawTreeTabs()
     {
         $s = $this->oDocMan->TreeTabs();
@@ -124,16 +175,9 @@ class CATSDocumentManager
 <style>
 .DocRepTree_level { margin-left:30px; }
 
-.cats_docmaintabs {
-        margin: 30px 0 -20px 30px;
-}
-
 .cats_doctree {
-        border:1px solid #888;
-        background-color:#ddd;
         border-radius:10px;
         margin:20px;
-        padding:20px;
 }
 
 .cats_doctreetabs {
@@ -166,10 +210,7 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
 
     $kSelectedDoc = SEEDInput_Int('k');
 
-    $o = new CATSDocumentManager( $oApp, $kSelectedDoc );
-
-    $s .= $o->Style();
-
+/*
     // default "action" is to show the PreviewDoc
     $sRight = $sRightClass = "";
     switch( ($pTab = $oApp->sess->SmartGPC( 'tab' )) ) {
@@ -204,21 +245,10 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
             }
             break;
     }
+*/
 
-    $s .= "<div class='cats_docmaintabs'><div class='container-fluid'>".$o->DrawMainTabs()."</div></div>";
-    $s .= "<div class='cats_doctree'>"
-         ."<div class='container-fluid'>"
-             ."<div class='row'>"
-                 ."<div class='col-md-6'>".$o->oDocMan->DrawDocTree( 0 )."</div>"
-                 ."<div class='col-md-6'>"
-                     .($o->oDocMan->GetSelectedDocKey() ? ("<div class='cats_doctreetabs'>".$o->DrawTreeTabs()."</div>") : "")
-                     ."<div class='cats_docform'>".$o->oDocMan->TreeForms()."</div>"
-                 ."</div>"
-             ."</div>"
-        ."</div></div>";
-
-    $s = str_replace( "[[DocRepApp_TreeForm_View_Text]]", $o->oDocMan->GetDocHTML(), $s );
-
+    $oTS = new CatsDocTabSet( $oApp, $kSelectedDoc );
+    $s .= "<br/><br/>".$oTS->TabSetDraw( 'main' );
 
     return( $s );
 }
