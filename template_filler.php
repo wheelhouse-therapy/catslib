@@ -20,7 +20,8 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                 if( substr($fix,0,6) == '${date' ||
                     substr($fix,0,8) == '${client' ||
                     substr($fix,0,7) == '${staff' ||
-                    substr($fix,0,8) == '${clinic' )
+                    substr($fix,0,8) == '${clinic' ||
+                    substr($fix,0,9) == '${section')
                 {
                     return( $fix );
                 } else {
@@ -32,6 +33,62 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
         return $fixedDocumentPart;
     }
+    
+    public function insertSection($tag, $section){
+        $regex1 = '/<(w:[^ >]+)[^>\/]*?>(?=.*?<\/\1>)/';
+        $regex2 = '/<(w:[^ >]+)[^>\/]*?>/';
+        $tempDocument = strstr($this->tempDocumentMainPart, $tag, true);
+        preg_match_all($regex1, $tempDocument, $matches1);
+        preg_match_all($regex2, $tempDocument, $matches2);
+        if($matches1 && $matches2){
+            $ra = $this->arrayExclude($matches2[0], $matches1[0]);
+            for ($i = 0; $i < count($ra); $i++) {
+                if($ra[$i] == "<w:body>"){
+                    //We dont want to close the body
+                    continue;
+                }
+                preg_match('/w:[^ >]+/', $ra[$i], $match);
+                $section = "</".$match[0].">".$section.$ra[$i];
+            }
+            $this->setValue($tag, $section);
+        }
+    }
+    
+    private function arrayExclude($array1, $array2) {
+        $output = array();
+        foreach($array1 as $match) {
+            $break = false;
+            foreach($array2 as $key=>$compare) {
+                if ($match == $compare) {
+                    unset($array2[$key]);
+                    $break = true;
+                    break;
+                }
+            }
+            if($break) {
+                continue;
+            }
+            else {
+                array_push($output, $match);
+            }
+        }
+        return $output;
+    }
+    
+    /**
+     * Get the xml between the body tags. for injection into another document.
+     * Use in conjunction with insertSection($tag,$section) for proper injection into document.
+     * 
+     * @return String containing the xml which lies between the body tags of the document
+     */
+    public function getSection(){
+        preg_match('(?<=<w:body>).*(?=<\/w:body>)', $this->tempDocumentMainPart, $matches);
+        if($matches){
+            return $matches[0];
+        }
+        return "";
+    }
+    
 }
 
 class template_filler {
@@ -57,9 +114,12 @@ class template_filler {
      * The resource being filled is actually a part of another resource.
      * The filled file should not be sent to the user as it is not complete
      */
-    //TODO implement
     public const RESOURCE_SECTION = 2;
-    // May not be needed it will depend on implementation
+    /**
+     * The resource being filled is a part of an assessment write up.
+     * Uses predefined file location lookup.
+     */
+    //TODO implement file lookup
     public const REPORT_SECTION = 3;
     
     public function __construct( SEEDAppSessionAccount $oApp )
@@ -84,7 +144,7 @@ class template_filler {
     
     /** Replace tags in a resource with their corresponding data values
      * @param String $resourcename - Path of resource to replace tags in
-     * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file output
+     * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file handling
      */
     public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
     {
@@ -106,7 +166,11 @@ class template_filler {
         foreach($templateProcessor->getVariables() as $tag){
             $v = $this->expandTag($tag);
             $v = $this->tnrs->resolveTag($tag, $v);
-            $templateProcessor->setValue($tag, $v);
+            if(substr($tag,0,7) == 'section'){
+                $templateProcessor->insertSection($tag, $v);
+            }else{
+                $templateProcessor->setValue($tag, $v);
+            }
         }
 
 /* Aha, the trick for substitution is to just use $templateProcessor->save().
@@ -156,6 +220,9 @@ class template_filler {
 
                 die();
                 break;
+            case self::RESOURCE_SECTION:
+            case self::REPORT_SECTION:
+                return $templateProcessor->getSection();
         }
     }
 
@@ -233,14 +300,13 @@ class template_filler {
                     $s = $this->kfrClient->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
-
-        if( $table == 'assessment' ) {
+        if($table == 'section'){
             // This is just to test how to inject docx xml into a Word file.
             // There should be variants of this tag for different reports and report formats.
             // Also, the file loaded below should be run through template_filler here, to expand tags in it.
-
             $s = file_get_contents( CATSLIB."templates/assessment.xml" );
         }
+
         done:
         return( $s );
     }
