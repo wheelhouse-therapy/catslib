@@ -93,6 +93,9 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
 class template_filler {
 
+    //Variable to cach constants
+    private static $constants = NULL;
+    
     private $oApp;
     private $oPeopleDB;
     private $tnrs;
@@ -128,18 +131,16 @@ class template_filler {
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
+        
+        if(self::$constants == NULL){
+            $refl = new ReflectionClass(template_filler::class);
+            self::$constants = $refl->getConstants();
+        }
+        
     }
 
     private function isResourceTypeValid($resourceType):bool{
-        // You Must add a new resource type to this switch statement or it will not validate
-        switch($resourceType){
-            case self::STANDALONE_RESOURCE:
-            case self::RESOURCE_SECTION:
-            case self::REPORT_SECTION:
-                return true;
-            default:
-                return false;
-        }
+        return in_array($resourceType, self::$constants);
     }
     
     /** Replace tags in a resource with their corresponding data values
