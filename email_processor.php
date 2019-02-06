@@ -137,6 +137,10 @@ class EmailProcessor {
              */
             $responce = $this->handleErrors($errors).AkauntingHook::decodeErrors($results);
             
+            if(count($message->getAttachments()) > 1 && $this->getValidAttachment($message->getAttachments())){
+                $responce .= "\nNOTE: Only the first valid (not used in our system) was stored\n";
+            }
+            
             done:
             // Add a closing message
             $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
@@ -152,7 +156,8 @@ class EmailProcessor {
                          .$message->getBodyText();
             
             //Send the results
-            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
+            $tempFile = new TempAttachment($this->getValidAttachment($message->getAttachments()));
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' => array($tempFile->path)));
             
         }
     }
@@ -348,6 +353,25 @@ class AccountingEntry {
         }
     }
     
+}
+
+class TempAttachment {
+    
+    public $path;
+    
+    public function __construct(Attachment $oAttachment)
+    {
+        $this->path = sys_get_temp_dir().$oAttachment->getFilename();
+        if($file = fopen($this->path, "w")){
+            fwrite($file, $oAttachment->getDecodedContent());
+            fclose($file);
+        }
+    }
+    
+    public function __destruct()
+    {
+        unlink($this->path);
+    }
 }
 
 ?>
