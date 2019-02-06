@@ -6,7 +6,8 @@ include( "assessments_mabc.php" );
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
-    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" )
+    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
+    'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
 );
 
 
@@ -37,17 +38,6 @@ class AssessmentsCommon
         return( $oRet );
     }
 
-    function GetAsmtObjectByClient( int $kClient, string $asmtType )
-    {
-        $oRet = null;
-
-        if( ($kfr = $this->KFRelAssessment()->GetRecordFromDBCond( "fk_clients2='$kClient' AND testType='$asmtType'" )) ) {
-            $oRet = $this->getObjectByType( $kfr->value('testType'), $kfr->Key() );
-        }
-
-        return( $oRet );
-    }
-
     function GetNewAsmtObject( string $sAsmtType )
     {
         return( $this->getObjectByType( $sAsmtType, 0 ) );
@@ -61,6 +51,7 @@ class AssessmentsCommon
             case 'spm':  $o = new Assessment_SPM( $this, $kA );  break;
             case 'aasp': $o = new Assessment_AASP( $this, $kA ); break;
             case 'mabc': $o = new Assessment_MABC( $this, $kA ); break;
+            case 'spmc': $o = new Assessment_SPM_Classroom($this, $kA); break;
             default:     break;
         }
         return( $o );
@@ -94,8 +85,9 @@ class AssessmentsCommon
      * @return array of html output to be placed in model
      */
     function listAssessments(int $client):array{
-        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form'>","footer"=>"<input type='submit' value='Download' form='assmt_form' />");
+        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
         $bData = false;
+        $raOut['body'] .= SEEDCore_ArrayExpandSeriesWithKey($_REQUEST, "<input type='hidden' name='[[k]]' value='[[v]]' />");
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":<select>";
             $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2=".$client." and testType=".$assmt['code'], array("sSortCol"=>"_created", "bSortDown"=> true) );
@@ -116,7 +108,7 @@ class AssessmentsCommon
         }
         $raOut['body'] .="</form>";
 
-        return $bData ? $sOut : array();
+        return $bData ? $raOut : array();
     }
 
     function GetClientSelect( SEEDCoreForm $oForm )
@@ -131,24 +123,6 @@ class AssessmentsCommon
         }
 
         return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )."</div>" );
-    }
-
-    function GetProblemItems( int $kClient, string $asmtType, string $section )
-    {
-        if( ($asmtType = @array( 'SPMH'=>'spm', 'SPMC'=>'spmc', 'AASP'=>'aasp', 'MABC'=>'mabc')[$asmtType]) &&
-            ($oAsmt = $this->GetAsmtObjectByClient( $kClient, $asmtType )) )
-        {
-            $oAsmt->GetProblemItems( $section );
-        }
-    }
-
-    function GetPercentile( int $kClient, string $asmtType, string $section )
-    {
-        if( ($asmtType = @array( 'SPMH'=>'spm', 'SPMC'=>'spmc', 'AASP'=>'aasp', 'MABC'=>'mabc')[$asmtType]) &&
-            ($oAsmt = $this->GetAsmtObjectByClient( $kClient, $asmtType )) )
-        {
-            $oAsmt->GetPercentile( $section );
-        }
     }
 }
 
@@ -625,21 +599,15 @@ abstract class Assessments
      */
     abstract protected function getTagField(String $tag):String;
 
-    /**
-     * Return a string containing the problematic results for the given section
-     */
-    abstract function GetProblemItems( string $section ) : string;
-    /**
-     * Return the percentile score for the given section
-     */
-    abstract function GetPercentile( string $section ) : string;
 }
 
 class Assessment_SPM extends Assessments
 {
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, String $subclass = "" )
     {
-        parent::__construct( $oAsmt, $kAsmt, 'spm' );
+        //Use subclass when defining a sub class of this such as the classroom spm
+        //Subclass ensures that scoreing does not break when subclassing
+        parent::__construct( $oAsmt, $kAsmt, 'spm'.$subclass );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
@@ -687,7 +655,7 @@ class Assessment_SPM extends Assessments
         //TODO Return Values for valid tags
     }
 
-    protected $raColumnRanges = array(  // deprecated, use raColumnDef instead
+    protected $raColumnRanges = array(
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
             "Hearing"                  => "22-29",
@@ -698,16 +666,6 @@ class Assessment_SPM extends Assessments
             "Planning<br/>and Ideas"   => "67-75"
         );
 
-    protected $raColumnDef = array(
-            'social'   => [ 'label'=>"Social<br/>participation", 'range'=>"1-10" ],
-            'vision'   => [ 'label'=>"Vision",                   'range'=>"11-21" ],
-            'hearing'  => [ 'label'=>"Hearing",                  'range'=>"22-29" ],
-            'touch'    => [ 'label'=>"Touch",                    'range'=>"30-40" ],
-            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'range'=>"41-45" ],
-            'body'     => [ 'label'=>"Body<br/>Awareness",       'range'=>"46-55" ],
-            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'range'=>"56-66" ],
-            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'range'=>"67-75" ]
-        );
 
     /* The percentiles that apply to each score, per column
      */
@@ -820,36 +778,6 @@ class Assessment_SPM extends Assessments
 75	Tends to play the same activities over and over, rather than shift to new activities when given the chance
 ";
 
-
-    function GetProblemItems( string $section ) : string
-    {
-        $s = "";
-
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {var_dump($range);
-            $range = SEEDCore_ParseRangeStrToRA( $range );
-            $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
-            foreach( $raResults as $k => $v ) {
-                if( in_array( $k, $range ) ) {
-                    if( $this->GetScore( $k, $v ) >=3 ) {
-                        $s .= $k." ";
-                    }
-                }
-            }
-        }
-
-        return( $s );
-    }
-
-    function GetPercentile( string $section ) : string
-    {
-        $s = "";
-
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
-
-        }
-
-        return( $s );
-    }
 }
 
 class Assessment_AASP extends Assessments {
@@ -882,11 +810,6 @@ class Assessment_AASP extends Assessments {
         //TODO Return Values for valid tags
     }
 
-    function GetProblemItems( string $section ) : string
-    {}
-    function GetPercentile( string $section ) : string
-    {}
-
     protected $raColumnRanges = array(
         "Taste/Smell"           => "1-8",
         "Movement"              => "9-16",
@@ -899,6 +822,81 @@ class Assessment_AASP extends Assessments {
     protected $raPercentiles = array();
 }
 
+class Assessment_SPM_Classroom extends Assessment_SPM {
+    
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        parent::__construct( $oAsmt, $kAsmt, 'c' );
+        $this->bUseDataList = true;     // the data entry form uses <datalist>
+    }
+    
+    protected function GetScore( $n, $v ):int
+    /************************************
+     Return the score for item n when it has the value v
+     */
+    {
+        $score = "0";
+        
+        if( $n >= 1 && $n <= 10 ) {
+            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
+        } else {
+            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
+        }
+        return( $score );
+    }
+    
+    protected $raColumnRanges = array(
+        "Social<br/>participation" => "1-10",
+        "Vision"                   => "11-17",
+        "Hearing"                  => "18-24",
+        "Touch"                    => "25-32",
+        "Taste /<br/>Smell"        => "33-36",
+        "Body<br/>Awareness"       => "37-43",
+        "Balance<br/>and Motion"   => "44-52",
+        "Planning<br/>and Ideas"   => "53-62"
+    );
+    
+    /* The percentiles that apply to each score, per column
+     */
+    protected $raPercentiles =
+    array(
+        '7'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'24',   'touch'=>'',     'body'=>'21',   'balance'=>'',     'planning'=>''     ),
+        '8'  => array( 'social'=>'',     'vision'=>'42',   'hearing'=>'58',   'touch'=>'27',   'body'=>'54',   'balance'=>'',     'planning'=>''     ),
+        '9'  => array( 'social'=>'',     'vision'=>'62',   'hearing'=>'73',   'touch'=>'62',   'body'=>'66',   'balance'=>'16',   'planning'=>''     ),
+        '10' => array( 'social'=>'16',   'vision'=>'76',   'hearing'=>'82',   'touch'=>'79',   'body'=>'76',   'balance'=>'38',   'planning'=>'16'   ),
+        '11' => array( 'social'=>'18',   'vision'=>'82',   'hearing'=>'86',   'touch'=>'86',   'body'=>'82',   'balance'=>'54',   'planning'=>'38'   ),
+        '12' => array( 'social'=>'27',   'vision'=>'88',   'hearing'=>'90',   'touch'=>'90',   'body'=>'86',   'balance'=>'62',   'planning'=>'50'   ),
+        '13' => array( 'social'=>'31',   'vision'=>'92',   'hearing'=>'93',   'touch'=>'93',   'body'=>'90',   'balance'=>'73',   'planning'=>'58'   ),
+        '14' => array( 'social'=>'38',   'vision'=>'93',   'hearing'=>'95.5', 'touch'=>'95.5', 'body'=>'93',   'balance'=>'79',   'planning'=>'66'   ),
+        '15' => array( 'social'=>'46',   'vision'=>'95.5', 'hearing'=>'97',   'touch'=>'96',   'body'=>'95',   'balance'=>'84',   'planning'=>'69'   ),
+        '16' => array( 'social'=>'50',   'vision'=>'97.5', 'hearing'=>'98.5', 'touch'=>'97.5', 'body'=>'95.5', 'balance'=>'86',   'planning'=>'76'   ),
+        '17' => array( 'social'=>'58',   'vision'=>'98.5', 'hearing'=>'99.5', 'touch'=>'98.5', 'body'=>'96',   'balance'=>'90',   'planning'=>'79'   ),
+        '18' => array( 'social'=>'62',   'vision'=>'99',   'hearing'=>'99.5', 'touch'=>'99',   'body'=>'97',   'balance'=>'92',   'planning'=>'82'   ),
+        '19' => array( 'social'=>'66',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'97.5', 'balance'=>'95',   'planning'=>'84'   ),
+        '20' => array( 'social'=>'73',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'98.5', 'balance'=>'95.5', 'planning'=>'86'   ),
+        '21' => array( 'social'=>'76',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'97',   'planning'=>'88'   ),
+        '22' => array( 'social'=>'82',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'97.5', 'planning'=>'88'   ),
+        '23' => array( 'social'=>'84',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98',   'planning'=>'90'   ),
+        '24' => array( 'social'=>'86',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98.5', 'planning'=>'92'   ),
+        '25' => array( 'social'=>'88',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98.5', 'planning'=>'95'   ),
+        '26' => array( 'social'=>'90',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99',   'planning'=>'95.5' ),
+        '27' => array( 'social'=>'92',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99.5', 'planning'=>'96'   ),
+        '28' => array( 'social'=>'93',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99.5', 'planning'=>'97.5' ),
+        '29' => array( 'social'=>'95',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98'   ),
+        '30' => array( 'social'=>'96',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98.5' ),
+        '31' => array( 'social'=>'97',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98.5' ),
+        '32' => array( 'social'=>'97.5', 'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'99'   ),
+        '33' => array( 'social'=>'98.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99'   ),
+        '34' => array( 'social'=>'99',   'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
+        '35' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
+        '36' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
+        '37' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
+        '38' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
+        '39' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
+        '40' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' )
+    );
+    
+}
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
@@ -975,8 +973,6 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
             $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
-// uncomment to see the problem items in the vision column of an spm test
-//$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
 
             /* New button with a control to choose the assessment type
              */
