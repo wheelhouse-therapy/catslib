@@ -9,6 +9,7 @@ use Ddeboer\Imap\SearchExpression;
 use Ddeboer\Imap\Search\Flag\Unseen;
 use Ddeboer\Imap\MessageIterator;
 use Ddeboer\Imap\Message\EmailAddress;
+use Ddeboer\Imap\Message\Attachment;
 
 class EmailProcessor {
 
@@ -59,7 +60,7 @@ class EmailProcessor {
         foreach($messages as $message){
             $attachment = microtime(TRUE);
 
-            if(count($message->getAttachments()) == 0){
+            if($this->getValidAttachment($message->getAttachments())){
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
@@ -80,7 +81,7 @@ class EmailProcessor {
             //Pull the information out of subject
             $result = $this->processString($subject, $attachment, $clinic,$from);
             if($result instanceof AccountingEntry){
-                array_push($entries, $result);
+                $entries['subject'] = $result;
             }
             else{
                     $errors['subject'] = $result;
@@ -91,8 +92,9 @@ class EmailProcessor {
                 //For every line in the body
                 //Pull the information out
                 foreach ($lines as $key => $line){
-                    if(!preg_match_all("/[$,-9A-Za-z]+/", $line)){
+                    if(!preg_match_all('/[^\s-]+/', $line)){
                         //The line is empty, don't try to process
+                        //The line will only match if it only contains whitespace and dashes
                         $emptyLineCount++;
                         continue;
                     }
@@ -103,7 +105,7 @@ class EmailProcessor {
                     $emptyLineCount = 0;
                     $result = $this->processString($line, $attachment, $clinic, $from);
                     if($result instanceof AccountingEntry){
-                        array_push($entries, $result);
+                        $entries["line_".$key] =  $result;
                     }
                     else{
                         $errors["line_".$key] = $result;
@@ -115,12 +117,6 @@ class EmailProcessor {
                 unset($errors['subject']);
             }
             
-            if(count($entries) == 0){
-                if($attachment){
-                    unlink(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION));
-                }
-            }
-            
             // Mark the message as processed so we dont make duplicate entries
             $message->markAsSeen();
             
@@ -128,9 +124,7 @@ class EmailProcessor {
             $results = AkauntingHook::submitJournalEntries($entries);
             
             if(array_intersect(range(200,299), $results) && $attachment){
-                $raAttachments = $message->getAttachments();
-                if(count($raAttachments) > 0){
-                    $oAttachment = $raAttachments[0];
+                if($oAttachment = $this->getValidAttachment($message->getAttachments())){
                     $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
                     fwrite($attachmentFile, $oAttachment->getDecodedContent());
                     fclose($attachmentFile);
@@ -147,7 +141,15 @@ class EmailProcessor {
             // Add a closing message
             $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
                          ."You can reach them at developer@catherapyservices.ca\n"
-                         ."\nCATS Automatic Akaunting Entry System";
+                         ."\nCATS Automatic Akaunting Entry System"
+                         .str_repeat("\n", 3)
+                         ."--------Original Message--------\n"
+                         ."From: ".$message->getFrom()->getAddress()
+                         ."\nTo: ".$message->getTo()[0]->getAddress()
+                         ."\nDate: ".$message->getDate()->format("m/d/y H:i")
+                         ."\nSubject: ".$message->getSubject()
+                         .str_repeat("\n", 2)
+                         .$message->getBodyText();
             
             //Send the results
             SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca"));
@@ -235,6 +237,24 @@ class EmailProcessor {
             }
         }
         return $matches >= 2;
+    }
+    
+    /** Return attachment object of the first valid attachment
+     * Or NULL if there is none
+     * @param array $attachments - array of attachments included in the message
+     * @return Attachment - attachment object representing the first valid attachment or NULL if it does not exist
+     */
+    private function getValidAttachment(array $attachments){
+        if(count($attachments) == 0){
+            goto notfound;
+        }
+        foreach($attachments as $attachment){
+            if(!file_exists(CATSDIR_IMG.$attachment->getFilename())){
+                return $attachment;
+            }
+        }
+        notfound:
+        return NULL;
     }
     
 }
