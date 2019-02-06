@@ -234,14 +234,14 @@ class AkauntingHook {
 
     public static function decodeErrors(array $errors):String{
         $s = "";
-        foreach ($errors as $error){
-            $s .= self::decodeError($error);
+        foreach ($errors as $location=>$error){
+            $s .= self::decodeError($location,$error);
         }
         return $s;
     }
     
-    public static function decodeError(int $error):String{
-        $s = "Submission of Entry resulted in ";
+    public static function decodeError(String $location,int $error):String{
+        $s = "Submission of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in. When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word";
