@@ -249,7 +249,7 @@ abstract class Assessments
                 $oForm->SetValue( "i$k", $v );
             }
             $sAsmt = $this->drawAsmt( $oForm, $raColumns );
-
+            
             // Put the results in a js array for processing on the client
             $s .= "<script>
                    var raResultsSPM = ".json_encode($raResults).";
@@ -259,7 +259,7 @@ abstract class Assessments
 
         $s .= "<div class='container-fluid'><div class='row'>"
                  ."<div class='col-md-2' style='border-right:1px solid #bbb'>$sList</div>"
-                 ."<div class='col-md-10'>$sAsmt</div>"
+                 ."<div id='assessment' class='col-md-10'>$sAsmt</div>"
              ."</div>";
 
         return( $s );
@@ -267,9 +267,11 @@ abstract class Assessments
 
     protected function drawAsmt( SEEDCoreForm $oForm, $raColumns )
     {
-        $sAsmt = "<h2>".@$this->raAssessments[$this->asmtCode]['title']."</h2>
-                    <span style='margin-left: 20%' id='name'> Name: </span>
-                        <span style='margin-left: 40%' id='DoB'> Date of Birth: </span><br />
+        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
+        $sAsmt = "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
+                    <span style='margin-left: 20%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
+                        <span style='margin-left: 20%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />
                     <table id='results'>
                         <tr><th> Results </th><th> Score </th><th> Interpretation </th>
                             <th> Percentile </th><th> Reverse Percentile </th></tr>
@@ -988,10 +990,16 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."<br/><input type='submit' value='New'/>"
                  ."</form>";
 
-            $s .= "<div style='float:right; margin:20px;padding:20px; border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>"
-                 ."<div class='container-fluid'><div class='row'>"
+            $s .= "<div style='float:right; margin:20px;padding:20px; border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
+            if($sRight){
+                $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
+                    ."<div style='float:right'>"
+                        ."<button onclick='$(\"#assessment\").printMe();'>Print Assessment</button>"
+                    ."</div>";
+            }
+            $s .= "<div class='container-fluid'><div class='row'>"
                      ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                     ."<div class='col-md-9'>$sRight</div>"
+                     ."<div id='assessment' class='col-md-9'>$sRight</div>"
                  ."</div>";
     }
 
