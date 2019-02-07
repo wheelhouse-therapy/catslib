@@ -155,9 +155,12 @@ class EmailProcessor {
                          .str_repeat("\n", 2)
                          .$message->getBodyText();
             
+            $testFile = NULL;
             //Send the results
-            $tempFile = new TempAttachment($this->getValidAttachment($message->getAttachments()));
-            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' => array($tempFile->path)));
+            if($attachment){
+                $tempFile = new TempAttachment($this->getValidAttachment($message->getAttachments()));
+            }
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFile?array($tempFile->path):"")));
             
         }
     }
