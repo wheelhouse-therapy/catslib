@@ -38,6 +38,17 @@ class AssessmentsCommon
         return( $oRet );
     }
 
+    function GetAsmtObjectByClient( int $kClient, string $asmtType )
+    {
+        $oRet = null;
+
+        if( ($kfr = $this->KFRelAssessment()->GetRecordFromDBCond( "fk_clients2='$kClient' AND testType='$asmtType'" )) ) {
+            $oRet = $this->getObjectByType( $kfr->value('testType'), $kfr->Key() );
+        }
+
+        return( $oRet );
+    }
+
     function GetNewAsmtObject( string $sAsmtType )
     {
         return( $this->getObjectByType( $sAsmtType, 0 ) );
@@ -123,6 +134,23 @@ class AssessmentsCommon
         }
 
         return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )."</div>" );
+    }
+    function LookupProblemItems( int $kClient, string $asmtType, string $section )
+    {
+        if( ($asmtType = @array( 'SPMH'=>'spm', 'SPMC'=>'spmc', 'AASP'=>'aasp', 'MABC'=>'mabc')[$asmtType]) &&
+            ($oAsmt = $this->GetAsmtObjectByClient( $kClient, $asmtType )) )
+        {
+            $oAsmt->GetProblemItems( $section );
+        }
+    }
+
+    function LookupPercentile( int $kClient, string $asmtType, string $section )
+    {
+        if( ($asmtType = @array( 'SPMH'=>'spm', 'SPMC'=>'spmc', 'AASP'=>'aasp', 'MABC'=>'mabc')[$asmtType]) &&
+            ($oAsmt = $this->GetAsmtObjectByClient( $kClient, $asmtType )) )
+        {
+            $oAsmt->GetPercentile( $section );
+        }
     }
 }
 
@@ -601,6 +629,14 @@ abstract class Assessments
      */
     abstract protected function getTagField(String $tag):String;
 
+    /**
+     * Return a string containing the problematic results for the given section
+     */
+    abstract function GetProblemItems( string $section ) : string;
+    /**
+     * Return the percentile score for the given section
+     */
+    abstract function GetPercentile( string $section ) : string;
 }
 
 class Assessment_SPM extends Assessments
@@ -657,7 +693,37 @@ class Assessment_SPM extends Assessments
         //TODO Return Values for valid tags
     }
 
-    protected $raColumnRanges = array(
+    function GetProblemItems( string $section ) : string
+    {
+        $s = "";
+
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {var_dump($range);
+            $range = SEEDCore_ParseRangeStrToRA( $range );
+            $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
+            foreach( $raResults as $k => $v ) {
+                if( in_array( $k, $range ) ) {
+                    if( $this->GetScore( $k, $v ) >=3 ) {
+                        $s .= $k." ";
+                    }
+                }
+            }
+        }
+
+        return( $s );
+    }
+
+    function GetPercentile( string $section ) : string
+    {
+        $s = "";
+
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
+
+        }
+
+        return( $s );
+    }
+
+    protected $raColumnRanges = array(  // deprecated, use raColumnDef instead
             "Social<br/>participation" => "1-10",
             "Vision"                   => "11-21",
             "Hearing"                  => "22-29",
@@ -668,6 +734,16 @@ class Assessment_SPM extends Assessments
             "Planning<br/>and Ideas"   => "67-75"
         );
 
+    protected $raColumnDef = array(
+            'social'   => [ 'label'=>"Social<br/>participation", 'range'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'range'=>"11-21" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'range'=>"22-29" ],
+            'touch'    => [ 'label'=>"Touch",                    'range'=>"30-40" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'range'=>"41-45" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'range'=>"46-55" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'range'=>"56-66" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'range'=>"67-75" ]
+        );
 
     /* The percentiles that apply to each score, per column
      */
@@ -812,6 +888,11 @@ class Assessment_AASP extends Assessments {
         //TODO Return Values for valid tags
     }
 
+    function GetProblemItems( string $section ) : string
+    {}
+    function GetPercentile( string $section ) : string
+    {}
+
     protected $raColumnRanges = array(
         "Taste/Smell"           => "1-8",
         "Movement"              => "9-16",
@@ -825,20 +906,20 @@ class Assessment_AASP extends Assessments {
 }
 
 class Assessment_SPM_Classroom extends Assessment_SPM {
-    
+
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oAsmt, $kAsmt, 'c' );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
-    
+
     protected function GetScore( $n, $v ):int
     /************************************
      Return the score for item n when it has the value v
      */
     {
         $score = "0";
-        
+
         if( $n >= 1 && $n <= 10 ) {
             $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
         } else {
@@ -846,7 +927,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM {
         }
         return( $score );
     }
-    
+
     protected $raColumnRanges = array(
         "Social<br/>participation" => "1-10",
         "Vision"                   => "11-17",
@@ -857,7 +938,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM {
         "Balance<br/>and Motion"   => "44-52",
         "Planning<br/>and Ideas"   => "53-62"
     );
-    
+
     /* The percentiles that apply to each score, per column
      */
     protected $raPercentiles =
@@ -897,7 +978,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM {
         '39' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
         '40' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' )
     );
-    
+
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
@@ -975,6 +1056,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
             $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
+// uncomment to see the problem items in the vision column of an spm test
+//$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
 
             /* New button with a control to choose the assessment type
              */

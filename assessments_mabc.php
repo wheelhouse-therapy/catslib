@@ -68,6 +68,11 @@ class Assessment_MABC extends Assessments {
         //TODO Return Values for valid tags
     }
 
+    function GetProblemItems( string $section ) : string
+    {}
+    function GetPercentile( string $section ) : string
+    {}
+
     protected $raColumnRanges = array();    // point this to one of the below
     // 3-6 years
     private $raColumnRanges_ageBand1 = array(
