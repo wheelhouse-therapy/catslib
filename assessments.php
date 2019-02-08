@@ -298,8 +298,8 @@ abstract class Assessments
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
         $sAsmt = "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
-                    <span style='margin-left: 20%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
-                        <span style='margin-left: 20%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />
+                    <span style='margin-left: 10%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
+                        <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />
                     <table id='results'>
                         <tr><th> Results </th><th> Score </th><th> Interpretation </th>
                             <th> Percentile </th><th> Reverse Percentile </th></tr>
@@ -677,6 +677,10 @@ class Assessment_SPM extends Assessments
     {
         $score = "0";
 
+        if(!$v){
+            return 0;
+        }
+        
         if( ($n >= 1 && $n <= 10) || $n == 57 ) {
             $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
         } else {
@@ -1073,16 +1077,16 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."<br/><input type='submit' value='New'/>"
                  ."</form>";
 
-            $s .= "<div style='float:right; margin:20px;padding:20px; border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
+            $s .= "<div style='float:right;padding:20px;'><div style='margin:20px;padding:inherit;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
-                    ."<div style='float:right'>"
+                    ."<div style='padding:inherit;display:inline'>"
                         ."<button onclick='$(\"#assessment\").printMe();'>Print Assessment</button>"
                     ."</div>";
             }
-            $s .= "<div class='container-fluid'><div class='row'>"
+            $s .= "</div><div class='container-fluid'><div class='row'>"
                      ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                     ."<div id='assessment' class='col-md-9'>$sRight</div>"
+                     ."<div id='assessment' class='col-md-9' style='border-right:1px solid #bbb'>$sRight</div>"
                  ."</div>";
     }
 
