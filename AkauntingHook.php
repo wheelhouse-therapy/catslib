@@ -11,6 +11,7 @@ class AkauntingHook {
     const REJECTED_NOT_SETUP = -2;
     const REJECTED_NO_PERSON = -3;
     const REJECTED_NO_CCC = -4;
+    const REJECTED_NO_CA = -5;
 
     private static $session = NULL;
     private static $_token = NULL;
@@ -98,55 +99,95 @@ class AkauntingHook {
             $ret = self::REJECTED_NO_ACCOUNT;
             goto done;
         }
-        if($entry->getPerson() == "CCC"){
-            if(!self::getAccountByCode("201")){
-                $ret = self::REJECTED_NO_CCC;
+        if($entry->getAccount() == "UNPAID"){
+            if($entry->getPerson() == "CCC"){
+                if(!self::getAccountByCode("201")){
+                    $ret = self::REJECTED_NO_CCC;
+                    goto done;
+                }
+                if($entry->getType() == "Expense"){
+                    $data["item"][0]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][1]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+                else{
+                    $data["item"][1]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][0]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+            }
+            elseif (strtolower($entry->getPerson()) == "sue") {
+                if($entry->getType() == "Expense"){
+                    $data["item"][0]["account_id"] = self::getAccountByCode("210");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][1]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+                else{
+                    $data["item"][1]["account_id"] = self::getAccountByCode("210");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][0]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+            }
+            elseif (strtolower($entry->getPerson()) == "alison") {
+                if($entry->getType() == "Expense"){
+                    $data["item"][0]["account_id"] = self::getAccountByCode("211");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][1]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+                else{
+                    $data["item"][1]["account_id"] = self::getAccountByCode("211");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][0]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+            }
+            else {
+                $ret = self::REJECTED_NO_PERSON;
                 goto done;
             }
-            if($entry->getType() == "Expense"){
-                $data["item"][0]["account_id"] = self::getAccountByCode("201");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][1]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
+        }
+        elseif($entry->getAccount() == "CA"){
+            if($entry->getPerson() == "CCC"){
+                if(!self::getAccountByCode("201")){
+                    $ret = self::REJECTED_NO_CCC;
+                    goto done;
+                }
+                if($entry->getType() == "Expense"){
+                    $data["item"][0]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][1]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+                else{
+                    $data["item"][1]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][0]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
             }
             else{
-                $data["item"][1]["account_id"] = self::getAccountByCode("201");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][0]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
+                if(!self::getAccountByCode("201")){
+                    $ret = self::REJECTED_NO_CA;
+                    goto done;
+                }
+                if($entry->getType() == "Expense"){
+                    $data["item"][0]["account_id"] = self::getAccountByCode("836");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][1]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
+                else{
+                    $data["item"][1]["account_id"] = self::getAccountByCode("836");
+                    $data["item"][0]["credit"] .= $entry->getAmount();
+                    $data["item"][0]["account_id"] = $account;
+                    $data["item"][1]["debit"] .= $entry->getAmount();
+                }
             }
-        }
-        elseif (strtolower($entry->getPerson()) == "sue") {
-            if($entry->getType() == "Expense"){
-                $data["item"][0]["account_id"] = self::getAccountByCode("210");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][1]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
-            }
-            else{
-                $data["item"][1]["account_id"] = self::getAccountByCode("210");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][0]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
-            }
-        }
-        elseif (strtolower($entry->getPerson()) == "alison") {
-            if($entry->getType() == "Expense"){
-                $data["item"][0]["account_id"] = self::getAccountByCode("211");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][1]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
-            }
-            else{
-                $data["item"][1]["account_id"] = self::getAccountByCode("211");
-                $data["item"][0]["credit"] .= $entry->getAmount();
-                $data["item"][0]["account_id"] = $account;
-                $data["item"][1]["debit"] .= $entry->getAmount();
-            }
-        }
-        else {
-            $ret = self::REJECTED_NO_PERSON;
-            goto done;
         }
         if($entry->getAttachment()){
             $data['reference'] .= "Attachment: ".$entry->getAttachment();
@@ -173,8 +214,8 @@ class AkauntingHook {
         }
     }
 
-    private static function getAccountByName($name){
-        if($value = self::getAccountByKeyWord($name)){
+    private static function getAccountByName($name, $override = FALSE){
+        if(!$override && $value = self::getAccountByKeyWord($name)){
             return $value;
         }
         foreach(self::$accounts as $k => $account){
@@ -214,7 +255,7 @@ class AkauntingHook {
         foreach($keywords as $account=>$words){
             foreach ($words as $words){
                 if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
-                    return self::getAccountByName($account);
+                    return self::getAccountByName($account, true);
                 }
             }
         }
@@ -254,6 +295,8 @@ class AkauntingHook {
                 break;
             case self::REJECTED_NO_CCC:
                 $s .= "not being able to find the Akaunting account for CCC (code 201)";
+            case self::REJECTED_NO_CA:
+                $s .= "not being able to find the Akaunting account for CA (code 836)";
             default:
                 if($error >= 200 && $error < 300){
                     $s .= "the entry successfully being submitted to Akaunting.";

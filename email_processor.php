@@ -22,6 +22,7 @@ class EmailProcessor {
     const DISCARDED_NO_DATE     = -2;
     const DISCARDED_ZERO_AMOUNT = -3;
     const DISCARDED_UNKNOWN_SENDER = -4;
+    const DISCARDED_UNKNOWN_ACCOUNT = -5;
 
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
@@ -32,7 +33,9 @@ class EmailProcessor {
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
         "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
-        "companyCreditCard" => "/ccc/i",
+        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=[^\\w])/i",
+        "companyAccount" => "/(?<=^|[^\\w])ca(?=[^\\w])/i",
+        "unpaid" => "/(?<=^|[^\\w])unpaid(?=[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i"
     );
@@ -187,11 +190,25 @@ class EmailProcessor {
         elseif ($amount > 0){
             $incomeOrExpense = "Expense";
         }
-
+        
         if(preg_match($this->PATTERNS['companyCreditCard'], $value) == 0 && !(SEEDCore_StartsWith($from->getAddress(), "sue") || SEEDCore_StartsWith($from->getAddress(), "alison"))){
             return self::DISCARDED_UNKNOWN_SENDER;
         }
 
+        $caOrUnpaid = NULL; // Start as not defined
+        if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 || preg_match($this->PATTERNS['unpaid'], $value) != 0){
+            if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 && preg_match($this->PATTERNS['unpaid'], $value) == 0){
+                $caOrUnpaid = "CA";
+            }
+            else if(preg_match($this->PATTERNS['unpaid'], $value) != 0 && preg_match($this->PATTERNS['companyAccount'], $value) == 0){
+                $caOrUnpaid = "UNPAID";
+            }
+        }
+        
+        if(!$caOrUnpaid){
+            return self::DISCARDED_UNKNOWN_ACCOUNT;
+        }
+        
         if($incomeOrExpense){
             preg_match($this->PATTERNS["date"], $value, $matches);
             if(count($matches) === 0){
@@ -204,7 +221,7 @@ class EmailProcessor {
             $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
             $person = $matches[0];
-            return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person);
+            return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person, $caOrUnpaid);
         }
         return self::DISCARDED_ZERO_AMOUNT;
     }
@@ -224,6 +241,11 @@ class EmailProcessor {
                 case self::DISCARDED_ZERO_AMOUNT:
                     $responce .= "Amount is zero ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
                                 ."The amount was calulated as zero and the entry was discarded since it does not affect the balance\n";
+                    break;
+                case self::DISCARDED_UNKNOWN_ACCOUNT:
+                    $responce .= "Could not determine account to charge the amount to ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
+                                ."This is a different error than Akaunting rejecting the entry.\n"
+                                ."Possible entries are: UNPAID and CA.\n";
                     break;
             }
         }
@@ -278,8 +300,9 @@ class AccountingEntry {
     private $ccc;
     private $desc;
     private $person;
+    private $account; // Account to use to balance the entry
 
-    function __construct($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person){
+    function __construct($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person, String $account){
         $this->clinic = $clinic;
         $this->amount = $amount;
         $this->type = $type;
@@ -289,6 +312,7 @@ class AccountingEntry {
         $this->ccc = $ccc;
         $this->desc = $desc;
         $this->person = $person;
+        $this->account = $account;
     }
 
     public function getAmount(){
@@ -331,6 +355,10 @@ class AccountingEntry {
         return $this->desc;
     }
 
+    public function getAccount(){
+        return $this->account;
+    }
+    
     private function parseDate(String $date): String {
         if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4}/i", $date)){
             //Clear up some of the double options
