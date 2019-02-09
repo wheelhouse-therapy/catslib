@@ -48,6 +48,7 @@ class CATS_UI
             'CATSDIR'=>CATSDIR,
             'CATSDIR_CSS'=>CATSDIR_CSS,
             'CATSDIR_JS'=>CATSDIR_JS,
+            'CATSDIR_IMG'=>CATSDIR_IMG,
             'W_CORE_URL'=>W_CORE_URL,
 
             'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->screen],

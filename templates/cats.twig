@@ -17,9 +17,10 @@
     <a href='?screen=home'><img src='{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
     <div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>{{clinics|raw}}</div>
     <div style='float:right;top: 5px;position: relative;'>
-        Welcome {{user_name|raw}} {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
+        Welcome {{user_name|raw}} <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
     </div>
 </div>
+{% include 'cats_support' %}
 
 
 %% cats_page
@@ -29,3 +30,85 @@
 {% include 'cats_header' %}
 {{ body|raw }}
 {% endblock %}
+
+
+%% cats_support
+############## 
+# This is the Support Dialog and Button that goes in the header to provide easy access to the Dev Team
+<script>
+    /* must apply only after HTML has loaded */
+    $(document).ready(function () {
+        $("#support_dialog").on("hidden.bs.modal", function(){
+            document.getElementById("support_form").reset();
+        });
+    });
+    function supportSubmit(e){
+    	var postData = $(e.currentTarget).serializeArray();
+        var formURL = $(e.currentTarget).attr("action");
+        $.ajax({
+            type: "POST",
+            data: postData,
+            url: formURL,
+            success: function(data, textStatus, jqXHR) {
+                $('#support_dialog').modal('hide');
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+        e.preventDefault();
+    }
+    function supportTypeChange(e){
+        var supportType = e.currentTarget;
+        var supportDescBlock = document.getElementById("supportDescBlock");
+        var supportDescLabel = document.getElementById("supportDescLabel");
+        var supportDescBox = document.getElementById("supportDesc");
+        if(!supportType.selectedOptions[0].value){
+            supportDescBlock.style.display = "none";
+            supportDescBox.value = "";
+        }
+        else{
+        	supportDescBlock.style.display = "block";
+        	if(supportType.selectedOptions[0].value === "Bug Report"){
+            	supportDescLabel.innerHTML = "Please describe the bug in as much detail as possible. Be sure to include actions to reproduce it.";
+            }
+        	else if(supportType.selectedOptions[0].value === "Feature Request"){
+        		supportDescLabel.innerHTML = "Please describe the feature you would like in as much detail as possible.";
+           	}
+        	else if(supportType.selectedOptions[0].value === "General Support"){
+            	supportDescLabel.innerHTML = "Please tell us what you need assistance with. Please be as specific as possible.";
+            }
+        }
+    }
+</script>
+
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="support_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Support</h4>
+            </div>
+            <div class="modal-body">
+                <form id='support_form' onsubmit='supportSubmit(event)'>
+                	<label for='supportType'>What Type of Support are you looking for?</label>
+                	<select id='supportType' name='supportType' required onchange='supportTypeChange(event)'>
+                		<option value="">-- Select One --</option>
+                		<option>Bug Report</option>
+                		<option>Feature Request</option>
+                		<option>General Support</option>
+                	</select>
+                	<div id='supportDescBlock' style='display:none'>
+                		<label for='supportDesc' id='supportDescLabel'></label>
+                		<textArea id='supportDesc' name='supportDesc' required></textArea>
+                	</div>
+                	
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <input type="submit" class="btn btn-default" form="support_form" value='Request Support' />
+            </div>
+        </div>
+    </div>
+</div>
