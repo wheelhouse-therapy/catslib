@@ -1,8 +1,10 @@
 <?php
-if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
+require_once "../catsdef.php";
+require_once '_config.php';
 require_once(CATSLIB.'/vendor/autoload.php');
 require_once( SEEDCORE."SEEDEmail.php" );
+require_once 'share_resources.php';
 
 use Ddeboer\Imap\Server;
 use Ddeboer\Imap\SearchExpression;
@@ -11,7 +13,7 @@ use Ddeboer\Imap\MessageIterator;
 use Ddeboer\Imap\Message\EmailAddress;
 use Ddeboer\Imap\Message\Attachment;
 
-class EmailProcessor {
+class ReceiptsProcessor {
 
     //Constants
     const HST = 1.13;
@@ -63,7 +65,7 @@ class EmailProcessor {
         foreach($messages as $message){
             $attachment = microtime(TRUE);
 
-            if($this->getValidAttachment($message->getAttachments())){
+            if($this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
@@ -127,7 +129,7 @@ class EmailProcessor {
             $results = AkauntingHook::submitJournalEntries($entries);
             
             if(array_intersect(range(200,299), $results) && $attachment){
-                if($oAttachment = $this->getValidAttachment($message->getAttachments())){
+                if($oAttachment = $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                     $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
                     fwrite($attachmentFile, $oAttachment->getDecodedContent());
                     fclose($attachmentFile);
@@ -140,7 +142,7 @@ class EmailProcessor {
              */
             $responce = $this->handleErrors($errors).AkauntingHook::decodeErrors($results);
             
-            if(count($message->getAttachments()) > 1 && $this->getValidAttachment($message->getAttachments())){
+            if(count($message->getAttachments()) > 1 && $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                 $responce .= "\nNOTE: Only the first valid (not used in our system) was stored\n";
             }
             
@@ -158,10 +160,10 @@ class EmailProcessor {
                          .str_repeat("\n", 2)
                          .$message->getBodyText();
             
-            $testFile = NULL;
+            $tempFile = NULL;
             //Send the results
             if($attachment){
-                $tempFile = new TempAttachment($this->getValidAttachment($message->getAttachments()));
+                $tempFile = new TempAttachment($this->getValidAttachment(new ArrayOfAttachment($message->getAttachments())));
             }
             SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFile?array($tempFile->path):"")));
             
@@ -274,7 +276,7 @@ class EmailProcessor {
      * @param array $attachments - array of attachments included in the message
      * @return Attachment - attachment object representing the first valid attachment or NULL if it does not exist
      */
-    private function getValidAttachment(array $attachments){
+    private function getValidAttachment(ArrayOfAttachment $attachments){
         if(count($attachments) == 0){
             goto notfound;
         }
@@ -386,6 +388,81 @@ class AccountingEntry {
     
 }
 
+class ResourcesProcessor {
+    
+    private $connection;
+    
+    public function __construct($server,$email, $psw){
+        $server = new Server($server);
+        $this->connection = $server->authenticate($email,$psw);
+    }
+    
+    public function processEmails($box = 'INBOX'){
+        $mailbox = $this->connection->getMailbox($box);
+        $search = new SearchExpression();
+        $search->addCondition(new Unseen());
+        $this->processMessages($mailbox->getMessages($search));
+    }
+    
+    private function processMessages($messages){
+        echo "Processing ".count($messages)." messages<br/>";
+        foreach($messages as $message){
+            $successfulEntries = array();
+            $attachments = $this->getValidAttachments(new ArrayOfAttachment($message->getAttachments()));
+            foreach ($attachments as $attachment){
+                if($attachmentFile = fopen(/*CATSDIR_RESOURCES*/"../cats/resources/"."pending/".$attachment->getFilename(), "w")){
+                    fwrite($attachmentFile, $attachment->getDecodedContent());
+                    fclose($attachmentFile);
+                    array_push($successfulEntries,$attachment->getFilename());
+                }
+            }
+            
+            $message->markAsSeen();
+            
+            $responce = "Success: ".count($successfulEntries)."\n"
+                       ."Error:".(count($message->getAttachments())-count($successfulEntries))."\n"
+                       .str_repeat("\n", 3)
+                       ."The following files were entered successfully:\n"
+                       .SEEDCore_ArrayExpandSeries($successfulEntries, "[[]]\n");
+                        
+            $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
+                        ."You can reach them at developer@catherapyservices.ca\n"
+                        ."\nCATS Automatic Resource Entry System"
+                        .str_repeat("\n", 3)
+                        ."--------Original Message--------\n"
+                        ."From: ".$message->getFrom()->getAddress()
+                        ."\nTo: ".$message->getTo()[0]->getAddress()
+                        ."\nDate: ".$message->getDate()->format("m/d/y H:i")
+                        ."\nSubject: ".$message->getSubject()
+                        .str_repeat("\n", 2)
+                        .$message->getBodyText();
+            $tempFiles = NULL;
+            if($message->getAttachments()){
+                $tempFiles = TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
+            }
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $message->getFrom()->getAddress(), $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
+                                        
+        }
+    }
+    
+    /** Returns array of attachment objects of all valid attachments
+     * Or empty array if there are none
+     * @param array $attachments - array of attachments included in the message
+     * @return array - of attachment objects representing all valid attachments
+     */
+    private function getValidAttachments(ArrayOfAttachment $attachments){
+        $valid = new ArrayOfAttachment();
+        foreach($attachments as $attachment){
+            if(!file_exists(CATSDIR_IMG.$attachment->getFilename()) && !file_exists(/*CATSDIR_RESOURCES*/"../cats/resources/"."pending/".$attachment->getFilename())){
+                echo $attachment->getFilename()." is Valid";
+                $valid[] = $attachment;
+            }
+        }
+        return $valid;
+    }
+    
+}
+
 class TempAttachment {
     
     public $path;
@@ -402,6 +479,59 @@ class TempAttachment {
     public function __destruct()
     {
         unlink($this->path);
+    }
+    
+    static function createRA(ArrayOfAttachment $attachments){
+        $tempAttachments = new ArrayOfTempAttachment();
+        foreach($attachments as $attachment){
+            $tempAttachments[] = new TempAttachment($attachment);
+        }
+        return $tempAttachments;
+    }
+    
+    static function createRAOfPaths(ArrayOfTempAttachment $attachments){
+        $ra = array();
+        foreach ($attachments as $attachment){
+            array_push($ra, $attachment->path);
+        }
+        return $ra;
+    }
+    
+}
+
+//Array Hack Classes
+
+class ArrayOfAttachment extends \ArrayObject {
+    public function offsetSet($key, $val) {
+        if ($val instanceof Attachment) {
+            return parent::offsetSet($key, $val);
+        }
+        throw new \InvalidArgumentException('Value must be an Attachment');
+    }
+    public function __call($func, $argv)
+    {
+        if (!is_callable($func) || substr($func, 0, 6) !== 'array_')
+        {
+            throw new BadMethodCallException(__CLASS__.'->'.$func);
+        }
+        return call_user_func_array($func, array_merge(array($this->getArrayCopy()), $argv));
+    }
+}
+
+class ArrayOfTempAttachment extends \ArrayObject {
+    public function offsetSet($key, $val) {
+        if ($val instanceof TempAttachment) {
+            return parent::offsetSet($key, $val);
+        }
+        throw new \InvalidArgumentException('Value must be a TempAttachment');
+    }
+    public function __call($func, $argv)
+    {
+        if (!is_callable($func) || substr($func, 0, 6) !== 'array_')
+        {
+            throw new BadMethodCallException(__CLASS__.'->'.$func);
+        }
+        return call_user_func_array($func, array_merge(array($this->getArrayCopy()), $argv));
     }
 }
 
