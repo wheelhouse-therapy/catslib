@@ -1,7 +1,5 @@
 <?php
 
-require_once "../catsdef.php";
-require_once '_config.php';
 require_once(CATSLIB.'/vendor/autoload.php');
 require_once( SEEDCORE."SEEDEmail.php" );
 require_once 'share_resources.php';
