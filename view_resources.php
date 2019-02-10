@@ -199,7 +199,7 @@ DownloadMode;
         return;
     }
     $clients = (new PeopleDB($oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'");
-    $s .= "<!-- the div that represents the modal dialog -->
+    $s .= " <!-- the div that represents the modal dialog -->
             <div class='modal fade' id='file_dialog' role='dialog'>
                 <div class='modal-dialog'>
                     <div class='modal-content'>
@@ -207,7 +207,7 @@ DownloadMode;
                             <h4 class='modal-title'>Please select a client</h4>
                         </div>
                         <div class='modal-body'>
-                            <form id='client_form'>
+                            <form id='client_form' onsubmit='modalSubmit(event)'>
                                 <input type='hidden' name='cmd' value='download' />
                                 <input type='hidden' name='file' id='file' value='' />
                                 <select name='client' required>
@@ -217,7 +217,7 @@ DownloadMode;
                             </form>
                         </div>
                         <div class='modal-footer'>
-                            <input type='submit' value='Download' form='client_form' />
+                            <input type='submit' id='submitVal' value='".(CATSDIR_RESOURCES.$GLOBALS['directories']['reports']['directory'] == $dir_name?"Next":"Download")."' form='client_form' />
                         </div>
                     </div>
                 </div>
@@ -266,18 +266,50 @@ DownloadMode;
     $s = str_replace("[display]", "display:none;", $s);
     
     $s .= "<script>
+            const modal = document.getElementById('file_dialog').innerHTML;
             function select_client(file){
+                document.getElementById('file_dialog').innerHTML = modal;
                 document.getElementById('file').value = file;
                 $('#file_dialog').modal('show');
             }
-            $(document).ready(function () {
-                $(\"#client_form\").on(\"submit\", function() {
-                    $('#file_dialog').modal('hide');
+            function modalSubmit(e) {
+                var target  = $(e.currentTarget);
+                var postData = target.serializeArray();
+                postData = postData.map(function(value, index, array){
+                    if(value.name == 'cmd'){
+                        return {name: 'cmd', value: 'therapist-resourcemodal'};
+                    }
+                    return value;
                 });
-                $(\"#file_dialog\").on(\"hidden.bs.modal\", function(){
-                    document.getElementById('client_form').reset();
+                postData.push({name: 'submitVal', value: document.getElementById('submitVal').value});
+                var preventDefault = true;
+                $.ajax({
+                    type: \"POST\",
+                    data: postData,
+                    async: false,
+                    url: 'jx.php',
+                    success: function(data, textStatus, jqXHR) {
+                        var jsData = JSON.parse(data);
+                        if(jsData.bOk){
+                            var returnedContent = JSON.parse(jsData.sOut);
+                            var body = target.closest('.modal-body')[0];
+                            body.previousElementSibling.innerHTML = returnedContent['header'];
+                            body.innerHTML = returnedContent['body'];
+                            body.nextElementSibling.innerHTML = returnedContent['footer'];
+                        }
+                        else{
+                            $('#file_dialog').modal('hide');
+                            preventDefault = false;  
+                        }
+                    },
+                    error: function(jqXHR, status, error) {
+                        console.log(status + \": \" + error);
+                    }
                 });
-            });
+                if(preventDefault){
+                    e.preventDefault();
+                }
+            }
            </script>";
 
     return( $s );
