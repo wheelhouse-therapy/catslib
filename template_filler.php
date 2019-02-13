@@ -166,7 +166,7 @@ class template_filler {
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
             $v = $this->expandTag($tag);
-            $v = $this->tnrs->resolveTag($tag, $v);
+            $v = $this->tnrs->resolveTag($tag, ($v?:""));
             if(substr($tag,0,7) == 'section'){
                 $templateProcessor->insertSection($tag, $v);
             }else{

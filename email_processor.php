@@ -438,6 +438,8 @@ class ResourcesProcessor {
             if($message->getAttachments()){
                 $tempFiles = TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
             }
+            // TODO Auto determine who to reply to
+            // This should only occur if the email is sent from a send only email
             SEEDEmailSend($message->getTo()[0]->getAddress(), $message->getFrom()->getAddress(), $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
                                         
         }
