@@ -233,7 +233,7 @@ class AkauntingHook {
         );
         
         foreach($keywords as $account=>$words){
-            foreach ($words as $words){
+            foreach ($words as $word){
                 if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
                     return self::getAccountByName($account, true);
                 }
@@ -262,7 +262,7 @@ class AkauntingHook {
     }
     
     public static function decodeError(String $location,int $error):String{
-        $s = "Submission of Entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." resulted in ";
+        $s = "Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in. When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word";
