@@ -196,11 +196,11 @@ class ReceiptsProcessor {
         }
 
         $caOrUnpaid = NULL; // Start as not defined
-        if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 || preg_match($this->PATTERNS['unpaid'], $value) != 0){
-            if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 && preg_match($this->PATTERNS['unpaid'], $value) == 0){
+        if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 || preg_match($this->PATTERNS['unpaid'], $value) != 0 || preg_match($this->PATTERNS['companyCreditCard'], $value) != 0){
+            if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 && preg_match($this->PATTERNS['unpaid'], $value) == 0 && preg_match($this->PATTERNS['companyCreditCard'], $value) != 0){
                 $caOrUnpaid = "CA";
             }
-            else if(preg_match($this->PATTERNS['unpaid'], $value) != 0 && preg_match($this->PATTERNS['companyAccount'], $value) == 0){
+            else if((preg_match($this->PATTERNS['unpaid'], $value) != 0 || preg_match($this->PATTERNS['companyCreditCard'], $value) != 0) && preg_match($this->PATTERNS['companyAccount'], $value) == 0){
                 $caOrUnpaid = "UNPAID";
             }
         }
@@ -245,7 +245,7 @@ class ReceiptsProcessor {
                 case self::DISCARDED_UNKNOWN_ACCOUNT:
                     $responce .= "Could not determine account to charge the amount to ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
                                 ."This is a different error than Akaunting rejecting the entry.\n"
-                                ."Possible entries are: UNPAID and CA.\n";
+                                ."Possible entries are: UNPAID, CCC and CA.\n";
                     break;
             }
         }

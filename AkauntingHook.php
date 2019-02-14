@@ -152,41 +152,21 @@ class AkauntingHook {
             }
         }
         elseif($entry->getAccount() == "CA"){
-            if($entry->getPerson() == "CCC"){
-                if(!self::getAccountByCode("201")){
-                    $ret = self::REJECTED_NO_CCC;
-                    goto done;
-                }
-                if($entry->getType() == "Expense"){
-                    $data["item"][0]["account_id"] = self::getAccountByCode("201");
-                    $data["item"][0]["credit"] .= $entry->getAmount();
-                    $data["item"][1]["account_id"] = $account;
-                    $data["item"][1]["debit"] .= $entry->getAmount();
-                }
-                else{
-                    $data["item"][1]["account_id"] = self::getAccountByCode("201");
-                    $data["item"][0]["credit"] .= $entry->getAmount();
-                    $data["item"][0]["account_id"] = $account;
-                    $data["item"][1]["debit"] .= $entry->getAmount();
-                }
+            if(!self::getAccountByCode("201")){
+                $ret = self::REJECTED_NO_CA;
+                goto done;
+            }
+            if($entry->getType() == "Expense"){
+                $data["item"][0]["account_id"] = self::getAccountByCode("836");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][1]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
             else{
-                if(!self::getAccountByCode("201")){
-                    $ret = self::REJECTED_NO_CA;
-                    goto done;
-                }
-                if($entry->getType() == "Expense"){
-                    $data["item"][0]["account_id"] = self::getAccountByCode("836");
-                    $data["item"][0]["credit"] .= $entry->getAmount();
-                    $data["item"][1]["account_id"] = $account;
-                    $data["item"][1]["debit"] .= $entry->getAmount();
-                }
-                else{
-                    $data["item"][1]["account_id"] = self::getAccountByCode("836");
-                    $data["item"][0]["credit"] .= $entry->getAmount();
-                    $data["item"][0]["account_id"] = $account;
-                    $data["item"][1]["debit"] .= $entry->getAmount();
-                }
+                $data["item"][1]["account_id"] = self::getAccountByCode("836");
+                $data["item"][0]["credit"] .= $entry->getAmount();
+                $data["item"][0]["account_id"] = $account;
+                $data["item"][1]["debit"] .= $entry->getAmount();
             }
         }
         if($entry->getAttachment()){
