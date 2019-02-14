@@ -17,7 +17,7 @@
     <a href='?screen=home'><img src='{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
     <div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>{{clinics|raw}}</div>
     <div style='float:right;top: 5px;position: relative;'>
-        Welcome {{user_name|raw}} <!-- <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> --> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
+        Welcome {{user_name|raw}} <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
     </div>
 </div>
 {% include 'cats_support' %}
@@ -40,7 +40,10 @@
     $(document).ready(function () {
         $("#support_dialog").on("hidden.bs.modal", function(){
             document.getElementById("support_form").reset();
+            document.getElementById("supportDescBlock").style.display = "none";
         });
+        $(".support-alert").hide();
+        hideAlerts();
     });
     function supportSubmit(e){
     	var postData = $(e.currentTarget).serializeArray();
@@ -51,6 +54,19 @@
             url: formURL,
             success: function(data, textStatus, jqXHR) {
                 $('#support_dialog').modal('hide');
+                var jsData = JSON.parse(data);
+                if(jsData.bOk){
+                    $('#supportRequested').slideDown(500);
+                }
+                else if(jsData.sErr){
+                    document.getElementById('supportFailed').innerHTML = jsData.sErr;
+                    $('#supportFailed').slideDown(500);
+                }
+                else{
+                    document.getElementById('supportFailed').innerHTML = "Could not request support";
+                    $('#supportFailed').slideDown(500);
+                }
+                hideAlerts();
             },
             error: function(jqXHR, status, error) {
                 console.log(status + ": " + error);
@@ -80,6 +96,11 @@
             }
         }
     }
+    function hideAlerts(){
+    	setTimeout(function() {
+    		$(".alert-dismissible").slideUp(500);
+        }, 5000);
+    }
 </script>
 
 <!-- the div that represents the modal dialog -->
@@ -90,7 +111,8 @@
                 <h4 class="modal-title">Support</h4>
             </div>
             <div class="modal-body">
-                <form id='support_form' onsubmit='supportSubmit(event)'>
+                <form id='support_form' action='jx.php' onsubmit='supportSubmit(event)'>
+                	<input type='hidden' name='cmd' value='support'>
                 	<label for='supportType'>What Type of Support are you looking for?</label>
                 	<select id='supportType' name='supportType' required onchange='supportTypeChange(event)'>
                 		<option value="">-- Select One --</option>
@@ -111,4 +133,10 @@
             </div>
         </div>
     </div>
+</div>
+<div id='supportFailed' class="alert alert-danger alert-dismissible support-alert" style="display:none">
+Could not request support
+</div>
+<div id='supportRequested' class="alert alert-success alert-dismissible support-alert" style="display:none">
+Support Requested
 </div>
