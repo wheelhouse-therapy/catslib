@@ -118,6 +118,7 @@ class CATS_MainUI extends CATS_UI
 
     function DrawTherapist()
     {
+        //Unimplemented Bubbles have been commented out to clean up display
         $raTherapistScreens = array(
             array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
             array( 'therapist-reports',         "Print Client Reports"),
@@ -126,11 +127,11 @@ class CATS_MainUI extends CATS_UI
             array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-assessments',     "Score Assessments"),
-            array( 'therapist-ideas',           "Get Ideas" ),
+            //array( 'therapist-ideas',           "Get Ideas" ),
             array( 'therapist-materials',       "Download Marketable Materials" ),
-            array( 'therapist-documents',       "Documents" ),
-            array( 'therapist-team',            "Meet the Team" ),
-            array( 'therapist-calendar',        "Calendar" ),
+            //array( 'therapist-documents',       "Documents" ),
+            //array( 'therapist-team',            "Meet the Team" ),
+            //array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clinicresources', "Print Clinic Resources"),
             array( 'therapist-viewSOPs',        "View Standard Operating Procedures" )
         );
@@ -220,8 +221,9 @@ class CATS_MainUI extends CATS_UI
                 $s .= $tnrs->listResolution();
                 break;
             default:
+                //Unimplemented Bubbles have been commented out to clean up display
                 $raScreens = array(
-                    array( 'admin-users',            "Manage Users" ),
+                    //array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service") 
@@ -276,7 +278,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       break;
             default:
                     $raScreens = array(
-                        array( 'developer-confirmdrop',             "Drop Tables" ),
+                        array( 'developer-confirmdrop',    "Drop Tables"    ),
                         array( 'developer-clinics',        "Manage Clinics" ),
                     );
                     $s .= $this->drawCircles( $raScreens );
