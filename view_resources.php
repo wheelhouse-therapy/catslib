@@ -88,10 +88,17 @@ ResourcesTagStyle;
         <script>
         $(document).ready(function() {
             $('.resources-tag-new').click( function() {
+                /* If someone clicks on the new tag button while adding another tag
+                 * The Old behavior caused the old tag to not be submitted.
+                 * This method prevents that from hapening
+                 */
+                $('.resources-tag-new-form').each(function(){
+                    $(this).submit();
+                });
                 /* The [+] new-tag button opens an input control where the user can type a new tag
                  */
                 var tagNew = $("<form class='resources-tag-new-form'>"
-                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag'/>"
+                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag' />"
                               +"</form>" );
 
                 /* Put the new-tag form after the [+] button and put focus on its input.
