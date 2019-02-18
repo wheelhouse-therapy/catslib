@@ -96,9 +96,17 @@ class AssessmentsCommon
      * @return array of html output to be placed in model
      */
     function listAssessments(int $client):array{
-        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
+        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
         $bData = false;
-        $raOut['body'] .= SEEDCore_ArrayExpandSeriesWithKey($_REQUEST, "<input type='hidden' name='[[k]]' value='[[v]]' />");
+
+        // propagate the previous modal dialog's parameters into the next modal dialog
+        foreach( $_POST as $k => $v ) {
+            if( $k == 'submitVal' ) continue;   // this is 'Next', should not be encoded because the next submitVal is Download
+            if( $k == 'cmd' )       continue;   // this is 'therapist-resourcemodal', should not be encoded because the next cmd is 'download'
+            $raOut['body'] .= "<input type='hidden' name='$k' value='".htmlspecialchars($v)."' />";
+        }
+        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
+
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":<select>";
             $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"_created", "bSortDown"=> true) );
