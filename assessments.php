@@ -101,7 +101,7 @@ class AssessmentsCommon
         $raOut['body'] .= SEEDCore_ArrayExpandSeriesWithKey($_REQUEST, "<input type='hidden' name='[[k]]' value='[[v]]' />");
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":<select>";
-            $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2=".$client." and testType=".$assmt['code'], array("sSortCol"=>"_created", "bSortDown"=> true) );
+            $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"_created", "bSortDown"=> true) );
             $raOut['body'] .= "<select name='".$assmt['code']."'".(count($raA) == 0 ? " readonly":"").">";
             if(count($raA) == 0){
                 $raOut['body'] .= "<option>No Data Recorded</option>";
@@ -277,7 +277,7 @@ abstract class Assessments
                 $oForm->SetValue( "i$k", $v );
             }
             $sAsmt = $this->drawAsmt( $oForm, $raColumns );
-            
+
             // Put the results in a js array for processing on the client
             $s .= "<script>
                    var raResultsSPM = ".json_encode($raResults).";
@@ -680,7 +680,7 @@ class Assessment_SPM extends Assessments
         if(!$v){
             return 0;
         }
-        
+
         if( ($n >= 1 && $n <= 10) || $n == 57 ) {
             $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
         } else {
