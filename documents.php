@@ -258,11 +258,14 @@ function ManageResources( SEEDAppSessionAccount $oApp ) {
 
     $script = <<<JavaScript
 <script>
+    var displayed = [];
     function toggleDisplay(block){
-        if(document.getElementById(block).style.display == 'none')
-            document.getElementById(block).style.display = 'block';
+        if(displayed.indexOf(block) !== -1)
+            displayed.splice( displayed.indexOf(block), 1 );
         else
-            document.getElementById(block).style.display = 'none';
+            displayed.push(block);
+        $(document.getElementById(block)).slideToggle(400);
+        updateServer();
     }
 
     function setContents(block, contents){
@@ -280,6 +283,17 @@ function ManageResources( SEEDAppSessionAccount $oApp ) {
     		block.innerHTML = contents.innerHTML;
     		block.style.display = 'block';
     	}
+    }
+    
+    function updateServer(){
+        $.ajax({
+            type: "POST",
+            data: {cmd:'admin-ResourceTrees',open:displayed},
+            url: 'jx.php',
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
     }
 </script>
 JavaScript;
@@ -325,15 +339,15 @@ CSS;
 class ResourceManager{
 
     private $oApp;
-    private $i = 0;
     private $selected_File = 0;
+    private $openTrees;
 
     public function __construct(SEEDAppSessionAccount $oApp){
         $this->oApp = $oApp;
     }
 
     public function ManageResources(){
-        $this->selected_File = SEEDInput_Int("file");
+        $this->selected_File = SEEDInput_Str("file");
         if(isset($_SESSION['ResourceCMDResult'])){
             $cmdResult = $_SESSION['ResourceCMDResult'];
             unset($_SESSION['ResourceCMDResult']);
@@ -341,7 +355,16 @@ class ResourceManager{
         else{
             $cmdResult = "";
         }
-        return $cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
+        $this->openTrees = $this->oApp->sess->SmartGPC("open", array(array()));
+        
+        foreach ($this->openTrees as $file){
+            if(!file_exists(CATSDIR_RESOURCES.$file)){
+                unset($this->openTrees[array_search($file, $this->openTrees)]);
+            }
+        }
+        
+        $script = "<script>displayed = Object.values(JSON.parse('".json_encode($this->openTrees)."'));</script>";
+        return $script.$cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
 
     private function listResources($dir){
@@ -356,12 +379,11 @@ class ResourceManager{
             if($fileinfo->isDot()){
                 continue;
             }
-            $this->i++;
-            if($this->selected_File && $this->i && $this->selected_File == $this->i){
+            if($this->selected_File && $this->selected_File == $this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)){
                 $this->processCommands($fileinfo);
             }
-            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->i."\")'>".$fileinfo->getFilename()."</a><br />";
-            $s .= "<div class='[style]' id='".$this->i."' style='display:none; width: 50%;'>";
+            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."\")'>".$fileinfo->getFilename()."</a><br />";
+            $s .= "<div class='[style]' id='".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."' style='".(in_array($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES), $this->openTrees)?"":"display:none;")." width: 50%;'>";
             if($fileinfo->isDir()){
                 $s = str_replace("[style]", "cats_doctree_level", $s);
                 $s .= $this->listResources($fileinfo->getRealPath());
@@ -379,48 +401,48 @@ class ResourceManager{
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
-                preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\\/|\\\))\w*(?=\\/|\\\)!", $file_info->getRealPath(), $matches);
-                if(!$matches){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
+                $directory = $this->getPartPath($file_info->getRealPath(), -2);
+                if(!$directory){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
                     break;
                 }
-                $directory = $matches[0];
                 if(rename(CATSDIR_RESOURCES.$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
                     if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(SEEDInput_Str("folder"),"/"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename())."'")){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else{
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error Moving file ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
                 }
                 break;
             case "rename":
-                preg_match("!.*(\\\\|\\/)!", $file_info->getPathname(), $matches);
-                if(!$matches){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error determining start of path for file ".$file_info->getFilename()."</div>";
+                $path = substr($file_info->getPathname(), 0,strrpos($file_info->getPathname(), DIRECTORY_SEPARATOR));
+                if(!$path){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining start of path for file ".$file_info->getFilename()."</div>";
                     break;
                 }
-                if(rename($file_info->getPathname(), $matches[0].SEEDInput_Str("name"))){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
-                    $directory = preg_replace("!.*(\\\\|\\/)!", "", rtrim($matches[0],"/\\"));
+                if(rename($file_info->getPathname(), $path.SEEDInput_Str("name"))){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
+                    $directory = $this->getPartPath($file_info->getRealPath(), -2);
                     if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name"))."' WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename())."'")){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name")."</div>";
                 }
                 break;
             case "delete":
                 if(unlink($file_info->getRealPath())){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success'>File ".$file_info->getFilename()." has been deleted</div>";
-                    if(!$this->oApp->kfdb->Execute("DELETE FROM resources_files WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename()."' "))){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger'>Unable to delete tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                    $directory = $this->getPartPath($file_info->getRealPath(),-2);
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." has been deleted</div>";
+                    if(!$this->oApp->kfdb->Execute("DELETE FROM resources_files WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename()."' "))){
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else{
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger'>Error deleting file ".$file_info->getFilename()."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file ".$file_info->getFilename()."</div>";
                 }
                 break;
         }
@@ -430,13 +452,15 @@ class ResourceManager{
     }
 
     private function drawCommands($file_path){
-        preg_match("!(?<=".addslashes(realpath(CATSDIR_RESOURCES))."(?:\/|\\\))\w*(?=\/|\\\)!", $file_path, $matches);
-        $directory = $matches[0];
-        $move = "<a href='javascript:void(0)' onclick='setContents(\"command".$this->i."\",\"move".$this->i."\")'>move</a>";
-        $move .= "<div id='move".$this->i."' style='display:none'>"
+        if(!$this->oApp->sess->CanAdmin("admin")){
+            return "You don't have permission to edit files";
+        }
+        $directory = $this->getPartPath($file_path,-2);
+        $move = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move\")'>move</a>";
+        $move .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move' style='display:none'>"
                 ."<br /><form>
                   <input type='hidden' name='cmd' value='move' />
-                  <input type='hidden' name='file' value='".$this->i."' />
+                  <input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />
                   <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
         foreach ($GLOBALS['directories'] as $k=>$v){
             if($v['directory'] != $directory."/"){
@@ -445,22 +469,48 @@ class ResourceManager{
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
 
-        $rename = "<a href='javascript:void(0)' onclick='setContents(\"command".$this->i."\",\"rename".$this->i."\")'>rename</a>";
-        $rename .= "<div id='rename".$this->i."' style='display:none'>"
+        $rename = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename\")'>rename</a>";
+        $rename .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename' style='display:none'>"
                   ."<br /><form>"
                   ."<input type='hidden' name='cmd' value='rename' />"
-                  ."<input type='hidden' name='file' value='".$this->i."' />"
+                  ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
                   ."<input type='text' class='cats_form' name='name' required />"
                   ."&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
 
-        $delete = "<a href='?cmd=delete&file=".$this->i."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
+                  $delete = "<a href='?cmd=delete&file=".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
 
-        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='command".$this->i."' style='display:none'></div>";
+                  $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
         return $s;
     }
 
+    private function getPartPath($path = '', $depth = 0) {
+        $pathArray = array();
+        $pathArray = explode(DIRECTORY_SEPARATOR, trim($path, DIRECTORY_SEPARATOR));
+        if($depth < 0)
+            $depth = count($pathArray)+$depth;
+            
+            if(!isset($pathArray[$depth]))
+                return false;
+                return $pathArray[$depth];
+    }
+    
+    private function getPathRelativeTo($path, $relativeTo = ""){
+        $output = "";
+        if($relativeTo = realpath($relativeTo)){
+            $relativeTo = $this->getPartPath($relativeTo,-1);
+            $pathArray = explode(DIRECTORY_SEPARATOR, trim($path, DIRECTORY_SEPARATOR));
+            for($i = array_search($relativeTo, $pathArray)+1;$i<count($pathArray);$i++){
+                if($output){
+                    $output .= "/";
+                }
+                $output .= $pathArray[$i];
+            }
+        }
+        return ($output?:false);
+    }
+    
 }
 
 ?>
