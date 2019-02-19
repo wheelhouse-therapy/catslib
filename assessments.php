@@ -96,7 +96,7 @@ class AssessmentsCommon
      * @return array of html output to be placed in model
      */
     function listAssessments(int $client):array{
-        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assesments to be included in this report</h4>","body"=>"<form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
+        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assessments to be included in this report</h4>","body"=>"<form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
         $bData = false;
 
         // propagate the previous modal dialog's parameters into the next modal dialog
@@ -1087,6 +1087,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 
             $s .= "<div style='float:right;padding:20px;'><div style='margin:20px;padding:inherit;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
+                $sRight = "<script> var AssmtType = '".$oAsmt->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:inherit;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\"]});'></button>"
