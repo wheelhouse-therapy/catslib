@@ -1085,11 +1085,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."<br/><input type='submit' value='New'/>"
                  ."</form>";
 
-            $s .= "<div style='float:right;padding:20px;'><div style='margin:20px;padding:inherit;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
+            $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
-                    ."<div style='padding:inherit;display:inline'>"
+                    ."<div style='padding:5%;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\"]});'></button>"
                     ."</div>";
             }
