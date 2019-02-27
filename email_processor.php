@@ -33,9 +33,9 @@ class ReceiptsProcessor {
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
         "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
-        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=[^\\w])/i",
-        "companyAccount" => "/(?<=^|[^\\w])ca(?=[^\\w])/i",
-        "unpaid" => "/(?<=^|[^\\w])unpaid(?=[^\\w])/i",
+        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=$|[^\\w])/i",
+        "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
+        "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i"
     );
