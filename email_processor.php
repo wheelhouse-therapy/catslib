@@ -457,7 +457,7 @@ class ResourcesProcessor {
     private function getValidAttachments(ArrayOfAttachment $attachments){
         $valid = new ArrayOfAttachment();
         foreach($attachments as $attachment){
-            if(!file_exists(CATSDIR_IMG.$attachment->getFilename()) && !file_exists(/*CATSDIR_RESOURCES*/"../cats/resources/"."pending/".$attachment->getFilename())){
+            if(!file_exists(CATSDIR_IMG.$attachment->getFilename()) && !file_exists(CATSDIR_RESOURCES."pending/".$attachment->getFilename())){
                 echo $attachment->getFilename()." is Valid";
                 $valid[] = $attachment;
             }
