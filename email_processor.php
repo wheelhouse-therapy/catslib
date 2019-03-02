@@ -438,9 +438,13 @@ class ResourcesProcessor {
             if($message->getAttachments()){
                 $tempFiles = TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
             }
-            // TODO Auto determine who to reply to
-            // This should only occur if the email is sent from a send only email
-            SEEDEmailSend($message->getTo()[0]->getAddress(), $message->getFrom()->getAddress(), $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
+            $recipient = $message->getFrom()->getAddress();
+            if(stripos($message->getFrom()->getAddress(),"no-reply") == 0 || stripos($message->getBodyText(), "send-only") || stripos($message->getBodyText(), "send only") || stripos($message->getBodyText(), "do not reply")){
+                //TODO Programatically determine who to send the return email to.
+                // This Will likely come from the subject and will only happen if the email came from a send only address
+                $recipient = "developer@catherapyservices.ca";
+            }
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $recipient, $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
                                         
         }
     }
