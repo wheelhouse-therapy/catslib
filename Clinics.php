@@ -3,6 +3,10 @@
 class Clinics {
     private $oApp;
 
+    const NO_ACCESS = 0;
+    const LEADER_ACCESS = 1;
+    const FULL_ACCESS = 2;
+    
     function __construct( SEEDAppSessionAccount $oApp ) {
         $this->oApp = $oApp;
     }
@@ -26,6 +30,7 @@ class Clinics {
         }
 
         $clinicsra = $this->GetUserClinics($user);
+        
         foreach($clinicsra as $clinic){
             if($clinic['Clinics__key'] == $this->oApp->sess->SmartGPC('clinic')){
                 return $this->oApp->sess->SmartGPC('clinic');
@@ -109,6 +114,29 @@ class Clinics {
         return FALSE;
     }
 
+    private function checkAccess($user = NULL){
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        if($this->oApp->sess->GetUID() == $user){
+            $bFull = $this->oApp->sess->CanRead('administrator');
+        }
+        else{
+            // Little Hack to get arround the current login to check another users perms
+            $bFull = in_array("administrator",$this->oApp->sess->oDB->GetPermsFromUser($user)["modes2perms"]["R"]);
+        }
+        if($bFull){
+            // The user has full access to clinic settigs
+            return self::FULL_ACCESS;
+        }
+        if($this->getClinicsILead($user)){
+            // The user has leads a clinic and therefore can access that clinic settings
+            return self::LEADER_ACCESS;
+        }
+        // The user does not have access to any clinic settings
+        return self::NO_ACCESS;
+    }
+    
     /** Get array of clinic keys by email
      * This should not be relided on to produce unique results
      * Because emails may not me unique this method returns an array of matching clinic keys
@@ -134,15 +162,39 @@ class Clinics {
         return $clinicKeys;
     }
     
+    public function getClinicsILead($user = NULL){
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
+        $clinicKeys = array();
+        foreach($clinics as $k => $v){
+            array_push($clinicKeys, $v["_key"]);
+        }
+        return $clinicKeys;
+    }
+    
     //These functions are for managing clinics.
 
     function manageClinics(){
         $s = "";
+        $accessType = $this->checkAccess();
+        if($accessType == self::NO_ACCESS){
+            return "<h2>You do not have permission to manage clinics.</h2>"
+                   ."If you believe this is a mistake please contact a system administrator.";
+        }
         $clinic_key = SEEDInput_Int( 'clinic_key' );
+        if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
+            $clinic_key = 0;
+        }
         $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
         $cmd = SEEDInput_Str('cmd');
         switch( $cmd ) {
             case "update_clinic":
+                if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
+                    $s .= "Cannot update clinic. NO ACCESS";
+                    break;
+                }
                 $kfr = $ClinicsDB->GetClinic( $clinic_key );
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
                     if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
@@ -157,6 +209,10 @@ class Clinics {
                 $kfr->PutDBRow();
                 break;
             case "new_clinic":
+                if($accessType != self::FULL_ACCESS){
+                    $s .= "Cannot create new clinic. NO ACESS";
+                    break;
+                }
                 $name = SEEDInput_Str("new_clinic_name");
                 $kfr = $ClinicsDB->KFRel()->CreateRecord();
                 $kfr->SetValue("clinic_name",$name);
@@ -164,21 +220,30 @@ class Clinics {
                 $clinic_key = $kfr->Key();
                 break;
         }
-        $raClinics = $ClinicsDB->KFRel()->GetRecordSetRA("");
-
+        $raClinics = $ClinicsDB->KFRel()->GetRecordSetRA($accessType == self::LEADER_ACCESS?"Clinics.fk_leader='".$this->oApp->sess->GetUID()."'":"");
         $s .= "<div class='container-fluid'><div class='row'>"
-            ."<div class='col-md-6'>"
-            ."<h3>Clinics</h3>"
-            ."<button onclick='add_new();'>Add Clinic</button>"
-            ."<script>function add_new(){var value = prompt(\"Enter Clinic's Name\");
-                 if(!value){return;}
-                 document.getElementById('new_clinic_name').value = value;
-                 document.getElementById('new_clinic').submit();
-            }</script><form id='new_clinic'><input type='hidden' value='' name='new_clinic_name' id='new_clinic_name'><input type='hidden' name='cmd' value='new_clinic'/>
-            </form>"
-           .SEEDCore_ArrayExpandRows( $raClinics, "<div style='padding:5px;'><a href='?clinic_key=[[_key]]'>[[clinic_name]]</a></div>" )
-           .($clinic_key ? $this->drawClinicForm($raClinics, $clinic_key) : "")
-           ."</div>";
+             ."<div class='col-md-6'>";
+        if($accessType == self::FULL_ACCESS){
+            $s .= "<h3>Clinics</h3>"
+                 ."<button onclick='add_new();'>Add Clinic</button>"
+                 ."<script>function add_new(){var value = prompt(\"Enter Clinic's Name\");
+                       if(!value){return;}
+                       document.getElementById('new_clinic_name').value = value;
+                       document.getElementById('new_clinic').submit();
+                   }</script><form id='new_clinic'><input type='hidden' value='' name='new_clinic_name' id='new_clinic_name'><input type='hidden' name='cmd' value='new_clinic'/>
+                   </form>";
+        }
+        else if($accessType == self::LEADER_ACCESS && in_array($this->GetCurrentClinic(), $this->getClinicsILead())){
+            $clinic_key = $this->GetCurrentClinic();
+            $s .= "<h3>Clinic Settings</h3>";
+        }
+        else{
+            $s .= "<h2>You do not have permission to manage the settings of this clinic.</h2>"
+                ."If you believe this is a mistake please contact a system administrator.";
+        }
+        $s .= ($accessType == self::FULL_ACCESS ?SEEDCore_ArrayExpandRows( $raClinics, "<div style='padding:5px;'><a href='?clinic_key=[[_key]]'>[[clinic_name]]</a></div>" ):"")
+              .($clinic_key ? $this->drawClinicForm($raClinics, $clinic_key) : "")
+              ."</div>";
         return($s);
     }
 
@@ -201,7 +266,7 @@ class Clinics {
                 ."<input type='hidden' name='cmd' value='update_clinic'/>"
                 ."<input type='hidden' name='clinic_key' value='{$clinic_key}'/>"
 
-                ."<p>Clinic # {$clinic_key}</p>"
+                .($this->checkAccess() == self::FULL_ACCESS?"<p>Clinic # {$clinic_key}</p>":"")
                 ."<table class='container-fluid table table-striped table-sm'>"
                     // The first clinic must be called core and cannot have the name changed
                     // Disable the name box so it cant be changed
@@ -284,6 +349,9 @@ class Clinics {
             }
             else{
                 $s .= "<option value='".$k."' />".$ra['realname'];
+            }
+            if($k == $this->oApp->sess->GetUID()){
+                $s .= " (me)";
             }
         }
         $s .= "</select>";
