@@ -228,7 +228,7 @@ class template_filler {
     }
 
     private function encode(String $toEncode):String{
-        return str_replace(array("&",'"',"'","<",">"), array("&amp","&quote","&apos","&lt","&gt"), $toEncode);
+        return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
     
     private function expandTag($tag)
