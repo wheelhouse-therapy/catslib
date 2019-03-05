@@ -383,13 +383,13 @@ class ResourceManager{
                 $this->processCommands($fileinfo);
             }
             $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."\")'>".$fileinfo->getFilename()."</a><br />";
-            $s .= "<div class='[style]' id='".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."' style='".(in_array($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES), $this->openTrees)?"":"display:none;")." width: 50%;'>";
+            $s .= "<div class='[style]' id='".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."' style='".(in_array($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES), $this->openTrees)?"":"display:none;")." width: [width];'>";
             if($fileinfo->isDir()){
-                $s = str_replace("[style]", "cats_doctree_level", $s);
+                $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
                 $s .= $this->listResources($fileinfo->getRealPath());
             }
             elseif($fileinfo->isFile()){
-                $s = str_replace("[style]", "cats_docform", $s);
+                $s = str_replace(array("[style]","[width]"), array("cats_docform","50%"), $s);
                 $s .= $this->drawCommands($fileinfo->getRealPath());
             }
             $s .= "</div>";
@@ -406,7 +406,7 @@ class ResourceManager{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
                     break;
                 }
-                if(rename(CATSDIR_RESOURCES.$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
+                if(rename((substr($directory, 0,9) == "resources"?CATSDIR:CATSDIR_RESOURCES).$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
                     if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(SEEDInput_Str("folder"),"/"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename())."'")){
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
@@ -422,15 +422,15 @@ class ResourceManager{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining start of path for file ".$file_info->getFilename()."</div>";
                     break;
                 }
-                if(rename($file_info->getPathname(), $path.SEEDInput_Str("name"))){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name")."</div>";
+                if(rename($file_info->getPathname(), $path.DIRECTORY_SEPARATOR.SEEDInput_Str("name").".".SEEDInput_Str("ext"))){
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name").".".SEEDInput_Str("ext")."</div>";
                     $directory = $this->getPartPath($file_info->getRealPath(), -2);
-                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name"))."' WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename())."'")){
+                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name").".".SEEDInput_Str("ext"))."' WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename())."'")){
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name").".".SEEDInput_Str("ext")."</div>";
                 }
                 break;
             case "delete":
@@ -475,15 +475,15 @@ class ResourceManager{
                   ."<input type='hidden' name='cmd' value='rename' />"
                   ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
                   ."<input type='text' class='cats_form' name='name' required value='".explode(".",$this->getPartPath($file_path,-1))[0]."' />.";
-        $dir_key;
+        $dir_key = "";
         foreach ($GLOBALS['directories'] as $k=>$v){
             if($v['directory'] == $this->getPartPath($file_path,-2)."/"){
                 $dir_key = $k;
                 break;
             }
         }
-        $rename .= "<select name='ext'>";
-        foreach ($GLOBALS['directories'][$dir_key]['extensions'] as $k=>$v){
+        $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
+        foreach (@$GLOBALS['directories'][$dir_key]['extensions'] as $k=>$v){
             if(explode(".",$this->getPartPath($file_path,-1))[1] == $v){
                 $rename .= "<option selected>".$v."</option>";
             }
@@ -491,7 +491,7 @@ class ResourceManager{
                 $rename .= "<option>".$v."</option>";
             }
         }
-        $rename .= "&nbsp&nbsp<input type='submit' value='rename' />"
+        $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
 
