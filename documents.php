@@ -474,8 +474,24 @@ class ResourceManager{
                   ."<br /><form>"
                   ."<input type='hidden' name='cmd' value='rename' />"
                   ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
-                  ."<input type='text' class='cats_form' name='name' required />"
-                  ."&nbsp&nbsp<input type='submit' value='rename' />"
+                  ."<input type='text' class='cats_form' name='name' required value='".explode(".",$this->getPartPath($file_path,-1))[0]."' />.";
+        $dir_key;
+        foreach ($GLOBALS['directories'] as $k=>$v){
+            if($v['directory'] == $this->getPartPath($file_path,-2)."/"){
+                $dir_key = $k;
+                break;
+            }
+        }
+        $rename .= "<select name='ext'>";
+        foreach ($GLOBALS['directories'][$dir_key]['extensions'] as $k=>$v){
+            if(explode(".",$this->getPartPath($file_path,-1))[1] == $v){
+                $rename .= "<option selected>".$v."</option>";
+            }
+            else{
+                $rename .= "<option>".$v."</option>";
+            }
+        }
+        $rename .= "&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
 
