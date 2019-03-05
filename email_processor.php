@@ -33,9 +33,9 @@ class ReceiptsProcessor {
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
         "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
-        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=[^\\w])/i",
-        "companyAccount" => "/(?<=^|[^\\w])ca(?=[^\\w])/i",
-        "unpaid" => "/(?<=^|[^\\w])unpaid(?=[^\\w])/i",
+        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=$|[^\\w])/i",
+        "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
+        "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i"
     );
@@ -438,9 +438,13 @@ class ResourcesProcessor {
             if($message->getAttachments()){
                 $tempFiles = TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
             }
-            // TODO Auto determine who to reply to
-            // This should only occur if the email is sent from a send only email
-            SEEDEmailSend($message->getTo()[0]->getAddress(), $message->getFrom()->getAddress(), $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
+            $recipient = $message->getFrom()->getAddress();
+            if(stripos($message->getFrom()->getAddress(),"no-reply") == 0 || stripos($message->getBodyText(), "send-only") || stripos($message->getBodyText(), "send only") || stripos($message->getBodyText(), "do not reply")){
+                //TODO Programatically determine who to send the return email to.
+                // This Will likely come from the subject and will only happen if the email came from a send only address
+                $recipient = "developer@catherapyservices.ca";
+            }
+            SEEDEmailSend($message->getTo()[0]->getAddress(), $recipient, $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
                                         
         }
     }
@@ -453,7 +457,7 @@ class ResourcesProcessor {
     private function getValidAttachments(ArrayOfAttachment $attachments){
         $valid = new ArrayOfAttachment();
         foreach($attachments as $attachment){
-            if(!file_exists(CATSDIR_IMG.$attachment->getFilename()) && !file_exists(/*CATSDIR_RESOURCES*/"../cats/resources/"."pending/".$attachment->getFilename())){
+            if(!file_exists(CATSDIR_IMG.$attachment->getFilename()) && !file_exists(CATSDIR_RESOURCES."pending/".$attachment->getFilename())){
                 echo $attachment->getFilename()." is Valid";
                 $valid[] = $attachment;
             }

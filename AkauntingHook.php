@@ -262,7 +262,7 @@ class AkauntingHook {
     }
     
     public static function decodeError(String $location,int $error):String{
-        $s = "Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
+        $s = "[Result] Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in. When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word";
@@ -279,6 +279,7 @@ class AkauntingHook {
                 $s .= "not being able to find the Akaunting account for CA (code 836)";
             default:
                 if($error >= 200 && $error < 300){
+                    $s = str_replace("[Result]", "!SUCCESS!", $s);
                     $s .= "the entry successfully being submitted to Akaunting.";
                 }
                 elseif ($error >= 400 && $error < 600){
@@ -289,6 +290,8 @@ class AkauntingHook {
                 }
                 break;
         }
+        //Replace result with Error if it has not yet been set
+        $s = str_replace("[Result]", "!!ERROR!!", $s);
         return $s."\n";
     }
     

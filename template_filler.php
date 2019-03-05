@@ -170,7 +170,7 @@ class template_filler {
             if(substr($tag,0,7) == 'section'){
                 $templateProcessor->insertSection($tag, $v);
             }else{
-                $templateProcessor->setValue($tag, $v);
+                $templateProcessor->setValue($tag, $this->encode($v));
             }
         }
 
@@ -227,6 +227,10 @@ class template_filler {
         }
     }
 
+    private function encode(String $toEncode):String{
+        return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
+    }
+    
     private function expandTag($tag)
     {
         $raTag = explode( ':', $tag, 2 );

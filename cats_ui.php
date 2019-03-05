@@ -92,6 +92,8 @@ class CATS_MainUI extends CATS_UI
             $s .= $this->DrawAdmin();
         } else if( substr( $screen, 0, 9 ) == "therapist" ) {
             $s .= $this->DrawTherapist();
+        } else if( substr($screen, 0, 6 ) == "leader" ){
+            $s .= $this->DrawLeader();
         } else if( $screen == "logout" ) {
             $s .= $this->DrawLogout();
         } else {
@@ -105,9 +107,11 @@ class CATS_MainUI extends CATS_UI
     function DrawHome()
     {
         $s = "<div class='container-fluid'>"
-            .($this->oApp->sess->CanRead('therapist') ? $this->DrawTherapist() : "")
-            .($this->oApp->sess->CanRead('admin')     ? $this->DrawAdmin() : "")
-            .($this->oApp->sess->CanRead('administrator')     ? $this->DrawDeveloper() : "")
+            .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
+            .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
+            .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
+            // This Section allows Clinic Leaders to manage clinic specific settings
+        .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
             ."</div>";
 
             // Unset the mode var for resource download
@@ -286,6 +290,21 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         return( $s );
     }
 
+    public function drawLeader(){
+        $s = "";
+        switch ($this->screen){
+            case "leader-clinic":
+                $s .= (new Clinics($this->oApp))->manageClinics();
+                break;
+            default:
+                $raScreens = array(
+                    array( 'leader-clinic',     "Manage Clinic")
+                );
+                $s .= $this->drawCircles( $raScreens );
+        }
+        return( $s );
+    }
+    
     private function drawCircles( $raScreens )
     {
         $s = "";
