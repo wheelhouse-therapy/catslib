@@ -1,6 +1,7 @@
 <?php
 
 require_once 'client_code_generator.php';
+require_once 'assessments.php';
 
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
@@ -11,6 +12,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
     protected function fixBrokenMacros($documentPart)
     {
+        //FIXME This won't work with the assessments Implementation
         $fixedDocumentPart = $documentPart;
 
         $fixedDocumentPart = preg_replace_callback(
@@ -93,7 +95,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
 class template_filler {
 
-    //Variable to cach constants
+    //Variable to cache constants
     private static $constants = NULL;
     
     private $oApp;
@@ -107,6 +109,13 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
+    /**
+     * Assessments to include in files downloaded through this template filler
+     * Since this is defined in the constructor any sections included will also have access to this.
+     * This means we can have sections which report on assessments and they will filled with the correct information
+     */
+    private $assessments;
+    
     // Constants for dealing with different types of resources
     /**
      * Default resource type
@@ -125,9 +134,10 @@ class template_filler {
     //TODO implement file lookup
     public const REPORT_SECTION = 3;
     
-    public function __construct( SEEDAppSessionAccount $oApp )
+    public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array() )
     {
         $this->oApp = $oApp;
+        $this->assessments = $assessments;
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
@@ -312,6 +322,15 @@ class template_filler {
             $s = file_get_contents( CATSLIB."templates/assessment.xml" );
         }
 
+        if(in_array($table, getAssessmentTypes())){
+            if(array_key_exists($table, $this->assessments) && $this->assessments[$table] != AssessmentsCommon::DO_NOT_INCLUDE){
+                $assmt = (new AssessmentsCommon($this->oApp))->GetAsmtObject($this->assessments[$table]);
+                if(in_array($col[0], $assmt->getTags())){
+                    $s = $assmt->getTagValue($col[0]);
+                }
+            }
+        }
+        
         done:
         return( $s );
     }

@@ -17,6 +17,9 @@ class AssessmentsCommon
     private $oAsmtDB;
     public  $raAssessments;
 
+    public const DO_NOT_INCLUDE = -1;
+    public const NO_DATA = -2;
+    
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
@@ -108,14 +111,14 @@ class AssessmentsCommon
         $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
 
         foreach ($this->raAssessments as $assmt){
-            $raOut['body'] .= $assmt['title'].":<select>";
+            $raOut['body'] .= $assmt['title'].":";
             $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"_created", "bSortDown"=> true) );
-            $raOut['body'] .= "<select name='".$assmt['code']."'".(count($raA) == 0 ? " readonly":"").">";
+            $raOut['body'] .= "<select name='assessments[".$assmt['code']."]'".(count($raA) == 0 ? " disabled":"").">";
             if(count($raA) == 0){
-                $raOut['body'] .= "<option>No Data Recorded</option>";
+                $raOut['body'] .= "<option value='".self::NO_DATA."'>No Data Recorded</option>";
             }
             else{
-                $raOut['body'] .= "<option value='0' selected>Do Not Include</option>";
+                $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."' selected>Do Not Include</option>";
                 foreach ($raA as $ra){
                     $date = substr( $ra['_created'], 0, 10 );
                     $raOut['body'] .= "<option value='".$ra['_key']."'>".$date."</option>";
@@ -625,7 +628,7 @@ abstract class Assessments
         }
         throw new Exception("Invalid Tag:".$tag);
     }
-
+    
     /**
      * Get value for the given tag
      * Impementations do not have to be concerned with invalid tags as getTagValue($tag) checks for consistancy against the list returned by getTags()
@@ -698,7 +701,17 @@ class Assessment_SPM extends Assessments
     }
 
     public function getTags(): array{
-        //TODO Return Array of valid tags
+        $raTags = array("social_percent","social_interpretation", 
+                        "vision_percent", "vision_interpretation", "vision_item",
+                        "hearing_percent", "hearing_interpretation", "hearing_item",
+                        "touch_percent", "touch_interpretation", "touch_item",
+                        "taste_item",
+                        "body_percent", "body_interpretation", "body_item",
+                        "vestib_percent", "vestib_interpretation", "vestib_item",
+                        "planning_percent", "planning_interpretation", "planning_item",
+                        "total_percent", "total_interpretation",
+                        "date"
+        );
     }
 
     protected function getTagField(String $tag):String{
@@ -1209,4 +1222,13 @@ spmChart;
 
     return( $s );
 
+}
+
+function getAssessmentTypes(){
+    global $raGlobalAssessments;
+    $assmts = array();
+    foreach ($raGlobalAssessments as $assmt){
+        array_push($assmts, $assmt['code']);
+    }
+    return $assmts;
 }
