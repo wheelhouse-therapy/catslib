@@ -99,6 +99,7 @@ class AssessmentsCommon
      * @return array of html output to be placed in model
      */
     function listAssessments(int $client):array{
+        // TODO remove notice when dialog does stuff.
         $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assessments to be included in this report</h4>","body"=>"<h4>Please Ignore this dialog for the time being as it does not do anything yet</h4><form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
         $bData = false;
 
