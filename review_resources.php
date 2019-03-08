@@ -46,7 +46,6 @@ $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
         $i++;
-        //TODO Add tooltips to icons
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
         <form id='form".$i."' style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
