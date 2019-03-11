@@ -12,18 +12,27 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
     protected function fixBrokenMacros($documentPart)
     {
-        //FIXME This won't work with the assessments Implementation
         $fixedDocumentPart = $documentPart;
 
         $fixedDocumentPart = preg_replace_callback(
             /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
             function ($match) {
                 $fix = strip_tags($match[0]);
+                
+                $isAssessment = False;
+                foreach (getAssessmentTypes() as $assmt){
+                    $assmt = '${'.$assmt;
+                    if(substr($fix, 0,strlen($assmt)) == $assmt){
+                        $isAssessment = True;
+                    }
+                }
+                
                 if( substr($fix,0,6) == '${date' ||
                     substr($fix,0,8) == '${client' ||
                     substr($fix,0,7) == '${staff' ||
                     substr($fix,0,8) == '${clinic' ||
-                    substr($fix,0,9) == '${section')
+                    substr($fix,0,9) == '${section' ||
+                    $isAssessment)
                 {
                     return( $fix );
                 } else {

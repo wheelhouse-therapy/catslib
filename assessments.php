@@ -711,19 +711,63 @@ class Assessment_SPM extends Assessments
                         "vestib_percent", "vestib_interpretation", "vestib_item",
                         "planning_percent", "planning_interpretation", "planning_item",
                         "total_percent", "total_interpretation",
-                        "date"
+                        "date", "respondent", "date_entered"
         );
+        return $raTags;
     }
 
     protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
+        
+        //Array of section keys from tag keys
+        $raSectionKeys = array("vestib" => "balance");
+        
+        $s = "Tag is Valid but Not implemented";
+        $parts = explode("_", $tag,2);
+        if(count($parts) == 2){
+            switch($parts[1]){
+                case "interpretation":
+                    $percentile = $this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]);
+                    if ($percentile > 97){
+                        $s = "Definite Dysfunction";
+                    }
+                    else if ($percentile < 84){
+                        $s = "Typical";
+                    }
+                    else {
+                        $s = "Some Problems";
+                    }
+                    break;
+                case "percent":
+                    $s = (1 - (floatval($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]))/100))*100 ."%";
+                    break;
+                case "item":
+                    $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
+                    break;
+                default:
+                    if($tag == "date_entered"){
+                        $s = $this->kfrAsmt->Value("_created");
+                    }
+                    break;
+            }
+        }
+        else {
+            switch($parts[0]){
+                case "date":
+                    $s = $this->kfrAsmt->Value("date");
+                    break;
+                case "respondent":
+                    $s = $this->kfrAsmt->Value("respondent");
+                    break;
+            }
+        }
+        return $s;
     }
 
     function GetProblemItems( string $section ) : string
     {
         $s = "";
 
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {var_dump($range);
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
             foreach( $raResults as $k => $v ) {
@@ -741,9 +785,17 @@ class Assessment_SPM extends Assessments
     function GetPercentile( string $section ) : string
     {
         $s = "";
+        $total = 0;
 
         if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
-
+            $range = SEEDCore_ParseRangeStrToRA( $range );
+            $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
+            foreach( $raResults as $k => $v ) {
+                if( in_array( $k, $range ) ) {
+                    $total += $this->GetScore( $k, $v );
+                }
+            }
+            $s = $this->raPercentiles[$total][$section];
         }
 
         return( $s );
