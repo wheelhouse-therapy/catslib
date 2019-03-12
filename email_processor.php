@@ -37,7 +37,8 @@ class ReceiptsProcessor {
         "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
         "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
-        "reply" => "/Re:/i"
+        "reply" => "/Re:/i",
+        "escapedSequence" => ''/".*?"/'
     );
 
     private $connection;
