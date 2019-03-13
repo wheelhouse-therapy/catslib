@@ -15,7 +15,8 @@ $directories= array("papers"          => array("directory" => "papers/",    "nam
                     "forms"           => array("directory" => "forms/",     "name" => "Forms",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "marketing"       => array("directory" => "marketing/", "name" => "Marketing Materials",           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "clinicResources" => array("directory" => "clinic/",    "name" => "Clinic Resources",              "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              )
+                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              ),
+                    "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             )
 );
 
 function getExtensions(){

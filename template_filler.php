@@ -2,6 +2,7 @@
 
 require_once 'client_code_generator.php';
 require_once 'assessments.php';
+require_once 'share_resources.php';
 
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
@@ -136,12 +137,6 @@ class template_filler {
      * The filled file should not be sent to the user as it is not complete
      */
     public const RESOURCE_SECTION = 2;
-    /**
-     * The resource being filled is a part of an assessment write up.
-     * Uses predefined file location lookup.
-     */
-    //TODO implement file lookup
-    public const REPORT_SECTION = 3;
     
     public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array() )
     {
@@ -241,7 +236,6 @@ class template_filler {
                 die();
                 break;
             case self::RESOURCE_SECTION:
-            case self::REPORT_SECTION:
                 return $templateProcessor->getSection();
         }
     }
@@ -325,10 +319,14 @@ class template_filler {
             }
         }
         if($table == 'section'){
-            // This is just to test how to inject docx xml into a Word file.
-            // There should be variants of this tag for different reports and report formats.
-            // Also, the file loaded below should be run through template_filler here, to expand tags in it.
-            $s = file_get_contents( CATSLIB."templates/assessment.xml" );
+            if(strpos($col[1], "/") == 0){
+                if (file_exists(CATSDIR_RESOURCES.substr($col[1], 1)) && pathinfo(CATSDIR_RESOURCES.substr($col[1], 1),PATHINFO_EXTENSION) == "docx"){
+                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1),self::RESOURCE_SECTION);
+                }
+            }
+            else if(file_exists($GLOBALS['directories']['sections']['directory'].$col[1])){
+                $s = $this->fill_resource($GLOBALS['directories']['sections']['directory'].$col[1],self::RESOURCE_SECTION);
+            }
         }
 
         if(in_array($table, getAssessmentTypes())){
