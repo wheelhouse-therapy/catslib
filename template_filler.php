@@ -94,7 +94,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
      * @return String containing the xml which lies between the body tags of the document
      */
     public function getSection(){
-        preg_match('(?<=<w:body>).*(?=<\/w:body>)', $this->tempDocumentMainPart, $matches);
+        preg_match('/(?<=<w:body>).*(?=<\/w:body>)/', $this->tempDocumentMainPart, $matches);
         if($matches){
             return $matches[0];
         }
