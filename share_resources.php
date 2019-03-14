@@ -19,6 +19,32 @@ $directories= array("papers"          => array("directory" => "papers/",    "nam
                     "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             )
 );
 
+function ensureDirectory($dirs){
+    if($dirs == "*"){
+        foreach(array_keys($GLOBALS['directories']) as $k){
+            ensureDirectory($k);
+        }
+    }
+    else if(is_array($dirs)){
+        ensureDirectory("pending");
+        foreach ($dirs as $dir){
+            ensureDirectory($dir);
+        }
+    }
+    else if($dirs == "pending"){
+        if (!file_exists(CATSDIR_RESOURCES."pending")) {
+            @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
+            echo "Pending Resources Directiory Created<br />";
+        }
+    }
+    else{
+        if (!file_exists(CATSDIR_RESOURCES.$GLOBALS[$dirs]["directory"])) {
+            @mkdir(CATSDIR_RESOURCES.$GLOBALS[$dirs]["directory"], 0777, true);
+            echo $GLOBALS[$dirs]["name"]." Resources Directiory Created<br />";
+        }
+    }
+}
+
 function getExtensions(){
     $exts = array();
     foreach($GLOBALS['directories'] as $k => $v){

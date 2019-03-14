@@ -373,6 +373,7 @@ function viewSOPs(SEEDAppConsole $oApp){
         <embed src='[[SOP]]#navpanes=0&statusbar=0&scrollbar=0&view=fitH,100' type='application/pdf' style='width:100%;height:100%;'>
     </div>
 viewSOP;
+    ensureDirectory("SOP");
     $listSOPs = "<h3>View Standard Operating Procedures</h3>";
     $dir = new DirectoryIterator(CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory']);
     if(iterator_count($dir) == 2){

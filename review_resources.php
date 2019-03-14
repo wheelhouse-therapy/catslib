@@ -2,17 +2,7 @@
 
 require_once 'share_resources.php';
 
-if (!file_exists(CATSDIR_RESOURCES."pending")) {
-    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
-    echo "Pending Resources Directiory Created<br />";
-}
-
-foreach($GLOBALS['directories'] as $k => $v){
-    if (!file_exists(CATSDIR_RESOURCES.$v["directory"])) {
-        @mkdir(CATSDIR_RESOURCES.$v["directory"], 0777, true);
-        echo $v["name"]." Resources Directiory Created<br />";
-    }
-}
+ensureDirectory("*");
 
 $dir_name = CATSDIR_RESOURCES."pending/";
 $cmd = SEEDInput_Str( 'cmd' );
