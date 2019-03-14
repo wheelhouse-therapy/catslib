@@ -368,6 +368,7 @@ class ResourceManager{
     }
 
     private function listResources($dir){
+        ensureDirectory("*");
         $s = "";
         $directory_iterator = new DirectoryIterator($dir);
 
