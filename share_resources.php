@@ -38,9 +38,9 @@ function ensureDirectory($dirs){
         }
     }
     else{
-        if (!file_exists(CATSDIR_RESOURCES.$GLOBALS[$dirs]["directory"])) {
-            @mkdir(CATSDIR_RESOURCES.$GLOBALS[$dirs]["directory"], 0777, true);
-            echo $GLOBALS[$dirs]["name"]." Resources Directiory Created<br />";
+        if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
+            @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], 0777, true);
+            echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory Created<br />";
         }
     }
 }
