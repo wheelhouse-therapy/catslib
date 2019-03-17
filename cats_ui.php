@@ -2,6 +2,7 @@
 include_once('twig_mappings.php');
 include_once('view_resources.php');
 include_once('share_resources.php');
+include_once('Clinics.php');
 include( SEEDCORE."SEEDTemplateMaker.php" );
 
 /* Classes to help draw the user interface
@@ -96,7 +97,9 @@ class CATS_MainUI extends CATS_UI
             $s .= $this->DrawLeader();
         } else if( $screen == "logout" ) {
             $s .= $this->DrawLogout();
-        } else {
+        } else if( $screen == "clinicImage"){
+            (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
+        }else {
             $s .= $this->DrawHome();
         }
 
@@ -196,11 +199,14 @@ class CATS_MainUI extends CATS_UI
                 require_once CATSLIB."calendar.php";
                 $o = new Calendar( $this->oApp );
                 $s .= $o->DrawCalendar();
+                break;
             case "therapist-clinicresources":
                 $s .= "<h3>Clinic Resources</h3>"
                     .ResourcesDownload( $this->oApp, "clinic/", "n" );
+                break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
+                break;
         }
         return( $s );
     }

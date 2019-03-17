@@ -1,11 +1,17 @@
 <?php
 
+require_once 'handle_images.php';
+
 class Clinics {
     private $oApp;
 
-    const NO_ACCESS = 0;
-    const LEADER_ACCESS = 1;
-    const FULL_ACCESS = 2;
+    private const NO_ACCESS     = 0;
+    private const LEADER_ACCESS = 1;
+    private const FULL_ACCESS   = 2;
+    
+    public const LOGO_SQUARE    = 10;
+    public const LOGO_WIDE      = 11;
+    public const FOOTER         = 12;
     
     function __construct( SEEDAppSessionAccount $oApp ) {
         $this->oApp = $oApp;
@@ -174,6 +180,48 @@ class Clinics {
         return $clinicKeys;
     }
     
+    public function getImage(int $imageID, $clinic = null){
+        if($clinic == null){
+            $clinic = $this->GetCurrentClinic();
+        }
+        $filepath = CATSDIR_FILES."clinic Images/".$clinic."/";
+        $filename = "";
+        switch ($imageID){
+            case self::LOGO_SQUARE:
+                $filename = "Logo Square";
+                break;
+            case self::LOGO_WIDE:
+                $filename = "Logo Wide";
+                break;
+            case self::FOOTER:
+                $filename = "Footer";
+                break;
+        }
+        if(file_exists($filepath)){
+            foreach (scandir($filepath) as $file){
+                if(substr($file, 0,strlen($filename)) == $filename){
+                    $filename = $file;
+                }
+            }
+        }
+        if(strpos($filename, ".") === false || !file_exists($filepath.$filename)){
+            switch ($imageID){
+                case self::LOGO_SQUARE:
+                    $filepath = CATSDIR_IMG."cats_square.png";
+                    break;
+                case self::LOGO_WIDE:
+                    $filepath = CATSDIR_IMG."cats_wide.png";
+                    break;
+                case self::FOOTER:
+                    $filepath = FALSE;
+            }
+            goto done;
+        }
+        $filepath .= $filename;
+        done:
+        return $filepath;
+    }
+    
     //These functions are for managing clinics.
 
     function manageClinics(){
@@ -247,6 +295,30 @@ class Clinics {
         return($s);
     }
 
+    public function renderImage(int $imageID, $clinic = null){
+        $path = $this->getImage($imageID,$clinic);
+        if($path === FALSE){
+            //Output a blank page since the image is not set and has no default
+            exit;
+        }
+        switch(strtolower(pathinfo($path,PATHINFO_EXTENSION))){
+            case "png":
+                $imageType = IMAGETYPE_PNG;
+                break;
+            case "jpg":
+                $imageType = IMAGETYPE_JPEG;
+                break;
+            case "gif":
+                $imageType = IMAGETYPE_GIF;
+                break;
+            default:
+                die("Could Not Render Image");
+        }
+        $i = getImageData($path, $imageType);
+        echo "<img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'>";
+        die();
+    }
+    
     private function drawFormRow( $label, $control )
     {
         return( "<tr>"

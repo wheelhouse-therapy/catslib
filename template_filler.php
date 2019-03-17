@@ -3,6 +3,8 @@
 require_once 'client_code_generator.php';
 require_once 'assessments.php';
 require_once 'share_resources.php';
+require_once 'Clinics.php';
+require_once 'handle_images.php';
 
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
@@ -230,6 +232,7 @@ class template_filler {
                 // Save the substituted template to a temp file and pass it to the php://output, then exit so no other output corrupts the file.
                 // PHP automatically deletes the temp file when the script ends.
                 $tempfile = $templateProcessor->save();
+                $this->handleImages($tempfile);
                 if( ($fp = fopen( $tempfile, "rb" )) ) {
                     fpassthru( $fp );
                     fclose( $fp );
@@ -242,6 +245,67 @@ class template_filler {
         }
     }
 
+    private function handleImages(String $fileName){
+        $za = new ZipArchive();
+        $za->open($fileName);
+        $Tree = $pathArray = array(); //empty arrays
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            $path = $za->getNameIndex($i);
+            $pathBySlash = array_values(explode('/', $path));
+            $c = count($pathBySlash);
+            $temp = &$Tree;
+            for ($j = 0; $j < $c - 1; $j++)
+                if (isset($temp[$pathBySlash[$j]]))
+                    $temp = &$temp[$pathBySlash[$j]];
+                else {
+                    $temp[$pathBySlash[$j]] = array();
+                    $temp = &$temp[$pathBySlash[$j]];
+                }
+                if (substr($path, -1) == '/')
+                    $temp[$pathBySlash[$c - 1]] = array();
+                else
+                    $temp[] = $pathBySlash[$c - 1];
+        }
+        $array = $Tree['word']['media'];
+        $placeholders = array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
+        $hashes = array();
+        foreach ($placeholders as $placeholder){
+            $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
+        }
+        foreach ($array as $img){
+            if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
+                $clinics = new Clinics($this->oApp);
+                $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
+                switch(substr($str,0,strrpos($str, "_"))){
+                    case "Footer":
+                        $imagePath = $clinics->getImage(Clinics::FOOTER);
+                        break;
+                    case "Square_logo":
+                        $imagePath = $clinics->getImage(Clinics::LOGO_SQUARE);
+                        break;
+                    case "Wide_logo":
+                        $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
+                        break;
+                }
+                if($imagePath === FALSE){
+                    $im = imagecreatefromstring($img);
+                    $data = imagecreate(imagesx($im), imagesy($im));
+                    imagedestroy($im);
+                }
+                switch(strtolower(pathinfo($img,PATHINFO_EXTENSION))){
+                    case "png":
+                        $imageType = IMAGETYPE_PNG;
+                        break;
+                    case "jpg":
+                        $imageType = IMAGETYPE_JPEG;
+                        break;
+                }
+                $za->addFromString("word/media/".$img, getImageData($imagePath?:$data, $imageType,$imagePath === FALSE));
+            }
+        }
+        $za->close();
+    }
+    
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
