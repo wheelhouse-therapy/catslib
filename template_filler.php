@@ -170,7 +170,7 @@ class template_filler {
             return;
         }
         
-        ensureDirectory("*");
+        ensureDirectory("*",TRUE);
         
         $this->kClient = SEEDInput_Int('client');
         $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);

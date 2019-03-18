@@ -19,11 +19,12 @@ $directories= array("papers"          => array("directory" => "papers/",    "nam
                     "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             )
 );
 
-function ensureDirectory($dirs){
+function ensureDirectory($dirs, $silent = FALSE){
     if($dirs == "*"){
         foreach(array_keys($GLOBALS['directories']) as $k){
-            ensureDirectory($k);
+            ensureDirectory($k,$silent);
         }
+        ensureDirectory("pending",$silent);
     }
     else if(is_array($dirs)){
         ensureDirectory("pending");
@@ -34,13 +35,17 @@ function ensureDirectory($dirs){
     else if($dirs == "pending"){
         if (!file_exists(CATSDIR_RESOURCES."pending")) {
             @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
-            echo "Pending Resources Directiory Created<br />";
+            if(!$silent){
+                echo "Pending Resources Directiory Created<br />";
+            }
         }
     }
     else{
         if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
             @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], 0777, true);
-            echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory Created<br />";
+            if(!$silent){
+                echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory Created<br />";
+            }
         }
     }
 }
