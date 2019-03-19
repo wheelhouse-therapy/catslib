@@ -78,7 +78,7 @@ class CATS_MainUI extends CATS_UI
         parent::__construct( $oApp );
     }
 
-    function Screen( $screen ) {
+    function Screen( $screen, $oldScreen ) {
         $this->SetScreen( $screen );
 
         $s = $this->Header();
@@ -98,6 +98,10 @@ class CATS_MainUI extends CATS_UI
         } else if( $screen == "logout" ) {
             $s .= $this->DrawLogout();
         } else if( $screen == "clinicImage"){
+            //Revert the screen to the actual screen.
+            //If we dont users will be stuck on this screen and have to know the screen name to escape.
+            //This will be a problem since our screen names aren't exactly straightforward.
+            $this->oApp->sess->VarSet("screen", $oldScreen);
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
         }else {
             $s .= $this->DrawHome();
