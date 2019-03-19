@@ -167,7 +167,7 @@ DownloadMode;
     }
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         if($mode!="no_replace"){
-            $filler = new template_filler($oApp, @$_REQUEST['assessments']);
+            $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
             $filler->fill_resource($file);
         }
         else{
