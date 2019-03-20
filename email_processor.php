@@ -37,7 +37,8 @@ class ReceiptsProcessor {
         "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
         "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
-        "reply" => "/Re:/i"
+        "reply" => "/Re:/i",
+        "escapedSequence" => '/".*?"/'
     );
 
     private $connection;
@@ -101,7 +102,7 @@ class ReceiptsProcessor {
                         $emptyLineCount++;
                         continue;
                     }
-                    if($emptyLineCount >= self::EMPTY_LINE_CUTOFF || substr_count($line, "-") >= self::DASH_CUTOFF){
+                    if($emptyLineCount >= self::EMPTY_LINE_CUTOFF || preg_match('/-{'.self::DASH_CUTOFF.',}/', $line)){
                         //Its safe to assume there won't be any entries after this point
                         break;
                     }

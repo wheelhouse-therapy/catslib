@@ -1,11 +1,7 @@
 <?php
-require_once '_start.php';
 require_once 'share_resources.php';
 
-if (!file_exists(CATSDIR_RESOURCES."pending")) {
-    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
-    echo "Pending Resources Directiory Created<br />";
-}
+ensureDirectory("pending");
 
 $target_dir = CATSDIR_RESOURCES."pending/";
 $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);

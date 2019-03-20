@@ -2,17 +2,7 @@
 
 require_once 'share_resources.php';
 
-if (!file_exists(CATSDIR_RESOURCES."pending")) {
-    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
-    echo "Pending Resources Directiory Created<br />";
-}
-
-foreach($GLOBALS['directories'] as $k => $v){
-    if (!file_exists(CATSDIR_RESOURCES.$v["directory"])) {
-        @mkdir(CATSDIR_RESOURCES.$v["directory"], 0777, true);
-        echo $v["name"]." Resources Directiory Created<br />";
-    }
-}
+ensureDirectory("*");
 
 $dir_name = CATSDIR_RESOURCES."pending/";
 $cmd = SEEDInput_Str( 'cmd' );
@@ -46,7 +36,6 @@ $dir = new DirectoryIterator($dir_name);
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
         $i++;
-        //TODO Add tooltips to icons
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
         <form id='form".$i."' style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />

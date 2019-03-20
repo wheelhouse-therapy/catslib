@@ -1,6 +1,10 @@
 <?php
 
 require_once 'client_code_generator.php';
+require_once 'assessments.php';
+require_once 'share_resources.php';
+require_once 'Clinics.php';
+require_once 'handle_images.php';
 
 class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 {
@@ -17,11 +21,21 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
             /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
             function ($match) {
                 $fix = strip_tags($match[0]);
+                
+                $isAssessment = False;
+                foreach (getAssessmentTypes() as $assmt){
+                    $assmt = '${'.$assmt;
+                    if(substr($fix, 0,strlen($assmt)) == $assmt){
+                        $isAssessment = True;
+                    }
+                }
+                
                 if( substr($fix,0,6) == '${date' ||
                     substr($fix,0,8) == '${client' ||
                     substr($fix,0,7) == '${staff' ||
                     substr($fix,0,8) == '${clinic' ||
-                    substr($fix,0,9) == '${section')
+                    substr($fix,0,9) == '${section' ||
+                    $isAssessment)
                 {
                     return( $fix );
                 } else {
@@ -82,7 +96,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
      * @return String containing the xml which lies between the body tags of the document
      */
     public function getSection(){
-        preg_match('(?<=<w:body>).*(?=<\/w:body>)', $this->tempDocumentMainPart, $matches);
+        preg_match('/(?<=<w:body>).*(?=<\/w:body>)/', $this->tempDocumentMainPart, $matches);
         if($matches){
             return $matches[0];
         }
@@ -93,7 +107,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
 class template_filler {
 
-    //Variable to cach constants
+    //Variable to cache constants
     private static $constants = NULL;
     
     private $oApp;
@@ -107,6 +121,13 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
+    /**
+     * Assessments to include in files downloaded through this template filler
+     * Since this is defined in the constructor any sections included will also have access to this.
+     * This means we can have sections which report on assessments and they will filled with the correct information
+     */
+    private $assessments;
+    
     // Constants for dealing with different types of resources
     /**
      * Default resource type
@@ -118,16 +139,11 @@ class template_filler {
      * The filled file should not be sent to the user as it is not complete
      */
     public const RESOURCE_SECTION = 2;
-    /**
-     * The resource being filled is a part of an assessment write up.
-     * Uses predefined file location lookup.
-     */
-    //TODO implement file lookup
-    public const REPORT_SECTION = 3;
     
-    public function __construct( SEEDAppSessionAccount $oApp )
+    public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array() )
     {
         $this->oApp = $oApp;
+        $this->assessments = $assessments;
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
@@ -153,6 +169,8 @@ class template_filler {
         if(!$this->isResourceTypeValid($resourceType)){
             return;
         }
+        
+        ensureDirectory("*",TRUE);
         
         $this->kClient = SEEDInput_Int('client');
         $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
@@ -214,6 +232,7 @@ class template_filler {
                 // Save the substituted template to a temp file and pass it to the php://output, then exit so no other output corrupts the file.
                 // PHP automatically deletes the temp file when the script ends.
                 $tempfile = $templateProcessor->save();
+                $this->handleImages($tempfile);
                 if( ($fp = fopen( $tempfile, "rb" )) ) {
                     fpassthru( $fp );
                     fclose( $fp );
@@ -222,11 +241,71 @@ class template_filler {
                 die();
                 break;
             case self::RESOURCE_SECTION:
-            case self::REPORT_SECTION:
                 return $templateProcessor->getSection();
         }
     }
 
+    private function handleImages(String $fileName){
+        $za = new ZipArchive();
+        $za->open($fileName);
+        $Tree = $pathArray = array(); //empty arrays
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            $path = $za->getNameIndex($i);
+            $pathBySlash = array_values(explode('/', $path));
+            $c = count($pathBySlash);
+            $temp = &$Tree;
+            for ($j = 0; $j < $c - 1; $j++)
+                if (isset($temp[$pathBySlash[$j]]))
+                    $temp = &$temp[$pathBySlash[$j]];
+                else {
+                    $temp[$pathBySlash[$j]] = array();
+                    $temp = &$temp[$pathBySlash[$j]];
+                }
+                if (substr($path, -1) == '/')
+                    $temp[$pathBySlash[$c - 1]] = array();
+                else
+                    $temp[] = $pathBySlash[$c - 1];
+        }
+        $array = $Tree['word']['media'];
+        $placeholders = array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
+        $hashes = array();
+        foreach ($placeholders as $placeholder){
+            $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
+        }
+        foreach ($array as $img){
+            if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
+                $clinics = new Clinics($this->oApp);
+                $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
+                switch(substr($str,0,strrpos($str, "_"))){
+                    case "Footer":
+                        $imagePath = $clinics->getImage(Clinics::FOOTER);
+                        break;
+                    case "Square_logo":
+                        $imagePath = $clinics->getImage(Clinics::LOGO_SQUARE);
+                        break;
+                    case "Wide_logo":
+                        $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
+                        break;
+                }
+                if($imagePath === FALSE){
+                    $im = imagecreatefromstring($img);
+                    $data = imagecreate(imagesx($im), imagesy($im));
+                    imagedestroy($im);
+                }
+                switch(strtolower(pathinfo($img,PATHINFO_EXTENSION))){
+                    case "png":
+                        $imageType = IMAGETYPE_PNG;
+                        break;
+                    case "jpg":
+                        $imageType = IMAGETYPE_JPEG;
+                        break;
+                }
+                $za->addFromString("word/media/".$img, getImageData($imagePath?:$data, $imageType,$imagePath === FALSE));
+            }
+        }
+        $za->close();
+    }
+    
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
@@ -306,12 +385,25 @@ class template_filler {
             }
         }
         if($table == 'section'){
-            // This is just to test how to inject docx xml into a Word file.
-            // There should be variants of this tag for different reports and report formats.
-            // Also, the file loaded below should be run through template_filler here, to expand tags in it.
-            $s = file_get_contents( CATSLIB."templates/assessment.xml" );
+            if(strpos($col[1], "/") == 0){
+                if (file_exists(CATSDIR_RESOURCES.substr($col[1], 1)) && pathinfo(CATSDIR_RESOURCES.substr($col[1], 1),PATHINFO_EXTENSION) == "docx"){
+                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1),self::RESOURCE_SECTION);
+                }
+            }
+            else if(file_exists($GLOBALS['directories']['sections']['directory'].$col[1])){
+                $s = $this->fill_resource($GLOBALS['directories']['sections']['directory'].$col[1],self::RESOURCE_SECTION);
+            }
         }
 
+        if(in_array($table, getAssessmentTypes())){
+            if(array_key_exists($table, $this->assessments) && $this->assessments[$table] != AssessmentsCommon::DO_NOT_INCLUDE){
+                $assmt = (new AssessmentsCommon($this->oApp))->GetAsmtObject($this->assessments[$table]);
+                if(in_array($col[0], $assmt->getTags())){
+                    $s = $assmt->getTagValue($col[0]);
+                }
+            }
+        }
+        
         done:
         return( $s );
     }

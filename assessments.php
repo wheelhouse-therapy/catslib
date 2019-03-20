@@ -17,6 +17,9 @@ class AssessmentsCommon
     private $oAsmtDB;
     public  $raAssessments;
 
+    public const DO_NOT_INCLUDE = -1;
+    public const NO_DATA = -2;
+    
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
@@ -96,7 +99,8 @@ class AssessmentsCommon
      * @return array of html output to be placed in model
      */
     function listAssessments(int $client):array{
-        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assessments to be included in this report</h4>","body"=>"<form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
+        // TODO remove notice when dialog does stuff.
+        $raOut = array("header"=>"<h4 class='modal-title'>Please Select Assessments to be included in this report</h4>","body"=>"<h4>Please Ignore this dialog for the time being as it does not do anything yet</h4><form id='assmt_form' onsubmit='modalSubmit(event)'>","footer"=>"<input type='submit' id='submitVal' value='Download' form='assmt_form' />");
         $bData = false;
 
         // propagate the previous modal dialog's parameters into the next modal dialog
@@ -108,14 +112,14 @@ class AssessmentsCommon
         $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
 
         foreach ($this->raAssessments as $assmt){
-            $raOut['body'] .= $assmt['title'].":<select>";
+            $raOut['body'] .= $assmt['title'].":";
             $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"_created", "bSortDown"=> true) );
-            $raOut['body'] .= "<select name='".$assmt['code']."'".(count($raA) == 0 ? " readonly":"").">";
+            $raOut['body'] .= "<select name='assessments[".$assmt['code']."]'".(count($raA) == 0 ? " disabled":"").">";
             if(count($raA) == 0){
-                $raOut['body'] .= "<option>No Data Recorded</option>";
+                $raOut['body'] .= "<option value='".self::NO_DATA."'>No Data Recorded</option>";
             }
             else{
-                $raOut['body'] .= "<option value='0' selected>Do Not Include</option>";
+                $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."' selected>Do Not Include</option>";
                 foreach ($raA as $ra){
                     $date = substr( $ra['_created'], 0, 10 );
                     $raOut['body'] .= "<option value='".$ra['_key']."'>".$date."</option>";
@@ -626,7 +630,7 @@ abstract class Assessments
         }
         throw new Exception("Invalid Tag:".$tag);
     }
-
+    
     /**
      * Get value for the given tag
      * Impementations do not have to be concerned with invalid tags as getTagValue($tag) checks for consistancy against the list returned by getTags()
@@ -699,18 +703,72 @@ class Assessment_SPM extends Assessments
     }
 
     public function getTags(): array{
-        //TODO Return Array of valid tags
+        $raTags = array("social_percent","social_interpretation", 
+                        "vision_percent", "vision_interpretation", "vision_item",
+                        "hearing_percent", "hearing_interpretation", "hearing_item",
+                        "touch_percent", "touch_interpretation", "touch_item",
+                        "taste_item",
+                        "body_percent", "body_interpretation", "body_item",
+                        "vestib_percent", "vestib_interpretation", "vestib_item",
+                        "planning_percent", "planning_interpretation", "planning_item",
+                        "total_percent", "total_interpretation",
+                        "date", "respondent", "date_entered"
+        );
+        return $raTags;
     }
 
     protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
+        
+        //Array of section keys from tag keys
+        $raSectionKeys = array("vestib" => "balance");
+        
+        $s = "Tag is Valid but Not implemented";
+        $parts = explode("_", $tag,2);
+        if(count($parts) == 2){
+            switch($parts[1]){
+                case "interpretation":
+                    $percentile = $this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]);
+                    if ($percentile > 97){
+                        $s = "Definite Dysfunction";
+                    }
+                    else if ($percentile < 84){
+                        $s = "Typical";
+                    }
+                    else {
+                        $s = "Some Problems";
+                    }
+                    break;
+                case "percent":
+                    $s = (1 - (floatval($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]))/100))*100 ."%";
+                    break;
+                case "item":
+                    $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
+                    break;
+                default:
+                    if($tag == "date_entered"){
+                        $s = $this->kfrAsmt->Value("_created");
+                    }
+                    break;
+            }
+        }
+        else {
+            switch($parts[0]){
+                case "date":
+                    $s = $this->kfrAsmt->Value("date");
+                    break;
+                case "respondent":
+                    $s = $this->kfrAsmt->Value("respondent");
+                    break;
+            }
+        }
+        return $s;
     }
 
     function GetProblemItems( string $section ) : string
     {
         $s = "";
 
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {var_dump($range);
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
             foreach( $raResults as $k => $v ) {
@@ -728,9 +786,17 @@ class Assessment_SPM extends Assessments
     function GetPercentile( string $section ) : string
     {
         $s = "";
+        $total = 0;
 
         if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
-
+            $range = SEEDCore_ParseRangeStrToRA( $range );
+            $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
+            foreach( $raResults as $k => $v ) {
+                if( in_array( $k, $range ) ) {
+                    $total += $this->GetScore( $k, $v );
+                }
+            }
+            $s = $this->raPercentiles[$total][$section];
         }
 
         return( $s );
@@ -1221,4 +1287,13 @@ spmChart;
 
     return( $s );
 
+}
+
+function getAssessmentTypes(){
+    global $raGlobalAssessments;
+    $assmts = array();
+    foreach ($raGlobalAssessments as $assmt){
+        array_push($assmts, $assmt['code']);
+    }
+    return $assmts;
 }

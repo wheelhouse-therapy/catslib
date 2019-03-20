@@ -15,8 +15,40 @@ $directories= array("papers"          => array("directory" => "papers/",    "nam
                     "forms"           => array("directory" => "forms/",     "name" => "Forms",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "marketing"       => array("directory" => "marketing/", "name" => "Marketing Materials",           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "clinicResources" => array("directory" => "clinic/",    "name" => "Clinic Resources",              "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              )
+                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              ),
+                    "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             )
 );
+
+function ensureDirectory($dirs, $silent = FALSE){
+    if($dirs == "*"){
+        foreach(array_keys($GLOBALS['directories']) as $k){
+            ensureDirectory($k,$silent);
+        }
+        ensureDirectory("pending",$silent);
+    }
+    else if(is_array($dirs)){
+        ensureDirectory("pending");
+        foreach ($dirs as $dir){
+            ensureDirectory($dir);
+        }
+    }
+    else if($dirs == "pending"){
+        if (!file_exists(CATSDIR_RESOURCES."pending")) {
+            @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
+            if(!$silent){
+                echo "Pending Resources Directiory Created<br />";
+            }
+        }
+    }
+    else{
+        if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
+            @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], 0777, true);
+            if(!$silent){
+                echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory Created<br />";
+            }
+        }
+    }
+}
 
 function getExtensions(){
     $exts = array();
