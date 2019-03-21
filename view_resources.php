@@ -205,7 +205,7 @@ DownloadMode;
     if( !($oClinics = new Clinics($oApp)) || !($iClinic = $oClinics->GetCurrentClinic()) ) {
         return;
     }
-    $clients = (new PeopleDB($oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'");
+    $clients = (new PeopleDB($oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'", array("sSortCol" => "P_first_name,_key"));
     $s .= " <!-- the div that represents the modal dialog -->
             <div class='modal fade' id='file_dialog' role='dialog'>
                 <div class='modal-dialog'>

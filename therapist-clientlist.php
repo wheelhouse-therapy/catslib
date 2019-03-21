@@ -21,6 +21,8 @@ class ClientList
     private $clinics;
     private $oCCG;
 
+    private $queryParams = array("sSortCol" => "P_first_name,_key");
+    
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
@@ -131,23 +133,23 @@ class ClientList
         if( $this->client_key && ($kfr = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {
             $oFormClient->SetKFR( $kfr );
             // A client has been clicked. Who are their pros?
-            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'" );
+            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'", $this->queryParams );
         }
         if( $this->therapist_key && ($kfr = $this->oPeopleDB->GetKFR("PI", $this->therapist_key )) ) {
             $oFormTherapist->SetKFR( $kfr );
             // A therapist has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'" );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'", $this->queryParams );
         }
         if( $this->pro_key && ($kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key )) ) {
             $oFormPro->SetKFR( $kfr );
             // A pro has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'" );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'", $this->queryParams );
         }
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic);
-        $raTherapists = $this->oPeopleDB->GetList('PI', $condClinic);
-        $raPros       = $this->oPeopleDB->GetList('PE', $condClinic);
+        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, $this->queryParams);
+        $raTherapists = $this->oPeopleDB->GetList('PI', $condClinic, $this->queryParams);
+        $raPros       = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
 
         $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
              ."<div class='col-md-4'>"
