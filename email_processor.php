@@ -121,11 +121,11 @@ class ReceiptsProcessor {
                 unset($errors['subject']);
             }
             
-            // Mark the message as processed so we dont make duplicate entries
-            $message->markAsSeen();
-            
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
+            
+            // Mark the message as processed so we dont make duplicate entries
+            $message->markAsSeen();
             
             if(array_intersect(range(200,299), $results) && $attachment){
                 if($oAttachment = $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
