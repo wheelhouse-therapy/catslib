@@ -21,7 +21,7 @@ class ClientList
     private $clinics;
     private $oCCG;
 
-    private $queryParams = array("sSortCol" => "P_first_name,_key");
+    private $queryParams = array("sSortCol" => "P.first_name,_key");
     
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -66,14 +66,117 @@ class ClientList
 
         // Put this before the GetClients call so the changes are shown in the list
         $cmd = SEEDInput_Str('cmd');
+        $overrideCheck = FALSE;
+        if(isset($_SESSION["cmdData"])){
+            $type = SEEDInput_Str("type");
+            switch ($type){
+                case "C":
+                    $kfrelID = $type;
+                    $type = "client";
+                    break;
+                case "PI":
+                    $kfrelID = $type;
+                    $type = "therapist";
+                    break;
+                case "PE":
+                    $kfrelID = $type;
+                    $type = "pro";
+                    break;
+                case "client":
+                    $kfrelID = "C";
+                    break;
+                case "therapist":
+                    $kfrelID = "PI";
+                    break;
+                case "pro":
+                    $kfrelID = "PE";
+                    break;
+                default:
+                    $kfrelID = "";
+            }
+            switch ($cmd){
+                case "new":
+                    $overrideCheck = TRUE;
+                    $cmd = "update_".$type;
+                    $kfr = new KeyframeRecord($this->oPeopleDB->KFRel($kfrelID));
+                    $kfr->LoadValuesFromRA($_SESSION["cmdData"]);
+                    switch($type){
+                        case "client":
+                            $oFormClient->SetKFR($kfr);
+                            break;
+                        case "therapist":
+                            $oFormTherapist->SetKFR($kfr);
+                            break;
+                        case "pro":
+                            $oFormPro->SetKFR($kfr);
+                            break;
+                    }
+                    unset($_SESSION["cmdData"]);
+                    break;
+                case "overwrite":
+                    $overrideCheck = TRUE;
+                    $cmd = "update_".$type;
+                    $kfr = new KeyframeRecord($this->oPeopleDB->KFRel($kfrelID));
+                    $kfr->LoadValuesFromRA($_SESSION["cmdData"]);
+                    $kfr->SetKey(SEEDInput_Int("key"));
+                    switch($type){
+                        case "client":
+                            $oFormClient->SetKFR($kfr);
+                            break;
+                        case "therapist":
+                            $oFormTherapist->SetKFR($kfr);
+                            break;
+                        case "pro":
+                            $oFormPro->SetKFR($kfr);
+                            break;
+                    }
+                    unset($_SESSION["cmdData"]);
+                    break;
+                case "keep":
+                default:
+                    unset($_SESSION["cmdData"]);
+                    break;
+            }
+        }
+        
+        $existsWarning = <<<ExistsWarning
+        <div class='alert alert-warning' style='width: 85%;justify-content: space-around;'>
+            A [[type]] with this name is already exists in this clinic<br />
+            <div style='justify-content: space-around;display: flex'>
+                <form style='display:inline'>
+                    <input type='hidden' name='cmd' value='overwrite' />
+                    <input type='hidden' name='type' value='[[type]]' />
+                    <input type='submit' value='Replace:' />
+                    <select name='key'>
+                        [[options]]
+                    </select>
+                </form>
+                <a href='?cmd=keep'><button>Use Original</button></a>
+                <a href='?cmd=new&type=[[type]]'><button>Save as new [[type]]</button></a>
+            </div>
+        </div>
+ExistsWarning;
+        
         switch( $cmd ) {
             case "update_client":
-                $oFormClient->Update();
-                $this->updatePeople( $oFormClient );
-                $this->client_key = $oFormClient->GetKey();
-                if($oFormClient->Value("P_first_name") && $oFormClient->Value("P_last_name")){
-                    // Only create client code once first and last name are set
-                    $this->oCCG->getClientCode($this->client_key);
+                $exists = $this->checkExists($oFormClient, "C");
+                if($exists && !$overrideCheck){
+                    $_SESSION["cmdData"] = $oFormClient->GetKFR()->ValuesRA();
+                    $options = "";
+                    $ra = $this->oPeopleDB->GetList("C", "P.first_name='".$oFormClient->Value("P_first_name")."' AND P.last_name='".$oFormClient->Value("P_last_name")."' AND clinic=".$oFormClient->Value("clinic"),$this->queryParams);
+                    foreach ($ra as $option){
+                        $options .= "<option value='".$option['_key']."'>".$this->oCCG->getClientCode($option['_key'])."</option>";
+                    }
+                    $s .= str_replace(array("[[type]]","[[options]]"), array("client",$options), $existsWarning);
+                }
+                else{
+                    $oFormClient->Update();
+                    $this->updatePeople( $oFormClient );
+                    $this->client_key = $oFormClient->GetKey();
+                    if($oFormClient->Value("P_first_name") && $oFormClient->Value("P_last_name")){
+                        // Only create client code once first and last name are set
+                        $this->oCCG->getClientCode($this->client_key);
+                    }
                 }
                 break;
             case "regenerate_client_code":
@@ -84,14 +187,38 @@ class ClientList
                 $this->oCCG->regenerateCode($this->client_key);
                 break;
             case "update_therapist":
-                $oFormTherapist->Update();
-                $this->updatePeople( $oFormTherapist );
-                $this->therapist_key = $oFormTherapist->GetKey();
+                $exists = $this->checkExists($oFormTherapist, "PI");
+                if($exists && !$overrideCheck){
+                    $_SESSION["cmdData"] = $oFormTherapist->GetKFR()->ValuesRA();
+                    $options = "";
+                    $ra = $this->oPeopleDB->GetList("PI", "P.first_name='".$oFormTherapist->Value("P_first_name")."' AND P.last_name='".$oFormTherapist->Value("P_last_name")."' AND clinic=".$oFormTherapist->Value("clinic"),$this->queryParams);
+                    foreach ($ra as $option){
+                        $options .= "<option value='".$option['_key']."'>".$option["P_first_name"]." ".$option["P_last_name"]."(".$option["_key"].")</option>";
+                    }
+                    $s .= str_replace(array("[[type]]","[[options]]"), array("therapist",$options), $existsWarning);
+                }
+                else{
+                    $oFormTherapist->Update();
+                    $this->updatePeople( $oFormTherapist );
+                    $this->therapist_key = $oFormTherapist->GetKey();
+                }
                 break;
             case "update_pro":
-                $oFormPro->Update();
-                $this->updatePeople( $oFormPro );
-                $this->pro_key = $oFormPro->GetKey();
+                $exists = $this->checkExists($oFormPro, "PE");
+                if($exists && !$overrideCheck){
+                    $_SESSION["cmdData"] = $oFormPro->GetKFR()->ValuesRA();
+                    $options = "";
+                    $ra = $this->oPeopleDB->GetList("PE", "P.first_name='".$oFormPro->Value("P_first_name")."' AND P.last_name='".$oFormPro->Value("P_last_name")."' AND clinic=".$oFormPro->Value("clinic"),$this->queryParams);
+                    foreach ($ra as $option){
+                        $options .= "<option value='".$option['_key']."'>".$option["P_first_name"]." ".$option["P_last_name"]."(".$option["_key"].")</option>";
+                    }
+                    $s .= str_replace(array("[[type]]","[[options]]"), array("pro",$options), $existsWarning);
+                }
+                else{
+                    $oFormPro->Update();
+                    $this->updatePeople( $oFormPro );
+                    $this->pro_key = $oFormPro->GetKey();
+                }
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
@@ -231,6 +358,21 @@ class ClientList
         }
     }
 
+    /**
+     * This method checks if the person exists in the current clinic
+     * @param KeyframeForm $oForm - Form containing the data
+     * @param String $rel - the KeyframeRelation identifier to check
+     * @return bool True if new person and someone exists, False otherwise
+     */
+    private function checkExists(KeyframeForm $oForm, String $rel):bool{
+        $oForm->Update(array("bNoStore" => TRUE));
+        if($oForm->GetKey()){
+            return FALSE;
+        }
+        $ra = $this->oPeopleDB->GetList($rel, "P.first_name='".$oForm->Value("P_first_name")."' AND P.last_name='".$oForm->Value("P_last_name")."' AND clinic=".$oForm->Value("clinic"),$this->queryParams);
+        return(!empty($ra));
+    }
+    
     function drawClientForm( $oForm, $myPros, $raPros )
     /**************************************************
         The user clicked on a client name so show their form
@@ -457,8 +599,8 @@ class ClientList
         $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' ".($this->clinics->isCoreClinic()?"":"disabled ").">";
         $raClinics = $this->oClinicsDB->KFRel()->GetRecordSetRA("");
         foreach($raClinics as $clinic){
-            $sSelected = (($oForm->Value("_key") == 0 && $this->clinics->GetCurrentClinic() == $clinic['_key']) || $clinicId == $clinic['_key']) ? "selected" : "";
-            $s .= "<option $sSelected value='{$clinic['_key']}'>{$clinic['clinic_name']}</option>";
+            $sSelected = (($oForm->Value("_key") == 0 && $this->clinics->GetCurrentClinic() == $clinic['_key']) || $clinicId == $clinic['_key']) ? " selected" : "";
+            $s .= "<option$sSelected value='{$clinic['_key']}'>{$clinic['clinic_name']}</option>";
         }
         $s .= "</select>";
         return $s;
