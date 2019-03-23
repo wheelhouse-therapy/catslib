@@ -315,6 +315,14 @@ class Clinics {
                 die("Could Not Render Image");
         }
         $i = getImageData($path, $imageType);
+        echo "<style>"
+            ."img {
+                position: fixed; 
+                top: 0; 
+                left: 0;
+                max-width: 100%;
+              }"
+            ."</style>";
         echo "<img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'>";
         die();
     }
@@ -356,8 +364,12 @@ class Clinics {
                 // Disable the selector so it cant be changed
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
-                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>";
-            $s .= $sForm;
+                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
+            $images = "<h4>Square Logo:</h4><iframe style='max-width:30%' src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."'></iframe><br />"
+                     ."<h4>Wide Logo:</h4><iframe style='height:5%;' src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."'></iframe><br />"
+                     ."<h4>Footer:</h4><iframe style='height:5%;' src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."'></iframe>";
+            $s .= "<div><div style='width:60%;display:inline-block;float:left'>".$sForm."</div><div style='width:20%;display:inline-block;float:left'>".$images."</div></div>"
+                 ."<style>.col-md-6{max-width:100%;flex:0 0 100%}</style>";
         }
         return($s);
     }
