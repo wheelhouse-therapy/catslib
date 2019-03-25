@@ -10,7 +10,8 @@ include( SEEDCORE."SEEDTemplateMaker.php" );
 class CATS_UI
 {
     protected $oApp;
-    protected $screen = "";
+    //screen variable now replaced with screen history management object
+    protected $oHistory;
 
 
     function __construct( SEEDAppSessionAccount $oApp )
@@ -21,6 +22,8 @@ class CATS_UI
                                               CATSLIB."templates/cats_html.twig",
                                               CATSLIB."templates/extensions.twig"] );
         $this->oTmpl = SEEDTemplateMaker( $raTmplMaker );
+        
+        $this->oHistory = new ScreenManager($oApp);
     }
 
     function Header()
@@ -52,17 +55,12 @@ class CATS_UI
             'CATSDIR_IMG'=>CATSDIR_IMG,
             'W_CORE_URL'=>W_CORE_URL,
 
-            'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->screen],
-            'screen_name'=>$this->screen,
+            'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->oHistory->getScreen()],
+            'screen_name'=>$this->oHistory->getScreen(),
             'user_name'=>$this->oApp->sess->GetName(),
             'clinics'=>$clinics->displayUserClinics(), 'body' => $body ] );
 
         return( $s );
-    }
-
-
-    function SetScreen($screen){
-        $this->screen = $screen;
     }
 
 }
@@ -78,9 +76,18 @@ class CATS_MainUI extends CATS_UI
         parent::__construct( $oApp );
     }
 
-    function Screen( $screen, $oldScreen ) {
-        $this->SetScreen( $screen );
+    function Screen() {
+        $screen = $this->oHistory->getScreen();
 
+        if($screen == "goBack"){
+            // restore the screen from two screens ago.
+            // Since resoring the last screen will have no effect.
+            // if the history array looks like this array("screen1","screen2","goBack")
+            // then restoring one screen will take you back to screen2
+            // while restoring two screens goes back to screen1
+            $screen = $this->oHistory->restoreScreen(-2);
+        }
+        
         $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
@@ -101,12 +108,12 @@ class CATS_MainUI extends CATS_UI
             //Revert the screen to the actual screen.
             //If we dont users will be stuck on this screen and have to know the screen name to escape.
             //This will be a problem since our screen names aren't exactly straightforward.
-            $this->oApp->sess->VarSet("screen", $oldScreen);
+            $this->oHistory->restoreScreen();
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
         }else {
             $s .= $this->DrawHome();
-        }
-
+        };
+        
         return( $s );
     }
 
@@ -148,7 +155,7 @@ class CATS_MainUI extends CATS_UI
         );
 
         $s = "";
-        switch( $this->screen ) {
+        switch( $this->oHistory->getScreen() ) {
             case "therapist":
             default:
                 $s .= $this->drawCircles( $raTherapistScreens );
@@ -193,6 +200,7 @@ class CATS_MainUI extends CATS_UI
                 $s .= share_resources();
                 break;
             case 'therapist-resources':
+                $this->oHistory->removeFromHistory(-1);
                 include('share_resorces_upload.php');
                 break;
             case "therapist-clientlist":
@@ -220,7 +228,7 @@ class CATS_MainUI extends CATS_UI
         $s = "";
 
         $oApp = $this->oApp;
-        switch( $this->screen ) {
+        switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
                 $s .= $this->drawAdminUsers();
                 break;
@@ -257,7 +265,7 @@ class CATS_MainUI extends CATS_UI
 
     function DrawDeveloper(){
         $s = "";
-        switch($this->screen){
+        switch($this->oHistory->getScreen()){
             case 'developer-droptable':
                 global $catsDefKFDB;
                 $db = $catsDefKFDB['kfdbDatabase'];
@@ -302,7 +310,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
 
     public function drawLeader(){
         $s = "";
-        switch ($this->screen){
+        switch ($this->oHistory->getScreen()){
             case "leader-clinic":
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
@@ -335,6 +343,85 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $o = new UsersGroupsPermsUI( $this->oApp );
         return( $o->DrawUI() );
     }
+}
+
+class ScreenManager{
+    
+    private $oApp;
+    private $screens;
+    
+    public function __construct(SEEDAppSessionAccount $oApp, bool $bLoadFromSession = TRUE){
+        $this->oApp = $oApp;
+        if ($bLoadFromSession){
+            $this->load();
+        }
+    }
+    
+    public function load($screens = NULL){
+        if($screens == NULL){
+            $this->screens = @$_SESSION['screenHistory']?:array();
+            $screen = $this->oApp->sess->SmartGPC("screen", array("home"));
+            if($screen != $this->getFromHistory(-1)){
+                $this->addToHisory($screen);
+            }
+        }
+        else{
+            $this->screens = $screens;
+        }
+    }
+    
+    public function getScreen():String{
+        return $this->getFromHistory(-1);
+    }
+    
+    /**
+     * Restore the screen to a screen in the history array
+     * The array is wiped such that the screen restored to is the last element in the array
+     * @param int $history - index of the screen to restore
+     * @return string - screen name of the screen restored to
+     */
+    public function restoreScreen(int $history = -1){
+        $screen = $this->getFromHistory($history-1);
+        $this->oApp->sess->VarSet("screen", $screen);
+        array_splice($this->screens, $history);
+        $this->store();
+        return $screen;
+    }
+    
+    /**
+     * Remove the entry from the screen history array
+     * @param int $index - The index of the screen to remove
+     * Negative values will remove from the end of the array
+     * This method does not revert the session variable. It only removes the screen from history
+     * to resore the screen use restoreScreen($history)
+     */
+    public function removeFromHistory(int $index){
+        array_splice($this->screens, $index, 1);
+        $this->store();
+    }
+    
+    private function getFromHistory(int $index){
+        //Default to home if the index requested does not exist
+        if($index < 0){
+            $index = count($this->screens)+$index;
+        }
+        return @$this->screens[$index]?:"home";
+    }
+    
+    private function addToHisory($screen, $location = NULL){
+        if($location == NULL){
+            array_push($this->screens, $screen);
+        }
+        else{
+            array_splice($this->screens, $location, 0, $screen);
+        }
+        $this->store();
+    }
+    
+    private function store(){
+        $_SESSION['screenHistory'] = $this->screens;
+    }
+    
 }
 
 class UsersGroupsPermsUI
