@@ -17,7 +17,7 @@ class ClientCodeGenerator {
         }
         $code = strtoupper(substr($kfr->Value("P_last_name"),0,3))
                .strtoupper(substr($kfr->Value("P_first_name") ,0,3));
-        $existingCodes = $this->oPeopleDB->GetList("C", "code LIKE '".$code."%'");
+        $existingCodes = $this->oPeopleDB->GetList("C", "code LIKE '".$code."%'", array("iStatus" => -1));
         if(count($existingCodes) > 0){
             $code .= (count($existingCodes)+1);
         }

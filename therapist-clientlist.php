@@ -119,6 +119,7 @@ class ClientList
                     $kfr = new KeyframeRecord($this->oPeopleDB->KFRel($kfrelID));
                     $kfr->LoadValuesFromRA($_SESSION["cmdData"]);
                     $kfr->SetKey(SEEDInput_Int("key"));
+                    $kfr->StatusSet("Normal");
                     switch($type){
                         case "client":
                             $oFormClient->SetKFR($kfr);
@@ -163,9 +164,9 @@ ExistsWarning;
                 if($exists && !$overrideCheck){
                     $_SESSION["cmdData"] = $oFormClient->GetKFR()->ValuesRA();
                     $options = "";
-                    $ra = $this->oPeopleDB->GetList("C", "P.first_name='".$oFormClient->Value("P_first_name")."' AND P.last_name='".$oFormClient->Value("P_last_name")."' AND clinic=".$oFormClient->Value("clinic"),$this->queryParams);
+                    $ra = $this->oPeopleDB->GetList("C", "P.first_name='".$oFormClient->Value("P_first_name")."' AND P.last_name='".$oFormClient->Value("P_last_name")."' AND clinic=".$oFormClient->Value("clinic"),array_merge($this->queryParams,array("iStatus" => -1)));
                     foreach ($ra as $option){
-                        $options .= "<option value='".$option['_key']."'>".$this->oCCG->getClientCode($option['_key'])."</option>";
+                        $options .= "<option value='".$option['_key']."'>".$this->oCCG->getClientCode($option['_key']).($option['_status'] == 1?"(Deleted)":"").($option['_status'] == 2?"(Discharged)":"")."</option>";
                     }
                     $s .= str_replace(array("[[type]]","[[options]]"), array("client",$options), $existsWarning);
                 }
@@ -178,6 +179,18 @@ ExistsWarning;
                         $this->oCCG->getClientCode($this->client_key);
                     }
                 }
+                break;
+            case "discharge_client":
+                $kfr = $this->oPeopleDB->GetKFR("C", $this->client_key);
+                $kfr->StatusSet("Hidden");
+                $kfr->PutDBRow();
+                $s .= "<div class='alert alert-success alert-dismissible'>Client Discharged</div>";
+                break;
+            case "admit_client":
+                $kfr = $this->oPeopleDB->GetKFR("C", $this->client_key);
+                $kfr->StatusSet("Normal");
+                $kfr->PutDBRow();
+                $s .= "<div class='alert alert-success alert-dismissible'>Client Admitted</div>";
                 break;
             case "regenerate_client_code":
                 /* WARNING this will overwrite the existing code.
@@ -369,7 +382,7 @@ ExistsWarning;
         if($oForm->GetKey()){
             return FALSE;
         }
-        $ra = $this->oPeopleDB->GetList($rel, "P.first_name='".$oForm->Value("P_first_name")."' AND P.last_name='".$oForm->Value("P_last_name")."' AND clinic=".$oForm->Value("clinic"),$this->queryParams);
+        $ra = $this->oPeopleDB->GetList($rel, "P.first_name='".$oForm->Value("P_first_name")."' AND P.last_name='".$oForm->Value("P_last_name")."' AND clinic=".$oForm->Value("clinic"),array_merge($this->queryParams,array("iStatus" => -1)));
         return(!empty($ra));
     }
     
@@ -453,7 +466,10 @@ ExistsWarning;
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
                  ."<div class='col-md-8'>".$sForm."</div>"
-                 ."<div class='col-md-4'>".$sTherapists.$sPros."</div>"
+                 ."<div class='col-md-4'>".$sTherapists.$sPros
+                 ."<br /><br />"
+                 .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
+                 ."</div>"
              ."</div>"
              ."</div>";
              $s .= $this->clinicJS($oForm);
