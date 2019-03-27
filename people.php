@@ -31,6 +31,22 @@ class People
     function GetStaff( $k )   { return( $this->getCSE( 'S', $k ) ); }
     function GetExt( $k )     { return( $this->getCSE( 'E', $k ) ); }
 
+    function GetAge( $sCSE, $k, $atDate = "" )
+    {
+        $age = 0.0;
+        $raC = $this->getCSE( $sCSE, $k );
+
+        if( $raC['P_dob'] ) {
+            $date1 = new DateTime( $raC['P_dob'] );
+            $date2 = new DateTime( $atDate ?: "now" );
+
+            $interval = $date2->diff($date1);
+            $age = $interval->days / 365.25;
+        }
+
+        return( $age );
+    }
+
     private function getCSE( $c, $kCSE )
     /***********************************
        Look up the person and return their array of values. If not in the array, try to load them.
