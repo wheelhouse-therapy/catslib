@@ -19,7 +19,7 @@ class AssessmentsCommon
 
     public const DO_NOT_INCLUDE = -1;
     public const NO_DATA = -2;
-    
+
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
@@ -630,7 +630,7 @@ abstract class Assessments
         }
         throw new Exception("Invalid Tag:".$tag);
     }
-    
+
     /**
      * Get value for the given tag
      * Impementations do not have to be concerned with invalid tags as getTagValue($tag) checks for consistancy against the list returned by getTags()
@@ -703,7 +703,7 @@ class Assessment_SPM extends Assessments
     }
 
     public function getTags(): array{
-        $raTags = array("social_percent","social_interpretation", 
+        $raTags = array("social_percent","social_interpretation",
                         "vision_percent", "vision_interpretation", "vision_item",
                         "hearing_percent", "hearing_interpretation", "hearing_item",
                         "touch_percent", "touch_interpretation", "touch_item",
@@ -718,10 +718,10 @@ class Assessment_SPM extends Assessments
     }
 
     protected function getTagField(String $tag):String{
-        
+
         //Array of section keys from tag keys
         $raSectionKeys = array("vestib" => "balance");
-        
+
         $s = "Tag is Valid but Not implemented";
         $parts = explode("_", $tag,2);
         if(count($parts) == 2){

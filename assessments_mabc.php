@@ -14,10 +14,20 @@ class Assessment_MABC extends Assessments {
 
     function DrawAsmtForm( int $kClient )
     {
+        list($age,$sErr) = $this->setColumnRangesByAge( $kClient );
+
+        return( $age ? $this->DrawColumnForm2( $kClient ) : $sErr );
+    }
+
+    private function setColumnRangesByAge( $kClient )
+    {
+        $sErr = "";
+
         $age = $this->getClientAge($kClient);
 
         if( !$age ) {
-            return( "Please enter the client's date of birth on the client list" );
+            $sErr = "Please enter the client's date of birth on the client list";
+            goto done;
         }
         if( $age < 7.0 ) {
             $this->raColumnRanges = $this->raColumnRanges_ageBand1;
@@ -27,12 +37,27 @@ class Assessment_MABC extends Assessments {
             $this->raColumnRanges = $this->raColumnRanges_ageBand3;
         }
 
-        return( $this->DrawColumnForm2( $kClient ) );
+        done:
+        return( [$age,$sErr] );
     }
 
     function DrawAsmtResult()
     {
-        return( $this->drawResult2() );
+        $s = "";
+
+        if( !$this->kfrAsmt ) goto done;
+
+        $kClient = $this->kfrAsmt->Value('fk_clients2');
+        list($age,$sErr) = $this->setColumnRangesByAge( $kClient );
+        if( !$age ) {
+            $s = $sErr;
+            goto done;
+        }
+
+        $s = $this->drawResult2();
+
+        done:
+        return( $s );
     }
 
     protected function GetScore( $n, $v ):int
