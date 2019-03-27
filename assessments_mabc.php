@@ -67,22 +67,7 @@ class Assessment_MABC extends Assessments {
 
     private function getClientAge( int $kClient, $atDate = "" )
     {
-        // there's a better place to put a public GetClientAge() function, like in People()
-        $age = 0.0;
-
-        $oPeople = new People( $this->oAsmt->oApp );
-
-        $raC = $oPeople->GetClient($kClient);
-
-        if( $raC['P_dob'] ) {
-            $date1 = new DateTime( $raC['P_dob'] );
-            $date2 = new DateTime( $atDate ?: "now" );
-
-            $interval = $date2->diff($date1);
-            $age = $interval->days / 365.25;
-        }
-
-        return( $age );
+        return( (new People( $this->oAsmt->oApp ))->GetAge( 'C', $kClient, $atDate ) );
     }
 
     public function getTags(): array{
