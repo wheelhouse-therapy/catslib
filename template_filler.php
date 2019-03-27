@@ -266,6 +266,10 @@ class template_filler {
                 else
                     $temp[] = $pathBySlash[$c - 1];
         }
+        if(!array_key_exists("media", $Tree['word'])){
+            //There are no images in the document. Skip to the end to prevent memory leaks with open zip
+            goto cleanup;
+        }
         $array = $Tree['word']['media'];
         $placeholders = array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
         $hashes = array();
@@ -303,6 +307,7 @@ class template_filler {
                 $za->addFromString("word/media/".$img, getImageData($imagePath?:$data, $imageType,$imagePath === FALSE));
             }
         }
+        cleanup:
         $za->close();
     }
     
