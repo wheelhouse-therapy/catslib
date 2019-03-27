@@ -184,7 +184,7 @@ ExistsWarning;
                 $kfr = $this->oPeopleDB->GetKFR("C", $this->client_key);
                 $kfr->StatusSet("Hidden");
                 $kfr->PutDBRow();
-                $s .= "<div class='alert alert-success alert-dismissible'>Client Dismissed</div>";
+                $s .= "<div class='alert alert-success alert-dismissible'>Client Discharged</div>";
                 break;
             case "admit_client":
                 $kfr = $this->oPeopleDB->GetKFR("C", $this->client_key);
@@ -430,7 +430,6 @@ ExistsWarning;
              .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
              .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
              .$this->drawFormRow( "Code", ($oForm->Value('_key')?$this->oCCG->getClientCode($oForm->Value('_key')):"Code generated once first and last name are set"))
-             .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
              ."<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
@@ -467,7 +466,10 @@ ExistsWarning;
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
                  ."<div class='col-md-8'>".$sForm."</div>"
-                 ."<div class='col-md-4'>".$sTherapists.$sPros."</div>"
+                 ."<div class='col-md-4'>".$sTherapists.$sPros
+                 ."<br /><br />"
+                 .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
+                 ."</div>"
              ."</div>"
              ."</div>";
              $s .= $this->clinicJS($oForm);
