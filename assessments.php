@@ -172,6 +172,7 @@ abstract class Assessments
     protected $asmtCode;
     protected $kfrAsmt;
     protected $bUseDataList = false;    // the data entry form uses <datalist>
+    protected $raTotals = array(); // Ensure this is defined, child classes should override
 
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
     {
@@ -189,6 +190,7 @@ abstract class Assessments
               var raPercentilesSPM = ".json_encode($this->raPercentiles).";
               var cols = ".json_encode($this->Columns()).";
               var chars = ".json_encode($this->Inputs("script")).";
+              var raTotalsSPM = ".json_encode($this->raTotals).";
               </script>";
 
         return( $s );
