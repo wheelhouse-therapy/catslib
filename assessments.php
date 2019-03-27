@@ -475,10 +475,6 @@ abstract class Assessments
 
     private function drawColFormTable2( $oForm, $raColumns, $bEditable )
     {
-        $s = "";
-
-        if( !count($raColumns) )  goto done;
-
         $colwidth = (100/count($raColumns))."%";
 
         $s = "<table width='100%'><tr>";
@@ -497,7 +493,6 @@ abstract class Assessments
         }
         $s .= "</tr></table>";
 
-        done:
         return( $s );
     }
 
