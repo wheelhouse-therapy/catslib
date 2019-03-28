@@ -1,6 +1,7 @@
 <?php
 
 include( "assessments_mabc.php" );
+include( "assessments_spm.php" );
 
 
 $raGlobalAssessments = array(
@@ -9,6 +10,53 @@ $raGlobalAssessments = array(
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
 );
+
+
+/* Problem:
+ *      The model for the Assessments class is based on the way SPM works, but it isn't easy to adapt it to other assessments.
+ *
+ * Proposal:
+ *      Create an AssessmentDataInterface and AssessmentUIInterface for each assessment type.
+ *      The Data interface hides all the computation and mapping between inputs and scores - see ComputeScore() described below.
+ *      The UI interface encapsulates the details of how the different forms work e.g. SPM has javascript for typing certain
+ *      characters, MABC has a complicated structure of aggregated scores.
+ *
+ *      Every assessment contains a set of inputs, which we currently call "items".
+ *      Every item has a name. It could be "2", "4b", "Vision3", etc.
+ *      The therapist enters a "raw" code into each input. It could be an integer or a string.
+ *      The raw is stored in the db, and shown back on the assessment report.
+ *      Every item has a score, which is a number (so far only integers, but could be a float?) mapped from the raw.
+ *
+ *      e.g. You can have an item called "Vision12" with raw "n" which corresponds to score "1".
+ *           We store Vision12=n in the database and use a method GetScore( "Vision12" ) to get 1.
+ *
+ *      There are also aggregated / computed scores and percentiles. These are retrieved via ComputeScore() and ComputePercentile()
+ *      using names for those aggregations.
+ *
+ *      e.g. ComputeScore("VisionTotal") could retrieve a sum of the scores for Vision-related items.
+ *           ComputePercentile("VisionTotal") could retrieve the percentile for that aggregated score.
+ *
+ *      The important thing is that this interface will work for all assessments that:
+ *          - Have items with distinct names and well-defined raw inputs.
+ *          - Have numeric scores associated with the inputs (or the score is just the input).
+ *          - Have aggregated / computed scores that can be named.
+ */
+
+
+interface AssessmentDataInterface
+{
+    public function ComputeScore( string $item ) : int;
+    public function ComputePercentile( string $item ) : int;
+}
+
+interface AssessmentUIInterface
+{
+    public function DrawInputForm() : string;
+    public function DrawGraph() : string;
+    public function DrawTable() : string;
+    public function DrawRecommendation() : string;
+}
+
 
 
 class AssessmentsCommon
@@ -656,12 +704,16 @@ abstract class Assessments
 
 class Assessment_SPM extends Assessments
 {
+    private $oData;
+
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt, String $subclass = "" )
     {
         //Use subclass when defining a sub class of this such as the classroom spm
         //Subclass ensures that scoreing does not break when subclassing
         parent::__construct( $oAsmt, $kAsmt, 'spm'.$subclass );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
+
+        $this->oData = new AssessmentData_SPM( $oAsmt, $kAsmt );
     }
 
     function DrawAsmtResult()
@@ -765,7 +817,7 @@ class Assessment_SPM extends Assessments
         }
         return $s;
     }
-    
+
     protected $items = array(
         '1' => "Plays with friends cooperatively (without lots of arguments)",
        '11' => "Seems bothered by light, especially bright lights (blinks, squints, cries, closes eyes, etc.)",
@@ -834,7 +886,7 @@ class Assessment_SPM extends Assessments
        '74' => "Has trouble coming up with ideas for new games and activities",
        '75' => "Tends to play the same activities over and over, rather than shift to new activities when given the chance",
     );
-    
+
     function GetProblemItems( string $section ) : string
     {
         $s = "";
