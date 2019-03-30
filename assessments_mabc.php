@@ -31,10 +31,13 @@ class Assessment_MABC extends Assessments {
         }
         if( $age < 7.0 ) {
             $this->raColumnRanges = $this->raColumnRanges_ageBand1;
+            $this->raColumnDef = $this->raColumnDef_ageBand1;
         } else if( $age < 11.0 ) {
             $this->raColumnRanges = $this->raColumnRanges_ageBand2;
+            $this->raColumnDef = $this->raColumnDef_ageBand2;
         } else {
             $this->raColumnRanges = $this->raColumnRanges_ageBand3;
+            $this->raColumnDef = $this->raColumnDef_ageBand3;
         }
 
         done:
@@ -102,6 +105,28 @@ class Assessment_MABC extends Assessments {
         "A&C" => ['1a'=>'ac1a', '1b'=>'ac1b', '2'=>'ac2'],
         "Bal" => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'],
     );
+
+
+    protected $raColumnDef = array();   // point this to one of the below
+    // 3-6 years
+    private $raColumnDef_ageBand1 = array(
+        'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
+        'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+        'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3'=>'bal3'] ],
+        );
+    // 7-10 years
+    private $raColumnDef_ageBand2 = array(
+        'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b',  '2'=>'md2',  '3'=>'md3'] ],
+        'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+        'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3a'=>'bal3a', '3b'=>'bal3b'] ],
+    );
+    // 11-16 years
+    private $raColumnDef_ageBand3 = array(
+        'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a', '1b'=>'md1b', '2'=>'md2',    '3'=>'md3'] ],
+        'ac'  => ['label'=>"A&C", 'cols' => ['1a'=>'ac1a', '1b'=>'ac1b', '2'=>'ac2'] ],
+        'bal' => ['label'=>"Bal", 'cols' => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'] ],
+    );
+
 
     protected $raPercentiles = array();
 }

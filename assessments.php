@@ -355,7 +355,7 @@ abstract class Assessments
         return( $s );
     }
 
-    protected function drawAsmt( SEEDCoreForm $oForm, $raColumns )
+    protected function drawAsmt( SEEDCoreForm $oForm )
     {
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
@@ -388,7 +388,7 @@ abstract class Assessments
 
         $sAsmt .= SPMChart();
 
-        $sAsmt .= $this->drawColFormTable( $oForm, $this->raColumnRanges, false );
+        $sAsmt .= $this->drawColFormTable2( $oForm, $this->raColumnDef, false );
 
         return( $sAsmt );
     }
@@ -402,15 +402,11 @@ abstract class Assessments
         $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
         $oForm->SetKFR( $kfr );
 
-
-        $raColumns = $this->raColumnRanges;
-
-
         $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
         foreach( $raResults as $k => $v ) {
             $oForm->SetValue( "i$k", $v );
         }
-        $s .= $this->drawAsmt( $oForm, $raColumns );
+        $s .= $this->drawAsmt( $oForm );
 
         // Put the results in a js array for processing on the client
         $s .= "<script>
@@ -431,13 +427,11 @@ abstract class Assessments
         $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
         $oForm->SetKFR( $kfr );
 
-        $raColumns = $this->raColumnRanges;
-
         $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
         foreach( $raResults as $k => $v ) {
             $oForm->SetValue( "i$k", $v );
         }
-        $s .= $this->drawColFormTable2( $oForm, $this->raColumnRanges, false );
+        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, false );
 
         done:
         return( $s );
@@ -457,7 +451,7 @@ abstract class Assessments
         $s .= "<form method='post'>"
              .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
 
-        $s .= $this->drawColFormTable( $oForm, $this->raColumnRanges, true );
+        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, true );
 
         if( $this->bUseDataList ) {
             $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
@@ -485,7 +479,7 @@ abstract class Assessments
         $s .= "<form method='post'>"
              .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
 
-        $s .= $this->drawColFormTable2( $oForm, $this->raColumnRanges, true );
+        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, true );
 
         if( $this->bUseDataList ) {
             $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
@@ -500,44 +494,62 @@ abstract class Assessments
         return( $s );
     }
 
+/*
     private function drawColFormTable( $oForm, $raColumns, $bEditable )
     {
         $colwidth = (100/count($raColumns))."%";
 
         $s = "<table width='100%'><tr>";
         foreach( $raColumns as $label => $sRange ) {
-            $s .= "<th valign='top'>$label<br/><br/></th>";
+            $s .= "<th valign='top' style='width:$colwidth'>$label<br/><br/></th>";
         }
         $s .= "</tr><tr>";
         foreach( $raColumns as $label => $sRange ) {
-            $s .= "<td valign='top' width='$colwidth'>".$this->column( $oForm, $sRange, $bEditable )."</td>";
+            $ra = array();
+            foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $v ) { $ra[$v] = $v; }
+
+            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding-right:10px'>".$this->column2( $oForm, $ra, $bEditable )."</td>";
         }
         if( !$bEditable ) {
             $s .= "</tr><tr>";
             foreach( $raColumns as $label => $sRange ) {
-                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
+                $s .= "<td valign='top' style='width:$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
             }
         }
         $s .= "</tr></table>";
 
         return( $s );
     }
+*/
 
-    private function drawColFormTable2( $oForm, $raColumns, $bEditable )
+    private function drawColFormTable2( $oForm, $raColumnDef, $bEditable )
     {
-        $colwidth = (100/count($raColumns))."%";
+        $colwidth = (100/count($raColumnDef))."%";
 
         $s = "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $raItems ) {
-            $s .= "<th valign='top'>$label<br/><br/></th>";
+        foreach( $raColumnDef as $ra ) {
+            $s .= "<th valign='top' style='width:$colwidth'>{$ra['label']}<br/><br/></th>";
         }
         $s .= "</tr><tr>";
-        foreach( $raColumns as $label => $raItems ) {
-            $s .= "<td valign='top' width='$colwidth'>".$this->column2( $oForm, $raItems, $bEditable )."</td>";
+        foreach( $raColumnDef as $ra ) {
+            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding:0px 5px'>";
+            if( isset($ra['cols']) ) {
+                // columns are explicitly defined
+                $s .= $this->column2( $oForm, $ra['cols'], $bEditable );
+            } else if( isset($ra['colRange']) ) {
+                // columns are numeric, expressed as a range. Unpack this into an explicit array
+                $raCols = array();
+                foreach( SEEDCore_ParseRangeStrToRA($ra['colRange']) as $v ) {
+                    $raCols[$v] = $v;
+                }
+                $s .= $this->column2( $oForm, $raCols, $bEditable );
+            }
+            $s .= "</td>";
+
         }
         if( !$bEditable ) {
             $s .= "</tr><tr>";
-            foreach( $raColumns as $label => $raItems ) {
+            foreach( $raColumnDef as $ra ) {
 //                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
             }
         }
@@ -546,6 +558,7 @@ abstract class Assessments
         return( $s );
     }
 
+/*
     private function column( SEEDCoreForm $oForm, $sRange, $bEditable )
     {
         $s = "<table class='score-table'>";
@@ -557,6 +570,7 @@ abstract class Assessments
 
         return( $s );
     }
+*/
 
     private function column2( SEEDCoreForm $oForm, $raItems, $bEditable )
     {
@@ -889,7 +903,7 @@ class Assessment_SPM extends Assessments
     {
         $s = "";
 
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['colRange'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
             foreach( $raResults as $k => $v ) {
@@ -909,7 +923,7 @@ class Assessment_SPM extends Assessments
         $s = "";
         $total = 0;
 
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['range'] ) {
+        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['colRange'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             $raResults = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
             foreach( $raResults as $k => $v ) {
@@ -935,14 +949,14 @@ class Assessment_SPM extends Assessments
         );
 
     protected $raColumnDef = array(
-            'social'   => [ 'label'=>"Social<br/>participation", 'range'=>"1-10" ],
-            'vision'   => [ 'label'=>"Vision",                   'range'=>"11-21" ],
-            'hearing'  => [ 'label'=>"Hearing",                  'range'=>"22-29" ],
-            'touch'    => [ 'label'=>"Touch",                    'range'=>"30-40" ],
-            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'range'=>"41-45" ],
-            'body'     => [ 'label'=>"Body<br/>Awareness",       'range'=>"46-55" ],
-            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'range'=>"56-66" ],
-            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'range'=>"67-75" ]
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
         );
 
     /* The percentiles that apply to each score, per column
