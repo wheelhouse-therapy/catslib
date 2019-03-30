@@ -1,8 +1,14 @@
 <?php
 
+/* Sensory Processing Measure
+ *     Basic items are numbers 1-75.
+ *     Aggregate items are section/column totals e.g. vision_total
+ */
+
+
 class AssessmentData_SPM implements AssessmentDataInterface
 {
-    private $oAsmt;
+    public  $oAsmt;
     private $kfrAsmt;
     private $raRaws;
     private $raScores;
@@ -16,7 +22,7 @@ class AssessmentData_SPM implements AssessmentDataInterface
 
         // Map them to scores
         foreach( $this->raRaws as $item => $raw ) {
-            $this->raScores[$item] = $this->mapRaw2Score( $item, $raw );
+            $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
         }
     }
 
@@ -26,18 +32,26 @@ class AssessmentData_SPM implements AssessmentDataInterface
 
         if( isset($this->raScores[$item]) ) { $score = $this->raScores[$item]; goto done; }
 
-        // Calculate the aggregate / computed score
+        if( is_numeric($item) ) {
+            // Simple item
+            $item = intval($item);
+            if( isset($this->raRaws[$item]) ) {
+                $score = $this->mapRaw2Score( $item, $this->raRaws[$item] );
+            }
+        } else {
+            // Aggregate / computed score
+            switch( $item ) {
+                case "social_total":
+                    $score = 123; // compute the score
+                    break;
+                case "vision_total":
+                    $score = 123; // compute the score
+                    break;
 
-        switch( $item ) {
-            case "social_total":
-                $v = 123; // compute the score
-                break;
-            case "vision_total":
-                $v = 123; // compute the score
-                break;
-
+            }
         }
-        $this->raScores[$item] = $v;
+
+        $this->raScores[$item] = $score;    // cache for next lookup
 
         done:
         return( $score );
@@ -48,9 +62,9 @@ class AssessmentData_SPM implements AssessmentDataInterface
         return( 0 );
     }
 
-    private function mapRaw2Score( string $item, string $raw ) : int
-    /*********************************************************
-        Map basic items raw -> score
+    function MapRaw2Score( string $item, string $raw ) : int
+    /*************************************************
+        Map raw -> score for basic items
      */
     {
         $score = 0;
@@ -64,3 +78,16 @@ class AssessmentData_SPM implements AssessmentDataInterface
         return( $score );
     }
 }
+
+
+class AssessmentUI_SPM
+{
+    function __construct( AssessmentData_SPM $oData )
+    {
+        $this->oData = $oData;
+    }
+
+
+
+}
+

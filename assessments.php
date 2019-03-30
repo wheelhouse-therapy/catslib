@@ -553,7 +553,6 @@ abstract class Assessments
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $s .= $this->item( $oForm, $n, $bEditable, $total );
         }
-        $s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
         $s .= "</table>";
 
         return( $s );
@@ -566,7 +565,6 @@ abstract class Assessments
         foreach( $raItems as $itemLabel => $itemKey ) {
             $s .= $this->item2( $oForm, $itemLabel, $itemKey, $bEditable, $total );
         }
-        //$s .= "<tr><td></td><td><span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span></td></tr>";
         $s .= "</table>";
 
         return( $s );
