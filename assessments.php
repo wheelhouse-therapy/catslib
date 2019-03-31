@@ -43,20 +43,70 @@ $raGlobalAssessments = array(
  */
 
 
-interface AssessmentDataInterface
+/* Every assessment type should implement an extension to this class
+ * e.g. AssessmentData_SPM
+ */
+class AssessmentData
 {
-    public function ComputeScore( string $item ) : int;
-    public function ComputePercentile( string $item ) : int;
+    protected $oAsmt;
+    protected $kfrAsmt;
+    protected $raRaws;      // [item=>raw, ...]
+    protected $raScores;    // [item=>score, ...]
+
+    protected function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        $this->oAsmt = $oAsmt;
+
+        $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
+
+        // Get all the raws
+        $this->raRaws = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
+
+        // Map them to scores
+        foreach( $this->raRaws as $item => $raw ) {
+            $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
+        }
+    }
+
+    public function ComputeScore( string $item ) : int      { return(0); }
+    public function ComputePercentile( string $item ) : int { return(0); }
+
+
+    protected function MapRaw2Score( string $item, string $raw ) : int { return(0); }
 }
 
-interface AssessmentUIInterface
+/* Every assessment type should implement an extension to this class
+ * e.g. AssessmentUI_SPM
+ *
+ * Note that if it uses a column-table format, it can extend from AssessmentUIColumns
+ */
+class AssessmentUI
 {
-    public function DrawInputForm() : string;
-    public function DrawGraph() : string;
-    public function DrawTable() : string;
-    public function DrawRecommendation() : string;
+    protected $oData;
+
+    protected function __construct( AssessmentData $oData )
+    {
+        $this->oData = $oData;
+    }
+
+    public function DrawInputForm() : string { return(""); }
+    public function DrawGraph() : string { return(""); }
+    public function DrawTable() : string { return(""); }
+    public function DrawRecommendation() : string { return(""); }
 }
 
+class AssessmentUIColumns extends AssessmentUI
+/************************
+    If an assessment UI uses columns of items, extend it from this one instead of from AssessmentUI.
+ */
+{
+    protected $raColumnsDef = array();  // derived constructor must set this
+
+    protected function __construct( AssessmentData $oData )
+    {
+        parent::__construct( $oData );
+    }
+}
 
 
 class AssessmentsCommon
@@ -550,7 +600,9 @@ abstract class Assessments
         if( !$bEditable ) {
             $s .= "</tr><tr>";
             foreach( $raColumnDef as $ra ) {
-//                $s .= "<td valign='top' width='$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
+                if( isset($ra['colRange']) ) {
+                    $s .= "<td valign='top' width='$colwidth' style='text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
+                }
             }
         }
         $s .= "</tr></table>";
@@ -592,7 +644,7 @@ abstract class Assessments
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
             $sDummy = $this->item( $oForm, $n, $bEditable, $total );
         }
-        $s .= "<span class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</span>";
+        $s .= "<div class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</div>";
 
         return( $s );
     }
@@ -726,6 +778,7 @@ class Assessment_SPM extends Assessments
         $this->bUseDataList = true;     // the data entry form uses <datalist>
 
         $this->oData = new AssessmentData_SPM( $oAsmt, $kAsmt );
+        $this->oUI = new AssessmentUI_SPM( $this->oData );
     }
 
     function DrawAsmtResult()

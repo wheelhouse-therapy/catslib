@@ -5,6 +5,45 @@
  * Movement ABC assessment
  */
 
+class AssessmentData_MABC extends AssessmentData
+{
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        parent::__construct( $oAsmt, $kAsmt );
+    }
+
+    public function ComputeScore( string $item ) : int
+    {
+        return( 0 );
+    }
+
+    public function ComputePercentile( string $item ) : int
+    {
+        return( 0 );
+    }
+
+    function MapRaw2Score( string $item, string $raw ) : int
+    /*************************************************
+        Map raw -> score for basic items
+     */
+    {
+        $score = 0;
+
+        return( $score );
+    }
+}
+
+
+class AssessmentUI_MABC extends AssessmentUI
+{
+    function __construct( AssessmentData_MABC $oData )
+    {
+        parent::__construct( $oData );
+    }
+
+}
+
+
 class Assessment_MABC extends Assessments {
 
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )

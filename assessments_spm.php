@@ -6,49 +6,29 @@
  */
 
 
-class AssessmentData_SPM implements AssessmentDataInterface
+class AssessmentData_SPM extends AssessmentData
 {
-    public  $oAsmt;
-    private $kfrAsmt;
-    private $raRaws;
-    private $raScores;
-
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
-
-        // Get all the raws
-        $this->raRaws = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
-
-        // Map them to scores
-        foreach( $this->raRaws as $item => $raw ) {
-            $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
-        }
+        parent::__construct( $oAsmt, $kAsmt );
     }
 
     public function ComputeScore( string $item ) : int
     {
         $score = 0;
 
+        // Basic scores were computed and scored by the constructor.
+        // Aggregate scores are computed below and cached here.
         if( isset($this->raScores[$item]) ) { $score = $this->raScores[$item]; goto done; }
 
-        if( is_numeric($item) ) {
-            // Simple item
-            $item = intval($item);
-            if( isset($this->raRaws[$item]) ) {
-                $score = $this->mapRaw2Score( $item, $this->raRaws[$item] );
-            }
-        } else {
-            // Aggregate / computed score
-            switch( $item ) {
-                case "social_total":
-                    $score = 123; // compute the score
-                    break;
-                case "vision_total":
-                    $score = 123; // compute the score
-                    break;
-
-            }
+        // Look up aggregate / computed score
+        switch( $item ) {
+            case "social_total":
+                $score = 123; // compute the score
+                break;
+            case "vision_total":
+                $score = 123; // compute the score
+                break;
         }
 
         $this->raScores[$item] = $score;    // cache for next lookup
@@ -80,14 +60,12 @@ class AssessmentData_SPM implements AssessmentDataInterface
 }
 
 
-class AssessmentUI_SPM
+class AssessmentUI_SPM extends AssessmentUI
 {
     function __construct( AssessmentData_SPM $oData )
     {
-        $this->oData = $oData;
+        parent::__construct( $oData );
     }
-
-
 
 }
 
