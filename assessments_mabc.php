@@ -7,9 +7,9 @@
 
 class AssessmentData_MABC extends AssessmentData
 {
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt );
+        parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
     public function ComputeScore( string $item ) : int
@@ -34,28 +34,58 @@ class AssessmentData_MABC extends AssessmentData
 }
 
 
-class AssessmentUI_MABC extends AssessmentUI
+class AssessmentUI_MABC extends AssessmentUIColumns
 {
     function __construct( AssessmentData_MABC $oData )
     {
-        parent::__construct( $oData );
+// have to set column ranges by age
+        parent::__construct( $oData, $this->initColumnsDef() );
     }
 
+    private function initColumnsDef()
+    {
+        // 3-6 years
+        $def_ageBand1 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3'=>'bal3'] ],
+            );
+        // 7-10 years
+        $def_ageBand2 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b',  '2'=>'md2',  '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3a'=>'bal3a', '3b'=>'bal3b'] ],
+        );
+        // 11-16 years
+        $def_ageBand3 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a', '1b'=>'md1b', '2'=>'md2',    '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1a'=>'ac1a', '1b'=>'ac1b', '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'] ],
+        );
+
+// set column ranges by age
+        $def = $def_ageBand1;
+
+        return( $def );
+    }
 }
 
 
-class Assessment_MABC extends Assessments {
-
+class Assessment_MABC extends Assessments
+{
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt, 'mabc' );
+        $oData = new AssessmentData_MABC( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_MABC( $oData );
+
+        parent::__construct( $oAsmt, $kAsmt, 'mabc', $oData, $oUI );
     }
 
     function DrawAsmtForm( int $kClient )
     {
         list($age,$sErr) = $this->setColumnRangesByAge( $kClient );
 
-        return( $age ? $this->DrawColumnForm2( $kClient ) : $sErr );
+        return( $age ? $this->oUI->DrawColumnForm( $kClient ) : $sErr );
     }
 
     private function setColumnRangesByAge( $kClient )

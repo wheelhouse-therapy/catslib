@@ -48,14 +48,17 @@ $raGlobalAssessments = array(
  */
 class AssessmentData
 {
-    protected $oAsmt;
+    public    $oAsmt;
+    public    $oA;
+
     protected $kfrAsmt;
     protected $raRaws;      // [item=>raw, ...]
     protected $raScores;    // [item=>score, ...]
 
-    protected function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    protected function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
         $this->oAsmt = $oAsmt;
+        $this->oA = $oA;
 
         $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
 
@@ -83,10 +86,14 @@ class AssessmentData
 class AssessmentUI
 {
     protected $oData;
+    public    $oAsmt;
+    public    $oA;
 
     protected function __construct( AssessmentData $oData )
     {
         $this->oData = $oData;
+        $this->oAsmt = $oData->oAsmt;   // copy here for convenience
+        $this->oA    = $oData->oA;      // copy here for convenience
     }
 
     public function DrawInputForm() : string { return(""); }
@@ -100,11 +107,142 @@ class AssessmentUIColumns extends AssessmentUI
     If an assessment UI uses columns of items, extend it from this one instead of from AssessmentUI.
  */
 {
-    protected $raColumnsDef = array();  // derived constructor must set this
+    protected $raColumnsDef;
 
-    protected function __construct( AssessmentData $oData )
+    protected function __construct( AssessmentData $oData, $raColumnsDef )
     {
         parent::__construct( $oData );
+        $this->raColumnsDef = $raColumnsDef;
+    }
+
+
+    function DrawColumnForm( int $kClient )
+    /**************************************
+        Draw a form composed of columns of values. Parameters must be defined in derived classes.
+            raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
+     */
+    {
+        $s = "<h2>".@$this->oAsmt->raAssessments[$this->oA->GetAsmtCode()]['title']."</h2>";
+
+        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+
+        $s .= "<form method='post'>"
+             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
+
+        $s .= $this->DrawColFormTable( $oForm, $this->raColumnsDef, true );
+
+        if( $this->oA->bUseDataList ) {
+            $s .= $this->getDataList( $oForm, $this->oA->Inputs("datalist") )
+                 ."<script src='w/js/assessments.js'></script>";
+        }
+
+        $s .= "<input hidden name='sAsmtAction' value='save'/>"
+             ."<input hidden name='sAsmtType' value='".$this->oA->GetAsmtCode()."'/>"
+             .$oForm->HiddenKey()
+             ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
+             ."<span id='total'></span>";
+
+        return( $s );
+    }
+
+    private function getDataList( SEEDCoreForm $oForm, $raOptions = NULL )
+    {
+        $s = "<datalist id='options'>";
+        if( $raOptions != NULL ) {
+            foreach( $raOptions as $option ) {
+                $s .= $oForm->Option("", substr($option, 0,1), $option);
+            }
+        }
+        $s .= "</datalist>";
+
+        return $s;
+    }
+
+    function DrawColFormTable( SEEDCoreForm $oForm, $raColumnDef, $bEditable )
+    {
+        $colwidth = (100/count($raColumnDef))."%";
+
+        $s = "<table width='100%'><tr>";
+        foreach( $raColumnDef as $ra ) {
+            $s .= "<th valign='top' style='width:$colwidth'>{$ra['label']}<br/><br/></th>";
+        }
+        $s .= "</tr><tr>";
+        foreach( $raColumnDef as $ra ) {
+            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding:0px 5px'>";
+            if( isset($ra['cols']) ) {
+                // columns are explicitly defined
+                $s .= $this->column( $oForm, $ra['cols'], $bEditable );
+            } else if( isset($ra['colRange']) ) {
+                // columns are numeric, expressed as a range. Unpack this into an explicit array
+                $raCols = array();
+                foreach( SEEDCore_ParseRangeStrToRA($ra['colRange']) as $v ) {
+                    $raCols[$v] = $v;
+                }
+                $s .= $this->column( $oForm, $raCols, $bEditable );
+            }
+            $s .= "</td>";
+
+        }
+        if( !$bEditable ) {
+            $s .= "</tr><tr>";
+            foreach( $raColumnDef as $ra ) {
+                if( isset($ra['colRange']) ) {
+                    $s .= "<td valign='top' width='$colwidth' style='text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
+                }
+            }
+        }
+        $s .= "</tr></table>";
+
+        return( $s );
+    }
+
+
+    private function column( SEEDCoreForm $oForm, $raItems, $bEditable )
+    {
+        $s = "<table class='score-table'>";
+        $total = 0;
+        foreach( $raItems as $itemLabel => $itemKey ) {
+            $s .= $this->item( $oForm, $itemLabel, $itemKey, $bEditable, $total );
+        }
+        $s .= "</table>";
+
+        return( $s );
+    }
+
+    private function column_total( SEEDCoreForm $oForm, $sRange, $bEditable )
+    {
+        $s = "";
+
+        $total = 0;
+        foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $item ) {
+            list($v,$score) = $this->itemVal( $oForm, $item );
+            $total += $score;
+        }
+        $s .= "<div class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</div>";
+
+        return( $s );
+    }
+
+    private function itemVal( SEEDCoreForm $oForm, $item )
+    {
+        $v = $oForm->Value( "i$item" );
+        $score = ($v !== null) ? $this->oData->MapRaw2Score( $item, $v ) : 0;
+        return( [$v, $score] );
+    }
+
+    private function item( SEEDCoreForm $oForm, $itemLabel, $itemKey, $bEditable, &$total )
+    {
+        if( $bEditable ) {
+            $score = "";
+            $s = $oForm->Text("i$itemKey","",array('attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
+        } else {
+            list($v,$score) = $this->itemVal( $oForm, $itemKey );
+            $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
+        }
+
+        $total += intval($score);
+        $s = "<tr><td class='score-num'>$itemKey&nbsp;</td><td>".$s."<span class='score'>$score</span></td></tr>";
+        return( $s );
     }
 }
 
@@ -268,19 +406,33 @@ abstract class Assessments
 {
     protected $oAsmt;
     protected $asmtCode;
-    protected $kfrAsmt;
-    protected $bUseDataList = false;    // the data entry form uses <datalist>
+    protected $oData;
+    protected $oUI;
+
+// move this to AssessmentsData
+protected $kfrAsmt;
+
+// move this to an AssessmentsUI parm
+public    $bUseDataList = false;    // the data entry form uses <datalist>
+
     protected $raTotals = array(); // Ensure this is defined, child classes should override
 
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode )
+// move this to AssessmentsUI
+    protected $raColumnDef = array();   // defined by each derived assessment class
+
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode, AssessmentData $oData, AssessmentUI $oUI )
     {
         $this->oAsmt = $oAsmt;
         $this->asmtCode = $asmtCode;
+        $this->oData = $oData;
+        $this->oUI = $oUI;
 
         $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
     }
 
-    function GetAsmtKey()   { return( $this->kfrAsmt->Key() ); }
+    public function GetAsmtCode()  { return( $this->asmtCode ); }
+    public function GetAsmtKey()   { return( $this->kfrAsmt->Key() ); }
+    public function GetColumnDef() { return( $this->raColumnDef ); }
 
     function StyleScript()
     {
@@ -438,7 +590,7 @@ abstract class Assessments
 
         $sAsmt .= SPMChart();
 
-        $sAsmt .= $this->drawColFormTable2( $oForm, $this->raColumnDef, false );
+        $sAsmt .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
 
         return( $sAsmt );
     }
@@ -481,215 +633,10 @@ abstract class Assessments
         foreach( $raResults as $k => $v ) {
             $oForm->SetValue( "i$k", $v );
         }
-        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, false );
+        $s .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
 
         done:
         return( $s );
-    }
-
-
-    function DrawColumnForm( int $kClient )
-    /**************************************
-        Draw a form composed of columns of values. Parameters must be defined in derived classes.
-            raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
-     */
-    {
-        $s = "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
-
-        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-
-        $s .= "<form method='post'>"
-             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
-
-        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, true );
-
-        if( $this->bUseDataList ) {
-            $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
-                 ."<script src='w/js/assessments.js'></script>";
-        }
-
-        $s .= "<input hidden name='sAsmtAction' value='save'/>"
-             ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
-             .$oForm->HiddenKey()
-             ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
-             ."<span id='total'></span>";
-        return( $s );
-    }
-
-    function DrawColumnForm2( int $kClient )
-    /***************************************
-        Draw a form composed of columns of values. Parameters must be defined in derived classes.
-            raColumnRanges : [ col-label => [item-label=>item-key,...], col-label => [...], ... ]
-     */
-    {
-        $s = "<h2>".@$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>";
-
-        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-
-        $s .= "<form method='post'>"
-             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
-
-        $s .= $this->drawColFormTable2( $oForm, $this->raColumnDef, true );
-
-        if( $this->bUseDataList ) {
-            $s .= $this->getDataList( $oForm, $this->Inputs("datalist") )
-                 ."<script src='w/js/assessments.js'></script>";
-        }
-
-        $s .= "<input hidden name='sAsmtAction' value='save'/>"
-             ."<input hidden name='sAsmtType' value='{$this->asmtCode}'/>"
-             .$oForm->HiddenKey()
-             ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
-             ."<span id='total'></span>";
-        return( $s );
-    }
-
-/*
-    private function drawColFormTable( $oForm, $raColumns, $bEditable )
-    {
-        $colwidth = (100/count($raColumns))."%";
-
-        $s = "<table width='100%'><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $s .= "<th valign='top' style='width:$colwidth'>$label<br/><br/></th>";
-        }
-        $s .= "</tr><tr>";
-        foreach( $raColumns as $label => $sRange ) {
-            $ra = array();
-            foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $v ) { $ra[$v] = $v; }
-
-            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding-right:10px'>".$this->column2( $oForm, $ra, $bEditable )."</td>";
-        }
-        if( !$bEditable ) {
-            $s .= "</tr><tr>";
-            foreach( $raColumns as $label => $sRange ) {
-                $s .= "<td valign='top' style='width:$colwidth'>".$this->column_total( $oForm, $sRange, false )."</td>";
-            }
-        }
-        $s .= "</tr></table>";
-
-        return( $s );
-    }
-*/
-
-    private function drawColFormTable2( $oForm, $raColumnDef, $bEditable )
-    {
-        $colwidth = (100/count($raColumnDef))."%";
-
-        $s = "<table width='100%'><tr>";
-        foreach( $raColumnDef as $ra ) {
-            $s .= "<th valign='top' style='width:$colwidth'>{$ra['label']}<br/><br/></th>";
-        }
-        $s .= "</tr><tr>";
-        foreach( $raColumnDef as $ra ) {
-            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding:0px 5px'>";
-            if( isset($ra['cols']) ) {
-                // columns are explicitly defined
-                $s .= $this->column2( $oForm, $ra['cols'], $bEditable );
-            } else if( isset($ra['colRange']) ) {
-                // columns are numeric, expressed as a range. Unpack this into an explicit array
-                $raCols = array();
-                foreach( SEEDCore_ParseRangeStrToRA($ra['colRange']) as $v ) {
-                    $raCols[$v] = $v;
-                }
-                $s .= $this->column2( $oForm, $raCols, $bEditable );
-            }
-            $s .= "</td>";
-
-        }
-        if( !$bEditable ) {
-            $s .= "</tr><tr>";
-            foreach( $raColumnDef as $ra ) {
-                if( isset($ra['colRange']) ) {
-                    $s .= "<td valign='top' width='$colwidth' style='text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
-                }
-            }
-        }
-        $s .= "</tr></table>";
-
-        return( $s );
-    }
-
-/*
-    private function column( SEEDCoreForm $oForm, $sRange, $bEditable )
-    {
-        $s = "<table class='score-table'>";
-        $total = 0;
-        foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
-            $s .= $this->item( $oForm, $n, $bEditable, $total );
-        }
-        $s .= "</table>";
-
-        return( $s );
-    }
-*/
-
-    private function column2( SEEDCoreForm $oForm, $raItems, $bEditable )
-    {
-        $s = "<table class='score-table'>";
-        $total = 0;
-        foreach( $raItems as $itemLabel => $itemKey ) {
-            $s .= $this->item2( $oForm, $itemLabel, $itemKey, $bEditable, $total );
-        }
-        $s .= "</table>";
-
-        return( $s );
-    }
-
-    private function column_total( SEEDCoreForm $oForm, $sRange, $bEditable )
-    {
-        $s = "";
-
-        $total = 0;
-        foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $n ) {
-            $sDummy = $this->item( $oForm, $n, $bEditable, $total );
-        }
-        $s .= "<div class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</div>";
-
-        return( $s );
-    }
-
-    private function item( SEEDCoreForm $oForm, $n, $bEditable, &$total )
-    {
-        if( $bEditable ) {
-            $score = "";
-            $s = $oForm->Text("i$n","",array('attrs'=>"class='score-item s-i-$n' data-num='$n' list='options' required"));
-        } else {
-            $v = $oForm->Value( "i$n" );
-            $score = $this->GetScore( $n, $v );
-            $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
-        }
-
-        $total += intval($score);
-        $s = "<tr><td class='score-num'>$n&nbsp;</td><td>".$s."<span class='score'>$score</span></td></tr>";
-        return( $s );
-    }
-
-    private function item2( SEEDCoreForm $oForm, $itemLabel, $itemKey, $bEditable, &$total )
-    {
-        if( $bEditable ) {
-            $score = "";
-            $s = $oForm->Text("i$itemKey","",array('attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
-        } else {
-            $v = $oForm->Value( "i$itemKey" );
-            $score = $this->GetScore( $itemKey, $v );
-            $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
-        }
-
-        $total += intval($score);
-        $s = "<tr><td class='score-num'>$itemKey&nbsp;</td><td>".$s."<span class='score'>$score</span></td></tr>";
-        return( $s );
-    }
-
-    private function getDataList(SEEDCoreForm $oForm,$raOptions = NULL){
-        $s ="<datalist id='options'>";
-        if($raOptions != NULL){
-            foreach($raOptions as $option){
-                $s .= $oForm->Option("", substr($option, 0,1), $option);
-            }
-        }
-        $s .= "</datalist>";
-        return $s;
     }
 
     protected function Columns()
@@ -698,7 +645,7 @@ abstract class Assessments
         return( array() );
     }
 
-    protected function Inputs($type){
+    function Inputs($type){
         switch($type){
             case "datalist":
                 return $this->InputOptions();
@@ -768,17 +715,15 @@ abstract class Assessments
 
 class Assessment_SPM extends Assessments
 {
-    private $oData;
-
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt, String $subclass = "" )
     {
+        $oData = new AssessmentData_SPM( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_SPM( $oData );
+
         //Use subclass when defining a sub class of this such as the classroom spm
         //Subclass ensures that scoreing does not break when subclassing
-        parent::__construct( $oAsmt, $kAsmt, 'spm'.$subclass );
+        parent::__construct( $oAsmt, $kAsmt, 'spm'.$subclass, $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
-
-        $this->oData = new AssessmentData_SPM( $oAsmt, $kAsmt );
-        $this->oUI = new AssessmentUI_SPM( $this->oData );
     }
 
     function DrawAsmtResult()
@@ -789,7 +734,7 @@ class Assessment_SPM extends Assessments
 
     function DrawAsmtForm( int $kClient )
     {
-        return( $this->DrawColumnForm( $kClient ) );
+        return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
 
@@ -1068,11 +1013,14 @@ class Assessment_SPM extends Assessments
 
 }
 
-class Assessment_AASP extends Assessments {
-
+class Assessment_AASP extends Assessments
+{
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt, 'aasp' );
+        $oData = null;// new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
+        $oUI = null;// new AssessmentUI_AASP( $oData );
+
+        parent::__construct( $oAsmt, $kAsmt, 'aasp', $oData, $oUI );
     }
 
     function DrawAsmtForm( int $kClient )
@@ -1115,11 +1063,15 @@ class Assessment_AASP extends Assessments {
     protected $raPercentiles = array();
 }
 
-class Assessment_SPM_Classroom extends Assessment_SPM {
 
+class Assessment_SPM_Classroom extends Assessment_SPM
+{
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt, 'c' );
+        $oData = new AssessmentData_SPM( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_SPM( $oData );
+
+        parent::__construct( $oAsmt, $kAsmt, 'c', $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 

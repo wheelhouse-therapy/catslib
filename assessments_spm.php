@@ -8,9 +8,9 @@
 
 class AssessmentData_SPM extends AssessmentData
 {
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt );
+        parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
     public function ComputeScore( string $item ) : int
@@ -60,12 +60,26 @@ class AssessmentData_SPM extends AssessmentData
 }
 
 
-class AssessmentUI_SPM extends AssessmentUI
+class AssessmentUI_SPM extends AssessmentUIColumns
 {
     function __construct( AssessmentData_SPM $oData )
     {
-        parent::__construct( $oData );
+        parent::__construct( $oData, $this->initColumnsDef() );
     }
 
+    private function initColumnsDef()
+    {
+        $def = array(
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
+        );
+        return( $def );
+    }
 }
 
