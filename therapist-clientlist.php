@@ -43,7 +43,18 @@ class ClientList
 
     function DrawClientList()
     {
-        $s = "";
+        $s = "<style>
+                .client-normal{
+                    display:".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"block":"none").";
+                }
+                .client-discharged{
+                    display:".(@$this->oApp->sess->VarGet("clientlist-discharged")?"block":"none").";
+                }
+                .client-discharged a{
+                    color: #007bffa8;
+                }
+              </style>
+             ";
 
         $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
                  ."<a href='jx.php?cmd=therapist-clientlistxls'><button>Download</button></a>"
@@ -287,15 +298,21 @@ ExistsWarning;
         }
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, $this->queryParams);
+        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
         $raTherapists = $this->oPeopleDB->GetList('PI', $condClinic, $this->queryParams);
         $raPros       = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
 
         $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
              ."<div class='col-md-4'>"
                  ."<h3>Clients</h3>"
-                 ."<button onclick=\"window.location.href='?client_key=-1'\">Add Client</button>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
+                 ."<button onclick=\"window.location.href='?client_key=-1'\">Add Client</button><br />"
+                 ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
+                    <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
+                    <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
+                    <input type='hidden' name='cmd' value='therapist-clientList-sort' />
+                    <button onclick='filterClients(event);'>Filter</button>
+                   </form>"
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client-[[_status]]' style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>CATS Staff</h3>"
@@ -311,9 +328,12 @@ ExistsWarning;
              ."<style>"
                  ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
                      ." { font-weight:bold;color:green;background-color:#dfd; }"
-             ."</style>";
+             ."</style>"
+             .$this->filterJS();
 
-
+             //fix up status classes
+             $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
+             
              $s .= "<div class='container'><div class='row'>";
              if( $this->client_key || $sNew == "client") {
                  $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
@@ -631,6 +651,43 @@ ExistsWarning;
             });
             </script>";
         return $s;
+    }
+    
+    private function filterJS(){
+        return <<<FilterJS
+               <script>
+                function filterClients(e){
+                    var filterForm = document.getElementById('filterForm');
+                    var postData = $(filterForm).serializeArray();
+                    var formURL = $(filterForm).attr("action");
+                    $.ajax({
+                        type: "POST",
+                        data: postData,
+                        url: formURL,
+                        success: function(data, textStatus, jqXHR) {
+                            doFilterUpdate();
+                        },
+                        error: function(jqXHR, status, error) {
+                            console.log(status + ": " + error);
+                        }
+                    });
+                    e.preventDefault();
+                }
+                function doFilterUpdate(){
+                    var normal = document.getElementById('filterForm')[0];
+                    var discharged = document.getElementById('filterForm')[1];
+                    var normalClients = document.getElementsByClassName('client-normal');
+                    var dischargedClients = document.getElementsByClassName('client-discharged');
+                    var i;
+                    for(i=0;i<normalClients.length;i++){
+                        normalClients[i].style.display = normal.checked?"block":"none";
+                    }
+                    for(i=0;i<dischargedClients.length;i++){
+                        dischargedClients[i].style.display = discharged.checked?"block":"none";
+                    }
+                }
+               </script>
+FilterJS;
     }
 
     private function getPronounList($oForm){
