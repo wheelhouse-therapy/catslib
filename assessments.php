@@ -71,6 +71,8 @@ class AssessmentData
         }
     }
 
+    public function GetRaw( string $item ) : string         { return( @$this->raRaws[$item] ?: "" ); }
+
     public function ComputeScore( string $item ) : int      { return(0); }
     public function ComputePercentile( string $item ) : int { return(0); }
 
@@ -112,12 +114,13 @@ class AssessmentUIColumns extends AssessmentUI
     protected function __construct( AssessmentData $oData, $raColumnsDef )
     {
         parent::__construct( $oData );
-        $this->raColumnsDef = $raColumnsDef;
+        $this->SetColumnsDef( $raColumnsDef );
     }
 
+    function SetColumnsDef( $raColumnsDef ) { $this->raColumnsDef = $raColumnsDef; }
 
-    function DrawColumnForm( int $kClient )
-    /**************************************
+    function DrawColumnForm( int $kClient, $raParms = array() )
+    /**********************************************************
         Draw a form composed of columns of values. Parameters must be defined in derived classes.
             raColumnRanges : [ col-label => 1-6, col-label => 7-15, ... ]
      */
@@ -128,6 +131,10 @@ class AssessmentUIColumns extends AssessmentUI
 
         $s .= "<form method='post'>"
              .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
+
+        if( @$raParms['hiddenParms'] ) {
+            foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
+        }
 
         $s .= $this->DrawColFormTable( $oForm, $this->raColumnsDef, true );
 
@@ -459,9 +466,14 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $raItems = array();
         foreach( $oForm->GetValuesRA() as $k => $v ) {
-            if( substr($k,0,1) == 'i' &&  ($item = substr($k,1)) ) {  //($item = intval(substr($k,1))) ) {
+            if( substr($k,0,1) == 'i' &&  ($item = substr($k,1)) ) {
                 $raItems[$item] = $v;
             }
+            if( SEEDCore_StartsWith($k,'meta') ) {
+                // store metadata in the same place as raw input data (but they have to start with 'meta')
+                $raItems[$k] = $v;
+            }
+
         }
         ksort($raItems);
         $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
@@ -557,11 +569,23 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         return( $s );
     }
 
-    protected function drawAsmt( SEEDCoreForm $oForm )
+    function drawResult()
     {
+        $s = "";
+
+        if( !($kfr = $this->kfrAsmt) )  goto done;
+
+        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
+        $oForm->SetKFR( $kfr );
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
-        $sAsmt = "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
+        $s .= "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
                     <span style='margin-left: 10%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
                         <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />
                     <table id='results'>
@@ -588,52 +612,15 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
             $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
         }*/
 
-        $sAsmt .= SPMChart();
+        $s .= SPMChart();
 
-        $sAsmt .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
-
-        return( $sAsmt );
-    }
-
-    function drawResult()
-    {
-        $s = "";
-
-        if( !($kfr = $this->kfrAsmt) )  goto done;
-
-        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
-        $oForm->SetKFR( $kfr );
-
-        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
-        foreach( $raResults as $k => $v ) {
-            $oForm->SetValue( "i$k", $v );
-        }
-        $s .= $this->drawAsmt( $oForm );
+        $s .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
 
         // Put the results in a js array for processing on the client
         $s .= "<script>
                var raResultsSPM = ".json_encode($raResults).";
                var raTotalsSPM = ".json_encode($this->raTotals).";
                </script>";
-
-        done:
-        return( $s );
-    }
-
-    function drawResult2()
-    {
-        $s = "";
-
-        if( !($kfr = $this->kfrAsmt) )  goto done;
-
-        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
-        $oForm->SetKFR( $kfr );
-
-        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
-        foreach( $raResults as $k => $v ) {
-            $oForm->SetValue( "i$k", $v );
-        }
-        $s .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
 
         done:
         return( $s );

@@ -7,6 +7,8 @@
 
 class AssessmentData_MABC extends AssessmentData
 {
+    private $ageBand = 0;     // 1,2,3 denotes the test used for the client's age
+
     function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oA, $oAsmt, $kAsmt );
@@ -83,34 +85,41 @@ class Assessment_MABC extends Assessments
 
     function DrawAsmtForm( int $kClient )
     {
-        list($age,$sErr) = $this->setColumnRangesByAge( $kClient );
+        $s = "";
 
-        return( $age ? $this->oUI->DrawColumnForm( $kClient ) : $sErr );
-    }
-
-    private function setColumnRangesByAge( $kClient )
-    {
-        $sErr = "";
-
-        $age = $this->getClientAge($kClient);
-
-        if( !$age ) {
-            $sErr = "Please enter the client's date of birth on the client list";
+        if( !($age = $this->getClientAge($kClient)) ) {
+            $s = "Please enter the client's date of birth on the client list";
             goto done;
         }
+
+        // Set the AssessmentData_MABC and AssessmentUI_MABC to use the appropriate test level
+        $this->setColumnRangesByAge( $age );
+
+        $s .= $this->oUI->DrawColumnForm( $kClient, ['hiddenParms'=> ['metaClientAge'=>$age]] );
+
+        done:
+        return( $s );
+
+    }
+
+    private function setColumnRangesByAge( $age )
+    {
         if( $age < 7.0 ) {
             $this->raColumnRanges = $this->raColumnRanges_ageBand1;
             $this->raColumnDef = $this->raColumnDef_ageBand1;
+//            var_dump("Age Band 1");
         } else if( $age < 11.0 ) {
             $this->raColumnRanges = $this->raColumnRanges_ageBand2;
             $this->raColumnDef = $this->raColumnDef_ageBand2;
+//            var_dump("Age Band 3");
         } else {
             $this->raColumnRanges = $this->raColumnRanges_ageBand3;
             $this->raColumnDef = $this->raColumnDef_ageBand3;
+//            var_dump("Age Band 3");
         }
 
-        done:
-        return( [$age,$sErr] );
+// deprecate this->raColumnDef and just use the one in oUI
+        $this->oUI->SetColumnsDef( $this->raColumnDef );
     }
 
     function DrawAsmtResult()
@@ -119,14 +128,12 @@ class Assessment_MABC extends Assessments
 
         if( !$this->kfrAsmt ) goto done;
 
-        $kClient = $this->kfrAsmt->Value('fk_clients2');
-        list($age,$sErr) = $this->setColumnRangesByAge( $kClient );
-        if( !$age ) {
-            $s = $sErr;
-            goto done;
+        if( !($age = $this->oData->GetRaw('metaClientAge')) ) {
+            $s .= "<p class='alert alert-warning'>Client age was not recorded. This result might not be valid.</p>";
         }
+        $this->setColumnRangesByAge( $age );
 
-        $s = $this->drawResult2();
+        $s .= $this->drawResult();
 
         done:
         return( $s );
