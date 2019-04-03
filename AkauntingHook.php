@@ -67,6 +67,7 @@ class AkauntingHook {
 
         $oApp = $GLOBALS['oApp'];
         self::dbg("Submitting Entry");
+        $possibilities = array();
 
         $clinics = (new Clinics($oApp))->getClinicsByName($entry->getClinic());
         if( !count($clinics) ) {
@@ -92,7 +93,8 @@ class AkauntingHook {
         if (self::$session == NULL){
             throw new Exception("Not Loged in");
         }
-        if(!($account = self::getAccountByName($entry->getCategory()))){
+        list($account,$possibilities) = self::getAccountByName($entry->getCategory());
+        if(!$account){
             $account = self::getAccountByCode($entry->getCategory());
         }
         if($account == NULL){
@@ -180,7 +182,7 @@ class AkauntingHook {
         $ret = $responce->status_code;
 
         done:
-        return( $ret );
+        return( array($ret,$possibilities) );
     }
 
     private static function fetchAccounts(){
@@ -195,15 +197,22 @@ class AkauntingHook {
     }
 
     private static function getAccountByName($name, $override = FALSE){
-        if(!$override && $value = self::getAccountByKeyWord($name)){
-            return $value;
+        $possible = array();
+        if(!$override && list($value,$possible) = self::getAccountByKeyWord($name)){
+            return array($value,$possible);
         }
         foreach(self::$accounts as $k => $account){
             if(strtolower($account['name']) == strtolower($name)){
-                return $k;
+                array_unshift($possible, $account['name']);
+                return array($k,$possible);
+            }
+            else if(stripos($account['name'], $name) === 0){
+                // The entry could possibly be incomplete and supposed to be this account.
+                // Add to list of possibilities to show the send back in the responce for this entry
+                $possible[] = $account['name'];
             }
         }
-        return NULL;
+        return array(NULL,$possible);
     }
 
     private static function getAccountByKeyWord($string){
@@ -231,7 +240,6 @@ class AkauntingHook {
             'professional dues & memberships'           => array("caot", "osot", "dues"),
             'telephone and internet'                    => array("phone", "telephone")
         );
-        
         foreach($keywords as $account=>$words){
             foreach ($words as $word){
                 if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
@@ -240,7 +248,7 @@ class AkauntingHook {
             }
         }
         
-        return NULL;
+        return array(NULL,array());
         
     }
     
@@ -261,11 +269,15 @@ class AkauntingHook {
         return $s;
     }
     
-    public static function decodeError(String $location,int $error):String{
+    public static function decodeError(String $location,array $details):String{
         $s = "[Result] Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
+        $error = $details[0];
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
-                $s .= "not being able to find an account to put the entry in. When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word";
+                $s .= "not being able to find an account to put the entry in.\n
+                       When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word.\n
+                       The following accounts were detected as possible accounts"
+                      .SEEDCore_ArrayExpandSeries($details[1], "[[]]\n");
                 break;
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
