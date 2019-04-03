@@ -95,7 +95,10 @@ class AkauntingHook {
         }
         list($account,$possibilities) = self::getAccountByName($entry->getCategory());
         if(!$account){
-            $account = self::getAccountByCode($entry->getCategory());
+            list($account,$accountPossibilities) = self::getAccountByCode($entry->getCategory());
+            if(!empty($accountPossibilities)){
+                $possibilities = $accountPossibilities;
+            }
         }
         if($account == NULL){
             $ret = self::REJECTED_NO_ACCOUNT;
@@ -255,10 +258,10 @@ class AkauntingHook {
     private static function getAccountByCode($code){
         foreach(self::$accounts as $k => $account){
             if($account['code'] == $code){
-                return $k;
+                return array($k,array($account['name']));
             }
         }
-        return NULL;
+        return arrray(NULL,array());
     }
 
     public static function decodeErrors(array $errors):String{
@@ -276,8 +279,8 @@ class AkauntingHook {
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in.\n
                        When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word.\n
-                       The following accounts were detected as possible accounts"
-                      .SEEDCore_ArrayExpandSeries($details[1], "[[]]\n");
+                       The following accounts were detected as possible accounts:"
+                      .SEEDCore_ArrayExpandSeries($details[1], "\n[[]]");
                 break;
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
@@ -292,7 +295,8 @@ class AkauntingHook {
             default:
                 if($error >= 200 && $error < 300){
                     $s = str_replace("[Result]", "!SUCCESS!", $s);
-                    $s .= "the entry successfully being submitted to Akaunting.";
+                    $s .= "the entry successfully being submitted to Akaunting.\n"
+                         ."The entry was submitted into ".$details[0];
                 }
                 elseif ($error >= 400 && $error < 600){
                     $s .= "an Error while comunicating with Akaunting. Error:".$error;
