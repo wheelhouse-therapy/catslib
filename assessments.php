@@ -71,7 +71,32 @@ class AssessmentData
         }
     }
 
-    public function GetRaw( string $item ) : string         { return( @$this->raRaws[$item] ?: "" ); }
+    public function GetAsmtKey() : int                      { return( $this->kfrAsmt->Key() ); }
+    public function GetValue( string $k ) : string          { return( $this->kfrAsmt->Value($k) ); }        // for verbatim db fields
+    public function GetRaw( string $item ) : string         { return( @$this->raRaws[$item] ?: "" ); }      // for values encoded in 'results'
+
+    public function GetForm()
+    /************************
+        Make a SeedCoreForm using the current kfrAsmt
+     */
+    {
+        $oForm = new KeyFrameForm( $this->kfrAsmt->KFRel(), "A" );
+        $oForm->SetKFR( $this->kfrAsmt );
+
+        return( $oForm );
+    }
+
+    public function PutForm( KeyframeForm $oForm )
+    /*********************************************
+        This is a kluge to solve a strange problem where:
+            GetForm() does SetKFR($this->kfrAsmt)
+            then the caller does oForm->SetValue() and oForm->Store()
+            but for some reason the changes aren't in $this->kfrAsmt
+        So we call this afterward.
+     */
+    {
+        $this->kfrAsmt = $oForm->GetKFR();
+    }
 
     public function ComputeScore( string $item ) : int      { return(0); }
     public function ComputePercentile( string $item ) : int { return(0); }
@@ -416,9 +441,6 @@ abstract class Assessments
     protected $oData;
     protected $oUI;
 
-// move this to AssessmentsData
-protected $kfrAsmt;
-
 // move this to an AssessmentsUI parm
 public    $bUseDataList = false;    // the data entry form uses <datalist>
 
@@ -427,18 +449,15 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 // move this to AssessmentsUI
     protected $raColumnDef = array();   // defined by each derived assessment class
 
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, string $asmtCode, AssessmentData $oData, AssessmentUI $oUI )
+    function __construct( AssessmentsCommon $oAsmt, string $asmtCode, AssessmentData $oData, AssessmentUI $oUI )
     {
         $this->oAsmt = $oAsmt;
         $this->asmtCode = $asmtCode;
         $this->oData = $oData;
         $this->oUI = $oUI;
-
-        $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
     }
 
     public function GetAsmtCode()  { return( $this->asmtCode ); }
-    public function GetAsmtKey()   { return( $this->kfrAsmt->Key() ); }
     public function GetColumnDef() { return( $this->raColumnDef ); }
 
     function StyleScript()
@@ -456,12 +475,11 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     abstract function DrawAsmtForm( int $kClient );
     abstract function DrawAsmtResult();
 
-    function UpdateAsmt()
+    public function UpdateAsmt()
     {
-        $ok = false;
+        $kAsmt = 0;
 
-        $oForm = new KeyFrameForm( $this->oAsmt->KFRelAssessment(), "A" );
-        $oForm->SetKFR( $this->kfrAsmt );
+        $oForm = $this->oData->GetForm();
         $oForm->Load();
 
         $raItems = array();
@@ -478,21 +496,20 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         ksort($raItems);
         $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
         $oForm->SetValue( 'testType', $this->asmtCode );
-        $oForm->Store();
+        if( $oForm->Store() ) {
+            // Though it seems as if the kfr in oData should be updated by reference, it isn't. This kluge stores the oForm's kfr there.
+            $this->oData->PutForm( $oForm );
 
-        // Though it seems as if the kfr we set above should have been updated by reference, it isn't. So get the updated kfr out of the oForm.
-//        $kAsmt = $oForm->GetKey();
-        $this->kfrAsmt = $oForm->GetKFR();
+            $kAsmt = $oForm->GetKey();
+        }
 
-        $ok = true;
-
-        return( $ok );
+        return( $kAsmt );
     }
+
 
     function ScoreUI()
     {
         $s = "";
-
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
@@ -573,10 +590,9 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     {
         $s = "";
 
-        if( !($kfr = $this->kfrAsmt) )  goto done;
+        if( !$this->oData->GetAsmtKey() )  goto done;
 
-        $oForm = new KeyFrameForm( $kfr->KFRel(), "A" );
-        $oForm->SetKFR( $kfr );
+        $oForm = $this->oData->GetForm();
 
         $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
         foreach( $raResults as $k => $v ) {
@@ -709,7 +725,7 @@ class Assessment_SPM extends Assessments
 
         //Use subclass when defining a sub class of this such as the classroom spm
         //Subclass ensures that scoreing does not break when subclassing
-        parent::__construct( $oAsmt, $kAsmt, 'spm'.$subclass, $oData, $oUI );
+        parent::__construct( $oAsmt, 'spm'.$subclass, $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
@@ -797,7 +813,7 @@ class Assessment_SPM extends Assessments
                     break;
                 default:
                     if($tag == "date_entered"){
-                        $s = $this->kfrAsmt->Value("_created");
+                        $s = $this->oData->GetValue("_created");
                     }
                     break;
             }
@@ -805,10 +821,10 @@ class Assessment_SPM extends Assessments
         else {
             switch($parts[0]){
                 case "date":
-                    $s = $this->kfrAsmt->Value("date");
+                    $s = $this->oData->GetValue("date");
                     break;
                 case "respondent":
-                    $s = $this->kfrAsmt->Value("respondent");
+                    $s = $this->oData->GetValue("respondent");
                     break;
             }
         }
@@ -874,7 +890,7 @@ class Assessment_SPM extends Assessments
        '65' => "Seems afraid of riding in elevators or escalators",
        '66' => "Leans on other people or furniture when sitting or when trying to stand up",
        '67' => "Performs inconsistently in daily tasks",
-       '68' => "Has trouble figuring out how ot carry multiple objects at the same time",
+       '68' => "Has trouble figuring out how to carry multiple objects at the same time",
        '69' => "Seems confused about how to put away materials and belongings in their correct places",
        '70' => "Fails to perform tasks in proper sequence, such as getting dressed or setting the table",
        '71' => "Fails to complete tasks with multiple steps",
@@ -1007,7 +1023,7 @@ class Assessment_AASP extends Assessments
         $oData = null;// new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
         $oUI = null;// new AssessmentUI_AASP( $oData );
 
-        parent::__construct( $oAsmt, $kAsmt, 'aasp', $oData, $oUI );
+        parent::__construct( $oAsmt, 'aasp', $oData, $oUI );
     }
 
     function DrawAsmtForm( int $kClient )
@@ -1058,7 +1074,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM
         $oData = new AssessmentData_SPM( $this, $oAsmt, $kAsmt );
         $oUI = new AssessmentUI_SPM( $oData );
 
-        parent::__construct( $oAsmt, $kAsmt, 'c', $oData, $oUI );
+        parent::__construct( $oAsmt, 'c', $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
@@ -1190,9 +1206,9 @@ function AssessmentsScore( SEEDAppConsole $oApp )
         case 'save':
             /* New or Edit form submitted, save the record.  Then show the main page by falling through to the default case.
              */
-            if( $oAsmt->UpdateAsmt() ) {
+            if( ($kUpdatedAsmt = $oAsmt->UpdateAsmt()) ) {
                 $s .= "<div class='alert alert-success'>Saved assessment</div>";
-                $p_kAsmt = $oAsmt->GetAsmtKey();    // if a new asmt was inserted show it below
+                $p_kAsmt = $kUpdatedAsmt;    // if a new asmt was inserted show it below
             } else {
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }

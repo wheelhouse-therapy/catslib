@@ -40,8 +40,12 @@ class AssessmentUI_MABC extends AssessmentUIColumns
 {
     function __construct( AssessmentData_MABC $oData )
     {
-// have to set column ranges by age
-        parent::__construct( $oData, $this->initColumnsDef() );
+        if( ($age = $oData->GetRaw('metaClientAge')) ) {
+
+        }
+
+        // Other methods have to set columnsDef before they do anything
+        parent::__construct( $oData, ['dummyColumnsDef'] );
     }
 
     private function initColumnsDef()
@@ -80,7 +84,7 @@ class Assessment_MABC extends Assessments
         $oData = new AssessmentData_MABC( $this, $oAsmt, $kAsmt );
         $oUI = new AssessmentUI_MABC( $oData );
 
-        parent::__construct( $oAsmt, $kAsmt, 'mabc', $oData, $oUI );
+        parent::__construct( $oAsmt, 'mabc', $oData, $oUI );
     }
 
     function DrawAsmtForm( int $kClient )
@@ -126,7 +130,7 @@ class Assessment_MABC extends Assessments
     {
         $s = "";
 
-        if( !$this->kfrAsmt ) goto done;
+        if( !$this->oData->GetAsmtKey() ) goto done;
 
         if( !($age = $this->oData->GetRaw('metaClientAge')) ) {
             $s .= "<p class='alert alert-warning'>Client age was not recorded. This result might not be valid.</p>";
