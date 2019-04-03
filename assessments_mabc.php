@@ -129,7 +129,7 @@ class Assessment_MABC extends Assessments
     function DrawAsmtResult()
     {
         $s = "";
-
+//$this->oData->DebugDumpKfr();
         if( !$this->oData->GetAsmtKey() ) goto done;
 
         if( !($age = $this->oData->GetRaw('metaClientAge')) ) {

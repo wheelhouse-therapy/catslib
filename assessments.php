@@ -60,7 +60,13 @@ class AssessmentData
         $this->oAsmt = $oAsmt;
         $this->oA = $oA;
 
-        $this->kfrAsmt = $kAsmt ? $oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt) : $oAsmt->KFRelAssessment()->CreateRecord();
+        $this->LoadAsmt( $kAsmt );
+    }
+
+    public function LoadAsmt( int $kAsmt )
+    {
+        $this->kfrAsmt = $kAsmt ? $this->oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt)
+                                : $this->oAsmt->KFRelAssessment()->CreateRecord();
 
         // Get all the raws
         $this->raRaws = SEEDCore_ParmsURL2RA( $this->kfrAsmt->Value('results') );
@@ -86,23 +92,17 @@ class AssessmentData
         return( $oForm );
     }
 
-    public function PutForm( KeyframeForm $oForm )
-    /*********************************************
-        This is a kluge to solve a strange problem where:
-            GetForm() does SetKFR($this->kfrAsmt)
-            then the caller does oForm->SetValue() and oForm->Store()
-            but for some reason the changes aren't in $this->kfrAsmt
-        So we call this afterward.
-     */
-    {
-        $this->kfrAsmt = $oForm->GetKFR();
-    }
 
     public function ComputeScore( string $item ) : int      { return(0); }
     public function ComputePercentile( string $item ) : int { return(0); }
 
 
     protected function MapRaw2Score( string $item, string $raw ) : int { return(0); }
+
+    public function DebugDumpKfr()
+    {
+        var_dump($this->kfrAsmt->ValuesRA(),$this->raRaws);
+    }
 }
 
 /* Every assessment type should implement an extension to this class
@@ -497,8 +497,8 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         $oForm->SetValue( 'results', SEEDCore_ParmsRA2URL( $raItems ) );
         $oForm->SetValue( 'testType', $this->asmtCode );
         if( $oForm->Store() ) {
-            // Though it seems as if the kfr in oData should be updated by reference, it isn't. This kluge stores the oForm's kfr there.
-            $this->oData->PutForm( $oForm );
+            // oData caches things like the raw items so re-load it
+            $this->oData->LoadAsmt( $oForm->GetKey() );
 
             $kAsmt = $oForm->GetKey();
         }
