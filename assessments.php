@@ -123,10 +123,11 @@ class AssessmentUI
         $this->oA    = $oData->oA;      // copy here for convenience
     }
 
-    public function DrawInputForm() : string { return(""); }
-    public function DrawGraph() : string { return(""); }
-    public function DrawTable() : string { return(""); }
-    public function DrawRecommendation() : string { return(""); }
+//    public function DrawInputForm() : string { return(""); }
+//    public function DrawGraph() : string { return(""); }
+//    public function DrawRawTable() : string { return(""); }
+    public function DrawScoreSummary() : string { return(""); }
+//    public function DrawRecommendation() : string { return(""); }
 }
 
 class AssessmentUIColumns extends AssessmentUI
@@ -631,6 +632,8 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         $s .= SPMChart();
 
         $s .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
+
+        $s .= $this->oUI->DrawScoreSummary();
 
         // Put the results in a js array for processing on the client
         $s .= "<script>

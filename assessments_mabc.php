@@ -7,6 +7,7 @@
 
 class AssessmentData_MABC extends AssessmentData
 {
+    private $age = 0.0;
     private $ageBand = 0;     // 1,2,3 denotes the test used for the client's age
 
     function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
@@ -14,9 +15,31 @@ class AssessmentData_MABC extends AssessmentData
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
+    function GetAgeInfo()   { return( [$this->age, $this->ageBand] ); }
+
+    function SetAgeBand( $age, $ageBand )
+    {
+        $this->age = $age;
+        $this->ageBand = $ageBand;
+    }
+
+
     public function ComputeScore( string $item ) : int
     {
-        return( 0 );
+        $ret = 0;
+
+        $scores = Assessment_MABC_Scores::GetScores( $this->age );
+        if( ($raS = @$scores[$item]) && ($raw = $this->GetRaw($item)) ) {
+            // this is a basic item
+            if( isset($raS['ceiling']) && $raw > $raS['ceiling'] ) { $ret = $raS['map'][$raS['ceiling']]; }
+            else if( isset($raS['floor']) && $raw < $raS['floor'] ) { $ret = $raS['map'][$raS['floor']]; }
+            else { $ret = $raS['map'][$raw]; }
+        } else {
+            // this could be a computed score
+
+        }
+
+        return( $ret );
     }
 
     public function ComputePercentile( string $item ) : int
@@ -48,32 +71,101 @@ class AssessmentUI_MABC extends AssessmentUIColumns
         parent::__construct( $oData, ['dummyColumnsDef'] );
     }
 
-    private function initColumnsDef()
+    function DrawScoreSummary() : string
     {
-        // 3-6 years
-        $def_ageBand1 = array(
-            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
-            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
-            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3'=>'bal3'] ],
-            );
-        // 7-10 years
-        $def_ageBand2 = array(
-            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b',  '2'=>'md2',  '3'=>'md3'] ],
-            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
-            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3a'=>'bal3a', '3b'=>'bal3b'] ],
-        );
-        // 11-16 years
-        $def_ageBand3 = array(
-            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a', '1b'=>'md1b', '2'=>'md2',    '3'=>'md3'] ],
-            'ac'  => ['label'=>"A&C", 'cols' => ['1a'=>'ac1a', '1b'=>'ac1b', '2'=>'ac2'] ],
-            'bal' => ['label'=>"Bal", 'cols' => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'] ],
-        );
+        $s = "";
 
-// set column ranges by age
-        $def = $def_ageBand1;
+        list($age,$ageBand) = $this->oData->GetAgeInfo();
 
-        return( $def );
+        switch( $ageBand ) {
+            case 1:
+            default:
+                $s = "NOT DEFINED YET";
+                break;
+            case 2:
+                $s = $this->scoreSummary2;
+                break;
+            case 3:
+                break;
+        }
+
+        foreach( ['md1','md2','md3','md1a','md1b','md2a','md2b','md3a','md3b',
+                  'ac1','ac2','ac3','ac1a','ac1b','ac2a','ac2b','ac3a','ac3b',
+                  'bal1','bal2','bal3','bal1a','bal1b','bal2a','bal2b','bal3a','bal3b'] as $item ) {
+            $s = str_replace( "{score:$item}", $this->oData->ComputeScore($item), $s );
+        }
+
+        return( $s );
     }
+
+private $scoreSummary2 = "
+    <br/>
+    <table width='100%'>
+    <tr><th colspan='3'>Item standard scores</th></tr>
+    <tr><th style='width:33%'>MD</th><th style='width:33%'>A&C</th><th style='width:33%'>Bal</th></tr>
+    <tr><td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>{score:md1a}</td><td>{score:md1avg}</td></tr>
+              <tr><td>{score:md1b}</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>{score:md2}</td></tr>
+              <tr><td>&nbsp;</td><td>{score:md3}</td></tr>
+          </table>
+        </td>
+        <td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>{score:ac1}</td><td>&nbsp;</td></tr>
+              <tr><td>{score:ac2}</td><td>&nbsp;</td></tr>
+          </table>
+        </td>
+        <td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>{score:bal1a}</td><td>{score:bal1avg}</td></tr>
+              <tr><td>{score:bal1b}</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>{score:bal2}</td></tr>
+              <tr><td>{score:bal3a}</td><td>{score:bal3avg}</td></tr>
+              <tr><td>{score:bal3b}</td><td>&nbsp;</td></tr>
+          </table>
+        </td>
+    </tr>
+    <tr><th colspan='3'>&nbsp;</th></tr>
+
+    <tr><th colspan='3'>Component scores</th></tr>
+    <tr><th style='width:33%'>MD</th><th style='width:33%'>A&C</th><th style='width:33%'>Bal</th></tr>
+    <tr><td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>Component </td><td>{score:md_cmp}</td></tr>
+              <tr><td>Standard </td><td>{score:md_std}</td></tr>
+              <tr><td>Percentile</td><td>{score:md_pct}</td></tr>
+          </table>
+        </td>
+        <td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>Component </td><td>{score:ac_cmp}</td></tr>
+              <tr><td>Standard </td><td>{score:ac_std}</td></tr>
+              <tr><td>Percentile</td><td>{score:ac_pct}</td></tr>
+          </table>
+        </td>
+        <td style='width:33%' valign='top'>
+          <table width='100%'>
+              <tr><td>Component </td><td>{score:bal_cmp}</td></tr>
+              <tr><td>Standard </td><td>{score:bal_std}</td></tr>
+              <tr><td>Percentile</td><td>{score:bal_pct}</td></tr>
+          </table>
+        </td>
+    </tr>
+    <tr><th colspan='3'>&nbsp;</th></tr>
+
+    <tr><th colspan='3'>Totals</th></tr>
+    <tr><td colspan='3' valign='top'>
+          <table>
+              <tr><td>Total test score </td><td>{score:total_score}</td></tr>
+              <tr><td>Standard </td><td>{score:total_std}</td></tr>
+              <tr><td>Percentile</td><td>{score:total_pct}</td></tr>
+          </table>
+        </td>
+    </tr>
+    </table>
+";
 }
 
 
@@ -108,22 +200,41 @@ class Assessment_MABC extends Assessments
 
     private function setColumnRangesByAge( $age )
     {
-        if( $age < 7.0 ) {
-            $this->raColumnRanges = $this->raColumnRanges_ageBand1;
-            $this->raColumnDef = $this->raColumnDef_ageBand1;
-//            var_dump("Age Band 1");
-        } else if( $age < 11.0 ) {
-            $this->raColumnRanges = $this->raColumnRanges_ageBand2;
-            $this->raColumnDef = $this->raColumnDef_ageBand2;
-//            var_dump("Age Band 3");
-        } else {
-            $this->raColumnRanges = $this->raColumnRanges_ageBand3;
-            $this->raColumnDef = $this->raColumnDef_ageBand3;
-//            var_dump("Age Band 3");
-        }
+        // 3-6 years
+        $def_ageBand1 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3'=>'bal3'] ],
+            );
+        // 7-10 years
+        $def_ageBand2 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b',  '2'=>'md2',  '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1'=>'ac1',    '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1a'=>'bal1a', '1b'=>'bal1b', '2'=>'bal2', '3a'=>'bal3a', '3b'=>'bal3b'] ],
+        );
+        // 11-16 years
+        $def_ageBand3 = array(
+            'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a', '1b'=>'md1b', '2'=>'md2',    '3'=>'md3'] ],
+            'ac'  => ['label'=>"A&C", 'cols' => ['1a'=>'ac1a', '1b'=>'ac1b', '2'=>'ac2'] ],
+            'bal' => ['label'=>"Bal", 'cols' => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'] ],
+        );
 
+        if( $age < 7.0 ) {
+            $ageBand = 1;   $cr = $this->raColumnRanges_ageBand1;   $colDef = $def_ageBand1;
+        } else if( $age < 11.0 ) {
+            $ageBand = 2;   $cr = $this->raColumnRanges_ageBand2;   $colDef = $def_ageBand2;
+        } else {
+            $ageBand = 3;   $cr = $this->raColumnRanges_ageBand3;   $colDef = $def_ageBand3;
+        }
+//      var_dump("Age Band $ageBand");
+
+// eliminate raColumnRanges
+        $this->raColumnRanges = $cr;
 // deprecate this->raColumnDef and just use the one in oUI
-        $this->oUI->SetColumnsDef( $this->raColumnDef );
+        $this->raColumnDef = $colDef;
+// SetAgeBand could just do everything that's in this method
+        $this->oUI->SetColumnsDef( $colDef );
+        $this->oData->SetAgeBand( $age, $ageBand );
     }
 
     function DrawAsmtResult()
@@ -211,8 +322,21 @@ class Assessment_MABC extends Assessments
     protected $raPercentiles = array();
 }
 
-//TODO Rename keys and Move to correct spot
-$scores = array(
+class Assessment_MABC_Scores
+{
+    static function GetScores( $age )
+    {
+        if( $age >= 3.0 && $age < 3.5 )     return( $this->scores['age3:0-3:5'] );
+        if( $age >= 3.5 && $age < 4.0 )     return( $this->scores['age3:6-3:11'] );
+        if( $age >= 4.0 && $age < 4.5 )     return( $this->scores['age4:0-4:5'] );
+        if( $age >= 4.5 && $age < 5.0 )     return( $this->scores['age4:6-4:11'] );
+
+        $age = intval( $age );
+
+        return( @self::$scores["age{$age}:0-{$age}:11"] );
+    }
+
+static private $scores = array(
     "age3:0-3:5" => array('one-Leg balance other leg' => array('map' => array(0 => 5,1 => 7,2 => 9,3 => 11,4 => 12,5 => 13,6 => 14,7 => 14,8 => 14,9 => 15,10 => 16,11 => 19,12 => 19,13 => 19,14 => 19,15 => 19,16 => 19,17 => 19,18 => 19,19 => 19,20 => 19,21 => 19,22 => 19,23 => 19,24 => 19,25 => 19,26 => 19,27 => 19,28 => 19,29 => 19,30 => 19)),
                           'Walking heels raised' => array('map' => array(0 => 5,1 => 5,2 => 6,3 => 7,4 => 8,5 => 8,6 => 9,7 => 11,8 => 12,9 => 12,10 => 13,11 => 13,12 => 14,13 => 14,14 => 14,15 => 17)),
                           'posting coins pref hand' => array('map' => array(10 => 14,11 => 13,12 => 12,13 => 11,14 => 10,15 => 9,16 => 8,17 => 6,18 => 1),'ceiling' => 19,'floor' => 10),
@@ -273,28 +397,31 @@ $scores = array(
                            'Jumping on mats' => array('map' => array(0 => 1,1 => 1,2 => 1,3 => 2,4 => 6,5 => 11)),
                            'Catching Beanbag' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 4,4 => 5,5 => 6,6 => 7,7 => 7,8 => 8,9 => 9,10 => 14)),
                            'Throwing beanbag on mat' => array('map' => array(0 => 1,1 => 3,2 => 4,3 => 5,4 => 7,5 => 8,6 => 9,7 => 11,8 => 13,9 => 14,10 => 16))),
-    "age7:0-7:11" => array('walking heel-toe forwards' => array('map' => array(0 => 2,1 => 2,2 => 3,3 => 3,4 => 3,5 => 3,6 => 3,7 => 3,8 => 4,9 => 4,10 => 5,11 => 6,12 => 6,13 => 8,14 => 10,15 => 12)),
-                           'Hopping on mats other leg' => array('map' => array(0 => 3,1 => 4,2 => 5,3 => 6,4 => 9,5 => 13)),
-                           'Drawing Trail' => array('map' => array(0 => 12,1 => 10,2 => 8,3 => 5,4 => 3,5 => 1),'ceiling' => 6),
-                           'Hopping on mats best leg' => array('map' => array(0 => 1,1 => 1,2 => 3,3 => 3,4 => 4,5 => 11)),
-                           'Placing Pegs pref hand' => array('map' => array(21 => 16,22 => 15,23 => 15,24 => 14,25 => 14,26 => 13,27 => 12,28 => 12,29 => 11,30 => 10,31 => 9,32 => 9,33 => 8,34 => 8,35 => 8,36 => 7,37 => 6,38 => 6,39 => 6,40 => 6,41 => 6,42 => 6,43 => 5,44 => 5,45 => 5,46 => 5,47 => 4),'ceiling' => 48),
-                           'one-Leg balance other leg' => array('map' => array(0 => 4,1 => 4,2 => 5,3 => 7,4 => 8,5 => 9,6 => 10,7 => 10,8 => 11,9 => 11,10 => 11,11 => 11,12 => 12,13 => 12,14 => 12,15 => 12,16 => 13,17 => 13,18 => 13,19 => 13,20 => 14,21 => 14,22 => 14,23 => 15,24 => 15,25 => 15,26 => 15,27 => 15,28 => 15,29 => 15,30 => 16)),
-                           'Catching with 2 hands' => array('map' => array(0 => 5,1 => 6,2 => 7,3 => 7,4 => 8,5 => 9,6 => 10,7 => 10,8 => 11,9 => 15,10 => 17)),
-                           'Threading lace' => array('map' => array(21 => 15,22 => 14,23 => 13,24 => 13,25 => 12,26 => 12,27 => 11,28 => 11,29 => 11,30 => 10,31 => 9,32 => 9,33 => 8,34 => 8,35 => 7,36 => 7,37 => 6,38 => 6,39 => 6,40 => 6,41 => 5,42 => 5,43 => 5,44 => 5,45 => 5,46 => 5,47 => 5,48 => 3),'ceiling' => 49,'floor' => 21),
-                           'one-leg balance best leg' => array('map' => array(0 => 3,1 => 3,2 => 4,3 => 4,4 => 5,5 => 6,6 => 7,7 => 7,8 => 8,9 => 8,10 => 8,11 => 9,12 => 9,13 => 9,14 => 9,15 => 9,16 => 10,17 => 10,18 => 10,19 => 10,20 => 11,21 => 11,22 => 11,23 => 11,24 => 11,25 => 12,26 => 12,27 => 12,28 => 14,29 => 14,30 => 14)),
-                           'Placing pegs non-pref hand' => array('map' => array(21 => 16,22 => 15,23 => 15,24 => 15,25 => 15,26 => 15,27 => 14,28 => 13,29 => 13,30 => 13,31 => 12,32 => 12,33 => 11,34 => 11,35 => 10,36 => 10,37 => 9,38 => 8,39 => 8,40 => 8,41 => 8,42 => 7,43 => 7,44 => 7,45 => 7,46 => 7,47 => 7,48 => 6,49 => 6,50 => 6,51 => 4),'ceiling' => 52,'floor' => 21),
-                           'Throwing beanbag on mat' => array('map' => array(0 => 3,1 => 3,2 => 5,3 => 5,4 => 7,5 => 9,6 => 9,7 => 11,8 => 12,9 => 15,10 => 17))),
-    "age8:0-8:11" => array('walking heel-toe forwards' => array('map' => array(0 => 2,1 => 2,2 => 3,3 => 3,4 => 3,5 => 3,6 => 3,7 => 3,8 => 4,9 => 4,10 => 5,11 => 6,12 => 6,13 => 7,14 => 7,15 => 11)),
-                           'Hopping on mats other leg' => array('map' => array(0 => 2,1 => 3,2 => 4,3 => 5,4 => 6,5 => 12)),
-                           'Drawing Trail' => array('map' => array(0 => 12,1 => 6,2 => 5,3 => 1),'ceiling' => 4),
-                           'Hopping on mats best leg' => array('map' => array(0 => 1,1 => 1,2 => 3,3 => 3,4 => 4,5 => 11)),
-                           'Placing Pegs pref hand' => array('map' => array(32 => 7,33 => 6,34 => 6,35 => 5,36 => 3,20 => 15,21 => 14,22 => 13,23 => 12,24 => 12,25 => 11,26 => 11,27 => 10,28 => 9,29 => 8,30 => 7,31 => 7),'ceiling' => 37,'floor' => 20),
-                           'one-Leg balance other leg' => array('map' => array(0 => 3,1 => 3,2 => 4,3 => 5,4 => 7,5 => 8,6 => 9,7 => 10,8 => 10,9 => 11,10 => 11,11 => 11,12 => 11,13 => 11,14 => 11,15 => 12,16 => 12,17 => 12,18 => 12,19 => 13,20 => 13,21 => 13,22 => 13,23 => 13,24 => 13,25 => 14,26 => 14,27 => 15,28 => 15,29 => 15,30 => 15)),
-                           'Catching with 2 hands' => array('map' => array(0 => 4,1 => 5,2 => 5,3 => 6,4 => 7,5 => 7,6 => 8,7 => 9,8 => 10,9 => 12,10 => 15)),
-                           'Threading lace' => array('map' => array(18 => 14,19 => 13,20 => 13,21 => 12,22 => 12,23 => 12,24 => 12,25 => 11,26 => 10,27 => 9,28 => 9,29 => 8,30 => 8,31 => 8,32 => 7,33 => 7,34 => 6,35 => 6,36 => 5,37 => 5,38 => 5,39 => 5,40 => 5,41 => 5,42 => 4,43 => 4,44 => 4,45 => 3),'ceiling' => 46,'floor' => 18),
-                           'one-leg balance best leg' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 3,4 => 4,5 => 4,6 => 5,7 => 6,8 => 6,9 => 7,10 => 7,11 => 8,12 => 8,13 => 9,14 => 9,15 => 9,16 => 9,17 => 9,18 => 9,19 => 10,20 => 10,21 => 10,22 => 11,23 => 11,24 => 11,25 => 11,26 => 12,27 => 12,28 => 12,29 => 13,30 => 13)),
-                           'Placing pegs non-pref hand' => array('map' => array(22 => 15,23 => 15,24 => 14,25 => 14,26 => 13,27 => 12,28 => 11,29 => 11,30 => 10,31 => 10,32 => 10,33 => 9,34 => 8,35 => 8,36 => 7,37 => 7,38 => 7,39 => 7,40 => 6,41 => 6,42 => 6,43 => 6,44 => 4),'ceiling' => 45,'floor' => 22),
-                           'Throwing beanbag on mat' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 4,4 => 5,5 => 6,6 => 8,7 => 11,8 => 11,9 => 14,10 => 17))),
+    "age7:0-7:11" => array(
+        'md1a'=>  ['label'=> 'Placing Pegs pref hand',                  'ceiling'=> 48, 'map'=> array(21=>16,22=>15,23=>15,24=>14,25=>14,26=>13,27=>12,28=>12,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>8,36=>7,37=>6,38=>6,39=>6,40=>6,41=>6,42=>6,43=>5,44=>5,45=>5,46=>5,47=>4)],
+        'md1a'=>  ['label'=> 'Placing pegs non-pref hand', 'floor'=> 21,'ceiling'=> 52, 'map'=> array(21=>16,22=>15,23=>15,24=>15,25=>15,26=>15,27=>14,28=>13,29=>13,30=>13,31=>12,32=>12,33=>11,34=>11,35=>10,36=>10,37=>9,38=>8,39=>8,40=>8,41=>8,42=>7,43=>7,44=>7,45=>7,46=>7,47=>7,48=>6,49=>6,50=>6,51=>4) ],
+        'md2'=>   ['label'=> 'Threading lace',             'floor'=> 21,'ceiling'=> 49, 'map'=> array(21=>15,22=>14,23=>13,24=>13,25=>12,26=>12,27=>11,28=>11,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>7,36=>7,37=>6,38=>6,39=>6,40=>6,41=>5,42=>5,43=>5,44=>5,45=>5,46=>5,47=>5,48=>3) ],
+        'md3'=>   ['label'=> 'Drawing Trail',                           'ceiling'=> 6,  'map'=> array(0=>12,1=>10,2=>8,3=>5,4=>3,5=>1) ],
+        'ac1'=>   ['label'=> 'Catching with 2 hands',      'map'=> array(0=>5,1=>6,2=>7,3=>7,4=>8,5=>9,6=>10,7=>10,8=>11,9=>15,10=>17) ],
+        'ac2'=>   ['label'=> 'Throwing beanbag on mat',    'map'=> array(0=>3,1=>3,2=>5,3=>5,4=>7,5=>9,6=>9,7=>11,8=>12,9=>15,10=>17) ],
+        'bal1a'=> ['label'=> 'one-leg balance best leg',   'map'=> array(0=>3,1=>3,2=>4,3=>4,4=>5,5=>6,6=>7,7=>7,8=>8,9=>8,10=>8,11=>9,12=>9,13=>9,14=>9,15=>9,16=>10,17=>10,18=>10,19=>10,20=>11,21=>11,22=>11,23=>11,24=>11,25=>12,26=>12,27=>12,28=>14,29=>14,30=>14) ],
+        'bal1b'=> ['label'=> 'one-Leg balance other leg',  'map'=> array(0=>4,1=>4,2=>5,3=>7,4=>8,5=>9,6=>10,7=>10,8=>11,9=>11,10=>11,11=>11,12=>12,13=>12,14=>12,15=>12,16=>13,17=>13,18=>13,19=>13,20=>14,21=>14,22=>14,23=>15,24=>15,25=>15,26=>15,27=>15,28=>15,29=>15,30=>16) ],
+        'bal2'=>  ['label'=> 'walking heel-toe forwards',  'map'=> array(0=>2,1=>2,2=>3,3=>3,4=>3,5=>3,6=>3,7=>3,8=>4,9=>4,10=>5,11=>6,12=>6,13=>8,14=>10,15=>12) ],
+        'bal3a'=> ['label'=> 'Hopping on mats best leg',   'map'=> array(0=>1,1=>1,2=>3,3=>3,4=>4,5=>11) ],
+        'bal3b'=> ['label'=> 'Hopping on mats other leg',  'map'=> array(0=>3,1=>4,2=>5,3=>6,4=>9,5=>13) ]
+        ),
+    "age8:0-8:11" => array(
+        'md1a'=> ['label'=>'Placing Pegs pref hand',     'ceiling'=>37, 'floor'=>20, 'map' => array(20 => 15,21 => 14,22 => 13,23 => 12,24 => 12,25 => 11,26 => 11,27 => 10,28 => 9,29 => 8,30 => 7,31 => 7,32 => 7,33 => 6,34 => 6,35 => 5,36 => 4,37=>3) ],
+        'md1b'=> ['label'=>'Placing pegs non-pref hand', 'ceiling' => 45,'floor' => 22, 'map' => array(22 => 15,23 => 15,24 => 14,25 => 14,26 => 13,27 => 12,28 => 11,29 => 11,30 => 10,31 => 10,32 => 10,33 => 9,34 => 8,35 => 8,36 => 7,37 => 7,38 => 7,39 => 7,40 => 6,41 => 6,42 => 6,43 => 6,44 => 4) ],
+        'walking heel-toe forwards' => array('map' => array(0 => 2,1 => 2,2 => 3,3 => 3,4 => 3,5 => 3,6 => 3,7 => 3,8 => 4,9 => 4,10 => 5,11 => 6,12 => 6,13 => 7,14 => 7,15 => 11)),
+        'Hopping on mats other leg' => array('map' => array(0 => 2,1 => 3,2 => 4,3 => 5,4 => 6,5 => 12)),
+        'Drawing Trail' => array('map' => array(0 => 12,1 => 6,2 => 5,3 => 1),'ceiling' => 4),
+        'Hopping on mats best leg' => array('map' => array(0 => 1,1 => 1,2 => 3,3 => 3,4 => 4,5 => 11)),
+        'one-Leg balance other leg' => array('map' => array(0 => 3,1 => 3,2 => 4,3 => 5,4 => 7,5 => 8,6 => 9,7 => 10,8 => 10,9 => 11,10 => 11,11 => 11,12 => 11,13 => 11,14 => 11,15 => 12,16 => 12,17 => 12,18 => 12,19 => 13,20 => 13,21 => 13,22 => 13,23 => 13,24 => 13,25 => 14,26 => 14,27 => 15,28 => 15,29 => 15,30 => 15)),
+        'Catching with 2 hands' => array('map' => array(0 => 4,1 => 5,2 => 5,3 => 6,4 => 7,5 => 7,6 => 8,7 => 9,8 => 10,9 => 12,10 => 15)),
+        'Threading lace' => array('map' => array(18 => 14,19 => 13,20 => 13,21 => 12,22 => 12,23 => 12,24 => 12,25 => 11,26 => 10,27 => 9,28 => 9,29 => 8,30 => 8,31 => 8,32 => 7,33 => 7,34 => 6,35 => 6,36 => 5,37 => 5,38 => 5,39 => 5,40 => 5,41 => 5,42 => 4,43 => 4,44 => 4,45 => 3),'ceiling' => 46,'floor' => 18),
+        'one-leg balance best leg' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 3,4 => 4,5 => 4,6 => 5,7 => 6,8 => 6,9 => 7,10 => 7,11 => 8,12 => 8,13 => 9,14 => 9,15 => 9,16 => 9,17 => 9,18 => 9,19 => 10,20 => 10,21 => 10,22 => 11,23 => 11,24 => 11,25 => 11,26 => 12,27 => 12,28 => 12,29 => 13,30 => 13)),
+        'Throwing beanbag on mat' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 4,4 => 5,5 => 6,6 => 8,7 => 11,8 => 11,9 => 14,10 => 17))),
     "age9:0-9:11" => array('walking heel-toe forwards' => array('map' => array(0 => 1,1 => 1,2 => 1,3 => 1,4 => 1,5 => 1,6 => 1,7 => 1,8 => 2,9 => 2,10 => 2,11 => 3,12 => 3,13 => 4,14 => 7,15 => 11)),
                            'Hopping on mats other leg' => array('map' => array(0 => 2,1 => 3,2 => 4,3 => 5,4 => 6,5 => 12)),
                            'Drawing Trail' => array('map' => array(0 => 11,1 => 6,2 => 4,3 => 1),'ceiling' => 4),
@@ -340,3 +467,5 @@ $scores = array(
                              'Catching -preferred hand' => array('map' => array(0 => 4,1 => 5,2 => 5,3 => 6,4 => 6,5 => 7,6 => 7,7 => 8,8 => 9,9 => 11,10 => 14)),
                              'Two-board balance' => array('map' => array(0 => 2,1 => 3,2 => 3,4 => 5,5 => 5,6 => 6,7 => 7,8 => 7,9 => 7,10 => 7,11 => 8,12 => 8,13 => 8,14 => 8,15 => 8,16 => 8,17 => 8,18 => 9,19 => 9,20 => 9,21 => 9,22 => 9,23 => 10,24 => 10,25 => 10,26 => 10,27 => 11,28 => 11,29 => 13,30 => 13)))
 );
+
+}
