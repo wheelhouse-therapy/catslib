@@ -23,6 +23,11 @@ class AssessmentData_MABC extends AssessmentData
         $this->ageBand = $ageBand;
     }
 
+    public function GetItemLabel( string $item ) : string
+    {
+        $scores = Assessment_MABC_Scores::GetScores( $this->age );
+        return( @$scores[$item]['label'] ?: "" );
+    }
 
     public function ComputeScore( string $item ) : int
     {
@@ -31,12 +36,49 @@ class AssessmentData_MABC extends AssessmentData
         $scores = Assessment_MABC_Scores::GetScores( $this->age );
         if( ($raS = @$scores[$item]) && ($raw = $this->GetRaw($item)) ) {
             // this is a basic item
-            if( isset($raS['ceiling']) && $raw > $raS['ceiling'] ) { $ret = $raS['map'][$raS['ceiling']]; }
-            else if( isset($raS['floor']) && $raw < $raS['floor'] ) { $ret = $raS['map'][$raS['floor']]; }
-            else { $ret = $raS['map'][$raw]; }
+            if( isset($raS['ceiling']) && $raw > $raS['ceiling'] ) {
+                $ret = $raS['map'][$raS['ceiling']];
+            } else if( isset($raS['floor']) && $raw < $raS['floor'] ) {
+                $ret = $raS['map'][$raS['floor']];
+            } else if( isset($raS['map'][$raw]) ) {
+                $ret = $raS['map'][$raw];
+            }
         } else {
             // this could be a computed score
+            switch($item) {
+                case 'md1avg':  $ret = $this->getAverage( 'md1a', 'md1b' );     break;
+                case 'ac1avg':  $ret = $this->getAverage( 'ac1a', 'ac1b' );     break;
+                case 'bal1avg': $ret = $this->getAverage( 'bal1a', 'bal1b' );   break;
+                case 'bal3avg': $ret = $this->getAverage( 'bal3a', 'bal3b' );   break;
 
+                case 'md_cmp':
+                    if( $this->ageBand == 1 ) {
+                    } else {
+                        // ageBand 2 or 3
+                        $ret = $this->ComputeScore('md1avg') + $this->ComputeScore('md2') + $this->ComputeScore('md3');
+                    }
+                    break;
+                case 'ac_cmp':
+                    if( $this->ageBand == 1 ) {
+                    } else if( $this->ageBand == 2 ) {
+                        $ret = $this->ComputeScore('ac1') + $this->ComputeScore('ac2');
+                    } else {
+                        // ageBand 3
+                        $ret = $this->ComputeScore('ac1avg') + $this->ComputeScore('ac2');
+                    }
+                    break;
+                case 'bal_cmp':
+                    if( $this->ageBand == 1 ) {
+                    } else if( $this->ageBand == 2 ) {
+                        $ret = $this->ComputeScore('bal1avg') + $this->ComputeScore('bal2') + $this->ComputeScore('bal3avg');
+                    } else {
+                        // ageBand 3
+                        $ret = $this->ComputeScore('bal1') + $this->ComputeScore('bal2') + $this->ComputeScore('bal3avg');
+                    }
+                    break;
+
+
+            }
         }
 
         return( $ret );
@@ -46,6 +88,30 @@ class AssessmentData_MABC extends AssessmentData
     {
         return( 0 );
     }
+
+    private function getAverage( string $item1, string $item2 ) : int
+    {
+        // Get the average of the scores of two raw items
+        $avg = 0;
+
+        if( $this->GetRaw($item1) && $this->GetRaw($item2) ) {
+            $avg = $this->mabcAvg( $this->ComputeScore($item1), $this->ComputeScore($item2) );
+        }
+        return( $avg );
+    }
+
+    private function mabcAvg( int $a, int $b ) : int
+    {
+        // in MABC we average integer scores to integers by rounding down if the total is <10 and rounding up if total >10
+
+        if( $a + $b > 10 ) {
+            $avg = intval( ($a + $b)/2 );      // odd totals will round down; even totals are correct
+        } else {
+            $avg = intval( ($a + $b + 1)/2 );  // this rounds up odd totals and leaves even totals correct
+        }
+        return( $avg );
+    }
+
 
     function MapRaw2Score( string $item, string $raw ) : int
     /*************************************************
@@ -89,81 +155,92 @@ class AssessmentUI_MABC extends AssessmentUIColumns
                 break;
         }
 
-        foreach( ['md1','md2','md3','md1a','md1b','md2a','md2b','md3a','md3b',
-                  'ac1','ac2','ac3','ac1a','ac1b','ac2a','ac2b','ac3a','ac3b',
-                  'bal1','bal2','bal3','bal1a','bal1b','bal2a','bal2b','bal3a','bal3b'] as $item ) {
+        // subst {label:X}
+        foreach( $this->raBasicItems as $item ) {
+            $s = str_replace( "{label:$item}",  $this->oData->GetItemLabel($item), $s );
+        }
+
+        // subst {raw:X}
+        foreach( $this->raBasicItems as $item ) {
+            $s = str_replace( "{raw:$item}",  "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$this->oData->GetRaw($item)."</strong>", $s );
+        }
+
+        // subst {score:X}
+        foreach( array_merge($this->raBasicItems, $this->raComputedItems) as $item ) {
             $s = str_replace( "{score:$item}", $this->oData->ComputeScore($item), $s );
         }
 
         return( $s );
     }
 
+    private $raBasicItems =
+                ['md1','md2','md3','md1a','md1b','md2a','md2b','md3a','md3b',
+                 'ac1','ac2','ac3','ac1a','ac1b','ac2a','ac2b','ac3a','ac3b',
+                 'bal1','bal2','bal3','bal1a','bal1b','bal2a','bal2b','bal3a','bal3b'];
+    private $raComputedItems =
+                ['md1avg', 'ac1avg', 'bal1avg', 'bal3avg',
+                 'md_cmp', 'md_std', 'md_pct', 'ac_cmp', 'ac_std', 'ac_pct', 'bal_cmp', 'bal_std', 'bal_pct',
+                 'total_score', 'total_std', 'total_pct'];
+
+
 private $scoreSummary2 = "
+    <style>
+    .label0 {font-size:9pt}
+    .score0 {font-size:9pt}
+    .score1 {font-weight:bold; border:1px solid #aaa; border-radius:10px;padding:0px 5px;text-align:center}
+    </style>
     <br/>
     <table width='100%'>
-    <tr><th colspan='3'>Item standard scores</th></tr>
-    <tr><th style='width:33%'>MD</th><th style='width:33%'>A&C</th><th style='width:33%'>Bal</th></tr>
-    <tr><td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>{score:md1a}</td><td>{score:md1avg}</td></tr>
-              <tr><td>{score:md1b}</td><td>&nbsp;</td></tr>
-              <tr><td>&nbsp;</td><td>{score:md2}</td></tr>
-              <tr><td>&nbsp;</td><td>{score:md3}</td></tr>
-          </table>
-        </td>
-        <td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>{score:ac1}</td><td>&nbsp;</td></tr>
-              <tr><td>{score:ac2}</td><td>&nbsp;</td></tr>
-          </table>
-        </td>
-        <td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>{score:bal1a}</td><td>{score:bal1avg}</td></tr>
-              <tr><td>{score:bal1b}</td><td>&nbsp;</td></tr>
-              <tr><td>&nbsp;</td><td>{score:bal2}</td></tr>
-              <tr><td>{score:bal3a}</td><td>{score:bal3avg}</td></tr>
-              <tr><td>{score:bal3b}</td><td>&nbsp;</td></tr>
-          </table>
-        </td>
-    </tr>
-    <tr><th colspan='3'>&nbsp;</th></tr>
-
-    <tr><th colspan='3'>Component scores</th></tr>
-    <tr><th style='width:33%'>MD</th><th style='width:33%'>A&C</th><th style='width:33%'>Bal</th></tr>
-    <tr><td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>Component </td><td>{score:md_cmp}</td></tr>
-              <tr><td>Standard </td><td>{score:md_std}</td></tr>
-              <tr><td>Percentile</td><td>{score:md_pct}</td></tr>
-          </table>
-        </td>
-        <td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>Component </td><td>{score:ac_cmp}</td></tr>
-              <tr><td>Standard </td><td>{score:ac_std}</td></tr>
-              <tr><td>Percentile</td><td>{score:ac_pct}</td></tr>
-          </table>
-        </td>
-        <td style='width:33%' valign='top'>
-          <table width='100%'>
-              <tr><td>Component </td><td>{score:bal_cmp}</td></tr>
-              <tr><td>Standard </td><td>{score:bal_std}</td></tr>
-              <tr><td>Percentile</td><td>{score:bal_pct}</td></tr>
-          </table>
-        </td>
-    </tr>
-    <tr><th colspan='3'>&nbsp;</th></tr>
-
-    <tr><th colspan='3'>Totals</th></tr>
-    <tr><td colspan='3' valign='top'>
+    <tr><th style='width:33%'>Manual Dexterity</th><th style='width:33%'>Aiming & Catching</th><th style='width:33%'>Balance</th></tr>
+    <tr><td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
           <table>
-              <tr><td>Total test score </td><td>{score:total_score}</td></tr>
-              <tr><td>Standard </td><td>{score:total_std}</td></tr>
-              <tr><td>Percentile</td><td>{score:total_pct}</td></tr>
+              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+              <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+              <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>
+          </table>
+        </td>
+        <td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
+          <table width='100%'>
+              <tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
+              <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>
+          </table>
+        </td>
+        <td style='width:33%;padding:0px 5px' valign='top'>
+          <table width='100%'>
+              <tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
+              <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
+              <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+              <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
+              <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>
           </table>
         </td>
     </tr>
+    </table>
+
+    <p>&nbsp;</p>
+
+    <table style='border:1px solid black;width:100%'>
+    <tr><th colspan='3'>Manual Dexterity</th></tr>
+    <tr><td style='width:33%'>Component score <p>{score:md_cmp}</p></td>
+        <td style='width:33%'>Standard score <p>{score:md_std}</p></td>
+        <td style='width:33%'>Percentile <p>{score:md_pct}</p></td></tr>
+    </table>
+    <p>&nbsp;</p>
+
+    <table style='border:1px solid black;width:100%'>
+    <tr><th colspan='3'>Aiming & Catching</th></tr>
+    <tr><td style='width:33%'>Component score <p>{score:ac_cmp}</p></td>
+        <td style='width:33%'>Standard score <p>{score:ac_std}</p></td>
+        <td style='width:33%'>Percentile <p>{score:ac_pct}</p></td></tr>
+    </table>
+    <p>&nbsp;</p>
+
+    <table style='border:1px solid black;width:100%'>
+    <tr><th colspan='3'>Balance</th></tr>
+    <tr><td style='width:33%'>Component score <p>{score:bal_cmp}</p></td>
+        <td style='width:33%'>Standard score <p>{score:bal_std}</p></td>
+        <td style='width:33%'>Percentile <p>{score:bal_pct}</p></td></tr>
     </table>
 ";
 }
@@ -398,10 +475,10 @@ static private $scores = array(
                            'Catching Beanbag' => array('map' => array(0 => 3,1 => 3,2 => 3,3 => 4,4 => 5,5 => 6,6 => 7,7 => 7,8 => 8,9 => 9,10 => 14)),
                            'Throwing beanbag on mat' => array('map' => array(0 => 1,1 => 3,2 => 4,3 => 5,4 => 7,5 => 8,6 => 9,7 => 11,8 => 13,9 => 14,10 => 16))),
     "age7:0-7:11" => array(
-        'md1a'=>  ['label'=> 'Placing Pegs pref hand',                  'ceiling'=> 48, 'map'=> array(21=>16,22=>15,23=>15,24=>14,25=>14,26=>13,27=>12,28=>12,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>8,36=>7,37=>6,38=>6,39=>6,40=>6,41=>6,42=>6,43=>5,44=>5,45=>5,46=>5,47=>4)],
-        'md1a'=>  ['label'=> 'Placing pegs non-pref hand', 'floor'=> 21,'ceiling'=> 52, 'map'=> array(21=>16,22=>15,23=>15,24=>15,25=>15,26=>15,27=>14,28=>13,29=>13,30=>13,31=>12,32=>12,33=>11,34=>11,35=>10,36=>10,37=>9,38=>8,39=>8,40=>8,41=>8,42=>7,43=>7,44=>7,45=>7,46=>7,47=>7,48=>6,49=>6,50=>6,51=>4) ],
-        'md2'=>   ['label'=> 'Threading lace',             'floor'=> 21,'ceiling'=> 49, 'map'=> array(21=>15,22=>14,23=>13,24=>13,25=>12,26=>12,27=>11,28=>11,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>7,36=>7,37=>6,38=>6,39=>6,40=>6,41=>5,42=>5,43=>5,44=>5,45=>5,46=>5,47=>5,48=>3) ],
-        'md3'=>   ['label'=> 'Drawing Trail',                           'ceiling'=> 6,  'map'=> array(0=>12,1=>10,2=>8,3=>5,4=>3,5=>1) ],
+        'md1a'=>  ['label'=> 'Placing Pegs pref hand',     'floor'=> 21,'ceiling'=> 48, 'map'=> array(21=>16,22=>15,23=>15,24=>14,25=>14,26=>13,27=>12,28=>12,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>8,36=>7,37=>6,38=>6,39=>6,40=>6,41=>6,42=>6,43=>5,44=>5,45=>5,46=>5,47=>4,48=>4)],
+        'md1b'=>  ['label'=> 'Placing pegs non-pref hand', 'floor'=> 20,'ceiling'=> 52, 'map'=> array(20=>17,21=>16,22=>15,23=>15,24=>15,25=>15,26=>15,27=>14,28=>13,29=>13,30=>13,31=>12,32=>12,33=>11,34=>11,35=>10,36=>10,37=>9,38=>8,39=>8,40=>8,41=>8,42=>7,43=>7,44=>7,45=>7,46=>7,47=>7,48=>6,49=>6,50=>6,51=>4,52=>4) ],
+        'md2'=>   ['label'=> 'Threading lace',             'floor'=> 20,'ceiling'=> 49, 'map'=> array(20=>16,21=>15,22=>14,23=>13,24=>13,25=>12,26=>12,27=>11,28=>11,29=>11,30=>10,31=>9,32=>9,33=>8,34=>8,35=>7,36=>7,37=>6,38=>6,39=>6,40=>6,41=>5,42=>5,43=>5,44=>5,45=>5,46=>5,47=>5,48=>5,49=>3) ],
+        'md3'=>   ['label'=> 'Drawing trail',              'floor'=> 0, 'ceiling'=> 6,  'map'=> array(0=>12,1=>10,2=>8,3=>5,4=>3,5=>2,6=>1) ],
         'ac1'=>   ['label'=> 'Catching with 2 hands',      'map'=> array(0=>5,1=>6,2=>7,3=>7,4=>8,5=>9,6=>10,7=>10,8=>11,9=>15,10=>17) ],
         'ac2'=>   ['label'=> 'Throwing beanbag on mat',    'map'=> array(0=>3,1=>3,2=>5,3=>5,4=>7,5=>9,6=>9,7=>11,8=>12,9=>15,10=>17) ],
         'bal1a'=> ['label'=> 'one-leg balance best leg',   'map'=> array(0=>3,1=>3,2=>4,3=>4,4=>5,5=>6,6=>7,7=>7,8=>8,9=>8,10=>8,11=>9,12=>9,13=>9,14=>9,15=>9,16=>10,17=>10,18=>10,19=>10,20=>11,21=>11,22=>11,23=>11,24=>11,25=>12,26=>12,27=>12,28=>14,29=>14,30=>14) ],
