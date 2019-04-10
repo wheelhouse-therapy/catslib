@@ -6,11 +6,13 @@ include( "assessments_spm.php" );
 
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
-    'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
-    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
+    (CATS_DEBUG?'aasp':NULL) => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
+    (CATS_DEBUG?'mabc':NULL) => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
 );
 
+//Remove the null key if present
+unset($raGlobalAssessments['']);
 
 /* Problem:
  *      The model for the Assessments class is based on the way SPM works, but it isn't easy to adapt it to other assessments.
