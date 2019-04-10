@@ -1,6 +1,14 @@
 <?php
 
-if( @$_SERVER['HTTP_HOST'] == 'localhost' ) {
+/**
+ * CATS_DEBUG is a constant which allows code to only work on production machines.
+ * It is true when the host starts with localhost. This is important because serving on port 8080
+ * breaks normal @$_SERVER['HTTP_HOST'] == 'localhost' checks.
+ * This occures because HTTP_HOST is localhost:8080 when you serve on port 8080
+ */
+define( "CATS_DEBUG", explode(":",@$_SERVER['HTTP_HOST'],2)[0] == 'localhost');
+
+if( CATS_DEBUG ) {
     /* Enable all error reporting on development machines (when your url starts with http://localhost).
      * This is not true on the real server (the 'HOST' variable is catherapyservices.ca)
      */
@@ -8,7 +16,6 @@ if( @$_SERVER['HTTP_HOST'] == 'localhost' ) {
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
 }
-
 
 /* CATSDIR is the location of the cats root directory. If you're doing something weird like running cats from
  * by including cats/index.php from another directory, define CATSDIR relative to that place before your include.
@@ -76,7 +83,7 @@ $oApp = new SEEDAppConsole(
 );
 
 
-if( @$_SERVER['HTTP_HOST'] == 'localhost' ) {
+if( CATS_DEBUG ) {
     $oApp->kfdb->SetDebug(1);
 }
 
