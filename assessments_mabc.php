@@ -634,7 +634,16 @@ private static $scores = array(
 
 static private $labels = array(
     // ageband => [code and label]
-    1 => [
+    1 => ['md1a'=>  ['code'=>'MD 1',  'label'=> 'Posting Coins pref hand'],
+          'md1b'=>  ['code'=>'',      'label'=> 'Posting Coins non-pref hand'],
+          'md2'=>   ['code'=>'MD 2',  'label'=> 'Threading Beads'],
+          'md3'=>   ['code'=>'MD 3',  'label'=> 'Drawing Trail 1'],
+          'ac1'=>   ['code'=>'A&C 1', 'label'=> 'Catching Beanbag'],
+          'ac2'=>   ['code'=>'A&C 2', 'label'=> 'Throwing Beanbag onto Mat'],
+          'bal1a'=> ['code'=>'Bal 1', 'label'=> 'One-Leg Balance best leg'],
+          'bal1b'=> ['code'=>'',      'label'=> 'One-Leg Balance other leg'],
+          'bal2'=>  ['code'=>'Bal 2', 'label'=> 'Walking Heels Raised'],
+          'bal3'=>  ['code'=>'Bal 3', 'label'=> 'Jumping on Mats']
          ],
     2 => ['md1a'=>  ['code'=>'MD 1',  'label'=> 'Placing Pegs pref hand'],
           'md1b'=>  ['code'=>'',      'label'=> 'Placing Pegs non-pref hand'],
