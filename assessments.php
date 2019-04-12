@@ -908,7 +908,7 @@ class Assessment_SPM extends Assessments
     {
         $s = "";
 
-        if( $this->kfrAsmt && $range = @$this->raColumnDef[$section]['colRange'] ) {
+        if($range = @$this->raColumnDef[$section]['colRange'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             foreach( $range as $k ) {
                 if( $this->oData->ComputeScore($k) >=3 ) {
