@@ -1016,11 +1016,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM
 {
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        $oData = new AssessmentData_SPM( $this, $oAsmt, $kAsmt );
-        $oUI = new AssessmentUI_SPM( $oData );
-
-        parent::__construct( $oAsmt, 'c', $oData, $oUI );
-        $this->bUseDataList = true;     // the data entry form uses <datalist>
+        parent::__construct( $oAsmt, $kAsmt, 'c' );
     }
 
     protected function GetScore( $n, $v ):int
