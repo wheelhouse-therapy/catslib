@@ -1017,6 +1017,9 @@ class Assessment_SPM_Classroom extends Assessment_SPM
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oAsmt, $kAsmt, 'c' );
+        
+        //TODO Rework the data system to get rid of this dirty work arround
+        $this->oData->raPercentiles = $this->raPercentiles;
     }
 
     protected function GetScore( $n, $v ):int
