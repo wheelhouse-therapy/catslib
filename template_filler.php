@@ -221,9 +221,14 @@ class template_filler {
 
         switch($resourceType){
             case self::STANDALONE_RESOURCE:
+                // Manually fetch the client code using the built in code proccessing system.
+                // By hard coding this tag in a call to expandTag we are telling the system to get the clients code
+                // This saves us the trouble of duplicating the code to get the client code.
+                // Since the system already has that functionality and we just need to tap into it
+                $code = $this->expandTag("client:code");
                 // Took this from PhpOffice\PhpWord\PhpWord::save()
                 header('Content-Description: File Transfer');
-                header('Content-Disposition: attachment; filename="' . basename($resourcename) . '"');
+                header('Content-Disposition: attachment; filename="' .$code.($code?"-":"").basename($resourcename) . '"');
                 header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
                 header('Content-Transfer-Encoding: binary');
                 header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
