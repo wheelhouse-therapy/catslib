@@ -18,11 +18,30 @@ class ReceiptsProcessor {
     const FOLDER = CATSDIR_FILES."/acounting/attachments/";
 
     //Potential proccessing error code constants
-    const DISCARDED_NO_AMOUNT   = -1;
-    const DISCARDED_NO_DATE     = -2;
-    const DISCARDED_ZERO_AMOUNT = -3;
-    const DISCARDED_UNKNOWN_SENDER = -4;
-    const DISCARDED_UNKNOWN_ACCOUNT = -5;
+    /**
+     * No amount was found in the entry
+     */
+    const DISCARDED_NO_AMOUNT       = -1;
+    /**
+     * No date was found in the entry
+     */
+    const DISCARDED_NO_DATE         = -2;
+    /**
+     * The parsed date has not occured so there is no possible way this entry is real
+     */
+    const DISCARDED_FUTURE_DATE     = -3;
+    /**
+     * The amount found is zero. Assume invalid since and entry of zero wont change clinic balance
+     */
+    const DISCARDED_ZERO_AMOUNT     = -4;
+    /**
+     * Could not identify the sender
+     */
+    const DISCARDED_UNKNOWN_SENDER  = -5;
+    /**
+     * Could not identify if the entry is unpaid/company account/company credit card
+     */
+    const DISCARDED_UNKNOWN_ACCOUNT = -6;
 
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
@@ -32,7 +51,11 @@ class ReceiptsProcessor {
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
-        "date"   => "/(?<=^| )((Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4})|([0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?)/i",
+        "dates"   => array(
+            "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
+            "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
+            "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}\d{2}?)/i"
+        ),
         "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=$|[^\\w])/i",
         "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
         "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
@@ -211,14 +234,15 @@ class ReceiptsProcessor {
         }
         
         if($incomeOrExpense){
-            preg_match($this->PATTERNS["date"], $value, $matches);
-            if(count($matches) === 0){
+            $date = $this->proccessDate($value);
+            if($date){
                 return self::DISCARDED_NO_DATE;
             }
-
-            $date = $matches[0];
+            if(new DateTime($date) > new DateTime()){
+                return self::DISCARDED_FUTURE_DATE;
+            }
             
-            preg_match('|\w.*\w|',preg_replace($this->PATTERNS, "", $value), $matches);
+            preg_match('|\w.*\w|',$this->preg_replace_array($this->PATTERNS, "", $value), $matches);
             $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
             $person = $matches[0];
@@ -227,6 +251,86 @@ class ReceiptsProcessor {
         return self::DISCARDED_ZERO_AMOUNT;
     }
 
+    private function proccessDate(string $value):string{
+        $matches = array();
+        $found = false;
+        foreach($this->PATTERNS['dates'] as $pattern){
+            if(preg_match($pattern, $value,$matches)){
+                if(count($matches) == 4){
+                    $found = true;
+                    break;
+                }
+            }
+        }
+        if($found){
+            $day = $matches['day'];
+            $month = $matches['month'];
+            $year = $matches['year'];
+            
+            // Attempt to convert textual months to numarical month
+            // and check numarical months are in valid range
+            // sets $found to false if its not valid
+            switch(strtolower($month)){
+                case "jan":
+                case "january":
+                    $month = 1;
+                    break;
+                case "feb":
+                case "febuary":
+                    $month = 2;
+                    break;
+                case "mar":
+                case "march":
+                    $month = 3;
+                    break;
+                case "apr":
+                case "april":
+                    $month = 4;
+                    break;
+                case "may":
+                    $month = 5;
+                    break;
+                case "jun":
+                case "june":
+                    $month = 6;
+                    break;
+                case "jul":
+                case "july":
+                    $month = 7;
+                    break;
+                case "aug":
+                case "auguest":
+                    $month = 8;
+                    break;
+                case "sep":
+                case "sept":
+                case "september":
+                    $month = 9;
+                    break;
+                case "oct":
+                case "october":
+                    $month = 10;
+                    break;
+                case "nov":
+                case "november":
+                    $month = 11;
+                    break;
+                case "dec":
+                case "december":
+                    $month = 12;
+                    break;
+                default:
+                    if(1<$month || $month >12){
+                        // The month is not valid
+                        $found = false;
+                    }
+            }
+        }
+        
+        return ($found?$month."/".$day."/".$year:"");
+        
+    }
+    
     private function handleErrors(array $errors){
         $responce = "";
         foreach($errors as $k => $v){
@@ -248,11 +352,14 @@ class ReceiptsProcessor {
                                 ."This is a different error than Akaunting rejecting the entry.\n"
                                 ."Possible entries are: UNPAID, CCC and CA.\n";
                     break;
+                case self::DISCARDED_FUTURE_DATE:
+                    $responce .= "The date ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." has not occured yet\n"
+                        ."The entry was discarded since there is no possible way a payment was actually made on this day.\n";
             }
         }
         return $responce;
     }
-
+    
     /**
      * Check if a string is a potential entry
      * It must match at least 2 of the regex strings used for parsing to be considered a potential entry
@@ -262,8 +369,15 @@ class ReceiptsProcessor {
     private function verifyString(String $value){
         $matches = 0;
         foreach($this->PATTERNS as $name=>$regex){
+            if(is_array($regex)){
+                foreach ($regex as $key=>$exp){
+                    if(preg_match($exp, $value) && !($key == 'forward' || $key == 'reply')){
+                        $matches++;
+                    }
+                }
+            }
             // Dont count forward or reply regex matches towords is the string is valid
-            if(preg_match($regex, $value) && !($name == 'forward' || $name == 'reply')){
+            else if(preg_match($regex, $value) && !($name == 'forward' || $name == 'reply')){
                 $matches++;
             }
         }
@@ -286,6 +400,15 @@ class ReceiptsProcessor {
         }
         notfound:
         return NULL;
+    }
+    
+    private function preg_replace_array($pattern, $replacement, $subject, $limit=-1) {
+        if (is_array($subject)) {
+            foreach ($subject as &$value) $value=preg_replace_array($pattern, $replacement, $value, $limit);
+            return $subject;
+        } else {
+            return preg_replace($pattern, $replacement, $subject, $limit);
+        }
     }
     
 }
@@ -361,28 +484,7 @@ class AccountingEntry {
     }
     
     private function parseDate(String $date): String {
-        if(preg_match("/(Jan|Feb|Mar|Apr|May|Jun|June|Jul|July|Aug|Sept|Sep|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{2,4}/i", $date)){
-            //Clear up some of the double options
-            $date = str_replace("Sep ", "Sept ", $date);
-            $date = str_replace("June", "Jun", $date);
-            $date = str_replace("July", "Jul", $date);
-            
-            //Format switchers
-            $day = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3][0-9](?:, |\/)[0-9]{2,4}/i", $date)?"d":"j");
-            $year = (preg_match("/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) [0-3]?[0-9](?:, |\/)[0-9]{4}/i", $date)?"Y":"y");
-            
-            //Clear up alternate date formats
-            $date = str_replace(", ", "/", $date);
-            
-            return DateTime::createFromFormat('M '.$day.'/'.$year, $date)->format('Y-m-d');
-        }
-        if(preg_match("/[0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?/", $date)){
-            $day = (preg_match("/[0-1]?[0-9]\\/[0-3][0-9]\/\\d{2}(\\d{2})?/", $date)?"d":"j");
-            $month = (preg_match("/[0-1][0-9]\\/[0-3]?[0-9]\/\\d{2}(\\d{2})?/", $date)?"m":"n");
-            $year = (preg_match("/[0-1]?[0-9]\\/[0-3]?[0-9]\/\\d{4}/", $date)?"Y":"y");
-            
-            return DateTime::createFromFormat($month.'/'.$day.'/'.$year, $date)->format('Y-m-d');
-        }
+        return (new DateTime($date))->format('Y-m-d');
     }
     
 }
