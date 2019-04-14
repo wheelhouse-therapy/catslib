@@ -128,7 +128,7 @@ class AssessmentUI
 //    public function DrawInputForm() : string { return(""); }
 //    public function DrawGraph() : string { return(""); }
 //    public function DrawRawTable() : string { return(""); }
-    public function DrawScoreSummary() : string { return(""); }
+    public function DrawScoreResults() : string { return(""); }
 //    public function DrawRecommendation() : string { return(""); }
 }
 
@@ -446,11 +446,6 @@ abstract class Assessments
 // move this to an AssessmentsUI parm
 public    $bUseDataList = false;    // the data entry form uses <datalist>
 
-    protected $raTotals = array(); // Ensure this is defined, child classes should override
-
-// move this to AssessmentsUI
-    protected $raColumnDef = array();   // defined by each derived assessment class
-
     function __construct( AssessmentsCommon $oAsmt, string $asmtCode, AssessmentData $oData, AssessmentUI $oUI )
     {
         $this->oAsmt = $oAsmt;
@@ -460,16 +455,19 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     }
 
     public function GetAsmtCode()  { return( $this->asmtCode ); }
-    public function GetColumnDef() { return( $this->raColumnDef ); }
 
     function StyleScript()
     {
-        $s = "<script>
-              var raPercentilesSPM = ".json_encode($this->oData->raPercentiles).";
-              var cols = ".json_encode($this->Columns()).";
-              var chars = ".json_encode($this->Inputs("script")).";
-              var raTotalsSPM = ".json_encode($this->raTotals).";
-              </script>";
+        $s = "";
+
+        if( $this->asmtCode == 'spm' || $this->asmtCode == 'spmc' ) {
+            $s = "<script>
+                  var raPercentilesSPM = ".json_encode($this->oData->raPercentiles).";
+                  var cols = ".json_encode($this->Columns()).";
+                  var chars = ".json_encode($this->Inputs("script")).";
+                  var raTotalsSPM = ".json_encode($this->oData->raTotals).";
+                  </script>";
+        }
 
         return( $s );
     }
@@ -594,53 +592,14 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         if( !$this->oData->GetAsmtKey() )  goto done;
 
-        $oForm = $this->oData->GetForm();
-
-        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
-        foreach( $raResults as $k => $v ) {
-            $oForm->SetValue( "i$k", $v );
-        }
-
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $oForm = $this->oData->GetForm();
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
         $s .= "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
                     <span style='margin-left: 10%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
-                        <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />
-                    <table id='results'>
-                        <tr><th> Results </th><th> Score </th><th> Interpretation </th>
-                            <th> Percentile </th><th> Reverse Percentile </th></tr>
+                        <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />";
 
-                    </table>
-                    <template id='rowtemp'>
-                        <tr><td class='section'> </td><td class='score'> </td><td class='interp'> </td>
-                            <td class='per'> </td><td class='rev'> </td></tr>
-
-                    </template>
-                    <script src='w/js/asmt-overview.js'></script>";
-
-        /*$sReports = "";
-        foreach( explode( "\n", $this->Reports ) as $sReport ) {
-            if( !$sReport ) continue;
-            $n = intval(substr($sReport,0,2));
-            $report = substr($sReport,3);
-            $v = $oForm->Value( "i$n" );
-            if( $this->getScore( $n, $v ) > 2 ) $sReports .= $report."<br/>";
-        }
-        if( $sReports ) {
-            $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
-        }*/
-
-        $s .= SPMChart();
-
-        $s .= $this->oUI->DrawColFormTable( $oForm, $this->raColumnDef, false );
-
-        $s .= $this->oUI->DrawScoreSummary();
-
-        // Put the results in a js array for processing on the client
-        $s .= "<script>
-               var raResultsSPM = ".json_encode($raResults).";
-               var raTotalsSPM = ".json_encode($this->raTotals).";
-               </script>";
+        $s .= $this->oUI->DrawScoreResults();
 
         done:
         return( $s );
@@ -908,7 +867,7 @@ class Assessment_SPM extends Assessments
     {
         $s = "";
 
-        if($range = @$this->raColumnDef[$section]['colRange'] ) {
+        if($range = @$this->oUI->GetColumnDef()[$section]['colRange'] ) {
             $range = SEEDCore_ParseRangeStrToRA( $range );
             foreach( $range as $k ) {
                 if( $this->oData->ComputeScore($k) >=3 ) {
@@ -935,30 +894,6 @@ class Assessment_SPM extends Assessments
             "Balance<br/>and Motion"   => "56-66",
             "Planning<br/>and Ideas"   => "67-75"
         );
-
-    protected $raColumnDef = array(
-            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
-            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
-            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
-            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
-            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
-            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
-            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
-            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
-        );
-
-        protected $raTotals = array("56"=>"16","57"=>"16","58"=>"16","59"=>"21","60"=>"27","61"=>"34","62"=>"38","63"=>"42","64"=>"50","65"=>"54","66"=>"58",
-            "67"=>"62","68"=>"62","69"=>"66","70"=>"69","71"=>"73","72"=>"73","73"=>"76","74"=>"76","75"=>"79","76"=>"79","77"=>"82","78"=>"82","79"=>"84",
-            "80"=>"84","81"=>"86","82"=>"86","83"=>"86","84"=>"88","85"=>"88","86"=>"88","87"=>"88","88"=>"90","89"=>"90","90"=>"90","91"=>"90","92"=>"92",
-            "93"=>"92","94"=>"93","95"=>"93","96"=>"93","97"=>"93","98"=>"93","99"=>"95","100"=>"95","101"=>"95","102"=>"95","103"=>"95.5","104"=>"95.5",
-            "105"=>"95.5","106"=>"96","107"=>"96","108"=>"96","109"=>"96","110"=>"97","111"=>"97","112"=>"97","113"=>"97","114"=>"97","115"=>"97","116"=>"97",
-            "117"=>"97","118"=>"97","119"=>"97.5","120"=>"97.5","121"=>"97.5","122"=>"98","123"=>"98","124"=>"98","125"=>"98","126"=>"98","127"=>"98","128"=>"98",
-            "129"=>"98.5","130"=>"98.5","131"=>"99","132"=>"99","133"=>"99.5","134"=>"99.5","135"=>"99.5","136"=>"99.5","137"=>"99.5","138"=>"99.5","139"=>"99.5",
-            "140"=>"99.5","141"=>"99.5","142"=>"99.5","143"=>"99.5","144"=>"99.5","145"=>"99.5","146"=>"99.5","147"=>"99.5","148"=>"99.5","149"=>"99.5",
-            "150"=>"99.5","151"=>"99.5","152"=>"99.5","153"=>"99.5","154"=>"99.5","155"=>"99.5","156"=>"99.5","157"=>"99.5","158"=>"99.5","159"=>"99.5",
-            "160"=>"99.5","161"=>"99.5","162"=>"99.5","163"=>"99.5","164"=>"99.5","165"=>"99.5","166"=>"99.5","167"=>"99.5","168"=>"99.5","169"=>"99.5",
-            "170"=>"99.5","171"=>"99.5");
-
 }
 
 class Assessment_AASP extends Assessments
@@ -1017,7 +952,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oAsmt, $kAsmt, 'c' );
-        
+
         //TODO Rework the data system to get rid of this dirty work arround
         $this->oData->raPercentiles = $this->raPercentiles;
     }
