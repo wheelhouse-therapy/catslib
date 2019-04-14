@@ -8,7 +8,7 @@
 
 class AssessmentData_SPM extends AssessmentData
 {
-   //FIXME Finish implementing the new system 
+   //FIXME Finish implementing the new system
     private $raRange = array(
         'social'   => "1-10",
         'vision'   => "11-21",
@@ -19,7 +19,7 @@ class AssessmentData_SPM extends AssessmentData
         'balance'  => "56-66",
         'planning' => "67-75"
     );
-    
+
     /** The percentiles that apply to each score, per column
      */
     public $raPercentiles =
@@ -62,7 +62,19 @@ class AssessmentData_SPM extends AssessmentData
          43 => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' ),
          44 => array( 'social'=>'',     'vision'=>'99.5', 'hearing'=>'',     'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'' )
     );
-    
+
+    public $raTotals = array("56"=>"16","57"=>"16","58"=>"16","59"=>"21","60"=>"27","61"=>"34","62"=>"38","63"=>"42","64"=>"50","65"=>"54","66"=>"58",
+        "67"=>"62","68"=>"62","69"=>"66","70"=>"69","71"=>"73","72"=>"73","73"=>"76","74"=>"76","75"=>"79","76"=>"79","77"=>"82","78"=>"82","79"=>"84",
+        "80"=>"84","81"=>"86","82"=>"86","83"=>"86","84"=>"88","85"=>"88","86"=>"88","87"=>"88","88"=>"90","89"=>"90","90"=>"90","91"=>"90","92"=>"92",
+        "93"=>"92","94"=>"93","95"=>"93","96"=>"93","97"=>"93","98"=>"93","99"=>"95","100"=>"95","101"=>"95","102"=>"95","103"=>"95.5","104"=>"95.5",
+        "105"=>"95.5","106"=>"96","107"=>"96","108"=>"96","109"=>"96","110"=>"97","111"=>"97","112"=>"97","113"=>"97","114"=>"97","115"=>"97","116"=>"97",
+        "117"=>"97","118"=>"97","119"=>"97.5","120"=>"97.5","121"=>"97.5","122"=>"98","123"=>"98","124"=>"98","125"=>"98","126"=>"98","127"=>"98","128"=>"98",
+        "129"=>"98.5","130"=>"98.5","131"=>"99","132"=>"99","133"=>"99.5","134"=>"99.5","135"=>"99.5","136"=>"99.5","137"=>"99.5","138"=>"99.5","139"=>"99.5",
+        "140"=>"99.5","141"=>"99.5","142"=>"99.5","143"=>"99.5","144"=>"99.5","145"=>"99.5","146"=>"99.5","147"=>"99.5","148"=>"99.5","149"=>"99.5",
+        "150"=>"99.5","151"=>"99.5","152"=>"99.5","153"=>"99.5","154"=>"99.5","155"=>"99.5","156"=>"99.5","157"=>"99.5","158"=>"99.5","159"=>"99.5",
+        "160"=>"99.5","161"=>"99.5","162"=>"99.5","163"=>"99.5","164"=>"99.5","165"=>"99.5","166"=>"99.5","167"=>"99.5","168"=>"99.5","169"=>"99.5",
+        "170"=>"99.5","171"=>"99.5");
+
     function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oA, $oAsmt, $kAsmt );
@@ -70,11 +82,11 @@ class AssessmentData_SPM extends AssessmentData
 
     public function ComputeScore( string $item ) : int
     {
-        
+
         // Array of items not to be included when computing total.
         // Since we use array_sum to calculate total we need to exclude totals to produce accurate results
         $doNotInclude = array("total","social_total","vision_total","hearing_total","touch_total","taste_total","body_total","balance_total","planning_total");
-        
+
         $score = 0;
 
         // Basic scores were computed and scored by the constructor.
@@ -108,7 +120,7 @@ class AssessmentData_SPM extends AssessmentData
     public function ComputePercentile( string $item ) : int
     {
         $percentile = 0;
-        
+
         switch($item){
             case "social":
             case "vision":
@@ -121,9 +133,9 @@ class AssessmentData_SPM extends AssessmentData
                 $score = $this->ComputeScore($item."_total");
                 $percentile = floatval($this->raPercentiles[$score][$item]);
         }
-        
+
         return( $percentile );
-        
+
     }
 
     function MapRaw2Score( string $item, string $raw ) : int
@@ -165,5 +177,65 @@ class AssessmentUI_SPM extends AssessmentUIColumns
         );
         return( $def );
     }
+
+    function DrawScoreResults() : string
+    {
+        $s = "";
+
+        $oForm = $this->oData->GetForm();
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+
+        $s .= "<table id='results'>
+                    <tr><th> Results </th><th> Score </th><th> Interpretation </th>
+                        <th> Percentile </th><th> Reverse Percentile </th></tr>
+
+                </table>
+                <template id='rowtemp'>
+                    <tr><td class='section'> </td><td class='score'> </td><td class='interp'> </td>
+                        <td class='per'> </td><td class='rev'> </td></tr>
+
+                </template>
+                <script src='w/js/asmt-overview.js'></script>";
+
+        /*$sReports = "";
+        foreach( explode( "\n", $this->Reports ) as $sReport ) {
+            if( !$sReport ) continue;
+            $n = intval(substr($sReport,0,2));
+            $report = substr($sReport,3);
+            $v = $oForm->Value( "i$n" );
+            if( $this->getScore( $n, $v ) > 2 ) $sReports .= $report."<br/>";
+        }
+        if( $sReports ) {
+            $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
+        }*/
+
+        $s .= SPMChart();
+        $s .= $this->DrawColFormTable( $oForm, $this->raColumnDef, false );
+
+        // Put the results in a js array for processing on the client
+        $s .= "<script>
+               var raResultsSPM = ".json_encode($raResults).";
+               var raTotalsSPM = ".json_encode($this->oData->raTotals).";
+               </script>";
+
+        return( $s );
+    }
+
+    public function GetColumnDef() { return( $this->raColumnDef ); }
+
+    protected $raColumnDef = array(
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
+        );
 }
 

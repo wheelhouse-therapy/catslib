@@ -138,21 +138,24 @@ class AssessmentUI_MABC extends AssessmentUIColumns
         parent::__construct( $oData, ['dummyColumnsDef'] );
     }
 
-    function DrawScoreSummary() : string
+    function DrawScoreResults() : string
     {
         $s = "";
 
         list($age,$ageBand) = $this->oData->GetAgeInfo();
 
+        $s .= "<p>Age at test date: $age</p>";
+
         switch( $ageBand ) {
             case 1:
             default:
-                $s = "NOT DEFINED YET";
+                $s .= $this->scoreSummary1;
                 break;
             case 2:
-                $s = $this->scoreSummary2;
+                $s .= $this->scoreSummary2;
                 break;
             case 3:
+                $s .= $this->scoreSummary3;
                 break;
         }
 
@@ -183,6 +186,9 @@ class AssessmentUI_MABC extends AssessmentUIColumns
                  'md_cmp', 'md_std', 'md_pct', 'ac_cmp', 'ac_std', 'ac_pct', 'bal_cmp', 'bal_std', 'bal_pct',
                  'total_score', 'total_std', 'total_pct'];
 
+private $scoreSummary1 = "";
+
+private $scoreSummary3 = "";
 
 private $scoreSummary2 = "
     <style>
