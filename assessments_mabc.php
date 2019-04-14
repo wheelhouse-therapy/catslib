@@ -52,6 +52,7 @@ class AssessmentData_MABC extends AssessmentData
                 case 'bal1avg': $ret = $this->getAverage( 'bal1a', 'bal1b' );   break;
                 case 'bal3avg': $ret = $this->getAverage( 'bal3a', 'bal3b' );   break;
 
+                // Component score totals
                 case 'md_cmp':
                     if( $this->ageBand == 1 ) {
                     } else {
@@ -78,7 +79,17 @@ class AssessmentData_MABC extends AssessmentData
                     }
                     break;
 
-
+                // Standard scores and percentiles for component totals
+                case 'md_std':
+                case 'md_pct':
+                case 'ac_std':
+                case 'ac_pct':
+                case 'bal_std':
+                case 'bal_pct':
+                    $component = strtok($item,"_"); // md, ac, bal
+                    list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
+                    $ret = (substr($item,-3)=='std') ? $std : $pct;
+                    break;
             }
         }
 
@@ -689,7 +700,74 @@ static private $labels = array(
          ],
 );
 
+    static function GetComponentTotalScore( string $component, int $score )
+    {
+        $stdScore = 0;
+        $percentile = 0;
+
+        // ceiling cases
+        if( $component == 'md' && $score > 43  )  $score = 43;
+        if( $component == 'ac' && $score > 33  )  $score = 33;
+        if( $component == 'bal' && $score > 44  )  $score = 44;
+
+        foreach( self::$raComponentTotals as $ra ) {
+            $raCompScores = SEEDCore_ParseRangeStr( $ra[$component] );
+            if( in_array($score, $raCompScores[0]) ) {
+                $stdScore = $ra['std'];
+                $percentile = $ra['pct'];
+                break;
+            }
+        }
+
+        return( [$stdScore,$percentile] );
+    }
 
 
+// Map component totals to standard totals and percentiles
+static private $raComponentTotals = array(
+    ['md'=>"43",    'ac'=>"33",    'bal'=>"44",    'std'=>19, 'pct'=>99.9 ],    // these are all ceilings
+    ['md'=>"42",    'ac'=>"31-32", 'bal'=>"42-43", 'std'=>18, 'pct'=>99.5 ],
+    ['md'=>"41",    'ac'=>"30",    'bal'=>"40-41", 'std'=>17, 'pct'=>99 ],
+    ['md'=>"40",    'ac'=>"29",    'bal'=>"38-39", 'std'=>16, 'pct'=>98 ],
+    ['md'=>"38-39", 'ac'=>"27-28", 'bal'=>"37",    'std'=>15, 'pct'=>95 ],
+    ['md'=>"37",    'ac'=>"26",    'bal'=>"36",    'std'=>14, 'pct'=>91 ],
+    ['md'=>"35-36", 'ac'=>"24-25", 'bal'=>"",      'std'=>13, 'pct'=>84 ],
+    ['md'=>"33-34", 'ac'=>"22-23", 'bal'=>"35",    'std'=>12, 'pct'=>75 ],
+    ['md'=>"31-32", 'ac'=>"21",    'bal'=>"33-34", 'std'=>11, 'pct'=>63 ],
+    ['md'=>"29-30", 'ac'=>"19-20", 'bal'=>"31-32", 'std'=>10, 'pct'=>50 ],
+    ['md'=>"26-28", 'ac'=>"17-18", 'bal'=>"28-30", 'std'=>9,  'pct'=>37 ],
+    ['md'=>"24-25", 'ac'=>"15-16", 'bal'=>"25-27", 'std'=>8,  'pct'=>25 ],
+    ['md'=>"22-23", 'ac'=>"14",    'bal'=>"23-24", 'std'=>7,  'pct'=>16 ],
+    ['md'=>"19-21", 'ac'=>"13",    'bal'=>"19-22", 'std'=>6,  'pct'=>9 ],
+    ['md'=>"16-18", 'ac'=>"11-12", 'bal'=>"15-18", 'std'=>5,  'pct'=>5 ],
+    ['md'=>"13-15", 'ac'=>"10",    'bal'=>"13-14", 'std'=>4,  'pct'=>2 ],
+    ['md'=>"9-12",  'ac'=>"9",     'bal'=>"11-12", 'std'=>3,  'pct'=>1 ],
+    ['md'=>"4-8",   'ac'=>"7-8",   'bal'=>"9-10",  'std'=>2,  'pct'=>0.5 ],
+    ['md'=>"0-4",   'ac'=>"0-7",   'bal'=>"0-9",   'std'=>1,  'pct'=>0.1 ]
+);
+
+/*
+Total Test Score
+standard score	total score	percentile	zone
+19	>107	99.9	green
+18	105-107	99.5	green
+17	102-104	99	green
+16	99-101	98	green
+15	96-98	95	green
+14	93-95	91	green
+13	90-92	84	green
+12	86-89	75	green
+11	82-85	63	green
+10	78-81	50	green
+9	73-77	37	green
+8	68-72	25	green
+7	63-67	16	green
+6	57-62	9	yellow
+5	50-56	5	yellow
+4	44-49	2	red
+3	38-43	1	red
+2	30-37	.5	red
+1	<30	.1	red
+*/
 
 }
