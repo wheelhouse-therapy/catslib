@@ -148,9 +148,12 @@ class ReceiptsProcessor {
             $results = AkauntingHook::submitJournalEntries($entries);
             
             // Mark the message as processed so we dont make duplicate entries
-            $message->markAsSeen();
+            // Only mark as seen if we are not running on a production mechine
+            if(!CATS_DEBUG){
+                $message->markAsSeen();
+            }
             
-            if(array_intersect(range(200,299), array_column($results,0)) && $attachment){
+            if(!CATS_DEBUG && array_intersect(range(200,299), array_column($results,0)) && $attachment){
                 if($oAttachment = $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                     $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
                     fwrite($attachmentFile, $oAttachment->getDecodedContent());

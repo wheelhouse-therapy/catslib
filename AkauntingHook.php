@@ -181,8 +181,14 @@ class AkauntingHook {
             $data['reference'] .= "No Attachment Included";
         }
         //Make journal Entry
-        $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
-        $ret = $responce->status_code;
+        // Only submit entries if we are not running off a production mechine
+        if(!CATS_DEBUG){
+            $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
+            $ret = $responce->status_code;
+        }
+        else{
+            var_dump($data);
+        }
 
         done:
         return( array($ret,$possibilities) );
