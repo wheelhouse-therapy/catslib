@@ -407,7 +407,7 @@ class ReceiptsProcessor {
     
     private function preg_replace_array($pattern, $replacement, $subject, $limit=-1) {
         if (is_array($pattern)) {
-            foreach ($pattern as &$value) $subject=preg_replace_array($value, $replacement, $subject, $limit);
+            foreach ($pattern as &$value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
             return $subject;
         } else {
             return preg_replace($pattern, $replacement, $subject, $limit);
