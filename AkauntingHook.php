@@ -267,7 +267,7 @@ class AkauntingHook {
                 return array($k,array($account['name']));
             }
         }
-        return arrray(NULL,array());
+        return array(NULL,array());
     }
 
     public static function decodeErrors(array $errors):String{
