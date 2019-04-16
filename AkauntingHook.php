@@ -57,7 +57,7 @@ class AkauntingHook {
         return $responces;
     }
 
-    public static function submitJournalEntry(AccountingEntry $entry):int{
+    public static function submitJournalEntry(AccountingEntry $entry):array{
         //Ensure we have connected to Akaunting before we attempt to submit entries
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
