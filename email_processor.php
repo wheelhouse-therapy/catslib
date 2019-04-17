@@ -87,7 +87,7 @@ class ReceiptsProcessor {
         foreach($messages as $message){
             $attachment = microtime(TRUE);
 
-            if($this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
+            if(!$this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                 $attachment = '';
             }
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
