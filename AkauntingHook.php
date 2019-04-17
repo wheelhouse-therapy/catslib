@@ -51,10 +51,16 @@ class AkauntingHook {
             throw new Exception("Not Logged in");
         }
         $responces = array();
+        $failedEntries = array();
         foreach($entries as $k=>$entry){
-            $responces[$k] = self::submitJournalEntry($entry);
+            try{
+                $responces[$k] = self::submitJournalEntry($entry);
+            }catch(Requests_Exception $e){
+                //An error occured while proccessing an entry.
+                $failedEntries[$k] = $entry;
+            }
         }
-        return $responces;
+        return array_merge($responces,array('failed' => $failedEntries));
     }
 
     public static function submitJournalEntry(AccountingEntry $entry):array{

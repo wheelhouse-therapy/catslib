@@ -46,6 +46,7 @@ class ReceiptsProcessor {
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
     const DASH_CUTOFF = 8;
+    const RETRY_CUTOFF = 3;
 
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
@@ -65,16 +66,22 @@ class ReceiptsProcessor {
     );
 
     private $connection;
+    private $email;
 
     public function __construct($server,$email, $psw){
         $server = new Server($server);
         $this->connection = $server->authenticate($email,$psw);
+        $this->email = $email;
         if(!file_exists(self::FOLDER)){
             @mkdir(self::FOLDER, 0777, true);
             echo "Attachments Directiory Created<br />";
         }
     }
 
+    public function __destruct(){
+        $this->connection->close();
+    }
+    
     public function processEmails($box = 'INBOX'){
         $mailbox = $this->connection->getMailbox($box);
         $search = new SearchExpression();
@@ -90,28 +97,32 @@ class ReceiptsProcessor {
             if(!$this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                 $attachment = '';
             }
+            preg_match('/AUTO SUBMISSION #(?<i>\d) FOR (?<clinic>\w+)/', $message->getSubject(),$options);
             preg_match('/(?<=\.)\w+(?=@)/i', $message->getTo()[0]->getAddress(), $matches);
-            if(!$matches){
+            if(!$options && !$matches){
                 $responce = "This Message has been rejected since the system cannot determine the clinic from the to address.";
                 goto done;
             }
-            $clinic = $matches[0];
+            $clinic = $options?$options['clinic']:$matches[0];
 
             $entries = array();
             $errors = array();
+            $i = $options?$options['i']:0;
             $from = $message->getFrom();
             $subject = $message->getSubject();
             $date = $message->getDate();
             $body = $message->getBodyText();
-            $subject = $message->getSubject();
 
             //Pull the information out of subject
-            $result = $this->processString($subject, $attachment, $clinic,$from);
-            if($result instanceof AccountingEntry){
-                $entries['subject'] = $result;
-            }
-            else{
-                    $errors['subject'] = $result;
+            if(!$options){
+                //Dont attempt to pull information out of the subject if it matches our auto responce since all entries will be in the body
+                $result = $this->processString($subject, $attachment, $clinic,$from);
+                if($result instanceof AccountingEntry){
+                    $entries['subject'] = $result;
+                }
+                else{
+                        $errors['subject'] = $result;
+                }
             }
             if($body){
                 $lines = explode("\n", $body);
@@ -147,10 +158,37 @@ class ReceiptsProcessor {
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
             
+            //AkauntingHook will return all entries that result in successfull communication as well as unsuccessful
+            //However we need to sort out the different types of entries
+            $failures = $results['failed'];
+            $results = array_diff_key($results, array('failed' => TRUE));
+            
             // Mark the message as processed so we dont make duplicate entries
             // Only mark as seen if we are not running on a production mechine
-            if(!CATS_DEBUG){
+            if(!CATS_DEBUG && $results){
                 $message->markAsSeen();
+            }
+            else if(!CATS_DEBUG){
+                $raAttachments =  TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
+                $clinics = array_map(create_function('$o', 'return $o->getClinic();'), $failures);
+                $sortedEntries = array();
+                foreach($clinics as $k=>$v){
+                    $sortedEntries[$v][] = $failures[$k];
+                }
+                foreach($sortedEntries as $c=>$ra){
+                    $body = "";
+                    foreach($ra as $o){
+                        $body .= $o->getDesc()."\n";
+                    }
+                    $to = "developer@catherapyservices.ca";
+                    $topic = "Message for $c failed to submit more than cutoff";
+                    if($i < self::RETRY_CUTOFF){
+                        $i++;
+                        $to = $this->email;
+                        $topic = "AUTO SUBMISSION #$i FOR $c";
+                    }
+                    SEEDEmailSend($message->getFrom()->getAddress(), $to, $topic, $body, "", array('attachments' => TempAttachment::createRAOfPaths($raAttachments)));
+                }
             }
             
             if(!CATS_DEBUG && array_intersect(range(200,299), array_column($results,0)) && $attachment){
