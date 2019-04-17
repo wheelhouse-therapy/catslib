@@ -160,15 +160,20 @@ class AssessmentUI_MABC extends AssessmentUIColumns
         switch( $ageBand ) {
             case 1:
             default:
-                $s .= $this->scoreSummary1;
+                $raSum = $this->scoreSummary1;
                 break;
             case 2:
-                $s .= $this->scoreSummary2;
+                $raSum = $this->scoreSummary2;
                 break;
             case 3:
-                $s .= $this->scoreSummary3;
+                $raSum = $this->scoreSummary3;
                 break;
         }
+        $s .= $this->scoreSummary;
+        $s = str_replace( "{mdForm}",  $raSum[0], $s );
+        $s = str_replace( "{acForm}",  $raSum[1], $s );
+        $s = str_replace( "{balForm}", $raSum[2], $s );
+
 
         // subst {label:X}
         foreach( $this->raBasicItems as $item ) {
@@ -199,9 +204,39 @@ class AssessmentUI_MABC extends AssessmentUIColumns
 
 private $scoreSummary1 = "";
 
-private $scoreSummary3 = "";
+private $scoreSummary2 = [
+    "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+     <tr><td class='label0'>{label:md1b}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+     <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>",
 
-private $scoreSummary2 = "
+    "<tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
+     <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+     <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>"
+];
+
+private $scoreSummary3 = [
+    "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+     <tr><td class='label0'>{label:md1b}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+     <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:ac1a}</td><td>{raw:ac1a}</td><td class='score0'>{score:ac1a}</td><td><div class='score1'>{score:ac1avg}</div></td></tr>
+     <tr><td class='label0'>{label:ac1b}</td><td>{raw:ac1b}</td><td class='score0'>{score:ac1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:bal1}</td><td>{raw:bal1}</td><td>&nbsp;</td><td><div class='score1'>{score:bal1}</div></td></tr>
+     <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+     <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>"
+];
+
+private $scoreSummary = "
     <style>
     .label0 {font-size:9pt}
     .score0 {font-size:9pt}
@@ -211,27 +246,13 @@ private $scoreSummary2 = "
     <table width='100%'>
     <tr><th style='width:33%'>Manual Dexterity</th><th style='width:33%'>Aiming & Catching</th><th style='width:33%'>Balance</th></tr>
     <tr><td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
-          <table>
-              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
-              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
-              <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
-              <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>
-          </table>
+          <table>{mdForm}</table>
         </td>
         <td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
-          <table width='100%'>
-              <tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
-              <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>
-          </table>
+          <table width='100%'>{acForm}</table>
         </td>
         <td style='width:33%;padding:0px 5px' valign='top'>
-          <table width='100%'>
-              <tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
-              <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
-              <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
-              <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
-              <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>
-          </table>
+          <table width='100%'>{balForm}</table>
         </td>
     </tr>
     </table>
