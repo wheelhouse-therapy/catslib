@@ -208,7 +208,12 @@ ExistsWarning;
                  * This action should only be preformed by a developer
                  * as it can affect the codes of other clients
                  */
-                $this->oCCG->regenerateCode($this->client_key);
+                if($this->oCCG->regenerateCode($this->client_key)){
+                    $s .= "<div class='alert alert-success alert-dismissible'>Code Regenerated</div>";
+                }
+                else{
+                    $s .= "<div class='alert alert-danger alert-dismissible'>You Don't Have permission to perform this action</div>";
+                }
                 break;
             case "update_therapist":
                 $exists = $this->checkExists($oFormTherapist, "PI");
@@ -284,17 +289,17 @@ ExistsWarning;
         if( $this->client_key && ($kfr = $this->oPeopleDB->GetKFR("C", $this->client_key )) ) {
             $oFormClient->SetKFR( $kfr );
             // A client has been clicked. Who are their pros?
-            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'", $this->queryParams );
+            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'");
         }
         if( $this->therapist_key && ($kfr = $this->oPeopleDB->GetKFR("PI", $this->therapist_key )) ) {
             $oFormTherapist->SetKFR( $kfr );
             // A therapist has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'", $this->queryParams );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'" );
         }
         if( $this->pro_key && ($kfr = $this->oPeopleDB->GetKFR("PE", $this->pro_key )) ) {
             $oFormPro->SetKFR( $kfr );
             // A pro has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'", $this->queryParams );
+            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'" );
         }
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());

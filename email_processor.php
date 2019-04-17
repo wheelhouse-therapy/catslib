@@ -52,7 +52,7 @@ class ReceiptsProcessor {
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
         "income" => "/income/i",
         "dates"   => array(
-            "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
+            "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
             "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
             "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}\d{2}?)/i"
         ),
@@ -61,7 +61,7 @@ class ReceiptsProcessor {
         "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i",
-        "escapedSequence" => '/".*?"/'
+        "escapedSequence" => '/(?:"|“).*?(?:"|“)/'
     );
 
     private $connection;
@@ -148,9 +148,12 @@ class ReceiptsProcessor {
             $results = AkauntingHook::submitJournalEntries($entries);
             
             // Mark the message as processed so we dont make duplicate entries
-            $message->markAsSeen();
+            // Only mark as seen if we are not running on a production mechine
+            if(!CATS_DEBUG){
+                $message->markAsSeen();
+            }
             
-            if(array_intersect(range(200,299), array_column($results,0)) && $attachment){
+            if(!CATS_DEBUG && array_intersect(range(200,299), array_column($results,0)) && $attachment){
                 if($oAttachment = $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                     $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
                     fwrite($attachmentFile, $oAttachment->getDecodedContent());
@@ -403,8 +406,8 @@ class ReceiptsProcessor {
     }
     
     private function preg_replace_array($pattern, $replacement, $subject, $limit=-1) {
-        if (is_array($subject)) {
-            foreach ($subject as &$value) $value=preg_replace_array($pattern, $replacement, $value, $limit);
+        if (is_array($pattern)) {
+            foreach ($pattern as &$value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
             return $subject;
         } else {
             return preg_replace($pattern, $replacement, $subject, $limit);

@@ -57,7 +57,7 @@ class AkauntingHook {
         return $responces;
     }
 
-    public static function submitJournalEntry(AccountingEntry $entry):int{
+    public static function submitJournalEntry(AccountingEntry $entry):array{
         //Ensure we have connected to Akaunting before we attempt to submit entries
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
@@ -181,8 +181,14 @@ class AkauntingHook {
             $data['reference'] .= "No Attachment Included";
         }
         //Make journal Entry
-        $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
-        $ret = $responce->status_code;
+        // Only submit entries if we are not running off a production mechine
+        if(!CATS_DEBUG){
+            $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
+            $ret = $responce->status_code;
+        }
+        else{
+            var_dump($data);
+        }
 
         done:
         return( array($ret,$possibilities) );
@@ -261,7 +267,7 @@ class AkauntingHook {
                 return array($k,array($account['name']));
             }
         }
-        return arrray(NULL,array());
+        return array(NULL,array());
     }
 
     public static function decodeErrors(array $errors):String{
