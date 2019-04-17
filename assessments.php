@@ -7,7 +7,7 @@ include( "assessments_spm.php" );
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
     (CATS_DEBUG?'aasp':NULL) => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
-    (CATS_DEBUG?'mabc':NULL) => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
+    'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
 );
 
