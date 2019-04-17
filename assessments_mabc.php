@@ -54,15 +54,11 @@ class AssessmentData_MABC extends AssessmentData
 
                 // Component score totals
                 case 'md_cmp':
-                    if( $this->ageBand == 1 ) {
-                    } else {
-                        // ageBand 2 or 3
-                        $ret = $this->ComputeScore('md1avg') + $this->ComputeScore('md2') + $this->ComputeScore('md3');
-                    }
+                    // ageBand 1,2,3 add up the same way
+                    $ret = $this->ComputeScore('md1avg') + $this->ComputeScore('md2') + $this->ComputeScore('md3');
                     break;
                 case 'ac_cmp':
-                    if( $this->ageBand == 1 ) {
-                    } else if( $this->ageBand == 2 ) {
+                    if( $this->ageBand == 1 || $this->ageBand == 2 ) {
                         $ret = $this->ComputeScore('ac1') + $this->ComputeScore('ac2');
                     } else {
                         // ageBand 3
@@ -71,6 +67,7 @@ class AssessmentData_MABC extends AssessmentData
                     break;
                 case 'bal_cmp':
                     if( $this->ageBand == 1 ) {
+                        $ret = $this->ComputeScore('bal1avg') + $this->ComputeScore('bal2') + $this->ComputeScore('bal3');
                     } else if( $this->ageBand == 2 ) {
                         $ret = $this->ComputeScore('bal1avg') + $this->ComputeScore('bal2') + $this->ComputeScore('bal3avg');
                     } else {
@@ -227,7 +224,20 @@ class AssessmentUI_MABC extends AssessmentUIColumns
                  'md_cmp', 'md_std', 'md_pct', 'ac_cmp', 'ac_std', 'ac_pct', 'bal_cmp', 'bal_std', 'bal_pct',
                  'total_score', 'total_std', 'total_pct'];
 
-private $scoreSummary1 = "";
+private $scoreSummary1 = [
+    "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+     <tr><td class='label0'>{label:md1b}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+     <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
+     <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+     <tr><td class='label0'>{label:bal3}</td><td>{raw:bal3}</td><td>&nbsp;</td><td><div class='score1'>{score:bal3}</div></td></tr>"
+];
 
 private $scoreSummary2 = [
     "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
