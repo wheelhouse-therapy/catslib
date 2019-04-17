@@ -90,6 +90,16 @@ class AssessmentData_MABC extends AssessmentData
                     list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
                     $ret = (substr($item,-3)=='std') ? $std : $pct;
                     break;
+
+                // Standard score and percentile for total score
+                case 'total_score':
+                    $ret = $this->ComputeScore('md_cmp') + $this->ComputeScore('ac_cmp') + $this->ComputeScore('bal_cmp');
+                    break;
+                case 'total_std':
+                case 'total_pct':
+                    list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') );
+                    $ret = ($item == 'total_std' ? $std : $pct);
+                    break;
             }
         }
 
@@ -190,6 +200,21 @@ class AssessmentUI_MABC extends AssessmentUIColumns
             $s = str_replace( "{score:$item}", $this->oData->ComputeScore($item), $s );
         }
 
+        // oops, can't get zone directly from ComputeScore because it only returns int
+        list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') );
+        switch( $zone ) {
+            case 'green':
+                $zone = "<span style='color:green;background-color:#aaddaa'>&nbsp; Green &nbsp;</span>";
+                break;
+            case 'yellow':
+                $zone = "<span style='color:brown;background-color:#ddddaa'>&nbsp; Yellow &nbsp;</span>";
+                break;
+            case 'red':
+                $zone = "<span style='color:red;background-color:#ddaaaa'>&nbsp; Red &nbsp;</span>";
+                break;
+        }
+        $s = str_replace( "{score:total_zone}", $zone, $s );
+
         return( $s );
     }
 
@@ -262,24 +287,32 @@ private $scoreSummary = "
     <table style='border:1px solid black;width:100%'>
     <tr><th colspan='3'>Manual Dexterity</th></tr>
     <tr><td style='width:33%'>Component score <p>{score:md_cmp}</p></td>
-        <td style='width:33%'>Standard score <p>{score:md_std}</p></td>
-        <td style='width:33%'>Percentile <p>{score:md_pct}</p></td></tr>
+        <td style='width:33%'>Standard score <p><span class='score1'>{score:md_std}</span></p></td>
+        <td style='width:33%'>Percentile <p>{score:md_pct} %</p></td></tr>
     </table>
     <p>&nbsp;</p>
 
     <table style='border:1px solid black;width:100%'>
     <tr><th colspan='3'>Aiming & Catching</th></tr>
     <tr><td style='width:33%'>Component score <p>{score:ac_cmp}</p></td>
-        <td style='width:33%'>Standard score <p>{score:ac_std}</p></td>
-        <td style='width:33%'>Percentile <p>{score:ac_pct}</p></td></tr>
+        <td style='width:33%'>Standard score <p><span class='score1'>{score:ac_std}</span></p></td>
+        <td style='width:33%'>Percentile <p>{score:ac_pct} %</p></td></tr>
     </table>
     <p>&nbsp;</p>
 
     <table style='border:1px solid black;width:100%'>
     <tr><th colspan='3'>Balance</th></tr>
     <tr><td style='width:33%'>Component score <p>{score:bal_cmp}</p></td>
-        <td style='width:33%'>Standard score <p>{score:bal_std}</p></td>
-        <td style='width:33%'>Percentile <p>{score:bal_pct}</p></td></tr>
+        <td style='width:33%'>Standard score <p><span class='score1'>{score:bal_std}</span></p></td>
+        <td style='width:33%'>Percentile <p>{score:bal_pct} %</p></td></tr>
+    </table>
+    <p>&nbsp;</p>
+
+    <table style='border:1px solid black;width:100%'>
+    <tr><th colspan='3'>Total</th></tr>
+    <tr><td style='width:33%'>Total test score <p>{score:total_score}</p></td>
+        <td style='width:33%'>Standard score <p><span class='score1'>{score:total_std}</span></p></td>
+        <td style='width:33%'>Percentile <p>{score:total_pct} % &nbsp;&nbsp;<strong>{score:total_zone}</strong></p></td></tr>
     </table>
 ";
 }
@@ -743,6 +776,29 @@ static private $labels = array(
         return( [$stdScore,$percentile] );
     }
 
+    static function GetTotalScore( int $total )
+    {
+        $stdScore = 0;
+        $percentile = 0;
+        $zone = "";
+
+        // floor and ceiling cases
+        if( $total < 29  )   $total = 29;
+        if( $total > 108  )  $total = 108;
+
+        foreach( self::$raTestTotals as $ra ) {
+            $raTotals = SEEDCore_ParseRangeStr( $ra['total'] );
+            if( in_array($total, $raTotals[0]) ) {
+                $stdScore = $ra['std'];
+                $percentile = $ra['pct'];
+                $zone = $ra['zone'];
+                break;
+            }
+        }
+
+        return( [$stdScore,$percentile,$zone] );
+    }
+
 
 // Map component totals to standard totals and percentiles
 static private $raComponentTotals = array(
@@ -767,28 +823,26 @@ static private $raComponentTotals = array(
     ['md'=>"0-4",   'ac'=>"0-7",   'bal'=>"0-9",   'std'=>1,  'pct'=>0.1 ]
 );
 
-/*
-Total Test Score
-standard score	total score	percentile	zone
-19	>107	99.9	green
-18	105-107	99.5	green
-17	102-104	99	green
-16	99-101	98	green
-15	96-98	95	green
-14	93-95	91	green
-13	90-92	84	green
-12	86-89	75	green
-11	82-85	63	green
-10	78-81	50	green
-9	73-77	37	green
-8	68-72	25	green
-7	63-67	16	green
-6	57-62	9	yellow
-5	50-56	5	yellow
-4	44-49	2	red
-3	38-43	1	red
-2	30-37	.5	red
-1	<30	.1	red
-*/
-
+// Map total test score to standard totals and percentiles
+static private $raTestTotals = array(
+    ['total'=>"108",     'std'=>19, 'pct'=>99.9, 'zone'=>"green" ],
+    ['total'=>"105-107", 'std'=>18, 'pct'=>99.5, 'zone'=>"green" ],
+    ['total'=>"102-104", 'std'=>17, 'pct'=>99,   'zone'=>"green" ],
+    ['total'=>"99-101",  'std'=>16, 'pct'=>98,   'zone'=>"green" ],
+    ['total'=>"96-98",   'std'=>15, 'pct'=>95,   'zone'=>"green" ],
+    ['total'=>"93-95",   'std'=>14, 'pct'=>91,   'zone'=>"green" ],
+    ['total'=>"90-92",   'std'=>13, 'pct'=>84,   'zone'=>"green" ],
+    ['total'=>"86-89",   'std'=>12, 'pct'=>75,   'zone'=>"green" ],
+    ['total'=>"82-85",   'std'=>11, 'pct'=>63,   'zone'=>"green" ],
+    ['total'=>"78-81",   'std'=>10, 'pct'=>50,   'zone'=>"green" ],
+    ['total'=>"73-77",   'std'=>9,  'pct'=>37,   'zone'=>"green" ],
+    ['total'=>"68-72",   'std'=>8,  'pct'=>25,   'zone'=>"green" ],
+    ['total'=>"63-67",   'std'=>7,  'pct'=>16,   'zone'=>"green" ],
+    ['total'=>"57-62",   'std'=>6,  'pct'=>9,    'zone'=>"yellow" ],
+    ['total'=>"50-56",   'std'=>5,  'pct'=>5,    'zone'=>"yellow" ],
+    ['total'=>"44-49",   'std'=>4,  'pct'=>2,    'zone'=>"red" ],
+    ['total'=>"38-43",   'std'=>3,  'pct'=>1,    'zone'=>"red" ],
+    ['total'=>"30-37",   'std'=>2,  'pct'=>0.5,  'zone'=>"red" ],
+    ['total'=>"29",      'std'=>1,  'pct'=>0.1,  'zone'=>"red" ]
+);
 }
