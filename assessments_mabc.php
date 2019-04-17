@@ -52,6 +52,7 @@ class AssessmentData_MABC extends AssessmentData
                 case 'bal1avg': $ret = $this->getAverage( 'bal1a', 'bal1b' );   break;
                 case 'bal3avg': $ret = $this->getAverage( 'bal3a', 'bal3b' );   break;
 
+                // Component score totals
                 case 'md_cmp':
                     if( $this->ageBand == 1 ) {
                     } else {
@@ -78,7 +79,17 @@ class AssessmentData_MABC extends AssessmentData
                     }
                     break;
 
-
+                // Standard scores and percentiles for component totals
+                case 'md_std':
+                case 'md_pct':
+                case 'ac_std':
+                case 'ac_pct':
+                case 'bal_std':
+                case 'bal_pct':
+                    $component = strtok($item,"_"); // md, ac, bal
+                    list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
+                    $ret = (substr($item,-3)=='std') ? $std : $pct;
+                    break;
             }
         }
 
@@ -149,15 +160,20 @@ class AssessmentUI_MABC extends AssessmentUIColumns
         switch( $ageBand ) {
             case 1:
             default:
-                $s .= $this->scoreSummary1;
+                $raSum = $this->scoreSummary1;
                 break;
             case 2:
-                $s .= $this->scoreSummary2;
+                $raSum = $this->scoreSummary2;
                 break;
             case 3:
-                $s .= $this->scoreSummary3;
+                $raSum = $this->scoreSummary3;
                 break;
         }
+        $s .= $this->scoreSummary;
+        $s = str_replace( "{mdForm}",  $raSum[0], $s );
+        $s = str_replace( "{acForm}",  $raSum[1], $s );
+        $s = str_replace( "{balForm}", $raSum[2], $s );
+
 
         // subst {label:X}
         foreach( $this->raBasicItems as $item ) {
@@ -188,9 +204,39 @@ class AssessmentUI_MABC extends AssessmentUIColumns
 
 private $scoreSummary1 = "";
 
-private $scoreSummary3 = "";
+private $scoreSummary2 = [
+    "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+     <tr><td class='label0'>{label:md1b}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+     <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>",
 
-private $scoreSummary2 = "
+    "<tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
+     <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+     <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>"
+];
+
+private $scoreSummary3 = [
+    "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
+     <tr><td class='label0'>{label:md1b}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
+     <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:ac1a}</td><td>{raw:ac1a}</td><td class='score0'>{score:ac1a}</td><td><div class='score1'>{score:ac1avg}</div></td></tr>
+     <tr><td class='label0'>{label:ac1b}</td><td>{raw:ac1b}</td><td class='score0'>{score:ac1b}</td><td>&nbsp;</td></tr>
+     <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>",
+
+    "<tr><td class='label0'>{label:bal1}</td><td>{raw:bal1}</td><td>&nbsp;</td><td><div class='score1'>{score:bal1}</div></td></tr>
+     <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
+     <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
+     <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>"
+];
+
+private $scoreSummary = "
     <style>
     .label0 {font-size:9pt}
     .score0 {font-size:9pt}
@@ -200,27 +246,13 @@ private $scoreSummary2 = "
     <table width='100%'>
     <tr><th style='width:33%'>Manual Dexterity</th><th style='width:33%'>Aiming & Catching</th><th style='width:33%'>Balance</th></tr>
     <tr><td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
-          <table>
-              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
-              <tr><td class='label0'>{label:md1a}</td><td>{raw:md1b}</td><td class='score0'>{score:md1b}</td><td>&nbsp;</td></tr>
-              <tr><td class='label0'>{label:md2}</td><td>{raw:md2}</td><td>&nbsp;</td><td><div class='score1'>{score:md2}</div></td></tr>
-              <tr><td class='label0'>{label:md3}</td><td>{raw:md3}</td><td>&nbsp;</td><td><div class='score1'>{score:md3}</div></td></tr>
-          </table>
+          <table>{mdForm}</table>
         </td>
         <td style='width:33%;padding:0px 5px;border-right:1px solid #ccc' valign='top'>
-          <table width='100%'>
-              <tr><td class='label0'>{label:ac1}</td><td>{raw:ac1}</td><td>&nbsp;</td><td><div class='score1'>{score:ac1}</div></td></tr>
-              <tr><td class='label0'>{label:ac2}</td><td>{raw:ac2}</td><td>&nbsp;</td><td><div class='score1'>{score:ac2}</div></td></tr>
-          </table>
+          <table width='100%'>{acForm}</table>
         </td>
         <td style='width:33%;padding:0px 5px' valign='top'>
-          <table width='100%'>
-              <tr><td class='label0'>{label:bal1a}</td><td>{raw:bal1a}</td><td class='score0'>{score:bal1a}</td><td><div class='score1'>{score:bal1avg}</div></td></tr>
-              <tr><td class='label0'>{label:bal1b}</td><td>{raw:bal1b}</td><td class='score0'>{score:bal1b}</td><td>&nbsp;</td></tr>
-              <tr><td class='label0'>{label:bal2}</td><td>{raw:bal2}</td><td>&nbsp;</td><td><div class='score1'>{score:bal2}</div></td></tr>
-              <tr><td class='label0'>{label:bal3a}</td><td>{raw:bal3a}</td><td class='score0'>{score:bal3a}</td><td><div class='score1'>{score:bal3avg}</div></td></tr>
-              <tr><td class='label0'>{label:bal3b}</td><td>{raw:bal3b}</td><td class='score0'>{score:bal3b}</td><td>&nbsp;</td></tr>
-          </table>
+          <table width='100%'>{balForm}</table>
         </td>
     </tr>
     </table>
@@ -689,7 +721,74 @@ static private $labels = array(
          ],
 );
 
+    static function GetComponentTotalScore( string $component, int $score )
+    {
+        $stdScore = 0;
+        $percentile = 0;
+
+        // ceiling cases
+        if( $component == 'md' && $score > 43  )  $score = 43;
+        if( $component == 'ac' && $score > 33  )  $score = 33;
+        if( $component == 'bal' && $score > 44  )  $score = 44;
+
+        foreach( self::$raComponentTotals as $ra ) {
+            $raCompScores = SEEDCore_ParseRangeStr( $ra[$component] );
+            if( in_array($score, $raCompScores[0]) ) {
+                $stdScore = $ra['std'];
+                $percentile = $ra['pct'];
+                break;
+            }
+        }
+
+        return( [$stdScore,$percentile] );
+    }
 
 
+// Map component totals to standard totals and percentiles
+static private $raComponentTotals = array(
+    ['md'=>"43",    'ac'=>"33",    'bal'=>"44",    'std'=>19, 'pct'=>99.9 ],    // these are all ceilings
+    ['md'=>"42",    'ac'=>"31-32", 'bal'=>"42-43", 'std'=>18, 'pct'=>99.5 ],
+    ['md'=>"41",    'ac'=>"30",    'bal'=>"40-41", 'std'=>17, 'pct'=>99 ],
+    ['md'=>"40",    'ac'=>"29",    'bal'=>"38-39", 'std'=>16, 'pct'=>98 ],
+    ['md'=>"38-39", 'ac'=>"27-28", 'bal'=>"37",    'std'=>15, 'pct'=>95 ],
+    ['md'=>"37",    'ac'=>"26",    'bal'=>"36",    'std'=>14, 'pct'=>91 ],
+    ['md'=>"35-36", 'ac'=>"24-25", 'bal'=>"",      'std'=>13, 'pct'=>84 ],
+    ['md'=>"33-34", 'ac'=>"22-23", 'bal'=>"35",    'std'=>12, 'pct'=>75 ],
+    ['md'=>"31-32", 'ac'=>"21",    'bal'=>"33-34", 'std'=>11, 'pct'=>63 ],
+    ['md'=>"29-30", 'ac'=>"19-20", 'bal'=>"31-32", 'std'=>10, 'pct'=>50 ],
+    ['md'=>"26-28", 'ac'=>"17-18", 'bal'=>"28-30", 'std'=>9,  'pct'=>37 ],
+    ['md'=>"24-25", 'ac'=>"15-16", 'bal'=>"25-27", 'std'=>8,  'pct'=>25 ],
+    ['md'=>"22-23", 'ac'=>"14",    'bal'=>"23-24", 'std'=>7,  'pct'=>16 ],
+    ['md'=>"19-21", 'ac'=>"13",    'bal'=>"19-22", 'std'=>6,  'pct'=>9 ],
+    ['md'=>"16-18", 'ac'=>"11-12", 'bal'=>"15-18", 'std'=>5,  'pct'=>5 ],
+    ['md'=>"13-15", 'ac'=>"10",    'bal'=>"13-14", 'std'=>4,  'pct'=>2 ],
+    ['md'=>"9-12",  'ac'=>"9",     'bal'=>"11-12", 'std'=>3,  'pct'=>1 ],
+    ['md'=>"4-8",   'ac'=>"7-8",   'bal'=>"9-10",  'std'=>2,  'pct'=>0.5 ],
+    ['md'=>"0-4",   'ac'=>"0-7",   'bal'=>"0-9",   'std'=>1,  'pct'=>0.1 ]
+);
+
+/*
+Total Test Score
+standard score	total score	percentile	zone
+19	>107	99.9	green
+18	105-107	99.5	green
+17	102-104	99	green
+16	99-101	98	green
+15	96-98	95	green
+14	93-95	91	green
+13	90-92	84	green
+12	86-89	75	green
+11	82-85	63	green
+10	78-81	50	green
+9	73-77	37	green
+8	68-72	25	green
+7	63-67	16	green
+6	57-62	9	yellow
+5	50-56	5	yellow
+4	44-49	2	red
+3	38-43	1	red
+2	30-37	.5	red
+1	<30	.1	red
+*/
 
 }
