@@ -485,10 +485,10 @@ class Assessment_MABC_Scores
 {
     static function GetScores( $age )
     {
-        if( $age >= 3.0 && $age < 3.5 )     return( $this->scores['age3:0-3:5'] );
-        if( $age >= 3.5 && $age < 4.0 )     return( $this->scores['age3:6-3:11'] );
-        if( $age >= 4.0 && $age < 4.5 )     return( $this->scores['age4:0-4:5'] );
-        if( $age >= 4.5 && $age < 5.0 )     return( $this->scores['age4:6-4:11'] );
+        if( $age >= 3.0 && $age < 3.5 )     return( self::$scores['age3:0-3:5'] );
+        if( $age >= 3.5 && $age < 4.0 )     return( self::$scores['age3:6-3:11'] );
+        if( $age >= 4.0 && $age < 4.5 )     return( self::$scores['age4:0-4:5'] );
+        if( $age >= 4.5 && $age < 5.0 )     return( self::$scores['age4:6-4:11'] );
 
         $age = intval( $age );
 
