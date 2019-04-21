@@ -152,7 +152,8 @@ class CATS_MainUI extends CATS_UI
             //array( 'therapist-team',            "Meet the Team" ),
             //array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clinicresources', "Print Clinic Resources"),
-            array( 'therapist-viewSOPs',        "View Standard Operating Procedures" )
+            array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
+            array( 'therapist-akaunting',       "Akaunting" )
         );
 
         $s = "";
@@ -219,6 +220,10 @@ class CATS_MainUI extends CATS_UI
                 break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
+                break;
+            case "therapist-akaunting":
+                require_once CATSLIB."AkauntingReports.php";
+                $s .= AkauntingReport($this->oApp);
                 break;
         }
         return( $s );
