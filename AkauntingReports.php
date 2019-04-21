@@ -40,6 +40,35 @@ class AkauntingReports
         return( $raRows );
     }
 
+    function GetLedgerRAForDisplay( $raParms = array() )
+    /***************************************************
+        Same as GetLedgerRA but if sorting by account put a total after each account
+     */
+    {
+        $raOut = array();
+        $raRows = $this->GetLedgerRA( $raParms );
+
+        $raAcctLast = "";
+        $total = $dtotal = $ctotal = 0;
+        foreach( $raRows as $ra ) {
+            if( SEEDCore_StartsWith( @$raParms['sort'], 'code' ) ) {
+                if( $raAcctLast && $raAcctLast != $ra['code'] ) {
+                    $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
+                    $total = $dtotal = $ctotal = 0;
+                }
+                $dtotal += $ra['d'];
+                $ctotal += $ra['c'];
+                $total += $ra['d'] - $ra['c'];
+                $raAcctLast = $ra['code'];
+            }
+
+            $ra['acct'] = $ra['code']." : ".$ra['name'];
+            $raOut[] = $ra;
+        }
+
+        return( $raOut );
+    }
+
     function LedgerParmsFromRequest()
     {
         $raParms = [];
@@ -66,7 +95,7 @@ class AkauntingReports
 
         if( !$this->oAppAk ) goto done;
 
-        $raRows = $this->GetLedgerRA( $this->LedgerParmsFromRequest() );
+        $raRows = $this->GetLedgerRAForDisplay( $this->LedgerParmsFromRequest() );
 
         $sCurrParms = "sort=".SEEDInput_Str('sort');
 
@@ -79,10 +108,21 @@ class AkauntingReports
              ."</div>";
 
         $s .= "<table cellpadding='10' border='1'>"
-            ."<tr><th>Company</th><th><a href='{$_SERVER['PHP_SELF']}?sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?sort=name'>Account</a></th><th>Debit</th><th>Credit</th></tr>"
-            .SEEDCore_ArrayExpandRows( $raRows, "<tr><td>[[company_id]]</td><td>[[date]]</td><td>[[code]] : [[name]]</td><td> [[d]]</td><td> [[c]]</tr>" )
-            ."</table>";
-
+            ."<tr><th>Company</th><th><a href='{$_SERVER['PHP_SELF']}?sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?sort=name'>Account</a></th><th>Debit</th><th>Credit</th><th>&nbsp;</th></tr>";
+        foreach( $raRows as $ra ) {
+            if( isset($ra['total']) ) {
+                // sometimes we insert a special row with a total element
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
+                                                    ."<td><span style='color:gray'>[[dtotal]]</span></td>"
+                                                    ."<td><span style='color:gray'>[[ctotal]]</span></td>"
+                                                    ."<td><strong>[[total]]</strong></td></tr>" );
+                $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
+            } else {
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>[[company_id]]</td><td>[[date]]</td><td>[[acct]]</td>"
+                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</tr>" );
+            }
+        }
+        $s .= "</table>";
 
         done:
         return( $s );
@@ -143,14 +183,29 @@ class AkauntingReportSpreadsheet
         $filename = "CATS Akaunting.xlsx";
 
         $o = new AkauntingReports( $this->oApp );
-        $raRows = $o->GetLedgerRA( $raParms );
+        $raRows = $o->GetLedgerRAForDisplay( $raParms );
 
         $raCols = array(
             'date'  => 'Date',
-            'name'  => 'Last name',
+            'acct'  => 'Account',
             'd'     => 'Debit',
-            'c'     => 'Credit',
+            'c'     => 'Credit'
         );
+        if( SEEDCore_StartsWith( @$raParms['sort'], 'code' ) ) {
+            $raCols['total'] = 'Total';
+
+            $ra2 = $raRows;
+            $raRows = array();
+            foreach( $ra2 as $ra ) {
+                if( isset($ra['total']) ) {
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>$ra['dtotal'],'c'=>$ra['ctotal'],'total'=>$ra['total']];
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>'','c'=>'','total'=>''];
+                } else {
+                    $ra['total'] = '';
+                    $raRows[] = $ra;
+                }
+            }
+        }
 
         $this->storeSheet( $oXls, 0, "Akaunting", $raRows, $raCols );
 
