@@ -164,20 +164,6 @@ class AssessmentUI_MABC extends AssessmentUIColumns
 
         $s .= "<p>Age at test date: $age</p>";
 
-        if( CATS_DEBUG ) {
-            $raResults = [];
-
-            foreach( array_merge($this->raBasicItems, $this->raComputedItems) as $item ) {
-                $raResults[$item] = $this->oData->ComputeScore($item);
-            }
-
-            // All the code below will be replaced by this template
-            $oTmpl = SEEDTemplateMaker2( ['fTemplates'=> [CATSLIB."templates/assessments_mabc.twig"]] );
-            $s .= $oTmpl->ExpandTmpl( "assessments_mabc_results_$ageBand", $raResults );
-        }
-
-// Put all this html into twig but don't get rid of the code below because it's used in the live version.
-// Then when the new section works the same as the old one, get rid of this code and take away the CATS_DEBUG.
         switch( $ageBand ) {
             case 1:
             default:
