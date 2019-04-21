@@ -66,7 +66,7 @@ class ReceiptsProcessor {
     
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
-        "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
+        "amount" => '/\$-?[0-9]+\.?[0-9]*H?($|[, ])/',
         "income" => "/".self::INCOME."/i",
         "scheduled" => "/".self::SCHEDULED_PAYMENT."/i",
         "dates"   => array(
@@ -274,7 +274,7 @@ class ReceiptsProcessor {
             return self::DISCARDED_NO_AMOUNT;
         }
         $amount = $matches[0];
-        $amount = substr($amount, 1, -1); //Extract amount from wrappers
+        $amount = trim($amount, '$, '); //Extract amount from wrappers
         if(substr_compare($amount, "H", -1, 1, TRUE) == 0){
             $amount = substr($amount, 0, -1); //Remove the 'H' from the amount
             $amount *= self::HST;
@@ -498,8 +498,6 @@ class ReceiptsProcessor {
             foreach ($pattern as $value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
             return $subject;
         } else {
-            var_dump($subject,$pattern,preg_replace($pattern, $replacement, $subject, $limit));
-            echo "<br />";
             return preg_replace($pattern, $replacement, $subject, $limit);
         }
     }
