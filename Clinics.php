@@ -4,6 +4,7 @@ require_once 'handle_images.php';
 
 class Clinics {
     private $oApp;
+    private $clinicsDB;
 
     private const NO_ACCESS     = 0;
     private const LEADER_ACCESS = 1;
@@ -15,6 +16,7 @@ class Clinics {
     
     function __construct( SEEDAppSessionAccount $oApp ) {
         $this->oApp = $oApp;
+        $this->clinicsDB = new ClinicsDB($this->oApp->kfdb);
     }
 
     function isCoreClinic(){
@@ -71,7 +73,7 @@ class Clinics {
 
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
         $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
-        $leading = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
+        $leading = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         foreach($leading as $k => $ra){
             if($this->containsClinic($ra, $clinics)){
                 unset($leading[$k]);
@@ -151,7 +153,7 @@ class Clinics {
      * @return array of keys of clinics which match the email
      */
     public function getClinicsByEmail(String $email){
-        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
+        $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
         $clinicKeys = array();
         foreach($clinics as $k => $v){
             array_push($clinicKeys, $v["_key"]);
@@ -160,7 +162,7 @@ class Clinics {
     }
     
     public function getClinicsByName(String $name){
-        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.clinic_name='".$name."'");
+        $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.clinic_name='".$name."'");
         $clinicKeys = array();
         foreach($clinics as $k => $v){
             array_push($clinicKeys, $v["_key"]);
@@ -172,12 +174,21 @@ class Clinics {
         if(!$user){
             $user = $this->oApp->sess->GetUID();
         }
-        $clinics = (new ClinicsDB($this->oApp->kfdb))->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
+        $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         $clinicKeys = array();
         foreach($clinics as $k => $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
+    }
+    
+    public function getClinicsWithAkaunting($user=NULL){
+        $accessType = $this->checkAccess($user);
+        if(!$accessType == self::FULL_ACCESS && !$this->isCoreClinic()){
+            //Not core clinic and user does not have full access to clinic settings
+            return false;
+        }
+        return( array_column($this->clinicsDB->KFRel()->GetRecordSetRA("akaunting_company != 0"),'_key') );
     }
     
     public function getImage(int $imageID, $clinic = null){
