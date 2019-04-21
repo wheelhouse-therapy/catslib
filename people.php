@@ -33,15 +33,14 @@ class People
 
     function GetAge( $sCSE, $k, $atDate = "" )
     {
-        $age = 0.0;
+        $age = "";
         $raC = $this->getCSE( $sCSE, $k );
 
         if( $raC['P_dob'] ) {
             $date1 = new DateTime( $raC['P_dob'] );
             $date2 = new DateTime( $atDate ?: "now" );
 
-            $interval = $date2->diff($date1);
-            $age = $interval->days / 365.25;
+            $age = date_diff($date1, $date2)->format("%y Years %m Months");
         }
 
         return( $age );

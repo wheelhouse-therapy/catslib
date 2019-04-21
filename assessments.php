@@ -1,7 +1,8 @@
 <?php
 
 include( "assessments_mabc.php" );
-include( "assessments_spm.php" );
+include( "assessments_spm.php"  );
+include( "assessments_aasp.php" );
 
 
 $raGlobalAssessments = array(
@@ -900,20 +901,20 @@ class Assessment_AASP extends Assessments
 {
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        $oData = null;// new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
-        $oUI = null;// new AssessmentUI_AASP( $oData );
+        $oData = new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_AASP( $oData );
 
         parent::__construct( $oAsmt, 'aasp', $oData, $oUI );
     }
 
     function DrawAsmtForm( int $kClient )
     {
-        return( "FORM" );
+        return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
     function DrawAsmtResult()
     {
-        return( "RESULTS" );
+        return( $this->drawResult() );
     }
 
     protected function GetScore( $n, $v ):int
