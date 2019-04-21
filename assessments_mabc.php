@@ -171,6 +171,11 @@ class AssessmentUI_MABC extends AssessmentUIColumns
                 $raResults[$item] = $this->oData->ComputeScore($item);
             }
 
+            foreach( $this->raBasicItems as $item ) {
+                $raResults[$item.'_label'] = $this->oData->GetItemLabel($item);
+                $raResults[$item.'_raw'] = $this->oData->GetRaw($item);
+            }
+
             // All the code below will be replaced by this template
             $oTmpl = SEEDTemplateMaker2( ['fTemplates'=> [CATSLIB."templates/assessments_mabc.twig"]] );
             $s .= $oTmpl->ExpandTmpl( "assessments_mabc_results_$ageBand", $raResults );
