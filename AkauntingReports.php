@@ -87,15 +87,17 @@ class AkauntingReports
             foreach($clinics as $option){
                 $raData = $clinicsDB->GetClinic($option);
                 if($option == $clinic){
-                    $sForm = SEEDCore_ArrayExpand($raData, "<option selected value='[[akaunting_company]]'>[[clinic_name]]</option>");
+                    $sForm .= SEEDCore_ArrayExpand($raData, "<option selected value='[[akaunting_company]]'>[[clinic_name]]</option>");
                 }
                 else{
-                    $sForm = SEEDCore_ArrayExpand($raData, "<option value='[[akaunting_company]]'>[[clinic_name]]</option>");
+                    $sForm .= SEEDCore_ArrayExpand($raData, "<option value='[[akaunting_company]]'>[[clinic_name]]</option>");
                 }
             }
+            $sForm .= "</select></form>";
         }
         
-        $s = "<table cellpadding='10' border='1'>"
+        $s = "<div id='companyFormContainer'>".$sForm."</div>"
+            ."<table cellpadding='10' border='1'>"
             ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=name'>Account</a></th><th>Debit</th><th>Credit</th></tr>"
             .($raRows?SEEDCore_ArrayExpandRows( $raRows, "<tr><td>[[date]]</td><td>[[code]] : [[name]]</td><td> [[d]]</td><td> [[c]]</tr>"):"Could not get Accounting Data" )
             ."</table>";
