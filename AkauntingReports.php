@@ -31,17 +31,17 @@ class AkauntingReports
         $sOrderBy = @$raParms['sort'] ? " ORDER BY {$raParms['sort']} " : "";
 
         $cid =(new ClinicsDB($this->oApp->kfdb))->GetClinic(@$raParms['clinic']?:$this->clinics->GetCurrentClinic())->Value("akaunting_company");
-        
+
         if(!$cid){
             $this->oApp->oC->AddErrMsg("Clinic does not have an accounting ID set");
             return( FALSE );
         }
-        
+
         $sql =
             "select A.account_id,A.entry_type,A.debit as d,A.credit as c,LEFT(A.issued_at,10) as date, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
-            ."where A.account_id=B.id AND company_id=$cid"
+            ."where A.account_id=B.id AND B.company_id='$cid'"
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -117,16 +117,17 @@ class AkauntingReports
             $clinicsDB = new ClinicsDB($this->oApp->kfdb);
             $sForm = "<form style='display:inline' id='companyForm'><select name='Akaunting_clinic' onChange=\"document.getElementById('companyForm').submit()\">";
             foreach($clinics as $option){
-                $raData = $clinicsDB->GetClinic($option);
+                $kfrData = $clinicsDB->GetClinic($option);
                 if($option == $clinic){
-                    $sForm = SEEDCore_ArrayExpand($raData, "<option selected value='[[akaunting_company]]'>[[clinic_name]]</option>");
+                    $sForm .= $kfrData->Expand( "<option selected value='[[_key]]'>[[clinic_name]]</option>");
                 }
                 else{
-                    $sForm = SEEDCore_ArrayExpand($raData, "<option value='[[akaunting_company]]'>[[clinic_name]]</option>");
+                    $sForm .= $kfrData->Expand( "<option value='[[_key]]'>[[clinic_name]]</option>");
                 }
             }
+            $sForm .= "</select></form>";
         }
-        
+
         $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
                  ."<a href='jx.php?cmd=therapist-akaunting-xlsx&$sCurrParms'><button>Download</button></a>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -134,18 +135,19 @@ class AkauntingReports
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
              ."</div>";
 
-        $s .= "<table cellpadding='10' border='1'>"
-            ."<tr><th>Company</th><th><a href='{$_SERVER['PHP_SELF']}?sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?sort=name'>Account</a></th><th>Debit</th><th>Credit</th><th>&nbsp;</th></tr>";
+        $s .= "<div id='companyFormContainer'>".$sForm."</div>"
+            ."<table cellpadding='10' border='1'>"
+            ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=name'>Account</a></th><th>Debit</th><th>Credit</th><th>&nbsp;</th></tr>";
         foreach( $raRows as $ra ) {
             if( isset($ra['total']) ) {
                 // sometimes we insert a special row with a total element
-                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>"
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td>"
                                                     ."<td><span style='color:gray'>[[dtotal]]</span></td>"
                                                     ."<td><span style='color:gray'>[[ctotal]]</span></td>"
                                                     ."<td><strong>[[total]]</strong></td></tr>" );
-                $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
+                $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
             } else {
-                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>[[company_id]]</td><td>[[date]]</td><td>[[acct]]</td>"
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>[[date]]</td><td>[[acct]]</td>"
                                                     ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</tr>" );
             }
         }
