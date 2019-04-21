@@ -146,10 +146,10 @@ class AkauntingReportSpreadsheet
         $raRows = $o->GetLedgerRA( $raParms );
 
         $raCols = array(
-            'date'   => 'Date',
-            'name'    => 'Last name',
-            'd'      => 'Debit',
-            'c'         => 'Credit',
+            'date'  => 'Date',
+            'name'  => 'Last name',
+            'd'     => 'Debit',
+            'c'     => 'Credit',
         );
 
         $this->storeSheet( $oXls, 0, "Akaunting", $raRows, $raCols );
@@ -176,11 +176,6 @@ class AkauntingReportSpreadsheet
 
     private function storeSheet( $oXls, $iSheet, $sSheetName, $raRows, $raCols )
     {
-//        $c = 'A';
- //       foreach( $raCols as $ra ) {
-  //          var_dump($c);
-   //     }exit;
-
         $oSheet = $oXls->setActiveSheetIndex( $iSheet );
         $oSheet->setTitle( $sSheetName );
 
