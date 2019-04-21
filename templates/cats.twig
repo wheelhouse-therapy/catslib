@@ -20,6 +20,12 @@
         Welcome {{user_name|raw}} <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
     </div>
 </div>
+{% if ConsoleUserMsg %}
+    <div class='alert alert-success'>{{ConsoleUserMsg|raw}}</div>
+{% endif %}
+{% if ConsoleErrMsg %}
+    <div class='alert alert-danger'>{{ConsoleErrMsg|raw}}</div>
+{% endif %}
 {% include 'cats_support' %}
 
 

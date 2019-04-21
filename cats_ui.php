@@ -28,37 +28,38 @@ class CATS_UI
 
     function Header()
     {
-
         return "";
     }
 
-     function OutputPage( $body )
-     {
+    function OutputPage( $body )
+    {
+        if( !$this->oApp->sess->IsLogin() ) {
+            echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
+            exit;
+        }
 
+        $body .=
+            "<script> SEEDCore_CleanBrowserAddress(); </script>
+             <script> run(); </script>
+             <script src='w/js/tooltip.js'></script>";
 
-    $body .= "<script> SEEDCore_CleanBrowserAddress(); </script>
+        $clinics = new Clinics($this->oApp);
+        $s = $this->oTmpl->ExpandTmpl( 'cats_page',
+            ['img_cats_logo'=>CATS_LOGO,
+                'CATSDIR'=>CATSDIR,
+                'CATSDIR_CSS'=>CATSDIR_CSS,
+                'CATSDIR_JS'=>CATSDIR_JS,
+                'CATSDIR_IMG'=>CATSDIR_IMG,
+                'W_CORE_URL'=>W_CORE_URL,
+                'ConsoleUserMsg'=>$this->oApp->oC->GetUserMsg(),
+                'ConsoleErrMsg'=>$this->oApp->oC->GetErrMsg(),
 
-    <script> run(); </script>
-    <script src='w/js/tooltip.js'></script>
-    </body></html>";
+                'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->oHistory->getScreen()],
+                'screen_name'=>$this->oHistory->getScreen(),
+                'user_name'=>$this->oApp->sess->GetName(),
+                'clinics'=>$clinics->displayUserClinics(), 'body' => $body
 
-    if( !$this->oApp->sess->IsLogin() ) {
-        echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
-        exit;
-    }
-    $clinics = new Clinics($this->oApp);
-    $s = $this->oTmpl->ExpandTmpl( 'cats_page',
-        ['img_cats_logo'=>CATS_LOGO,
-            'CATSDIR'=>CATSDIR,
-            'CATSDIR_CSS'=>CATSDIR_CSS,
-            'CATSDIR_JS'=>CATSDIR_JS,
-            'CATSDIR_IMG'=>CATSDIR_IMG,
-            'W_CORE_URL'=>W_CORE_URL,
-
-            'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->oHistory->getScreen()],
-            'screen_name'=>$this->oHistory->getScreen(),
-            'user_name'=>$this->oApp->sess->GetName(),
-            'clinics'=>$clinics->displayUserClinics(), 'body' => $body ] );
+            ] );
 
         return( $s );
     }
