@@ -1,0 +1,37 @@
+# assessments_mabc_results
+#
+# This shows the results of an MABC test.
+#
+# There are three slightly different forms, each for a different age band. 
+#   Expand assessments_mabc_results_1, _2, _3 depending on the applicable age band.
+#
+# All raw and computed scores are supplied e.g. md1_raw, md1_std, md_cmp, md_pct, etc.
+
+%% assessments_mabc_results_1
+{% extends "assessments_mabc_results_parent" %}
+{% block dummy %}
+age band 1
+{% endblock %}
+
+
+%% assessments_mabc_results_2
+{% extends "assessments_mabc_results_parent" %}
+{% block dummy %}
+age band 2
+{% endblock %}
+
+
+%% assessments_mabc_results_3
+{% extends "assessments_mabc_results_parent" %}
+{% block dummy %}
+age band 3
+{% endblock %}
+
+
+
+
+%% assessments_mabc_results_parent
+<div>
+Here are your MABC results for {% block dummy %}{% endblock %}. For example, numbers like {{md_cmp}}.
+</div>
+

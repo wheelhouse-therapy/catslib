@@ -3,7 +3,7 @@ include_once('twig_mappings.php');
 include_once('view_resources.php');
 include_once('share_resources.php');
 include_once('Clinics.php');
-include( SEEDCORE."SEEDTemplateMaker.php" );
+include_once( SEEDCORE."SEEDTemplateMaker.php" );
 
 /* Classes to help draw the user interface
  */
@@ -21,8 +21,8 @@ class CATS_UI
         $raTmplMaker = array( 'fTemplates'=> [CATSLIB."templates/cats.twig",
                                               CATSLIB."templates/cats_html.twig",
                                               CATSLIB."templates/extensions.twig"] );
-        $this->oTmpl = SEEDTemplateMaker( $raTmplMaker );
-        
+        $this->oTmpl = SEEDTemplateMaker2( $raTmplMaker );
+
         $this->oHistory = new ScreenManager($oApp);
     }
 
@@ -87,7 +87,7 @@ class CATS_MainUI extends CATS_UI
             // while restoring two screens goes back to screen1
             $screen = $this->oHistory->restoreScreen(-2);
         }
-        
+
         $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
@@ -113,7 +113,7 @@ class CATS_MainUI extends CATS_UI
         }else {
             $s .= $this->DrawHome();
         };
-        
+
         return( $s );
     }
 
@@ -248,7 +248,7 @@ class CATS_MainUI extends CATS_UI
                     //array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
-                    array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service") 
+                    array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
                 $s .= $this->drawCircles( $raScreens );
 
@@ -322,7 +322,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         }
         return( $s );
     }
-    
+
     private function drawCircles( $raScreens )
     {
         $s = "";
@@ -346,17 +346,17 @@ $oApp->kfdb->Execute("drop table $db.professionals");
 }
 
 class ScreenManager{
-    
+
     private $oApp;
     private $screens;
-    
+
     public function __construct(SEEDAppSessionAccount $oApp, bool $bLoadFromSession = TRUE){
         $this->oApp = $oApp;
         if ($bLoadFromSession){
             $this->load();
         }
     }
-    
+
     public function load($screens = NULL){
         if($screens == NULL){
             $this->screens = @$_SESSION['screenHistory']?:array();
@@ -369,11 +369,11 @@ class ScreenManager{
             $this->screens = $screens;
         }
     }
-    
+
     public function getScreen():String{
         return $this->getFromHistory(-1);
     }
-    
+
     /**
      * Restore the screen to a screen in the history array
      * The array is wiped such that the screen restored to is the last element in the array
@@ -387,7 +387,7 @@ class ScreenManager{
         $this->store();
         return $screen;
     }
-    
+
     /**
      * Remove the entry from the screen history array
      * @param int $index - The index of the screen to remove
@@ -399,7 +399,7 @@ class ScreenManager{
         array_splice($this->screens, $index, 1);
         $this->store();
     }
-    
+
     private function getFromHistory(int $index){
         //Default to home if the index requested does not exist
         if($index < 0){
@@ -407,7 +407,7 @@ class ScreenManager{
         }
         return @$this->screens[$index]?:"home";
     }
-    
+
     private function addToHisory($screen, $location = NULL){
         if($location == NULL){
             array_push($this->screens, $screen);
@@ -417,11 +417,11 @@ class ScreenManager{
         }
         $this->store();
     }
-    
+
     private function store(){
         $_SESSION['screenHistory'] = $this->screens;
     }
-    
+
 }
 
 class UsersGroupsPermsUI
