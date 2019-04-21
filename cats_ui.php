@@ -273,8 +273,8 @@ class CATS_MainUI extends CATS_UI
         $s = "";
         switch($this->oHistory->getScreen()){
             case 'developer-droptable':
-                global $catsDefKFDB;
-                $db = $catsDefKFDB['kfdbDatabase'];
+                global $config_KFDB;
+                $db = $config_KFDB['cats']['kfdbDatabase'];
                 $oApp = $this->oApp;
                 $oApp->kfdb->Execute("drop table $db.clients2");
                 $oApp->kfdb->Execute("drop table $db.pros_internal");
@@ -717,8 +717,8 @@ class UsersGroupsPermsUI
     }
 
     private function getUserStatusSelectionFormTemplate(){
-        global $catsDefKFDB;
-        $db = $catsDefKFDB['kfdbDatabase'];
+        global $config_KFDB;
+        $db = $config_KFDB['cats']['kfdbDatabase'];
         $options = $this->oApp->kfdb->Query1("SELECT SUBSTRING(COLUMN_TYPE,5) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='".$db."' AND TABLE_NAME='SEEDSession_Users' AND COLUMN_NAME='eStatus'");
         $options = substr($options, 1,strlen($options)-2);
         $options_array = str_getcsv($options, ',', "'");

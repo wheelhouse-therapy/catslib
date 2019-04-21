@@ -1,5 +1,10 @@
 <?php
 
+if(!$config_KFDB){
+    //FIXME Imlement new system on all mechines
+    $config_KFDB['cats'] = $catsDefKFDB;
+}
+
 /**
  * CATS_DEBUG is a constant which allows code to only work on production machines.
  * It is true when the host starts with localhost. This is important because serving on port 8080
@@ -76,7 +81,7 @@ if( !isset($email_processor['emailServer']) ) {
 
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(
-                array_merge( $catsDefKFDB,
+                array_merge( $config_KFDB['cats'],
                              array( 'sessPermsRequired' => array(),
                                     'logdir' => CATSDIR_LOG )
                            )
