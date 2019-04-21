@@ -10,6 +10,7 @@ use Ddeboer\Imap\Search\Flag\Unseen;
 use Ddeboer\Imap\MessageIterator;
 use Ddeboer\Imap\Message\EmailAddress;
 use Ddeboer\Imap\Message\Attachment;
+use Ddeboer\Imap\Search\Flag\Flagged;
 
 class ReceiptsProcessor {
 
@@ -42,24 +43,40 @@ class ReceiptsProcessor {
      * Could not identify if the entry is unpaid/company account/company credit card
      */
     const DISCARDED_UNKNOWN_ACCOUNT = -6;
+    /**
+     * Cannot schedule an entry with an attachment
+     */
+    const DISCARDED_SCHEDULING_FAILED = -7;
 
     //Body Entries Cutoff numbers
     const EMPTY_LINE_CUTOFF = 2;
     const DASH_CUTOFF = 8;
     const RETRY_CUTOFF = 3;
 
+    //Type Constants
+    const EXPENSE = "Expense";
+    const INCOME = "Income";
+    const NORMAL_PAYMENT = "Normal";
+    const SCHEDULED_PAYMENT = "Scheduled";
+    
+    //Account Constants
+    const COMPANY_ACCOUNT = "CA";
+    const COMPANY_CREDIT_CARD_ACCOUNT = "CCC";
+    const UNPAID_ACCOUNT = "UNPAID";
+    
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
         "amount" => "/\\$\\-?[0-9]+\\.?[0-9]*H?($|[, ])/",
-        "income" => "/income/i",
+        "income" => "/".self::INCOME."/i",
+        "scheduled" => "/".self::SCHEDULED_PAYMENT."/i",
         "dates"   => array(
             "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
             "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
             "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}\d{2}?)/i"
         ),
-        "companyCreditCard" => "/(?<=^|[^\\w])ccc(?=$|[^\\w])/i",
-        "companyAccount" => "/(?<=^|[^\\w])ca(?=$|[^\\w])/i",
-        "unpaid" => "/(?<=^|[^\\w])unpaid(?=$|[^\\w])/i",
+        "companyCreditCard" => "/(?<=^|[^\\w])".self::COMPANY_CREDIT_CARD_ACCOUNT."(?=$|[^\\w])/i",
+        "companyAccount" => "/(?<=^|[^\\w])".self::COMPANY_ACCOUNT."(?=$|[^\\w])/i",
+        "unpaid" => "/(?<=^|[^\\w])".self::UNPAID_ACCOUNT."(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i",
         "escapedSequence" => '/(?:"|“).*?(?:"|“)/'
@@ -85,7 +102,13 @@ class ReceiptsProcessor {
     public function processEmails($box = 'INBOX'){
         $mailbox = $this->connection->getMailbox($box);
         $search = new SearchExpression();
-        $search->addCondition(new Unseen());
+        if(CATS_DEBUG){
+            //Flagged Messages require dev investigation.
+            $search->addCondition(new Flagged());
+        }
+        else{
+            $search->addCondition(new Unseen());
+        }
         $this->processMessages($mailbox->getMessages($search));
     }
 
@@ -136,17 +159,24 @@ class ReceiptsProcessor {
                         $emptyLineCount++;
                         continue;
                     }
+                    $line = trim($line,'*');
                     if($emptyLineCount >= self::EMPTY_LINE_CUTOFF || preg_match('/-{'.self::DASH_CUTOFF.',}/', $line)){
                         //Its safe to assume there won't be any entries after this point
                         break;
                     }
                     $emptyLineCount = 0;
+                    if(!preg_match_all('/[^\s-]+/', $line)){
+                        //The line is empty but contains asterisks, don't try to process
+                        //The line will only match if it only contains whitespace, dashes and asterisks
+                        //The only difference between here and the above empty check is that we don't count the line as empty
+                        continue;
+                    }
                     $result = $this->processString($line, $attachment, $clinic, $from);
                     if($result instanceof AccountingEntry){
-                        $entries["line_".$key] =  $result;
+                        $entries["line_".($key+1)] =  $result;
                     }
                     else{
-                        $errors["line_".$key] = $result;
+                        $errors["line_".($key+1)] = $result;
                     }
                 }
             }
@@ -164,9 +194,14 @@ class ReceiptsProcessor {
             $results = array_diff_key($results, array('failed' => TRUE));
             
             // Mark the message as processed so we dont make duplicate entries
-            // Only mark as seen if we are not running on a production mechine
-            if(!CATS_DEBUG && $results){
-                $message->markAsSeen();
+            if($results){
+                if(CATS_DEBUG){
+                    // Instead of marking as seen we will unflag proccessed messages on dev mechines
+                    $message->clearFlag('\Flagged');
+                }
+                else{
+                    $message->markAsSeen();
+                }
             }
             else if(!CATS_DEBUG){
                 $raAttachments =  TempAttachment::createRA(new ArrayOfAttachment($message->getAttachments()));
@@ -247,13 +282,18 @@ class ReceiptsProcessor {
         }
         $incomeOrExpense = NULL; // Start as not defined
         if($amount < 0 || preg_match($this->PATTERNS["income"], $value)){
-            $incomeOrExpense = "Income";
+            $incomeOrExpense = self::INCOME;
             if($amount < 0){
                 $amount *= -1;
             }
         }
         elseif ($amount > 0){
-            $incomeOrExpense = "Expense";
+            $incomeOrExpense = self::EXPENSE;
+        }
+        
+        $typeOfPayment = self::NORMAL_PAYMENT; // Start as normal payment
+        if(preg_match($this->PATTERNS["scheduled"], $value)){
+            $typeOfPayment = self::SCHEDULED_PAYMENT;
         }
         
         if(preg_match($this->PATTERNS['companyCreditCard'], $value) == 0 && !(SEEDCore_StartsWith($from->getAddress(), "sue") || SEEDCore_StartsWith($from->getAddress(), "alison"))){
@@ -263,10 +303,10 @@ class ReceiptsProcessor {
         $caOrUnpaid = NULL; // Start as not defined
         if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 || preg_match($this->PATTERNS['unpaid'], $value) != 0 || preg_match($this->PATTERNS['companyCreditCard'], $value) != 0){
             if(preg_match($this->PATTERNS['companyAccount'], $value) != 0 && preg_match($this->PATTERNS['unpaid'], $value) == 0 && preg_match($this->PATTERNS['companyCreditCard'], $value) == 0){
-                $caOrUnpaid = "CA";
+                $caOrUnpaid = self::COMPANY_ACCOUNT;
             }
             else if((preg_match($this->PATTERNS['unpaid'], $value) != 0 || preg_match($this->PATTERNS['companyCreditCard'], $value) != 0) && preg_match($this->PATTERNS['companyAccount'], $value) == 0){
-                $caOrUnpaid = "UNPAID";
+                $caOrUnpaid = self::UNPAID_ACCOUNT;
             }
         }
         
@@ -275,12 +315,17 @@ class ReceiptsProcessor {
         }
         
         if($incomeOrExpense){
-            $date = $this->proccessDate($value);
-            if($date){
+            $date = $this->processDate($value);
+            if($date == false){
                 return self::DISCARDED_NO_DATE;
             }
             if(new DateTime($date) > new DateTime()){
-                return self::DISCARDED_FUTURE_DATE;
+                if($typeOfPayment == self::SCHEDULED_PAYMENT && $attachment){
+                    return self::DISCARDED_SCHEDULING_FAILED;
+                }
+                else{
+                    return self::DISCARDED_FUTURE_DATE;
+                }
             }
             
             preg_match('|\w.*\w|',$this->preg_replace_array($this->PATTERNS, "", $value), $matches);
@@ -292,12 +337,12 @@ class ReceiptsProcessor {
         return self::DISCARDED_ZERO_AMOUNT;
     }
 
-    private function proccessDate(string $value):string{
+    private function processDate(string $value):string{
         $matches = array();
         $found = false;
         foreach($this->PATTERNS['dates'] as $pattern){
             if(preg_match($pattern, $value,$matches)){
-                if(count($matches) == 4){
+                if(count($matches) == 7){
                     $found = true;
                     break;
                 }
@@ -367,7 +412,6 @@ class ReceiptsProcessor {
                     }
             }
         }
-        
         return ($found?$month."/".$day."/".$year:"");
         
     }
@@ -378,7 +422,7 @@ class ReceiptsProcessor {
             switch ($v){
                 case self::DISCARDED_NO_AMOUNT:
                     $responce .= "Missing Amount ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
-                                ."Please check that the amount begins with a $, ends with either a comma, a space or the end of the line/subject, and contains a maximum of one decimal\n";
+                        ."Please check that the amount begins with a $, ends with either a comma, a space or the end of the ".($k == "subject"?"subject":"line").", and contains a maximum of one decimal\n";
                     break;
                 case self::DISCARDED_NO_DATE:
                     $responce .= "Missing Date ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
@@ -391,11 +435,17 @@ class ReceiptsProcessor {
                 case self::DISCARDED_UNKNOWN_ACCOUNT:
                     $responce .= "Could not determine account to charge the amount to ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)."\n"
                                 ."This is a different error than Akaunting rejecting the entry.\n"
-                                ."Possible entries are: UNPAID, CCC and CA.\n";
+                                ."Possible entries are: ".self::UNPAID_ACCOUNT.", ".self::COMPANY_CREDIT_CARD_ACCOUNT." and ".self::COMPANY_ACCOUNT.".\n";
                     break;
                 case self::DISCARDED_FUTURE_DATE:
                     $responce .= "The date ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." has not occured yet\n"
-                        ."The entry was discarded since there is no possible way a payment was actually made on this day.\n";
+                                ."The entry was discarded since there is no possible way a payment was actually made on this day.\n";
+                    break;
+                case self::DISCARDED_SCHEDULING_FAILED:
+                    $responce .= "The entry ".($k == "subject"?"in ":"on ").str_replace("_", " ", $k)." could not be submitted as a scheduled entry.\n"
+                                ."This is because an attachment was included. If this entry needs to be scheduled, please send it again without and attachment.\n"
+                                ."NOTE: Only valid attachments are considered. (ie. not used by the system. eg. logo)\n ";
+                    break;
             }
         }
         return $responce;
@@ -412,13 +462,13 @@ class ReceiptsProcessor {
         foreach($this->PATTERNS as $name=>$regex){
             if(is_array($regex)){
                 foreach ($regex as $key=>$exp){
-                    if(preg_match($exp, $value) && !($key == 'forward' || $key == 'reply')){
+                    if(preg_match($exp, $value) != false && !($key == 'forward' || $key == 'reply')){
                         $matches++;
                     }
                 }
             }
             // Dont count forward or reply regex matches towords is the string is valid
-            else if(preg_match($regex, $value) && !($name == 'forward' || $name == 'reply')){
+            else if(preg_match($regex, $value) != false && !($name == 'forward' || $name == 'reply')){
                 $matches++;
             }
         }
@@ -445,9 +495,11 @@ class ReceiptsProcessor {
     
     private function preg_replace_array($pattern, $replacement, $subject, $limit=-1) {
         if (is_array($pattern)) {
-            foreach ($pattern as &$value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
+            foreach ($pattern as $value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
             return $subject;
         } else {
+            var_dump($subject,$pattern,preg_replace($pattern, $replacement, $subject, $limit));
+            echo "<br />";
             return preg_replace($pattern, $replacement, $subject, $limit);
         }
     }

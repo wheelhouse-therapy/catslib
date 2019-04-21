@@ -19,7 +19,7 @@ class AkauntingHook {
 
     private static $bDebug = true;     // set this to true to turn on debugging messages
 
-    private static function dbg( $s )  { if( self::$bDebug )  echo "$s<br/>"; }
+    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
     public static function login(String $email, String $password){
         self::dbg("Connecting to Akaunting...");
@@ -72,7 +72,7 @@ class AkauntingHook {
         $ret = self::REJECTED_NOT_SETUP;
 
         $oApp = $GLOBALS['oApp'];
-        self::dbg("Submitting Entry");
+        self::dbg("\nSubmitting Entry");
         $possibilities = array();
 
         $clinics = (new Clinics($oApp))->getClinicsByName($entry->getClinic());
@@ -192,11 +192,9 @@ class AkauntingHook {
             $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
             $ret = $responce->status_code;
         }
-        else{
-            var_dump($data);
-        }
 
         done:
+        var_dump($ret,$possibilities,$entry);
         return( array($ret,$possibilities) );
     }
 
