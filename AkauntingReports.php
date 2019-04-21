@@ -50,7 +50,7 @@ class AkauntingReports
                     $raParms['sort'] = 'date,name,d,c';
                     break;
                 case 'name':
-                    $raParms['sort'] = 'name,date,d,c';
+                    $raParms['sort'] = 'code,date,d,c';
                     break;
                 default:
                     break;
@@ -70,7 +70,7 @@ class AkauntingReports
 
         $s = "<table cellpadding='10' border='1'>"
             ."<tr><th>Company</th><th><a href='{$_SERVER['PHP_SELF']}?sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?sort=name'>Account</a></th><th>Debit</th><th>Credit</th></tr>"
-            .SEEDCore_ArrayExpandRows( $raRows, "<tr><td>[[company_id]]</td><td>[[date]]</td><td>[[name]]</td><td> [[d]]</td><td> [[c]]</tr>" )
+            .SEEDCore_ArrayExpandRows( $raRows, "<tr><td>[[company_id]]</td><td>[[date]]</td><td>[[code]] : [[name]]</td><td> [[d]]</td><td> [[c]]</tr>" )
             ."</table>";
 
 
@@ -91,5 +91,10 @@ function AkauntingReport( SEEDAppConsole $oApp )
     return( $o->DrawReport() );
 }
 
+function AkauntingReport_OutputXLSX( SEEDAppConsole $oApp )
+{
+
+
+}
 
 ?>
