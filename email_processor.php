@@ -71,8 +71,8 @@ class ReceiptsProcessor {
         "scheduled" => "/".self::SCHEDULED_PAYMENT."/i",
         "dates"   => array(
             "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
-            "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}\d{2}?)/i",
-            "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}\d{2}?)/i"
+            "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
+            "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}|\d{4})/i"
         ),
         "companyCreditCard" => "/(?<=^|[^\\w])".self::COMPANY_CREDIT_CARD_ACCOUNT."(?=$|[^\\w])/i",
         "companyAccount" => "/(?<=^|[^\\w])".self::COMPANY_ACCOUNT."(?=$|[^\\w])/i",
@@ -194,7 +194,7 @@ class ReceiptsProcessor {
             $results = array_diff_key($results, array('failed' => TRUE));
             
             // Mark the message as processed so we dont make duplicate entries
-            if($results){
+            if($results || $errors){
                 if(CATS_DEBUG){
                     // Instead of marking as seen we will unflag proccessed messages on dev mechines
                     $message->clearFlag('\Flagged');
