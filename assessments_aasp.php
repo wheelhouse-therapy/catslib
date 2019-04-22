@@ -84,7 +84,7 @@ class AssessmentUI_AASP extends AssessmentUIColumns
     function DrawScoreResults() : string
     {
         $s = "<table id='results'>
-<thead><tr><th colspan='8'>Results of Adolescent Sensory Profile</th></tr></thead><tbody>
+<thead><tr><th colspan='8' style='text-align:center'>Results of Adolescent Sensory Profile</th></tr></thead><tbody>
  <tr><td>Sensory Quadrant</td><td>Raw Score</td><td>Much Less than Most People</td><td>Less than Most People</td><td>Similar to Most People</td><td>More than Most People</td><td>Much More than Most People</td></tr>
  <tr><td>Low Registration</td><td>{{Q1_total}}&nbsp;/&nbsp;75</td><td>15&nbsp;-&nbsp;18</td><td>19&nbsp;-&nbsp;26</td><td>27&nbsp;-&nbsp;40</td><td>41&nbsp;-&nbsp;51</td><td>52&nbsp;-&nbsp;75</td></tr>
  <tr><td>Sensory Seeking</td><td>{{Q2_total}}&nbsp;/&nbsp;75</td><td>15&nbsp;-&nbsp;27</td><td>28&nbsp;-&nbsp;41</td><td>42&nbsp;-&nbsp;58</td><td>59&nbsp;-&nbsp;65</td><td>66&nbsp;-&nbsp;75</td></tr>
