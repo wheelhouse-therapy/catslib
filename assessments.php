@@ -185,8 +185,13 @@ class AssessmentUIColumns extends AssessmentUI
     {
         $s = "<datalist id='options'>";
         if( $raOptions != NULL ) {
-            foreach( $raOptions as $option ) {
-                $s .= $oForm->Option("", substr($option, 0,1), $option);
+            foreach( $raOptions as $key => $option ) {
+                if(is_numeric($key)){
+                    $s .= $oForm->Option("", substr($option, 0,1), $option);
+                }
+                else{
+                    $s .= $oForm->Option("", $option, $key);
+                }
             }
         }
         $s .= "</datalist>";
@@ -466,10 +471,20 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
                   var raPercentilesSPM = ".json_encode($this->oData->raPercentiles).";
                   var cols = ".json_encode($this->Columns()).";
                   var chars = ".json_encode($this->Inputs("script")).";
-                  var raTotalsSPM = ".json_encode($this->oData->raTotals).";
-                  </script>";
+                  var raTotalsSPM = ".json_encode($this->oData->raTotals).";";
         }
 
+        if($this->bUseDataList){
+            if(substr($s, 0,8) !== "<script>"){
+                $s .= "<script>";
+            }
+            $s .= "var chars = ".json_encode($this->Inputs("script")).";";
+        }
+        
+        if(substr($s, 0,8) === "<script>"){
+            $s .= "</script>";
+        }
+        
         return( $s );
     }
 
@@ -627,6 +642,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
     protected function InputOptions(){
         // Override to provide custom input options
+        // An associative array can be used to define titles for the datalist options if used
         return array("1","2","3","4","5");
     }
 
@@ -905,6 +921,7 @@ class Assessment_AASP extends Assessments
         $oUI = new AssessmentUI_AASP( $oData );
 
         parent::__construct( $oAsmt, 'aasp', $oData, $oUI );
+        $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
     function DrawAsmtForm( int $kClient )
@@ -917,6 +934,11 @@ class Assessment_AASP extends Assessments
         return( $this->drawResult() );
     }
 
+    protected function InputOptions(){
+        // Override to provide custom input options
+        return array("Almost Never"=>"1","Seldom"=>"2","Occasionally"=>"3","Frequently"=>"4","Almost Always"=>"5");
+    }
+    
     protected function GetScore( $n, $v ):int
     {
         return( 0 );
