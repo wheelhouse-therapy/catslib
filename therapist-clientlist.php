@@ -22,7 +22,7 @@ class ClientList
     private $oCCG;
 
     private $queryParams = array("sSortCol" => "P.first_name,_key");
-    
+
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
@@ -150,7 +150,7 @@ class ClientList
                     break;
             }
         }
-        
+
         $existsWarning = <<<ExistsWarning
         <div class='alert alert-warning' style='width: 85%;justify-content: space-around;'>
             A [[type]] with this name is already exists in this clinic<br />
@@ -168,7 +168,7 @@ class ClientList
             </div>
         </div>
 ExistsWarning;
-        
+
         switch( $cmd ) {
             case "update_client":
                 $exists = $this->checkExists($oFormClient, "C");
@@ -338,7 +338,7 @@ ExistsWarning;
 
              //fix up status classes
              $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
-             
+
              $s .= "<div class='container'><div class='row'>";
              if( $this->client_key || $sNew == "client") {
                  $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
@@ -410,7 +410,7 @@ ExistsWarning;
         $ra = $this->oPeopleDB->GetList($rel, "P.first_name='".$oForm->Value("P_first_name")."' AND P.last_name='".$oForm->Value("P_last_name")."' AND clinic=".$oForm->Value("clinic"),array_merge($this->queryParams,array("iStatus" => -1)));
         return(!empty($ra));
     }
-    
+
     function drawClientForm( $oForm, $myPros, $raPros )
     /**************************************************
         The user clicked on a client name so show their form
@@ -657,7 +657,7 @@ ExistsWarning;
             </script>";
         return $s;
     }
-    
+
     private function filterJS(){
         return <<<FilterJS
                <script>
