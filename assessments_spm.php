@@ -107,7 +107,7 @@ class AssessmentData_SPM extends AssessmentData
                 $score = array_sum(array_intersect_key($this->raScores, $range));
                 break;
             case "total":
-                $score = array_sum(array_diff_key($this->raScores, $doNotInclude));
+                $score = array_sum(array_diff_key($this->raScores, array_flip($doNotInclude)));
                 break;
         }
 
