@@ -35,7 +35,7 @@ class AssessmentData_MABC extends AssessmentData
         $ret = 0;
 
         $scores = Assessment_MABC_Scores::GetScores( $this->age );
-        if( ($raS = @$scores[$item]) && ($raw = $this->GetRaw($item)) ) {
+        if( ($raS = @$scores[$item]) && ($raw = $this->GetRaw($item)) !== "" ) {    // N.B. GetRaw can return '0' as a legitimate score
             // this is a basic item
             if( isset($raS['ceiling']) && $raw > $raS['ceiling'] ) {
                 $ret = $raS['map'][$raS['ceiling']];
@@ -78,14 +78,11 @@ class AssessmentData_MABC extends AssessmentData
 
                 // Standard scores and percentiles for component totals
                 case 'md_std':
-                case 'md_pct':
                 case 'ac_std':
-                case 'ac_pct':
                 case 'bal_std':
-                case 'bal_pct':
                     $component = strtok($item,"_"); // md, ac, bal
                     list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
-                    $ret = (substr($item,-3)=='std') ? $std : $pct;
+                    $ret = $std;
                     break;
 
                 // Standard score and percentile for total score
@@ -93,9 +90,8 @@ class AssessmentData_MABC extends AssessmentData
                     $ret = $this->ComputeScore('md_cmp') + $this->ComputeScore('ac_cmp') + $this->ComputeScore('bal_cmp');
                     break;
                 case 'total_std':
-                case 'total_pct':
                     list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') );
-                    $ret = ($item == 'total_std' ? $std : $pct);
+                    $ret = $std;
                     break;
             }
         }
@@ -103,9 +99,25 @@ class AssessmentData_MABC extends AssessmentData
         return( $ret );
     }
 
-    public function ComputePercentile( string $item ) : int
+    public function ComputePercentile( string $item ) : float
     {
-        return( 0 );
+        $ret = 0.0;
+
+        switch($item) {
+            case 'md_pct':
+            case 'ac_pct':
+            case 'bal_pct':
+                $component = strtok($item,"_"); // md, ac, bal
+                list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
+                $ret = $pct;
+                break;
+
+            case 'total_pct':
+                list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') );
+                $ret = $pct;
+                break;
+        }
+        return( $ret );
     }
 
     private function getAverage( string $item1, string $item2 ) : int
@@ -113,7 +125,7 @@ class AssessmentData_MABC extends AssessmentData
         // Get the average of the scores of two raw items
         $avg = 0;
 
-        if( $this->GetRaw($item1) && $this->GetRaw($item2) ) {
+        if( $this->GetRaw($item1) !== "" && $this->GetRaw($item2) !== "" ) {    // GetRaw can return 0 as a legitimate score
             $avg = $this->mabcAvg( $this->ComputeScore($item1), $this->ComputeScore($item2) );
         }
         return( $avg );
@@ -123,7 +135,7 @@ class AssessmentData_MABC extends AssessmentData
     {
         // in MABC we average integer scores to integers by rounding down if the total is <10 and rounding up if total >10
 
-        if( $a + $b > 10 ) {
+        if( $a + $b < 10 ) {
             $avg = intval( ($a + $b)/2 );      // odd totals will round down; even totals are correct
         } else {
             $avg = intval( ($a + $b + 1)/2 );  // this rounds up odd totals and leaves even totals correct
@@ -217,6 +229,12 @@ class AssessmentUI_MABC extends AssessmentUIColumns
             $s = str_replace( "{score:$item}", $this->oData->ComputeScore($item), $s );
         }
 
+        // subst {score:X_pct}
+        foreach( $this->raPctItems as $item ) {
+            $s = str_replace( "{score:$item}", $this->oData->ComputePercentile($item), $s );
+        }
+
+
         // oops, can't get zone directly from ComputeScore because it only returns int
         list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') );
         switch( $zone ) {
@@ -241,8 +259,11 @@ class AssessmentUI_MABC extends AssessmentUIColumns
                  'bal1','bal2','bal3','bal1a','bal1b','bal2a','bal2b','bal3a','bal3b'];
     private $raComputedItems =
                 ['md1avg', 'ac1avg', 'bal1avg', 'bal3avg',
-                 'md_cmp', 'md_std', 'md_pct', 'ac_cmp', 'ac_std', 'ac_pct', 'bal_cmp', 'bal_std', 'bal_pct',
-                 'total_score', 'total_std', 'total_pct'];
+                 'md_cmp', 'md_std', 'ac_cmp', 'ac_std', 'bal_cmp', 'bal_std',
+                 'total_score', 'total_std'];
+    // these are separate because they can be float values but ComputeScore only returns int
+    private $raPctItems =
+                ['md_pct', 'ac_pct', 'bal_pct', 'total_pct'];
 
 private $scoreSummary1 = [
     "<tr><td class='label0'>{label:md1a}</td><td>{raw:md1a}</td><td class='score0'>{score:md1a}</td><td><div class='score1'>{score:md1avg}</div></td></tr>
@@ -850,7 +871,7 @@ static private $raComponentTotals = array(
     ['md'=>"13-15", 'ac'=>"10",    'bal'=>"13-14", 'std'=>4,  'pct'=>2 ],
     ['md'=>"9-12",  'ac'=>"9",     'bal'=>"11-12", 'std'=>3,  'pct'=>1 ],
     ['md'=>"4-8",   'ac'=>"7-8",   'bal'=>"9-10",  'std'=>2,  'pct'=>0.5 ],
-    ['md'=>"0-4",   'ac'=>"0-7",   'bal'=>"0-9",   'std'=>1,  'pct'=>0.1 ]
+    ['md'=>"0-3",   'ac'=>"0-6",   'bal'=>"0-8",   'std'=>1,  'pct'=>0.1 ]
 );
 
 // Map total test score to standard totals and percentiles
