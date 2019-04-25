@@ -117,9 +117,9 @@ class AssessmentData_SPM extends AssessmentData
         return( $score );
     }
 
-    public function ComputePercentile( string $item ) : int
+    public function ComputePercentile( string $item ) : float
     {
-        $percentile = 0;
+        $percentile = 0.0;
 
         switch($item){
             case "social":

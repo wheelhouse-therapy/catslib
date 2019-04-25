@@ -82,7 +82,7 @@ class AssessmentData
 
     public function GetAsmtKey() : int                      { return( $this->kfrAsmt->Key() ); }
     public function GetValue( string $k ) : string          { return( $this->kfrAsmt->Value($k) ); }        // for verbatim db fields
-    public function GetRaw( string $item ) : string         { return( @$this->raRaws[$item] ?: "" ); }      // for values encoded in 'results'
+    public function GetRaw( string $item ) : string         { return( strval(@$this->raRaws[$item]) ); }    // for values encoded in 'results'
 
     public function GetForm()
     /************************
@@ -96,8 +96,8 @@ class AssessmentData
     }
 
 
-    public function ComputeScore( string $item ) : int      { return(0); }
-    public function ComputePercentile( string $item ) : int { return(0); }
+    public function ComputeScore( string $item ) : int        { return(0); }
+    public function ComputePercentile( string $item ) : float { return(0.0); }
 
 
     protected function MapRaw2Score( string $item, string $raw ) : int { return(0); }
