@@ -129,7 +129,7 @@ ResourcesTagScript;
 
     $resourceMode = <<<DownloadMode
         <div id='break'>
-        <div class='alert alert-info' style='[display] flex-basis: 75%; min-height: 50px;'>Some files are not available in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>
+        <div class='alert alert-info' style='[display] flex-basis: 75%; min-height: 50px;'>Some files cannot be downloaded in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>
         <div id='ResourceMode'>
             <div id='modeText'><div data-tooltip='[tooltip]'><nobr>Current Mode:</nobr> [mode]</div></div>
             [[button1]]
@@ -237,13 +237,21 @@ DownloadMode;
          ."</form></div>";
 
     $s .= "<table border='0'>";
+    $sTemplate = "<tr [[CLASS]]>
+                    <td valing='top'>
+                        <a style='white-space: nowrap' [[LINK]] >
+                            [[FILENAME]]
+                        </a>
+                    </td>
+                    <td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($folder)."' data-filename='[[FILENAME]]'>
+                        [[TAGS]]
+                    </td>
+                  </tr>
+                 ";
     foreach ($dir as $fileinfo) {
+        $class = "";
+        $link = NULL;
         if( $fileinfo->isDot() ) continue;
-        
-        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
-            $s = str_replace("[display]", "display:inline-block;", $s);
-            continue;
-        }
         
         if( $sFilter ) {
             if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
@@ -253,19 +261,25 @@ DownloadMode;
                                     ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
             continue;
         }
+        
+        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
+            $s = str_replace("[display]", "display:inline-block;", $s);
+            $class = "class='btn disabled'";
+            if(stripos($download_modes, 'n') !== false){
+                $link = "href='?resource-mode=".$MODES['n']['code']."'";
+            }
+            else{
+                $link = "";
+            }
+        }
+        
         found:
         $oApp->kfdb->SetDebug(0);
 
-        $s .= "<tr>"
-                 ."<td valign='top'>"
-                     ."<a style='white-space: nowrap' ".downloadPath($mode, $dir_name,$fileinfo)." >"
-                         .$fileinfo->getFilename()
-                     ."</a>"
-                 ."</td>"
-                 ."<td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($folder)."' data-filename='".SEEDCore_HSC($fileinfo->getFilename())."'>"
-                     .$oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() )
-                 ."</td>"
-             ."</tr>";
+         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name,$fileinfo));
+         $filename = SEEDCore_HSC($fileinfo->getFilename());
+         $tags = $oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() );
+         $s .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
     }
     $s .= "</table>";
     
