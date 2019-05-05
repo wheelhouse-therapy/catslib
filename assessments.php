@@ -1145,7 +1145,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:5%;display:inline'>"
-                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\"]});'></button>"
+                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
                     ."</div>";
             }
             $s .= "</div><div class='container-fluid'><div class='row'>"
