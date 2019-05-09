@@ -57,8 +57,9 @@ class AssessmentData
     protected $kfrAsmt;
     protected $raRaws;      // [item=>raw, ...]
     protected $raScores;    // [item=>score, ...]
+    private $date = "";
 
-    protected function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
+    protected function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt)
     {
         $this->oAsmt = $oAsmt;
         $this->oA = $oA;
@@ -66,6 +67,14 @@ class AssessmentData
         $this->LoadAsmt( $kAsmt );
     }
 
+    public final function setDate(String $date){
+        $this->date = $date;
+    }
+    
+    public final function getDate():String{
+        return $this->date;
+    }
+    
     public function LoadAsmt( int $kAsmt )
     {
         $this->kfrAsmt = $kAsmt ? $this->oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt)
@@ -78,6 +87,9 @@ class AssessmentData
         foreach( $this->raRaws as $item => $raw ) {
             $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
         }
+        
+        $this->date = $this->kfrAsmt->Value('date');
+        
     }
 
     public function GetAsmtKey() : int                      { return( $this->kfrAsmt->Key() ); }
@@ -159,7 +171,8 @@ class AssessmentUIColumns extends AssessmentUI
         $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
 
         $s .= "<form method='post'>"
-             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] );
+             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] )
+             .$oForm->Hidden('date', ['value'=>$this->oData->getDate()]);
 
         if( @$raParms['hiddenParms'] ) {
             foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
@@ -416,12 +429,12 @@ class AssessmentsCommon
         $clinics->GetCurrentClinic();
         $oPeopleDB = new PeopleDB( $this->oApp );
         $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
-        $opts = array( '--- Choose Client ---' => 0 );
+        $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
         }
 
-        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "" )."</div>" );
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
     }
     function LookupProblemItems( int $kClient, string $asmtType, string $section )
     {
@@ -613,8 +626,9 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
         $s .= "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
                     <span style='margin-left: 10%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
-                        <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span><br />";
-
+                    <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
+                    <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
+//TODO Add reference to date recorded
         $s .= $this->oUI->DrawScoreResults();
 
         done:
@@ -694,6 +708,11 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
      * Return the percentile score for the given section
      */
     abstract function GetPercentile( string $section ) : string;
+    
+    public final function GetData():AssessmentData{
+        return $this->oData;
+    }
+    
 }
 
 class Assessment_SPM extends Assessments
@@ -1081,6 +1100,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
         $oAsmt = $oAC->GetAsmtObject( $p_kAsmt );
     } else if( $p_sAsmtType ) {
         $oAsmt = $oAC->GetNewAsmtObject( $p_sAsmtType );
+        $oAsmt->GetData()->setDate(SEEDInput_Str("date"));
     } else {
         // Just show the landing screen.
         $oAsmt = null;
@@ -1133,19 +1153,19 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                   "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
-                 ."<select name='sAsmtType'>"
+                 ."<select name='sAsmtType' required>"
                  .SEEDCore_ArrayExpandRows( $oAC->raAssessments, "<option value='[[code]]'>[[title]]</option>" )
                  ."</select>"
+                 ."<input type='date' name='date' max='".date("Y-m-d")."' value='".date("Y-m-d")."' required>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
                  ."<br/><input type='submit' value='New'/>"
                  ."</form>";
-
             $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:5%;display:inline'>"
-                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\"]});'></button>"
+                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
                     ."</div>";
             }
             $s .= "</div><div class='container-fluid'><div class='row'>"

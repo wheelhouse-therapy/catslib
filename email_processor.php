@@ -16,6 +16,7 @@ class ReceiptsProcessor {
 
     //Constants
     const HST = 1.13;
+    const GST = 1.05;
     const FOLDER = CATSDIR_FILES."/acounting/attachments/";
 
     //Potential proccessing error code constants
@@ -66,7 +67,7 @@ class ReceiptsProcessor {
     
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
-        "amount" => '/\$-?[0-9]+\.?[0-9]*H?($|[, ])/',
+        "amount" => '/\$-?[0-9]+\.?[0-9]*[HG]?($|[, ])/',
         "income" => "/".self::INCOME."/i",
         "scheduled" => "/".self::SCHEDULED_PAYMENT."/i",
         "dates"   => array(
@@ -278,6 +279,11 @@ class ReceiptsProcessor {
         if(substr_compare($amount, "H", -1, 1, TRUE) == 0){
             $amount = substr($amount, 0, -1); //Remove the 'H' from the amount
             $amount *= self::HST;
+            $amount = round($amount, 2);
+        }
+        else if(substr_compare($amount, "G", -1, 1, TRUE) == 0){
+            $amount = substr($amount, 0, -1); //Remove the 'G' from the amount
+            $amount *= self::GST;
             $amount = round($amount, 2);
         }
         $incomeOrExpense = NULL; // Start as not defined
