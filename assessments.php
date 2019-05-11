@@ -713,6 +713,26 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         return $this->oData;
     }
     
+    /** Check if a client is eligable for this assessment
+     * or if we have the scores needed to properly handle an assessment of this client.
+     * 
+     * If this message returns false a message will be shown to the user presenting them with the option to continue anyway.
+     * 
+     * Assesments should override to add restrictions to the clients that can be assesed.
+     * 
+     * Usefull for alerting users if they try to create a MABC for a client > 16 or <3 years of age
+     * 
+     * @param int $kClient client to check eligability of
+     * @return bool true if client is eligable and should procced with out notice, false otherwise
+     */
+    public function checkEligibility(int $kClient, $date = ""):bool{
+        return true;
+    }
+    
+    public function getIneligibleMessage():String{
+        return "Would you like to proceed?";
+    }
+    
 }
 
 class Assessment_SPM extends Assessments
@@ -1150,7 +1170,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<form action='{$_SERVER['PHP_SELF']}' method='post'>"
+                  "<form action='{$_SERVER['PHP_SELF']}' method='post' onSubmit='onAssementCreate(event)'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType' required>"
@@ -1172,6 +1192,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                      ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
                      ."<div id='assessment' class='col-md-9' style='border-right:1px solid #bbb'>$sRight</div>"
                  ."</div>";
+            $s .= eligibilityScript();
     }
 
     done:
@@ -1293,4 +1314,67 @@ function getAssessmentTypes(){
         array_push($assmts, $assmt['code']);
     }
     return $assmts;
+}
+
+function eligibilityScript(){
+    return <<<eligibilityScript
+            <!-- the div that represents the modal dialog -->
+            <div class='modal fade' id='confirm_dialog' role='dialog'>
+                <div class='modal-dialog'>
+                    <div class='modal-content'>
+                        <div class='modal-header'>
+                            <h4 class='modal-title'>Ineligible client</h4>
+                        </div>
+                        <div class='modal-body'>
+                            The Selected client is not eligible for this assessment.<br />
+                            Results may not be correct.
+                            <div style='display:inline' id='assmtMessage'></div>
+                            <form id='confirm_form''>
+                                <input type='hidden' id='sAsmtType' name='sAsmtType' value='' readonly />
+                                <input type='hidden' name='fk_clients2' id='fk_clients2' value='' />
+                                <input type='hidden' name='date' id='date' value='' />
+                            </form>
+                        </div>
+                        <div class='modal-footer'>
+                            <input type='submit' value='Yes' form='confirm_form' />
+                            <button onClick="$('#confirm_dialog').modal('hide');">No</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                function onAssementCreate(e) {
+                    var target  = $(e.currentTarget);
+                    var postData = target.serializeArray();
+                    postData.push({name: 'cmd', value: 'therapist-assessment-check'});
+                    var preventDefault = true;
+                    $.ajax({
+                        type: "POST",
+                        data: postData,
+                        async: false,
+                        url: 'jx.php',
+                        success: function(data, textStatus, jqXHR) {
+                            var jsData = JSON.parse(data);
+                            preventDefault = jsData.bOk;
+                            if(jsData.bOk){
+                                document.getElementById('assmtMessage').innerHTML = jsData.sOut;
+                            }
+                        },
+                        error: function(jqXHR, status, error) {
+                            console.log(status + ": " + error);
+                        }
+                    });
+                    if(preventDefault){
+                        e.preventDefault();
+                        for(var x = 0;x<postData.length;x++){
+                            if(!document.getElementById(postData[x].name)){
+                                continue;
+                            }
+                            document.getElementById(postData[x].name).value = postData[x].value;
+                        }
+                        $('#confirm_dialog').modal('show');
+                    }
+                }
+            </script>
+eligibilityScript;
 }

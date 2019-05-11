@@ -465,11 +465,30 @@ class Assessment_MABC extends Assessments
     }
 
     public function getTags(): array{
-        //TODO Return Array of valid tags
+        return array(
+            "md_percentile",
+            "ac_percentile",
+            "bal_percentile",
+            "total_percentile",
+            "zone"
+        );
     }
 
     protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
+        switch ($tag){
+            case "md_percentile":
+            case "ac_percentile":
+            case "bal_percentile":
+                $item = substr($tag, 0,strpos($tag, "_"));
+                return Assessment_MABC_Scores::GetComponentTotalScore($item, $this->oData->ComputeScore($item.'_cmp'))[1];
+            case "total_percentile":
+                $index = 1;
+            case "zone":
+                if(!$index){
+                    $index = 2;
+                }
+                return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[$index];
+        }
     }
 
     function GetProblemItems( string $section ) : string
@@ -477,6 +496,10 @@ class Assessment_MABC extends Assessments
     function GetPercentile( string $section ) : string
     {}
 
+    public function checkEligibility(int $kClient, $date = ""):bool{
+        return $this->getClientAge($kClient, $date) >= 3 && $this->getClientAge($kClient, $date) < 17;
+    }
+    
     protected $raColumnRanges = array();    // point this to one of the below
     // 3-6 years
     private $raColumnRanges_ageBand1 = array(
