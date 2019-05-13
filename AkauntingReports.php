@@ -28,13 +28,15 @@ class AkauntingReports
 
     function GetLedgerRA( $raParms = array() )
     {
-        $sOrderBy = @$raParms['sort'] ? " ORDER BY {$raParms['sort']} " : "";
+        $raRows = array();
 
-        $cid =(new ClinicsDB($this->oApp->kfdb))->GetClinic(@$raParms['clinic']?:$this->clinics->GetCurrentClinic())->Value("akaunting_company");
+        $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
+
+        $cid =(new ClinicsDB($this->oApp->kfdb))->GetClinic(@$raParms['Ak_clinic']?:$this->clinics->GetCurrentClinic())->Value("akaunting_company");
 
         if(!$cid){
             $this->oApp->oC->AddErrMsg("Clinic does not have an accounting ID set");
-            return( FALSE );
+            goto done;
         }
 
         $sql =
@@ -46,6 +48,7 @@ class AkauntingReports
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
 
+        done:
         return( $raRows );
     }
 
@@ -60,7 +63,7 @@ class AkauntingReports
         $raAcctLast = "";
         $total = $dtotal = $ctotal = 0;
         foreach( $raRows as $ra ) {
-            if( SEEDCore_StartsWith( @$raParms['sort'], 'code' ) ) {
+            if( $raParms['Ak_sort'] == 'name' ) {
                 if( $raAcctLast && $raAcctLast != $ra['code'] ) {
                     $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
                     $total = $dtotal = $ctotal = 0;
@@ -79,26 +82,70 @@ class AkauntingReports
     }
 
     function LedgerParmsFromRequest()
+    /********************************
+        Parms that start with Ak_ are cycled through http. Others are for internal use only.
+     */
     {
         $raParms = [];
 
-        if( ($p = $this->oApp->sess->SmartGPC('Akaunting_sort')) ) {
-            switch( $p ) {
-                case 'date':
-                    $raParms['sort'] = 'date,name,d,c';
-                    break;
-                case 'name':
-                    $raParms['sort'] = 'code,date,d,c';
-                    break;
-                default:
-                    break;
-            }
+        // Ak_sort sorts a ledger by date or account name
+        // sortdb is the sql ORDER BY
+        switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
+            case 'date':
+                $raParms['sortdb'] = 'date,name,d,c';
+                break;
+            case 'name':
+                $raParms['sortdb'] = 'code,date,d,c';
+                break;
         }
-        if( ($p = $this->oApp->sess->SmartGPC('Akaunting_clinic'))){
-            $raParms['clinic'] = $p;
+
+        // Ak_clinic is the clinic selector
+        $raParms['Ak_clinic'] = $this->oApp->sess->SmartGPC('Ak_clinic', array($this->clinics->GetCurrentClinic()));
+
+        // Ak_report is the report type
+        $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
+
+        // Make an urlencoded string that can reproduce the current state
+        $raParms['parmsForLink'] = "";
+        foreach( $raParms as $k => $v ) {
+            if( SEEDCore_StartsWith( $k, "Ak_" ) ) {
+                if( $raParms['parmsForLink'] ) $raParms['parmsForLink'] .= "&";
+                $raParms['parmsForLink'] .= "$k=".urlencode($v);
+            }
         }
 
         return( $raParms );
+    }
+
+    private function clinicSelector( $reportParms )
+    {
+        $sForm = "";
+
+        if( ($clinics = $this->clinics->getClinicsWithAkaunting()) ) {
+            $clinicsDB = new ClinicsDB($this->oApp->kfdb);
+            $sForm = "<form style='display:inline' id='companyForm'><select name='Ak_clinic' onChange=\"document.getElementById('companyForm').submit()\">";
+            foreach($clinics as $option){
+                $selected = $option==$reportParms['Ak_clinic'] ? "selected" : "";
+                $sForm .= $clinicsDB->GetClinic($option)->Expand( "<option value='[[_key]]' $selected>[[clinic_name]]</option>" );
+            }
+            $sForm .= "</select></form>";
+        }
+
+        return( $sForm );
+    }
+
+    private function reportSelector( $reportParms )
+    {
+        $sForm = "<form style='display:inline'>"
+                ."<select name='Ak_report' onChange='submit();'>"
+                ."<option value='monthly' "    .($reportParms['Ak_report']=='monthly'     ? "selected" : "").">Monthly</option>"
+                ."<option value='monthly_sum' ".($reportParms['Ak_report']=='monthly_sum' ? "selected" : "").">Monthly Sum</option>"
+                ."<option value='detail' "     .($reportParms['Ak_report']=='detail'      ? "selected" : "").">Detail</option>"
+                ."<option value='ledger' "     .($reportParms['Ak_report']=='ledger'      ? "selected" : "").">Ledger</option>"
+                ."</select>"
+                ."</form>";
+
+        return( $sForm );
     }
 
     function DrawReport()
@@ -107,37 +154,28 @@ class AkauntingReports
 
         if( !$this->oAppAk ) goto done;
 
-        $raRows = $this->GetLedgerRAForDisplay( $this->LedgerParmsFromRequest() );
-
-        $sCurrParms = "sort=".SEEDInput_Str('sort');
-
-
-        if($clinics = $this->clinics->getClinicsWithAkaunting()){
-            $clinic = $this->oApp->sess->SmartGPC('Akaunting_clinic', array($this->clinics->GetCurrentClinic()));
-            $clinicsDB = new ClinicsDB($this->oApp->kfdb);
-            $sForm = "<form style='display:inline' id='companyForm'><select name='Akaunting_clinic' onChange=\"document.getElementById('companyForm').submit()\">";
-            foreach($clinics as $option){
-                $kfrData = $clinicsDB->GetClinic($option);
-                if($option == $clinic){
-                    $sForm .= $kfrData->Expand( "<option selected value='[[_key]]'>[[clinic_name]]</option>");
-                }
-                else{
-                    $sForm .= $kfrData->Expand( "<option value='[[_key]]'>[[clinic_name]]</option>");
-                }
-            }
-            $sForm .= "</select></form>";
+        $reportParms = $this->LedgerParmsFromRequest();
+        if( !$reportParms['Ak_clinic'] ) {
+            $this->oApp->oC->ErrMsg( "No clinic defined" );
+            goto done;
         }
 
+        $raRows = $this->GetLedgerRAForDisplay( $reportParms );
+
+        $sCurrParms = "Ak_sort=".$reportParms['Ak_sort'];
+
         $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
-                 ."<a href='jx.php?cmd=therapist-akaunting-xlsx&$sCurrParms'><button>Download</button></a>"
+                 ."<a href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
                  ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
              ."</div>";
 
-        $s .= "<div id='companyFormContainer'>".$sForm."</div>"
-            ."<table cellpadding='10' border='1'>"
-            ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?Akaunting_sort=name'>Account</a></th><th>Debit</th><th>Credit</th><th>&nbsp;</th></tr>";
+        $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
+             ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>";
+
+        $s .= "<table cellpadding='10' border='1'>"
+            ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=date'>Date</a></th><th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=name'>Account</a></th><th>Debit</th><th>Credit</th><th>&nbsp;</th></tr>";
         foreach( $raRows as $ra ) {
             if( isset($ra['total']) ) {
                 // sometimes we insert a special row with a total element
@@ -220,7 +258,7 @@ class AkauntingReportSpreadsheet
             'd'     => 'Debit',
             'c'     => 'Credit'
         );
-        if( SEEDCore_StartsWith( @$raParms['sort'], 'code' ) ) {
+        if( $raParms['Ak_sort'] == 'name' ) {
             $raCols['total'] = 'Total';
 
             $ra2 = $raRows;
