@@ -73,7 +73,6 @@ class AkauntingHook {
 
         $oApp = $GLOBALS['oApp'];
         self::dbg("\nSubmitting Entry");
-        $possibilities = array();
 
         $clinics = (new Clinics($oApp))->getClinicsByName($entry->getClinic());
         if( !count($clinics) ) {
@@ -117,13 +116,13 @@ class AkauntingHook {
                     goto done;
                 }
                 if($entry->getType() == "Expense"){
-                    $data["item"][0]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][0]["account_id"] = self::getAccountByCode("201")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][1]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
                 }
                 else{
-                    $data["item"][1]["account_id"] = self::getAccountByCode("201");
+                    $data["item"][1]["account_id"] = self::getAccountByCode("201")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][0]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
@@ -131,13 +130,13 @@ class AkauntingHook {
             }
             elseif (strtolower($entry->getPerson()) == "sue") {
                 if($entry->getType() == "Expense"){
-                    $data["item"][0]["account_id"] = self::getAccountByCode("210");
+                    $data["item"][0]["account_id"] = self::getAccountByCode("210")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][1]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
                 }
                 else{
-                    $data["item"][1]["account_id"] = self::getAccountByCode("210");
+                    $data["item"][1]["account_id"] = self::getAccountByCode("210")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][0]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
@@ -145,13 +144,13 @@ class AkauntingHook {
             }
             elseif (strtolower($entry->getPerson()) == "alison") {
                 if($entry->getType() == "Expense"){
-                    $data["item"][0]["account_id"] = self::getAccountByCode("211");
+                    $data["item"][0]["account_id"] = self::getAccountByCode("211")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][1]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
                 }
                 else{
-                    $data["item"][1]["account_id"] = self::getAccountByCode("211");
+                    $data["item"][1]["account_id"] = self::getAccountByCode("211")[0];
                     $data["item"][0]["credit"] .= $entry->getAmount();
                     $data["item"][0]["account_id"] = $account;
                     $data["item"][1]["debit"] .= $entry->getAmount();
@@ -168,13 +167,13 @@ class AkauntingHook {
                 goto done;
             }
             if($entry->getType() == "Expense"){
-                $data["item"][0]["account_id"] = self::getAccountByCode("836");
+                $data["item"][0]["account_id"] = self::getAccountByCode("836")[0];
                 $data["item"][0]["credit"] .= $entry->getAmount();
                 $data["item"][1]["account_id"] = $account;
                 $data["item"][1]["debit"] .= $entry->getAmount();
             }
             else{
-                $data["item"][1]["account_id"] = self::getAccountByCode("836");
+                $data["item"][1]["account_id"] = self::getAccountByCode("836")[0];
                 $data["item"][0]["credit"] .= $entry->getAmount();
                 $data["item"][0]["account_id"] = $account;
                 $data["item"][1]["debit"] .= $entry->getAmount();
@@ -192,9 +191,11 @@ class AkauntingHook {
             $responce = self::$session->post("/akaunting/double-entry/journal-entry", array(), $data);
             $ret = $responce->status_code;
         }
+        else{
+            var_dump($data);
+        }
 
         done:
-        var_dump($ret,$possibilities,$entry);
         return( array($ret,$possibilities) );
     }
 
