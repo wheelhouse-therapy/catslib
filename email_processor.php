@@ -3,6 +3,7 @@
 require_once(CATSLIB.'/vendor/autoload.php');
 require_once( SEEDCORE."SEEDEmail.php" );
 require_once 'share_resources.php';
+require_once 'AkauntingHook.php';
 
 use Ddeboer\Imap\Server;
 use Ddeboer\Imap\SearchExpression;
@@ -338,7 +339,7 @@ class ReceiptsProcessor {
             $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
             $person = $matches[0];
-            return new AccountingEntry($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person, $caOrUnpaid);
+            return AccountingEntry::createFromEmail($amount, $incomeOrExpense, $clinic, $date,$category, $attachment, (preg_match($this->PATTERNS['companyCreditCard'], $value) > 0), $value, $person, $caOrUnpaid);
         }
         return self::DISCARDED_ZERO_AMOUNT;
     }
@@ -506,82 +507,6 @@ class ReceiptsProcessor {
         } else {
             return preg_replace($pattern, $replacement, $subject, $limit);
         }
-    }
-    
-}
-
-class AccountingEntry {
-
-    private $amount;
-    private $type;
-    private $clinic;
-    private $category;
-    private $date;
-    private $attachment;
-    private $ccc;
-    private $desc;
-    private $person;
-    private $account; // Account to use to balance the entry
-
-    function __construct($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person, String $account){
-        $this->clinic = $clinic;
-        $this->amount = $amount;
-        $this->type = $type;
-        $this->category = $category;
-        $this->date = $this->parseDate($date);
-        $this->attachment = $attachment;
-        $this->ccc = $ccc;
-        $this->desc = $desc;
-        $this->person = $person;
-        $this->account = $account;
-    }
-
-    public function getAmount(){
-        return $this->amount;
-    }
-
-    public function getType(){
-        return $this->type;
-    }
-    public function getClinic()
-    {
-        return $this->clinic;
-    }
-
-    public function getCategory()
-    {
-        return $this->category;
-    }
-
-    public function getDate()
-    {
-        return $this->date;
-    }
-
-    public function getAttachment()
-    {
-        return $this->attachment;
-    }
-
-    public function getPerson()
-    {
-        if($this->ccc){
-            return "CCC";
-        }
-        return $this->person;
-    }
-
-    public function getDesc()
-    {
-        return $this->desc;
-    }
-
-    public function getAccount(){
-        return $this->account;
-    }
-    
-    private function parseDate(String $date): String {
-        return (new DateTime($date))->format('Y-m-d');
     }
     
 }
