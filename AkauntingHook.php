@@ -89,7 +89,10 @@ class AkauntingHook {
             throw new Exception("Not Loged in");
         }
         list($account,$possibilities) = self::getAccountByName($entry->getCategory());
-        if(!$account){
+        if($entry->getCategory() < 0){
+            $account = $entry->getCategory()*-1;
+        }
+        else if(!$account){
             list($account,$accountPossibilities) = self::getAccountByCode($entry->getCategory());
             if(!empty($accountPossibilities)){
                 $possibilities = $accountPossibilities;
@@ -299,6 +302,14 @@ class AccountingEntry {
     private $amount;
     private $type;
     private $company;
+    /**
+     * Catagory to put the entry.
+     * This can be the account name, account code, or account_id.
+     * A negative number is used to separate an account_id from an account code
+     * since codes cant be negative.
+     * Since account_id's also can't be negative it is converted to a positive before its submitted to Akaunting.
+     * 
+     */
     private $category;
     private $paid_at;
     private $attachment;
@@ -338,7 +349,7 @@ class AccountingEntry {
                 $liability_account = 201;
             }
             else{
-                $liability_account = self::$liability_mappings[strtolower($person)];
+                $liability_account = (@self::$liability_mappings[strtolower($person)]?:0);
             }
         }
         else if($account == "CA"){
