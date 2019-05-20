@@ -479,7 +479,7 @@ class Assessment_MABC extends Assessments
             case "md_percentile":
             case "ac_percentile":
             case "bal_percentile":
-                
+            case "total_percentile":
                 $item = substr($tag, 0,strpos($tag, "_"));
                 return $this->oData->ComputePercentile($item."_pct");
    
