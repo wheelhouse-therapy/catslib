@@ -479,15 +479,12 @@ class Assessment_MABC extends Assessments
             case "md_percentile":
             case "ac_percentile":
             case "bal_percentile":
+                
                 $item = substr($tag, 0,strpos($tag, "_"));
-                return Assessment_MABC_Scores::GetComponentTotalScore($item, $this->oData->ComputeScore($item.'_cmp'))[1];
-            case "total_percentile":
-                $index = 1;
+                return $this->oData->ComputePercentile($item."_pct");
+   
             case "zone":
-                if(!$index){
-                    $index = 2;
-                }
-                return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[$index];
+                return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2];
         }
     }
 
