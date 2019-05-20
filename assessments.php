@@ -985,6 +985,7 @@ class Assessment_AASP extends Assessments
 
     public function getTags(): array{
         //TODO Return Array of valid tags
+        return array();
     }
 
     protected function getTagField(String $tag):String{
