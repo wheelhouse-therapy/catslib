@@ -475,12 +475,13 @@ class Assessment_MABC extends Assessments
     }
 
     protected function getTagField(String $tag):String{
+        $this->setColumnRangesByAge($this->oData->GetRaw('metaClientAge'));
         switch ($tag){
             case "md_percentile":
             case "ac_percentile":
             case "bal_percentile":
             case "total_percentile":
-                $item = substr($tag, 0,strpos($tag, "_"));
+                $item = strtok($tag, "_");
                 return $this->oData->ComputePercentile($item."_pct");
    
             case "zone":
