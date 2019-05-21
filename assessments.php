@@ -666,6 +666,29 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
      */
     abstract protected function GetScore( $item, $value ):int;
 
+    public function getGlobalTags():array{
+        return array("date", "respondent", "date_entered");
+    }
+    
+    private final function getGlobalTagField(String $tag):String{
+        $s = "";
+        switch($tag){
+            case "date":
+                $s = $this->oData->GetValue("date");
+                if($s = ""){
+                    $s = $this->oData->GetValue("_created");
+                }
+                break;
+            case "respondent":
+                $s = $this->oData->GetValue("respondent");
+                break;
+                case "date_entered":
+                    $s = $this->oData->GetValue("_created");
+                break;
+        }
+        return $s;
+    }
+    
     /**
      * Get a list of tags availible for this assesment type
      * Tags in the returned array should return a value when passed to getTagValue()
@@ -685,6 +708,9 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     public final function getTagValue(String $tag):String{
         if(in_array($tag, $this->getTags())){
             return $this->getTagField($tag);
+        }
+        else if(in_array($tag, $this->getGlobalTags())){
+            return $this->getGlobalTagField($tag);
         }
         throw new Exception("Invalid Tag:".$tag);
     }
@@ -797,8 +823,7 @@ class Assessment_SPM extends Assessments
                         "body_percent", "body_interpretation", "body_item",
                         "vestib_percent", "vestib_interpretation", "vestib_item",
                         "planning_percent", "planning_interpretation", "planning_item",
-                        "total_percent", "total_interpretation",
-                        "date", "respondent", "date_entered"
+                        "total_percent", "total_interpretation"
         );
         return $raTags;
     }
@@ -829,21 +854,6 @@ class Assessment_SPM extends Assessments
                     break;
                 case "item":
                     $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
-                    break;
-                default:
-                    if($tag == "date_entered"){
-                        $s = $this->oData->GetValue("_created");
-                    }
-                    break;
-            }
-        }
-        else {
-            switch($parts[0]){
-                case "date":
-                    $s = $this->oData->GetValue("date");
-                    break;
-                case "respondent":
-                    $s = $this->oData->GetValue("respondent");
                     break;
             }
         }
