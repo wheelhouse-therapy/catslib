@@ -93,8 +93,9 @@ class CATS_MainUI extends CATS_UI
         $s = $this->Header();
         $clinics = new Clinics($this->oApp);
         if($clinics->GetCurrentClinic() == NULL){
-            $s .= "<h2>Please Select a clinic to continue</h2>"
-                 .$clinics->displayUserClinics();
+            $s .= "<div style='margin:auto; width:33%; padding: 10px; padding-top: 0px; margin-top:10em;'><h2>Please Select a clinic to continue</h2>"
+                 .$clinics->displayUserClinics(true)
+                 ."</div>";
         }
         else if( substr($screen,0,9) == "developer" ) {
             $s .= $this->DrawDeveloper();

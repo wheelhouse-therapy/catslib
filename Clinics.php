@@ -88,7 +88,7 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
 
-    function displayUserClinics(){
+    function displayUserClinics($selector = false){
         $s = "";
         foreach($this->GetUserClinics() as $ra){
             if($s){
@@ -98,7 +98,7 @@ class Clinics {
                 $s .= "<span class='selectedClinic'> ".$ra['Clinics_clinic_name']."</span>";
             }
             else {
-                $s .= "<a href='?clinic=".$ra['Clinics__key']."'>".$ra['Clinics_clinic_name']."</a>";
+                $s .= "<a href='?clinic=".$ra['Clinics__key']."'".($selector?" class='selectedClinic'":"").">".$ra['Clinics_clinic_name']."</a>";
             }
         }
         return($s);
