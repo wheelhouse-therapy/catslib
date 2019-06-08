@@ -22,6 +22,9 @@ class ClientList
     private $oCCG;
 
     private $queryParams = array("sSortCol" => "P.first_name,_key");
+    
+    //Variable used to store the form while its being generated.
+    private $sForm = "";
 
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -432,30 +435,33 @@ ExistsWarning;
         $sPros       .= "</div>".($oForm->Value('_key')?drawModal($oForm->GetValuesRA(), $this->oPeopleDB, $this->pro_roles_name ):"");
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
-        $sForm =
+        $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
+        $this->sForm =
               "<form>"
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$this->client_key}'/>":"")
              .$oForm->HiddenKey()
              ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
              .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$this->client_key}</p>":""):"<p>New Client</p>")
-             ."<table class='container-fluid table table-striped table-sm'>"
-             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) )
-             .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
-             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm))
-             .$this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) )
-             .$this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') )
-             .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
-             .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
-             .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
-             .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
-             .$this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"))))
-             .$this->drawFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) )
-             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
-             .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
-             .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
-             .$this->drawFormRow( "Code", ($oForm->Value('_key')?$this->oCCG->getClientCode($oForm->Value('_key')):"Code generated once first and last name are set"))
-             ."<tr class='row'>"
+             ."<table class='container-fluid table table-striped table-sm'>";
+             $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
+             $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+             $this->drawFormRow( "Pronouns", $this->getPronounList($oForm));
+             $this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) );
+             $this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') );
+             $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
+             $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
+             $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
+             $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+             $this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"))));
+             $this->drawPartialFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) );
+             $this->drawPartialFormRow( "Age", $age);
+             $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
+             $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
+             $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
+             $this->drawFormRow( "Code", ($oForm->Value('_key')?$this->oCCG->getClientCode($oForm->Value('_key')):"Code generated once first and last name are set"));
+             $this->endRowDraw();
+             $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
              ."<tr class='row'>"
@@ -490,7 +496,7 @@ ExistsWarning;
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
-                 ."<div class='col-md-8'>".$sForm."</div>"
+                 ."<div class='col-md-8'>".$this->sForm."</div>"
                  ."<div class='col-md-4'>".$sTherapists.$sPros
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
@@ -531,12 +537,33 @@ ExistsWarning;
 
     private function drawFormRow( $label, $control )
     {
-        return( "<tr class='row'>"
-                   ."<td class='col-md-5'><p>$label</p></td>"
-                   ."<td class='col-md-7'>$control</td>"
-               ."</tr>" );
+        $this->endRowDraw();
+        $this->beginRowDraw();
+        $this->sForm = str_replace(array("[[label]]","[[control]]"), array($label,$control), $this->sForm);
+        $this->endRowDraw();
     }
 
+    private function drawPartialFormRow( $label, $control ){
+        if(strpos($this->sForm, "[[label]]") === false){
+            $this->beginRowDraw();
+        }
+        else{
+            $this->sForm = str_replace(array("[[label]]","[[control]]"), array("<br />[[label]]","<br />[[control]]"), $this->sForm);
+        }
+        $this->sForm = str_replace(array("[[label]]","[[control]]"), array($label."[[label]]",$control."[[control]]"), $this->sForm);
+    }
+    
+    private function beginRowDraw(){
+         $this->sForm .= "<tr class='row' [[style]]>"
+            ."<td class='col-md-5'><p>[[label]]</p></td>"
+            ."<td class='col-md-7'>[[control]]</td>"
+            ."</tr>";
+    }
+    
+    private function endRowDraw(){
+        $this->sForm = str_replace(array("[[label]]","[[control]]", "[[style]]"), "", $this->sForm);
+    }
+    
     function drawProForm( SEEDCoreForm $oForm, $myClients, $raClients, $bTherapist )
     /*******************************************************************************
         The user clicked on a therapist / external provider's name so show their form
@@ -579,7 +606,7 @@ ExistsWarning;
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
-        $sForm =
+        $this->sForm =
               "<form>"
                   .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$this->therapist_key}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
@@ -590,23 +617,24 @@ ExistsWarning;
                              .($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Provider # {$this->pro_key}</p>":""):"New Professional")
                            ))
              .$oForm->HiddenKey()
-             ."<table class='container-fluid table table-striped table-sm'>"
-             .$this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) )
-             .$this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) )
-             .$this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) )
-             .$this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) )
-             .$this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) )
-             .$this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) )
-             .$this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) )
-             .$this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) )
-             .$this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) )
-             .$this->drawFormRow( "Pronouns", $this->getPronounList($oForm) )
-             .$this->drawFormRow( "Role", $selRoles )
-             .$this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")))
-             .$this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")))
-             .$this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" )
-             .$this->drawFormRow( "Clinic", $this->getClinicList($oForm) )
-             ."<tr class='row'>"
+             ."<table class='container-fluid table table-striped table-sm'>";
+             $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
+             $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+             $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
+             $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
+             $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
+             $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+             $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
+             $this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) );
+             $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
+             $this->drawFormRow( "Pronouns", $this->getPronounList($oForm) );
+             $this->drawFormRow( "Role", $selRoles );
+             $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
+             $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
+             $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+             $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
+             $this->endRowDraw();
+             $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
              ."</table>"
@@ -626,7 +654,7 @@ ExistsWarning;
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
-             ."<div class='col-md-8'>".$sForm."</div>"
+             ."<div class='col-md-8'>".$this->sForm."</div>"
              ."<div class='col-md-4'>".$sClients."</div>"
              ."</div>"
              ."</div>";
