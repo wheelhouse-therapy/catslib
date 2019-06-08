@@ -112,6 +112,19 @@ class CATS_MainUI extends CATS_UI
             //This will be a problem since our screen names aren't exactly straightforward.
             $this->oHistory->restoreScreen();
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
+        }else if($this->pswdIsTemporary()){
+            $s .= <<<ResetPassword
+<form style='margin:auto;border:1px solid gray; width:33%; padding: 10px; padding-top: 0px; border-radius:10px; margin-top:10em;' method='post'>
+         You used a temporary password to login.<br />Please enter a new password to continue.
+         <br />We recommend using a strong password that will also be easy for you to remember.
+         <br /><br />
+         <input type='password' placeholder='Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='new_pswd' />
+         <br />
+         <input type='password' placeholder='Confirm Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='confirm_pswd' />
+         <br />
+         <input type='submit' value='Change Password' style='border-style: inset outset outset inset; font-family: \"Lato\", sans-serif; font-weight: 400; border-radius:5px; display:block; margin:auto;' />
+         </form>"
+ResetPassword;
         }else {
             $s .= $this->DrawHome();
         };
@@ -350,6 +363,25 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $o = new UsersGroupsPermsUI( $this->oApp );
         return( $o->DrawUI() );
     }
+    
+    private function pswdIsTemporary(){
+        $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
+        if(($newPswd = @$_POST['new_pswd']) && ($confirmPswd = @$_POST['confirm_pswd'])){
+            if($newPswd === $confirmPswd){
+                $accountDB->ChangeUserPassword($this->oApp->sess->GetUID(), $newPswd);
+                $this->oApp->oC->AddUserMsg("Password Changed");
+            }
+            else{
+                $this->oApp->oC->AddErrMsg("Passwords dont match");
+            }
+        }
+        @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
+        $lname = $lname?:"";
+        $email = $this->oApp->sess->GetEmail();
+        $pswd = $accountDB->GetUserInfo($this->oApp->sess->GetUID())[1]["password"];
+        return $pswd=="cats" && strtolower($email) == strtolower(substr($fname, 0,1).$lname);
+    }
+    
 }
 
 class ScreenManager{
