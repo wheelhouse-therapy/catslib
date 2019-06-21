@@ -437,7 +437,7 @@ ExistsWarning;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
         $this->sForm =
-              "<form>"
+             ($oForm->Value("_status")==0?"<form>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$this->client_key}'/>":"")
              .$oForm->HiddenKey()
@@ -461,6 +461,7 @@ ExistsWarning;
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
              $this->drawFormRow( "Code", ($oForm->Value('_key')?$this->oCCG->getClientCode($oForm->Value('_key')):"Code generated once first and last name are set"));
              $this->endRowDraw();
+             if($oForm->Value("_status")==0){
              $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
@@ -492,6 +493,13 @@ ExistsWarning;
                  }
                </script>"
              ."</form>";
+             }
+             else{
+                 $this->sForm .= "</table>"
+                                ."<script>"
+                                .'$(":input",":parent").attr("disabled", true);'
+                                ."</script>";
+             }
 
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
@@ -500,6 +508,7 @@ ExistsWarning;
                  ."<div class='col-md-4'>".$sTherapists.$sPros
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
+                 ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."</div>"
              ."</div>"
              ."</div>";
