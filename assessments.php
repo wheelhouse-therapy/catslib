@@ -1212,9 +1212,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
                 if(CATS_DEBUG){
+                    $sRight .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button><div id='tags'b style='display:none'>";
                     foreach($oAsmt->getTags() as $tag){
-                        $sRight .= $oAsmt->getTagValue($tag)."<br />";
+                        $sRight .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
                     }
+                    $sRight .= "</div>";
                 }
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
