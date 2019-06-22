@@ -994,12 +994,30 @@ class Assessment_AASP extends Assessments
     }
 
     public function getTags(): array{
-        //TODO Return Array of valid tags
-        return array();
+        return array(
+            "visual_items","visual_items_never",
+            "auditory_items", "auditory_items_never",
+            "tactile_items", "tactile_items_never",
+            "vestibular_items", "vestibular_items_never",
+            "taste_items", "taste_items_never"
+        );
     }
 
     protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
+        switch($tag){
+            case "visual_items":
+            case "auditory_items":
+            case "tactile_items":
+            case "vestibular_items":
+            case "taste_items":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],4,5), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+            case "visual_items_never":
+            case "auditory_items_never":
+            case "tactile_items_never":
+            case "vestibular_items_never":
+            case "taste_items_never":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],1), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+        }
     }
 
     function GetProblemItems( string $section ) : string
@@ -1193,6 +1211,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</form>";
             $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
+                if(CATS_DEBUG){
+                    foreach($oAsmt->getTags() as $tag){
+                        $sRight .= $oAsmt->getTagValue($tag)."<br />";
+                    }
+                }
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:5%;display:inline'>"
