@@ -152,7 +152,20 @@ class AkauntingHook {
         return( array($ret,$possibilities) );
     }
 
-    private static function fetchAccounts(int $company = 0){
+    /**
+     * Get the akaunting accounts associated with the company
+     * @param int $company - numerical company id of the company to fetch accounts for.
+     * Passing a value of zero with use the current company.
+     * @param bool $loadCach - wether or not the results of the fetch should be stored in self::$accounts
+     * @throws Exception if no akaunting accounts are found. Or is we are not logged in to akaunting
+     * @return array containing the results of the fetch. This is identical to self::$accounts if $loadCach is true
+     */
+    public static function fetchAccounts(int $company = 0, bool $loadCach = true){
+        //Ensure we have connected to Akaunting before we attempt to fetch accounts
+        if (self::$session == NULL){
+            throw new Exception("Not Logged in");
+        }
+        
         if($company){
             self::switchCompany($company,TRUE);
         }
@@ -161,12 +174,17 @@ class AkauntingHook {
         if(!$matches){
             throw new Exception("Could not find any accounts");
         }
+        $accounts = array();
         foreach($matches as $match){
-            self::$accounts[$match[1]] = array( "code" => $match[2], "name" => $match[3]);
+            $accounts[$match[1]] = array( "code" => $match[2], "name" => $match[3]);
         }
         if($company){
             self::restoreCompany();
         }
+        if($loadCach){
+            self::$accounts = $accounts;
+        }
+        return $accounts;
     }
 
     private static function getAccountByName($name, $override = FALSE){
