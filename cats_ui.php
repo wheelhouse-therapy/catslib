@@ -252,7 +252,7 @@ class CATS_MainUI extends CATS_UI
             default:
                 //Unimplemented Bubbles have been commented out to clean up display
                 $raScreens = array(
-                    //array( 'admin-users',            "Manage Users" ),
+                    array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
