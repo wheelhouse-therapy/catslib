@@ -104,7 +104,7 @@ class AssessmentData_SPM extends AssessmentData
             case "balance_total":
             case "planning_total":
                 $range = SEEDCore_ParseRangeStrToRA( $this->raRange[explode("_", $item)[0]] );
-                $score = array_sum(array_intersect_key($this->raScores, $range));
+                $score = array_sum(array_intersect_key($this->raScores, array_flip($range)));
                 break;
             case "total":
                 $score = array_sum(array_diff_key($this->raScores, array_flip($doNotInclude)));
@@ -180,6 +180,7 @@ class AssessmentUI_SPM extends AssessmentUIColumns
 
     function DrawScoreResults() : string
     {
+        
         $s = "";
 
         $oForm = $this->oData->GetForm();

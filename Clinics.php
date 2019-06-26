@@ -88,7 +88,7 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
 
-    function displayUserClinics(){
+    function displayUserClinics($selector = false){
         $s = "";
         foreach($this->GetUserClinics() as $ra){
             if($s){
@@ -98,7 +98,7 @@ class Clinics {
                 $s .= "<span class='selectedClinic'> ".$ra['Clinics_clinic_name']."</span>";
             }
             else {
-                $s .= "<a href='?clinic=".$ra['Clinics__key']."'>".$ra['Clinics_clinic_name']."</a>";
+                $s .= "<a href='?clinic=".$ra['Clinics__key']."'".($selector?" class='selectedClinic'":"").">".$ra['Clinics_clinic_name']."</a>";
             }
         }
         return($s);
@@ -189,6 +189,30 @@ class Clinics {
             return false;
         }
         return( array_column($this->clinicsDB->KFRel()->GetRecordSetRA("akaunting_company != 0"),'_key') );
+    }
+    
+    public function getUsersInClinic(int $clinic, bool $invert=false){
+        $users = $this->oApp->kfdb->QueryRowsRA("SELECT fk_SEEDSession_users FROM users_clinics WHERE fk_clinics = ".$clinic.";");
+        $users1 = array();
+        if(!$invert){
+            foreach(array_column($users, "fk_SEEDSession_users") as $key){
+                array_push($users1,$this->oApp->kfdb->QueryRA("SELECT * FROM seedsession_users WHERE _key = ".$key.";"));
+            }
+        }
+        else{
+            $sql = "SELECT * FROM seedsession_users WHERE";
+            foreach(array_column($users, "fk_SEEDSession_users") as $key){
+                if(str_word_count($sql,0,"_*") == 5){
+                    $sql .= " _key != ".$key;
+                }
+                else{
+                    $sql .= " AND _key != ".$key;
+                }
+            }
+            $sql .= ";";
+            $users1 = $this->oApp->kfdb->QueryRowsRA($sql);
+        }
+        return $users1;
     }
     
     public function getImage(int $imageID, $clinic = null){
@@ -303,9 +327,106 @@ class Clinics {
         $s .= ($accessType == self::FULL_ACCESS ?SEEDCore_ArrayExpandRows( $raClinics, "<div style='padding:5px;'><a href='?clinic_key=[[_key]]'>[[clinic_name]]</a></div>" ):"")
               .($clinic_key ? $this->drawClinicForm($raClinics, $clinic_key) : "")
               ."</div>";
+        $s .= $this->manageUsers();
         return($s);
     }
 
+    public function manageUsers(){
+        $this->processUserCommands();
+        $s = "<table>
+                <tr><th style='text-align:center'>[[unassignedTitle]]</th><th style='text-align:center'>Action</th><th style='text-align:center'>Users in Clinic</th></tr>
+                <tr>
+                    <td><form id='add_user'><input type='hidden' name='cmd' value='add_user'><input type='hidden' name='clinic_key' value='[[clinic]]'>[[Unassigned]]</form></td>
+                    <td style='text-align:center;padding-left:10px;padding-right:10px'><input type='submit' value='Add' form='add_user' /><br /><input type='submit' value='Remove' form='remove_user' /></td>
+                    <td><form id='remove_user'><input type='hidden' name='cmd' value='remove_user'><input type='hidden' name='clinic_key' value='[[clinic]]'><select name='toRemove[]' multiple='multiple' required>[[Assigned]]</select></form></div>
+                </tr>
+              </table>";
+        $accessType = $this->checkAccess();
+        if($accessType == self::NO_ACCESS){
+            return "<h2>You do not have permission to manage Users.</h2>"
+                ."If you believe this is a mistake please contact a system administrator.";
+        }
+        $clinic_key = SEEDInput_Int( 'clinic_key' );
+        $s = str_replace("[[clinic]]", $clinic_key, $s);
+        if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
+            $clinic_key = 0;
+        }
+        if($clinic_key > 0){
+            $attached_users = $this->getUsersInClinic($clinic_key);
+            $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpandRows($attached_users, "<option value='[[_key]]'>[[realname]]</option>"), $s);
+            $non_attached_users = array();
+            if($accessType == self::FULL_ACCESS){
+                $non_attached_users = $this->getUsersInClinic($clinic_key,true);
+                $s = str_replace("[[unassignedTitle]]", "Users not in Clinic", $s);
+                $s = str_replace("[[Unassigned]]", "<select name='toAdd[]' multiple='multiple' required>".SEEDCore_ArrayExpandRows($non_attached_users, "<option value='[[_key]]'>[[realname]]</option>")."</select>", $s);
+            }
+            else{
+                $s = str_replace("[[unassignedTitle]]", "Add User to Clinic", $s);
+                $s = str_replace("[[Unassigned]]", "<input id='toAdd' type='text' name='toAdd' />", $s);
+            }
+        }
+        else{
+            $s = "";
+        }
+        
+        return $s;
+    }
+    
+    private function processUserCommands(){
+        $cmd = SEEDInput_Str("cmd");
+        $clinic_id = SEEDInput_Int('clinic_key');
+        $uid = $this->oApp->sess->GetUID();
+        switch($cmd){
+            case "add_user":
+                $toAdd = $_REQUEST['toAdd'];
+                if(is_array($toAdd)){
+                    foreach($toAdd as $user){
+                        $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE _key = $user;");
+                        if(!$userData){
+                            $this->oApp->oC->AddErrMsg("User $user Not Found<br />");
+                        }
+                        else{
+                            if($this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),$uid,NOW(),$uid,0,$user,$clinic_id);")){
+                                $this->oApp->oC->AddUserMsg("Added {$userData['realname']} to the clinic<br />");
+                            }
+                            else{
+                                $this->oApp->oC->AddErrMsg("Could Not add {$userData['realname']} to the clinic<br />");
+                            }
+                        }
+                    }
+                }
+                else{
+                    $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE email = '$toAdd' OR realname = '$toAdd';");
+                    if(!$userData){
+                        $this->oApp->oC->AddErrMsg("User Not Found<br />");
+                    }
+                    else{
+                        $user = $userData['_key'];
+                        if($this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),$uid,NOW(),$uid,0,$user,$clinic_id);")){
+                            $this->oApp->oC->AddUserMsg("Added {$userData['realname']} to the clinic<br />");
+                        }
+                        else{
+                            $this->oApp->oC->AddErrMsg("Could Not add {$userData['realname']} to the clinic<br />");
+                        }
+                    }
+                }
+                break;
+            case "remove_user":
+                $toRemove = $_REQUEST['toRemove'];
+                foreach($toRemove as $user){
+                    $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_users WHERE _key = $user;");
+                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_users = $user AND fk_clinics = $clinic_id;");
+                    if($this->oApp->kfdb->Execute("DELETE FROM `users_clinics` WHERE `users_clinics`.`_key` = $key;")){
+                        $this->oApp->oC->AddUserMsg("Removed $userName from the clinic<br />");
+                    }
+                    else{
+                        $this->oApp->oC->AddErrMsg("Could Not remove $userName from the clinic<br />");
+                    }
+                }
+                break;
+        }
+    }
+    
     public function renderImage(int $imageID, $clinic = null){
         $path = $this->getImage($imageID,$clinic);
         if($path === FALSE){

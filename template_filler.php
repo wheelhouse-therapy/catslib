@@ -408,8 +408,12 @@ class template_filler {
         if(in_array($table, getAssessmentTypes())){
             if(array_key_exists($table, $this->assessments) && $this->assessments[$table] != AssessmentsCommon::DO_NOT_INCLUDE){
                 $assmt = (new AssessmentsCommon($this->oApp))->GetAsmtObject($this->assessments[$table]);
-                if(in_array($col[0], $assmt->getTags())){
+                try{
                     $s = $assmt->getTagValue($col[0]);
+                }
+                catch(Exception $e){
+                    $s = "";
+                    error_log($e->getTraceAsString());
                 }
             }
         }

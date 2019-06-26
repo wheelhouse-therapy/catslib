@@ -7,7 +7,7 @@ include( "assessments_aasp.php" );
 
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
-    (CATS_DEBUG?'aasp':NULL) => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
+    'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
 );
@@ -666,6 +666,29 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
      */
     abstract protected function GetScore( $item, $value ):int;
 
+    public function getGlobalTags():array{
+        return array("date", "respondent", "date_entered");
+    }
+    
+    private final function getGlobalTagField(String $tag):String{
+        $s = "";
+        switch($tag){
+            case "date":
+                $s = $this->oData->GetValue("date");
+                if($s = ""){
+                    $s = $this->oData->GetValue("_created");
+                }
+                break;
+            case "respondent":
+                $s = $this->oData->GetValue("respondent");
+                break;
+                case "date_entered":
+                    $s = $this->oData->GetValue("_created");
+                break;
+        }
+        return $s;
+    }
+    
     /**
      * Get a list of tags availible for this assesment type
      * Tags in the returned array should return a value when passed to getTagValue()
@@ -685,6 +708,9 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     public final function getTagValue(String $tag):String{
         if(in_array($tag, $this->getTags())){
             return $this->getTagField($tag);
+        }
+        else if(in_array($tag, $this->getGlobalTags())){
+            return $this->getGlobalTagField($tag);
         }
         throw new Exception("Invalid Tag:".$tag);
     }
@@ -797,8 +823,7 @@ class Assessment_SPM extends Assessments
                         "body_percent", "body_interpretation", "body_item",
                         "vestib_percent", "vestib_interpretation", "vestib_item",
                         "planning_percent", "planning_interpretation", "planning_item",
-                        "total_percent", "total_interpretation",
-                        "date", "respondent", "date_entered"
+                        "total_percent", "total_interpretation"
         );
         return $raTags;
     }
@@ -829,21 +854,6 @@ class Assessment_SPM extends Assessments
                     break;
                 case "item":
                     $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
-                    break;
-                default:
-                    if($tag == "date_entered"){
-                        $s = $this->oData->GetValue("_created");
-                    }
-                    break;
-            }
-        }
-        else {
-            switch($parts[0]){
-                case "date":
-                    $s = $this->oData->GetValue("date");
-                    break;
-                case "respondent":
-                    $s = $this->oData->GetValue("respondent");
                     break;
             }
         }
@@ -984,11 +994,30 @@ class Assessment_AASP extends Assessments
     }
 
     public function getTags(): array{
-        //TODO Return Array of valid tags
+        return array(
+            "visual_items","visual_items_never",
+            "auditory_items", "auditory_items_never",
+            "tactile_items", "tactile_items_never",
+            "vestibular_items", "vestibular_items_never",
+            "taste_items", "taste_items_never"
+        );
     }
 
     protected function getTagField(String $tag):String{
-        //TODO Return Values for valid tags
+        switch($tag){
+            case "visual_items":
+            case "auditory_items":
+            case "tactile_items":
+            case "vestibular_items":
+            case "taste_items":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],4,5), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+            case "visual_items_never":
+            case "auditory_items_never":
+            case "tactile_items_never":
+            case "vestibular_items_never":
+            case "taste_items_never":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],1), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+        }
     }
 
     function GetProblemItems( string $section ) : string
@@ -1182,6 +1211,13 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</form>";
             $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
+                if(CATS_DEBUG){
+                    $sRight .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button><div id='tags'b style='display:none'>";
+                    foreach($oAsmt->getTags() as $tag){
+                        $sRight .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
+                    }
+                    $sRight .= "</div>";
+                }
                 $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
                 $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:5%;display:inline'>"

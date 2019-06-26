@@ -24,7 +24,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
  */
 {
     global $MODES;
-    
     $s = "";
 
     $s .= <<<ResourcesTagStyle
@@ -171,13 +170,14 @@ DownloadMode;
             $filler->fill_resource($file);
         }
         else{
-            header('Content-Description: File Transfer');
-            header('Content-Disposition: attachment; filename="' . basename($file) . '"');
-            header('Content-Transfer-Encoding: binary');
-            if( ($fp = fopen( $file, "rb" )) ) {
-                fpassthru( $fp );
-                fclose( $fp );
-            }
+             header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+             header('Content-Description: File Transfer');
+             header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+             header('Content-Transfer-Encoding: binary');
+             if( ($fp = fopen( $file, "rb" )) ) {
+                 fpassthru( $fp );
+                 fclose( $fp );
+             }
             die();
         }
         exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
