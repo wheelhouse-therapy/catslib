@@ -125,7 +125,7 @@ class AkauntingReports
 
     function GetLedgerRAForDisplay( $raParms = array() )
     /***************************************************
-        Same as GetLedgerRA but if sorting by account put a total after each account
+        Same as GetLedgerRA but if sorting by account put a total after each account, and handle revenue cases for Combined clinic view
      */
     {
         $raOut = array();
@@ -134,6 +134,17 @@ class AkauntingReports
         $raAcctLast = "";
         $total = $dtotal = $ctotal = 0;
         foreach( $raRows as $ra ) {
+            if( $raParms['Ak_clinic'] == -1 ) {
+                // In Combined clinics revenue from CORE is not included in the totals,
+                // and CATS Contribution is not included as an expense.
+
+// TODO: should check company_id corresponds to CORE, not just that it is Akaunting company #1
+                if( $ra['company_id'] == 1 && substr($ra['code'],0,1) == '4' )  continue;
+
+// TODO: should there be a better way to determine the CATS Contribution account?
+                if( $ra['code'] == '608' )  continue;
+            }
+
             if( $raParms['Ak_sort'] == 'name' ) {
                 if( $raAcctLast && $raAcctLast != $ra['code'] ) {
                     $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
