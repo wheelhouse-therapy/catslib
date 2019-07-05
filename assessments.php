@@ -402,16 +402,18 @@ class AssessmentsCommon
 
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":";
-            $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"_created", "bSortDown"=> true) );
+            $raA = $this->oAsmtDB->GetList( "AxCxP", "fk_clients2='$client' and testType='{$assmt['code']}'", array("sSortCol"=>"date,_created", "bSortDown"=> true) );
             $raOut['body'] .= "<select name='assessments[".$assmt['code']."]'".(count($raA) == 0 ? " disabled":"").">";
             if(count($raA) == 0){
                 $raOut['body'] .= "<option value='".self::NO_DATA."'>No Data Recorded</option>";
             }
             else{
-                $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."' selected>Do Not Include</option>";
+                $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."'>Do Not Include</option>";
+                $bFirst = true;
                 foreach ($raA as $ra){
-                    $date = substr( $ra['_created'], 0, 10 );
-                    $raOut['body'] .= "<option value='".$ra['_key']."'>".$date."</option>";
+                    $date = $ra['date']?:substr( $ra['_created'], 0, 10 );
+                    $raOut['body'] .= "<option value='".$ra['_key']."' ".($bFirst?"selected":"").">".$date."</option>";
+                    $bFirst = false;
                 }
                 // Some data has been put in the form lets be sure to send this to the user
                 $bData = true;
