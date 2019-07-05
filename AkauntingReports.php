@@ -20,6 +20,12 @@ class AkauntingReportBase
     {
         $raParms = [];
 
+        // Ak_clinic is the clinic selector.  -1 means Combined clinics
+        $raParms['Ak_clinic'] = intval($this->oApp->sess->SmartGPC( 'Ak_clinic', [$this->raClinics->GetCurrentClinic()] ));
+
+        // Ak_report is the report type
+        $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
+
         // Ak_sort sorts a ledger by date or account name
         // sortdb is the sql ORDER BY
         switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
@@ -27,15 +33,24 @@ class AkauntingReportBase
                 $raParms['sortdb'] = 'date,name,d,c';
                 break;
             case 'name':
-                $raParms['sortdb'] = 'code,date,d,c';
+                if( $raParms['Ak_clinic'] == -1 ) {
+                    $raParms['sortdb'] = 'code,company_id,date,d,c';
+                } else {
+                    $raParms['sortdb'] = 'code,date,d,c';       // actually degenerate to the other case because company_id is always the same
+                }
                 break;
         }
 
-        // Ak_clinic is the clinic selector
-        $raParms['Ak_clinic'] = $this->oApp->sess->SmartGPC('Ak_clinic', array($this->raClinics->GetCurrentClinic()));
-
-        // Ak_report is the report type
-        $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
+        // akCompanyId is the company_id that Akaunting uses. We get this from our Clinics table
+        if( $raParms['Ak_clinic'] == -1 ) {
+            // Combined clinics view
+            $raParms['akCompanyId'] = -1;
+        } else {
+            $raParms['akCompanyId'] = (new ClinicsDB($this->oApp->kfdb))->GetClinic($raParms['Ak_clinic'])->Value("akaunting_company");
+            if( !$raParms['akCompanyId'] ) {
+                $this->oApp->oC->AddErrMsg("Clinic does not have an accounting ID set");
+            }
+        }
 
         // Make an urlencoded string that can reproduce the current state
         $raParms['parmsForLink'] = "";
@@ -94,21 +109,32 @@ class AkauntingReports
 
         $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
 
-        $cid =(new ClinicsDB($this->oApp->kfdb))->GetClinic(@$raParms['Ak_clinic']?:$this->clinics->GetCurrentClinic())->Value("akaunting_company");
-
-        if(!$cid){
-            $this->oApp->oC->AddErrMsg("Clinic does not have an accounting ID set");
-            goto done;
-        }
-
         $sql =
-            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,LEFT(A.issued_at,10) as date, "
+            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,LEFT(A.issued_at,10) as date,A.reference as reference, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
-            ."where A.account_id=B.id AND B.company_id='$cid'"
+            ."where A.account_id=B.id "
+                .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}'" : "")
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
+
+        if( $raParms['Ak_clinic'] == -1 ) {
+            // In Combined clinics revenue from CORE is not included in the totals,
+            // and CATS Contribution is not included as an expense.
+
+            $ra2 = array();
+            foreach( $raRows as $ra ) {
+// TODO: should check company_id corresponds to CORE, not just that it is Akaunting company #1
+                if( $ra['company_id'] == 1 && substr($ra['code'],0,1) == '4' )  continue;
+
+// TODO: should there be a better way to determine the CATS Contribution account?
+                if( $ra['code'] == '608' ) continue;
+
+                $ra2[] = $ra;
+            }
+            $raRows = $ra2;
+        }
 
         done:
         return( $raRows );
@@ -116,7 +142,7 @@ class AkauntingReports
 
     function GetLedgerRAForDisplay( $raParms = array() )
     /***************************************************
-        Same as GetLedgerRA but if sorting by account put a total after each account
+        Same as GetLedgerRA but if sorting by account put a total after each account, and handle revenue cases for Combined clinic view
      */
     {
         $raOut = array();
@@ -136,7 +162,8 @@ class AkauntingReports
                 $raAcctLast = $ra['code'];
             }
 
-            $ra['acct'] = $ra['code']." : ".$ra['name'];
+            // Make the name of the account. If viewing Combined clinics show which clinic this account is for.
+            $ra['acct'] = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
             $raOut[] = $ra;
         }
 
@@ -149,10 +176,12 @@ class AkauntingReports
 
         if( ($clinics = $this->clinics->getClinicsWithAkaunting()) ) {
             $clinicsDB = new ClinicsDB($this->oApp->kfdb);
-            $sForm = "<form style='display:inline' id='companyForm'><select name='Ak_clinic' onChange=\"document.getElementById('companyForm').submit()\">";
-            foreach($clinics as $option){
-                $selected = $option==$reportParms['Ak_clinic'] ? "selected" : "";
-                $sForm .= $clinicsDB->GetClinic($option)->Expand( "<option value='[[_key]]' $selected>[[clinic_name]]</option>" );
+            $sForm = "<form style='display:inline' id='companyForm'>"
+                    ."<select name='Ak_clinic' onChange=\"document.getElementById('companyForm').submit()\">"
+                    ."<option value='-1'".($reportParms['Ak_clinic']==-1 ? " selected" : "").">Combined</option>";
+            foreach($clinics as $c){
+                $selected = $c==$reportParms['Ak_clinic'] ? "selected" : "";
+                $sForm .= $clinicsDB->GetClinic($c)->Expand( "<option value='[[_key]]' $selected>[[clinic_name]]</option>" );
             }
             $sForm .= "</select></form>";
         }
@@ -217,6 +246,7 @@ class AkauntingReports
                 ."<th>Debit</th>"
                 ."<th>Credit</th>"
                 ."<th>&nbsp;</th>"
+                ."<th>Description</th>"
             ."</tr>";
         foreach( $raRows as $ra ) {
             if( isset($ra['total']) ) {
@@ -224,11 +254,11 @@ class AkauntingReports
                 $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td>"
                                                     ."<td><span style='color:gray'>[[dtotal]]</span></td>"
                                                     ."<td><span style='color:gray'>[[ctotal]]</span></td>"
-                                                    ."<td><strong>[[total]]</strong></td></tr>" );
+                                                    ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
                 $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
             } else {
                 $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>[[date]]</td><td>[[acct]]</td>"
-                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</tr>" );
+                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[reference]]</td></tr>" );
             }
         }
         $s .= "</table>";
@@ -240,7 +270,7 @@ class AkauntingReports
     {
         $s = $this->oAkReport->Style();
 
-        $raRows = $this->GetLedgerRA();
+        $raRows = $this->GetLedgerRA( $this->oAkReport->raReportParms );
         $raM = [];
         $raMonths = [];
         $raAccts = [];
