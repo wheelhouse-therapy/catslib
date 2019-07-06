@@ -1001,7 +1001,9 @@ class Assessment_AASP extends Assessments
             "auditory_items", "auditory_items_never",
             "tactile_items", "tactile_items_never",
             "vestibular_items", "vestibular_items_never",
-            "taste_items", "taste_items_never"
+            "taste_items", "taste_items_never",
+            "low_registration", "sensory_seeking", "sensory_sensativity", "sensory_avoiding",
+            "q1_interpretation", "q2_interpretation", "q3_interpretation", "q4_interpretation"
         );
     }
 
@@ -1019,6 +1021,32 @@ class Assessment_AASP extends Assessments
             case "vestibular_items_never":
             case "taste_items_never":
                 return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],1), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+            case "low_registration":
+            case "sensory_seeking":
+            case "sensory_sensativity":
+            case"sensory_avoiding":
+                $tag = array("low_registration" => "q1", "sensory_seeking" => "q2", "sensory_sensativity" => "q3", "sensory_avoiding" => "q4")[$tag];
+            case "q1_interpretation":
+            case "q2_interpretation":
+            case "q3_interpretation":
+            case "q4_interpretation":
+                $ra = $this->raSectionBounds[ucfirst(explode("_", $tag)[0])];
+                $score = $this->oData->ComputeScore(ucfirst(explode("_", $tag)[0])."_total");
+                if($score <= $ra[0]){
+                    return "Much Less than Most People";
+                }
+                if($score <= $ra[1]){
+                    return "Less than Most People";
+                }
+                if($score <= $ra[2]){
+                    return "Similar to Most People";
+                }
+                if($score <= $ra[3]){
+                    return "More than Most People";
+                }
+                if($score <= $ra[4]){
+                    return "Much More than Most People";
+                }
         }
     }
 
@@ -1037,6 +1065,14 @@ class Assessment_AASP extends Assessments
     );
 
     protected $raPercentiles = array();
+    
+    private $raSectionBounds = array(
+        "Q1" => array(18,26,40,51,75),
+        "Q2" => array(27,41,58,65,75),
+        "Q3" => array(19,25,40,48,75),
+        "Q4" => array(18,25,40,48,75)
+    );
+    
 }
 
 
