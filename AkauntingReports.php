@@ -124,9 +124,9 @@ class AkauntingReports
             // and CATS Contribution is not included as an expense.
 
             $ra2 = array();
+            $coreCompany = (new ClinicsDB($this->oApp->kfdb))->GetClinic(1)->Value('akaunting_company');
             foreach( $raRows as $ra ) {
-// TODO: should check company_id corresponds to CORE, not just that it is Akaunting company #1
-                if( $ra['company_id'] == 1 && substr($ra['code'],0,1) == '4' )  continue;
+                if( $ra['company_id'] == $coreCompany && substr($ra['code'],0,1) == '4' )  continue;
 
 // TODO: should there be a better way to determine the CATS Contribution account?
                 if( $ra['code'] == '608' ) continue;
