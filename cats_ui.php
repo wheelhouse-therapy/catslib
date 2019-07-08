@@ -51,6 +51,7 @@ class CATS_UI
                 'CATSDIR_CSS'=>CATSDIR_CSS,
                 'CATSDIR_JS'=>CATSDIR_JS,
                 'CATSDIR_IMG'=>CATSDIR_IMG,
+                'CATSDIR_AKAUNTING'=>CATSDIR_AKAUNTING,
                 'W_CORE_URL'=>W_CORE_URL,
                 'ConsoleUserMsg'=>$this->oApp->oC->GetUserMsg(),
                 'ConsoleErrMsg'=>$this->oApp->oC->GetErrMsg(),

@@ -10,4 +10,5 @@
 global $mappings;
 $mappings = array(
 	"admin-manageTNRS" => "tnrs",
+    "therapist-akaunting" => "akaunting",
 );
