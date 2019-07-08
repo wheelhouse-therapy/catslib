@@ -626,11 +626,10 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $oForm = $this->oData->GetForm();
         $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
-        $s .= "<h2>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</h2>
-                    <span style='margin-left: 10%' id='name'> Name: ".$client->Expand("[[P_first_name]] [[P_last_name]]")."</span>
+        $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
+                    <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
                     <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
                     <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
-//TODO Add reference to date recorded
         $s .= $this->oUI->DrawScoreResults();
 
         done:

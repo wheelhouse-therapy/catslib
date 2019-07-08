@@ -173,7 +173,28 @@ class AssessmentUI_AASP extends AssessmentUIColumns
  <tr><td>Sensory Seeking</td><td>{{Q2_total}}&nbsp;/&nbsp;75</td><td>15&nbsp;-&nbsp;27</td><td>28&nbsp;-&nbsp;41</td><td>42&nbsp;-&nbsp;58</td><td>59&nbsp;-&nbsp;65</td><td>66&nbsp;-&nbsp;75</td></tr>
  <tr><td>Sensory Sensitvity</td><td>{{Q3_total}}&nbsp;/&nbsp;75</td><td>15&nbsp;-&nbsp;19</td><td>20&nbsp;-&nbsp;25</td><td>26&nbsp;-&nbsp;40</td><td>41&nbsp;-&nbsp;48</td><td>49&nbsp;-&nbsp;75</td></tr>
  <tr><td>Sensory Avoiding</td><td>{{Q4_total}}&nbsp;/&nbsp;75</td><td>15&nbsp;-&nbsp;18</td><td>19&nbsp;-&nbsp;25</td><td>26&nbsp;-&nbsp;40</td><td>41&nbsp;-&nbsp;48</td><td>49&nbsp;-&nbsp;75</td></tr>
-</tbody></table>";
+</tbody></table>
+<script>
+function colorTable(id) {
+	var table = document.getElementById(id);
+	document.querySelectorAll('#' + id + ' tbody tr:not(:first-child)').forEach(function(row) {
+		var val = row.children[1].innerHTML.split('&nbsp;/&nbsp;')[0];
+		for (var i in row.children) {
+			if (i == 0) {
+				continue;
+			}
+			var cell = row.children[i];
+			if (!cell.innerHTML) return;
+			var lims = cell.innerHTML.split('&nbsp;-&nbsp;');
+			if (val >= Number(lims[0]) && val <= Number(lims[1])) {
+				cell.style.backgroundColor = 'yellow';
+				return;
+			}
+		}
+	});
+}
+colorTable('results');
+</script>";
         $s = preg_replace_callback("/{{(.*?)}}/", function ($match){
             return $this->oData->ComputeScore($match[1]);
         }, $s);

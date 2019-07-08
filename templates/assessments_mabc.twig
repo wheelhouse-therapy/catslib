@@ -12,7 +12,12 @@
 {% block dummy %}
 age band 1
 {% endblock %}
-
+{% block mdTable %}
+<tr><td class='label0'>{{md1a_label}}</td><td>{{md1a_raw}}</td><td class='score0'>{{md1a_score}}</td><td><div class='score1'>{{md1_avgscore}}</div></td></tr>
+<tr><td class='label0'>{{md1b_label}}</td><td>{{md1b_raw}}</td><td class='score0'>{{md1b_score}}</td><td>&nbsp;</td></tr>
+<tr><td class='label0'>{{md2_label}}</td><td>{{md2_raw}}</td><td>&nbsp;</td><td><div class='score1'>{{md2_score}}</div></td></tr>
+<tr><td class='label0'>{{md3_label}}</td><td>{{md3_raw}}</td><td>&nbsp;</td><td><div class='score1'>{{md3_score}}</div></td></tr>
+{% endblock %}
 
 %% assessments_mabc_results_2
 {% extends "assessments_mabc_results_parent" %}
@@ -32,6 +37,9 @@ age band 3
 
 %% assessments_mabc_results_parent
 <div>
-Here are your MABC results for {% block dummy %}{% endblock %}. For example, numbers like {{md_cmp}}.
+Here are your MABC results for {% block dummy %}{% endblock %}.
 </div>
-
+<br />
+<table class='secTable'>
+{% block mdTable %}{% endblock %}
+</table>
