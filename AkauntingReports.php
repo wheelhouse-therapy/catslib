@@ -283,14 +283,14 @@ class AkauntingReports
             if( !isset($raM[$month][$acct]) )  $raM[$month][$acct] = 0.0;
             $raM[$month][$acct] += $ra['d'] ?: $ra['c'];
 
-            $raMonths[$month] = date_create($month)->format('M\\nY');
+            $raMonths[$month] = date_create($month)->format('M<b\\r />Y');
             $raAccts[$acct] = 1;
         }
         ksort($raMonths);
         ksort($raAccts);
 
         $s .= "<table class='AkReportTable'>"
-             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td><strong>[[]]</strong></td>" )."</tr>";
+             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td>[[]]</td>" )."</tr>";
 
         foreach( $raAccts as $acct => $dummy ) {
             $s .= "<tr><td><strong>$acct</strong></td>";
@@ -301,7 +301,7 @@ class AkauntingReports
         }
         $s .= "</table>";
 
-        return( str_replace("\n", "<br />", $s));
+        return($s);
     }
 
     private function drawMonthlySumReport()
