@@ -283,7 +283,7 @@ class AkauntingReports
             if( !isset($raM[$month][$acct]) )  $raM[$month][$acct] = 0.0;
             $raM[$month][$acct] += $ra['d'] ?: $ra['c'];
 
-            $raMonths[$month] = str_replace(" ", "<br />", date_create($month)->format('M Y'));
+            $raMonths[$month] = date_create($month)->format('M\nY');
             $raAccts[$acct] = 1;
         }
         ksort($raMonths);
@@ -301,7 +301,7 @@ class AkauntingReports
         }
         $s .= "</table>";
 
-        return( $s );
+        return( str_replace("\n", "<br />", $s));
     }
 
     private function drawMonthlySumReport()
