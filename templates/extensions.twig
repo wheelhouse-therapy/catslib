@@ -33,68 +33,56 @@
     var item_row = '1';
     function totalItem() {
         $('.box-footer .btn-success').prop('disabled', true);
-        $.ajax({
-            url: 'http://localhost:8080/akaunting/double-entry/journal-entry/totalItem',
-            type: 'POST',
-            dataType: 'JSON',
-            data: $('#items input[type=\'text\'], #items input[type=\'number\'], #items input[type=\'hidden\'], #items textarea, #items select, #currency_code'),
-            headers: { 'X-CSRF-TOKEN': 'R3DCrMiln5xVHMtGvzuc6IYWBRC1IPBF10ddNx8Z' },
-            success: function(data) {
-                if (data) {
-                    $('#debit-sub-total').html(data.debit_sub_total);
-                    $('#credit-sub-total').html(data.credit_sub_total);
+        var ra = [];
+        document.querySelectorAll("input[id^=item-debit-]").forEach(a => ra.push($(a).maskMoney('unmasked')[0]));
+        var debit = ra.reduce((a,b) => Number(a)+Number(b));
 
-                    $('#debit-grand-total').html(data.debit_grand_total);
-                    $('#credit-grand-total').html(data.credit_grand_total);
-
-                    if (data.debit_grand_total_raw == data.credit_grand_total_raw) {
-                        $('.box-footer .btn-success').prop('disabled', false);
-
-                        $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
-                        $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
-                    } else if (data.debit_grand_total_raw > data.credit_grand_total_raw) {
-                        $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
-                        $('#credit-grand-total').parent().css('background-color', '#f2dede');
-                    } else if (data.debit_grand_total_raw < data.credit_grand_total_raw) {
-                        $('#debit-grand-total').parent().css('background-color', '#f2dede');
-                        $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
-                    }
-                }
-            }
-        });
+        var ra = [];
+        document.querySelectorAll("input[id^=item-credit-]").forEach(a => ra.push($(a).maskMoney('unmasked')[0]));
+        var credit = ra.reduce((a,b) => Number(a)+Number(b));
+        
+        $('#debit-sub-total').html(debit);
+        $('#credit-sub-total').html(credit);
+        $('#debit-grand-total').html(debit);
+    	$('#credit-grand-total').html(credit);
+        if (debit == credit) {
+            $('.box-footer .btn-success').prop('disabled', false);
+            $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
+            $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
+        } else if (debit > credit) {
+            $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
+            $('#credit-grand-total').parent().css('background-color', '#f2dede');
+        } else if (debit < credit) {
+            $('#debit-grand-total').parent().css('background-color', '#f2dede');
+            $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
+        }
     }
     $(document).on('click', '#button-add-item', function (e) {
-        $.ajax({
-            url: 'http://localhost:8080/akaunting/double-entry/journal-entry/addItem',
-            type: 'GET',
-            dataType: 'JSON',
-            data: {item_row: item_row},
-            success: function(json) {
-                if (json['success']) {
-                    $('#items tbody #addItem').before(json['html']);
+        			var clone = document.getElementById('tableRow').content.cloneNode(true);
+        			clone.querySelectorAll('[id="item-debit-"]')[0].id = "item-debit-" + item_row;
+        			clone.querySelectorAll('[id="item-credit-"]')[0].id = "item-credit-" + item_row;
+                    $('#items tbody #addItem').before(clone);
 
                     $('[data-toggle="tooltip"]').tooltip('hide');
-
-                    var currency = json['data']['currency'];
-
+debugger;
                     $("#item-debit-" + item_row).maskMoney({
-                        thousands : currency.thousands_separator,
-                        decimal : currency.decimal_mark,
-                        precision : currency.precision,
+                        thousands : ',',
+                        decimal : '.',
+                        precision : 2,
                         allowZero : true,
-                        prefix : (currency.symbol_first) ? currency.symbol : '',
-                        suffix : (currency.symbol_first) ? '' : currency.symbol
+                        prefix : '$',
+                        suffix : ''
                     });
 
                     $("#item-debit-" + item_row).trigger('focusout');
 
                     $("#item-credit-" + item_row).maskMoney({
-                        thousands : currency.thousands_separator,
-                        decimal : currency.decimal_mark,
-                        precision : currency.precision,
+                    	thousands : ',',
+                        decimal : '.',
+                        precision : 2,
                         allowZero : true,
-                        prefix : (currency.symbol_first) ? currency.symbol : '',
-                        suffix : (currency.symbol_first) ? '' : currency.symbol
+                        prefix : '$',
+                        suffix : ''
                     });
 
                     $("#item-credit-" + item_row).trigger('focusout');
@@ -107,14 +95,12 @@
                     });
 
                     item_row++;
-                }
-            }
-        });
     });
 
     $(document).on('change', '.input-price', function(){
+        alert('onChange');
         id = $(this).attr('id');
-
+debugger;
         ids = id.split('-');
 
         amount = $(this).maskMoney('unmasked')[0];

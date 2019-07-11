@@ -1,10 +1,5 @@
 <?php
 
-if(!$config_KFDB){
-    //FIXME Imlement new system on all mechines
-    $config_KFDB['cats'] = $catsDefKFDB;
-}
-
 /**
  * CATS_DEBUG is a constant which allows code to only work on production machines.
  * It is true when the host starts with localhost. This is important because serving on port 8080
@@ -74,11 +69,15 @@ $dirImg = CATSDIR_IMG;
 define("CATS_LOGO", CATSDIR_IMG."cats_wide.png");
 
 // $email_processor is a global that must be defined in catsdef.php
-// The default server is set here
+// The default server for email is set here
 if( !isset($email_processor['emailServer']) ) {
     $email_processor['emailServer'] = "catherapyservices.ca";
 }
-
+// $email_processor is a global that must be defined in catsdef.php
+// The default server for akaunting is set here
+if( !isset($email_processor['akauntingServer']) ) {
+    $email_processor['akauntingServer'] = "https://localhost/";
+}
 
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(

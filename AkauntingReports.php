@@ -1,5 +1,7 @@
 <?php
 
+require_once 'AkauntingHook.php';
+
 class AkauntingReportBase
 {
     public $oApp;
@@ -110,7 +112,7 @@ class AkauntingReports
         $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
 
         $sql =
-            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,LEFT(A.issued_at,10) as date,A.reference as reference, "
+            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
             ."where A.account_id=B.id "
@@ -233,7 +235,7 @@ class AkauntingReports
         }
 
         done:
-        if(CATS_DEBUG){$s .= journalEntryForm();}
+        if(CATS_DEBUG){$s .= journalEntryForm($reportParms['akCompanyId']);}
         return( $s );
     }
 
@@ -281,14 +283,14 @@ class AkauntingReports
             if( !isset($raM[$month][$acct]) )  $raM[$month][$acct] = 0.0;
             $raM[$month][$acct] += $ra['d'] ?: $ra['c'];
 
-            $raMonths[$month] = 1;
+            $raMonths[$month] = date_create($month)->format('M Y');
             $raAccts[$acct] = 1;
         }
         ksort($raMonths);
         ksort($raAccts);
 
         $s .= "<table class='AkReportTable'>"
-             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td><strong>[[k]]</strong></td>", true, ['bUseKeys'=>true] )."</tr>";
+             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td><strong>[[]]</strong></td>" )."</tr>";
 
         foreach( $raAccts as $acct => $dummy ) {
             $s .= "<tr><td><strong>$acct</strong></td>";
@@ -445,106 +447,111 @@ class AkauntingReportSpreadsheet
 }
 
 //TODO Move to better location
-function journalEntryForm(){
-    return <<<JournalEntryForm
-<form method="POST" action="https://catherapyservices.ca/akaunting/double-entry/journal-entry" accept-charset="UTF-8" role="form" enctype="multipart/form-data">
-
+function journalEntryForm(int $company){
+    global $email_processor;
+    if($company == -1){
+        return "";
+    }
+    $s = <<<JournalEntryForm
+<template id='tableRow'>
+    <tr>
+        <td class="text-center" style="vertical-align: middle;">
+            <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+        </td>
+        <td>
+            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>        
+        </td>
+        <td>
+            <input value="" class="form-control text-right input-price" required="required" name="item[0][debit]" type="text" id="item-debit-">
+        </td>
+        <td>
+            <input value="" class="form-control text-right input-price" required="required" name="item[0][credit]" type="text" id="item-credit-">
+        </td>
+    </tr>
+</template>
+<form method="POST"  accept-charset="UTF-8" role="form" enctype="multipart/form-data">
     <div class="box-body">
         <div class="form-group col-md-6 required ">
-    <label for="paid_at" class="control-label">Date</label>
-    <div class="input-group">
-        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
-        <input class="form-control" placeholder="Enter Date" id="paid_at" required="required" data-inputmask="'alias': 'yyyy-mm-dd'" data-mask="" name="paid_at" type="text" value="2019-06-24">
+        <label for="paid_at" class="control-label">Date</label>
+        <div class="input-group">
+            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+            <input class="form-control" placeholder="Enter Date" id="paid_at" required="required" data-inputmask="'alias': 'yyyy-mm-dd'" data-mask="" name="paid_at" type="text" value="2019-06-24">
+        </div> 
     </div>
-    
-</div>
-
-
-
-        <div class="form-group col-md-6  ">
-    <label for="reference" class="control-label">Reference</label>
-    <div class="input-group">
-        <div class="input-group-addon"><i class="fa fa-file-text-o"></i></div>
-        <input class="form-control" placeholder="Enter Reference" name="reference" type="text" id="reference">
+    <div class="form-group col-md-6  ">
+        <label for="reference" class="control-label">Reference</label>
+        <div class="input-group">
+            <div class="input-group-addon"><i class="fa fa-file-text-o"></i></div>
+            <input class="form-control" placeholder="Enter Reference" name="reference" type="text" id="reference">
+        </div>
     </div>
-    
-</div>
-
-
-
-        <div class="form-group col-md-12 required ">
-    <label for="description" class="control-label">Description</label>
-    <textarea class="form-control" placeholder="Enter Description" rows="3" required="required" name="description" cols="50" id="description"></textarea>
-    
-</div>
-
-
-
-        <div class="form-group col-md-12">
-            <label for="items" class="control-label">Items</label>
-            <div class="table-responsive">
-                <table class="table table-bordered" id="items">
-                    <thead>
+    <div class="form-group col-md-12 required ">
+        <label for="description" class="control-label">Description</label>
+        <textarea class="form-control" placeholder="Enter Description" rows="3" required="required" name="description" cols="50" id="description"></textarea>
+    </div>
+    <div class="form-group col-md-12">
+        <label for="items" class="control-label">Items</label>
+        <div class="table-responsive">
+            <table class="table table-bordered" id="items">
+                <thead>
                     <tr style="background-color: #f9f9f9;">
-                                                <th width="5%" class="text-center" required="">Actions</th>
-                                                                        <th width="20%" class="text-left required">Account</th>
-                                                                        <th width="20%" class="text-right">Debit</th>
-                                                                        <th width="20%" class="text-right">Credit</th>
-                                            </tr>
-                    </thead>
-                    <tbody>
-                                                                <tr id="item-row-0">
-        <td class="text-center" style="vertical-align: middle;">
-                <button type="button" onclick="$(this).tooltip('destroy'); $('#item-row-0').remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
-            </td>
-            <td>
-                <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true"><option selected="selected" value="">- Select Account -</option><optgroup label="Bank &amp; Cash"><option value="61">836 - RBC Cats account</option><option value="65">837 - Cash</option></optgroup><optgroup label="Current Asset"><option value="1">120 - Accounts Receivable</option></optgroup><optgroup label="Current Liability"><option value="7">200 - Accounts Payable</option><option value="158">201 - CREDIT CARD RBC</option><option value="8">205 - Accruals</option><option value="9">210 - Unpaid Expense Claims - Sue</option><option value="62">211 - Unpaid Expense Claims - Alison</option><option value="10">215 - Wages Payable</option><option value="13">230 - Employee Tax Payable</option><option value="15">236 - Employee income tax deductions payable</option><option value="16">240 - Corporate Income Tax Payable</option><option value="18">255 - Reconciliation Adjustment</option><option value="19">260 - Rounding</option><option value="20">835 - Revenue Received in Advance</option><option value="21">835 - Clearing Account from CATS Brant</option></optgroup><optgroup label="Depreciation"><option value="45">700 - Depreciation</option></optgroup><optgroup label="Equity"><option value="57">300 - Owners Contribution</option><option value="58">310 - Owners Draw</option><option value="59">320 - Retained Earnings</option></optgroup><optgroup label="Expense"><option value="24">600 - Advertising</option><option value="181">601 - Wages and Salaries</option><option value="25">605 - Bank Service Charges</option><option value="26">610 - Janitorial Expenses</option><option value="27">615 - Consulting - Legal &amp; Accounting</option><option value="28">620 - Meals &amp; Entertainment</option><option value="29">624 - Postage - for reports (not advertising)</option><option value="30">628 - Therapy Supplies - toys/small items</option><option value="63">629 - Therapy Supplies -- Assessment tools</option><option value="64">630 - Therapy supplies -- books and manuals</option><option value="162">631 - Therapy Equipment</option><option value="31">632 - Insurance</option><option value="32">636 - Education Expenses</option><option value="33">640 - Home Office Expense</option><option value="173">643 - Travel Expense</option><option value="34">644 - Mileage Expenses</option><option value="35">648 - Office Supplies</option><option value="37">656 - Rent</option><option value="38">660 - Repairs &amp; Maintenance</option><option value="40">668 - Payroll Tax Expense</option><option value="41">672 - Professional Dues &amp; Memberships</option><option value="42">676 - Telephone &amp; Internet</option><option value="166">677 - Software and small IT devices (non capital)</option><option value="44">684 - Bad Debts</option><option value="46">710 - Corporate Income Tax Expense</option><option value="47">715 - Employee Benefits Expense</option><option value="48">800 - Interest Expense</option></optgroup><optgroup label="Fixed Asset"><option value="3">150 - Office Equipment</option><option value="4">151 - Less Accumulated Depreciation on Office Equipment</option><option value="5">160 - Computer Equipment</option><option value="6">161 - Less Accumulated Depreciation on Computer Equipment</option></optgroup><optgroup label="Liability"><option value="176">840 - Clearing Account from CATS Guelph</option></optgroup><optgroup label="Non-current Liability"><option value="22">290 - Loan</option></optgroup><optgroup label="Revenue"><option value="53">400 - Sales</option><option value="175">408 - Franchisee CATS Core Contributions</option><option value="54">460 - Interest Income</option><option value="55">470 - Other Revenue</option></optgroup></select>        
-            </td>
-            <td>
-                <input value="" class="form-control text-right input-price" required="required" name="item[0][debit]" type="text" id="item-debit-0">
+                        <th width="5%" class="text-center" required="">Actions</th>
+                        <th width="20%" class="text-left required">Account</th>
+                        <th width="20%" class="text-right">Debit</th>
+                        <th width="20%" class="text-right">Credit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-center" style="vertical-align: middle;">
+                            <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+                        </td>
+                        <td>
+                            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>        
+                        </td>
+                        <td>
+                            <input value="" class="form-control text-right input-price" required="required" name="item[0][debit]" type="text" id="item-debit-0">
+                        </td>
+                        <td>
+                            <input value="" class="form-control text-right input-price" required="required" name="item[0][credit]" type="text" id="item-credit-0">
         
-            </td>
-            <td>
-                <input value="" class="form-control text-right input-price" required="required" name="item[0][credit]" type="text" id="item-credit-0">
-        
-            </td>
-    </tr>
-                                                                                <tr id="addItem">
+                        </td>
+                    </tr>
+                    <tr id="addItem">
                         <td class="text-center"><button type="button" id="button-add-item" data-toggle="tooltip" title="Add" class="btn btn-xs btn-primary" data-original-title="Add"><i class="fa fa-plus"></i></button></td>
                         <td class="text-right" colspan="3"></td>
                     </tr>
-                                                            <tr>
+                    <tr>
                         <td class="text-right" colspan="2"><strong>Subtotal</strong></td>
                         <td class="text-right"><span id="debit-sub-total">0</span></td>
                         <td class="text-right"><span id="credit-sub-total">0</span></td>
                     </tr>
-                                                            <tr>
+                    <tr>
                         <td class="text-right" colspan="2"><strong>Total</strong></td>
                         <td class="text-right"><span id="debit-grand-total">0</span></td>
                         <td class="text-right"><span id="credit-grand-total">0</span></td>
                     </tr>
-                                        </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         </div>
     </div>
     <!-- /.box-body -->
-
     <div class="box-footer">
         <div class="col-md-12">
-    <div class="form-group no-margin">
-        <button type="submit" class="btn btn-success  button-submit" data-loading-text="Loading..." disabled=""><span class="fa fa-save"></span> &nbsp;Save</button>
-        <a href="https://catherapyservices.ca/akaunting/double-entry/journal-entry" class="btn btn-default"><span class="fa fa-times-circle"></span> &nbsp;Cancel</a>
-    </div>
-</div>
-
-
+            <div class="form-group no-margin">
+                <button type="submit" class="btn btn-success  button-submit" data-loading-text="Loading..." disabled=""><span class="fa fa-save"></span> &nbsp;Save</button>
+                <a href="https://catherapyservices.ca/akaunting/double-entry/journal-entry" class="btn btn-default"><span class="fa fa-times-circle"></span> &nbsp;Cancel</a>
+            </div>
+        </div>
     </div>
     <!-- /.box-footer -->
-
     <input id="currency_code" name="currency_code" type="hidden" value="CAD">
-    </form>
+</form>
 JournalEntryForm;
+    AkauntingHook::login($email_processor['akauntingUSR'],$email_processor['akauntingPSW'],$email_processor['akauntingServer']);
+    $s = str_replace("[[options]]", AkauntingHook::fetchAccounts($company,TRUE,FALSE), $s);
+    AkauntingHook::logout();
+    return $s;
 }
 
 ?>

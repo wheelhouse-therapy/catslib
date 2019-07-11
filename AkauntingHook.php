@@ -18,18 +18,18 @@ class AkauntingHook {
     private static $accounts = array();
     private static $company = 0;
 
-    private static $bDebug = true;     // set this to true to turn on debugging messages
+    private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
 
     private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
-    public static function login(String $email, String $password){
+    public static function login(String $email, String $password, String $server){
         self::dbg("Connecting to Akaunting...");
         if (self::$session != NULL){
             throw new Exception("Already Loged in");
         }
         $hooks = new Requests_Hooks();
         $hooks->register('requests.before_redirect_check', 'fixRedirects');
-        self::$session = new Requests_Session("https://catherapyservices.ca/");
+        self::$session = new Requests_Session($server);
         self::$session->options['hooks'] = $hooks;
         $responce = self::$session->get("/akaunting/auth/login");
         preg_match('|(?<=_token" value=").*?(?=")|', $responce->body, $matches);
@@ -160,7 +160,7 @@ class AkauntingHook {
      * @throws Exception if no akaunting accounts are found. Or is we are not logged in to akaunting
      * @return array containing the results of the fetch. This is identical to self::$accounts if $loadCach is true
      */
-    public static function fetchAccounts(int $company = 0, bool $loadCach = true){
+    public static function fetchAccounts(int $company = 0,bool $fetchOnly = false ,bool $loadCach = true){
         //Ensure we have connected to Akaunting before we attempt to fetch accounts
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
@@ -170,7 +170,25 @@ class AkauntingHook {
             self::switchCompany($company,TRUE);
         }
         $responce = self::$session->get("/akaunting/double-entry/journal-entry/create");
-        preg_match_all('|(?<=\<option value=")(\d*)">(\d*) - (.*?)(?=<\/option>)|', $responce->body, $matches, PREG_SET_ORDER);
+        preg_match('!<option.*?(?=</select>)!', $responce->body,$matches);
+        $data = @$matches[0]?:"";
+        if($company){
+            self::restoreCompany();
+        }
+        if(!$fetchOnly){
+            $accounts = self::loadAccounts($data);
+            if($loadCach){
+                self::$accounts = $accounts;
+            }
+            return $accounts;
+        }
+        else{
+            return $data;
+        }
+    }
+
+    private static function loadAccounts(String $data):array{
+        preg_match_all('|(?<=\<option value=")(\d*)">(\d*) - (.*?)(?=<\/option>)|', $data, $matches, PREG_SET_ORDER);
         if(!$matches){
             throw new Exception("Could not find any accounts");
         }
@@ -178,15 +196,9 @@ class AkauntingHook {
         foreach($matches as $match){
             $accounts[$match[1]] = array( "code" => $match[2], "name" => $match[3]);
         }
-        if($company){
-            self::restoreCompany();
-        }
-        if($loadCach){
-            self::$accounts = $accounts;
-        }
         return $accounts;
     }
-
+    
     private static function getAccountByName($name, $override = FALSE){
         $possible = array();
         if(!$override && list($value,$possible) = self::getAccountByKeyWord($name)){
