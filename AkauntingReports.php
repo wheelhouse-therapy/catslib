@@ -283,7 +283,7 @@ class AkauntingReports
             if( !isset($raM[$month][$acct]) )  $raM[$month][$acct] = 0.0;
             $raM[$month][$acct] += $ra['d'] ?: $ra['c'];
 
-            $raMonths[$month] = date_create($month)->format('M Y');
+            $raMonths[$month] = date_create($month)->format('M<br />Y');
             $raAccts[$acct] = 1;
         }
         ksort($raMonths);
