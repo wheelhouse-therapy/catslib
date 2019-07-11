@@ -283,14 +283,14 @@ class AkauntingReports
             if( !isset($raM[$month][$acct]) )  $raM[$month][$acct] = 0.0;
             $raM[$month][$acct] += $ra['d'] ?: $ra['c'];
 
-            $raMonths[$month] = date_create($month)->format('M<b\\r />Y');
+            $raMonths[$month] = date_create($month)->format('M\nY');
             $raAccts[$acct] = 1;
         }
         ksort($raMonths);
         ksort($raAccts);
 
         $s .= "<table class='AkReportTable'>"
-             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td nowrap><strong>[[]]</strong></td>" )."</tr>";
+             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td><strong><pre>[[]]</pre></strong></td>" )."</tr>";
 
         foreach( $raAccts as $acct => $dummy ) {
             $s .= "<tr><td><strong>$acct</strong></td>";
