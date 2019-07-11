@@ -290,7 +290,7 @@ class AkauntingReports
         ksort($raAccts);
 
         $s .= "<table class='AkReportTable'>"
-             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td nowrap><stong>[[]]</strong></td>" )."</tr>";
+             ."<tr><td>&nbsp;</td>".SEEDCore_ArrayExpandSeries( $raMonths, "<td nowrap><strong>[[]]</strong></td>" )."</tr>";
 
         foreach( $raAccts as $acct => $dummy ) {
             $s .= "<tr><td><strong>$acct</strong></td>";
