@@ -457,7 +457,7 @@ function journalEntryForm(int $company){
 <template id='tableRow'>
     <tr>
         <td class="text-center" style="vertical-align: middle;">
-            <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+            <button type="button" onclick="/*$(this).tooltip('destroy');*/ $(this).parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
         </td>
         <td>
             <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>
@@ -505,7 +505,7 @@ function journalEntryForm(int $company){
                 <tbody>
                     <tr>
                         <td class="text-center" style="vertical-align: middle;">
-                            <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+                            <button type="button" onclick="/*$(this).tooltip('destroy');*/ $(this).parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
                         </td>
                         <td>
                             <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>
