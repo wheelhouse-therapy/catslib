@@ -282,7 +282,8 @@ class AkauntingReportScreen
                                                     ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
                 $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
             } else {
-                $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>[[date]]</td><td>[[acct]]</td>"
+                $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                $s .= SEEDCore_ArrayExpand( $ra, "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
                                                     ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[reference]]</td></tr>" );
             }
         }
