@@ -79,6 +79,11 @@ if( !isset($email_processor['akauntingServer']) ) {
     $email_processor['akauntingServer'] = "https://localhost/";
 }
 
+// set this in catsdef.php if your Akaunting installation is not at http://localhost/akaunting
+if( !isset($email_processor['akauntingBaseUrl']) ) {
+    $email_processor['akauntingBaseUrl'] = "/akaunting";
+}
+
 // Create oApp for all files to use
 $oApp = new SEEDAppConsole(
                 array_merge( $config_KFDB['cats'],

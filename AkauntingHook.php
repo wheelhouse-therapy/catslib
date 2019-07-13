@@ -23,6 +23,8 @@ class AkauntingHook {
     private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
     public static function login(String $email, String $password, String $server){
+        global $email_processor;
+
         self::dbg("Connecting to Akaunting...");
         if (self::$session != NULL){
             throw new Exception("Already Loged in");
@@ -31,11 +33,11 @@ class AkauntingHook {
         $hooks->register('requests.before_redirect_check', 'fixRedirects');
         self::$session = new Requests_Session($server);
         self::$session->options['hooks'] = $hooks;
-        $responce = self::$session->get("/akaunting/auth/login");
+        $responce = self::$session->get($email_processor['akauntingBaseUrl']."/auth/login");
         preg_match('|(?<=_token" value=").*?(?=")|', $responce->body, $matches);
         self::$_token = $matches[0];
         self::$session->cookies = new Requests_Cookie_Jar(Requests_Cookie::parse_from_headers($responce->headers));
-        self::$session->post("/akaunting/auth/login", array(), array('_token' => self::$_token, 'email' => $email, 'password' => $password));
+        self::$session->post($email_processor['akauntingBaseUrl']."/auth/login", array(), array('_token' => self::$_token, 'email' => $email, 'password' => $password));
         self::dbg("connected");
     }
 
@@ -43,7 +45,8 @@ class AkauntingHook {
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
         }
-        self::$session->get("/akaunting/auth/logout");
+        global $email_processor;
+        self::$session->get($email_processor['akauntingBaseUrl']."/auth/logout");
         self::$session = NULL;
         self::$company = 0;
     }
@@ -70,7 +73,7 @@ class AkauntingHook {
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
         }
-        
+
         $ret = self::REJECTED_NOT_SETUP;
 
         self::dbg("\nSubmitting Entry");
@@ -126,22 +129,23 @@ class AkauntingHook {
             $data["item"][0]["account_id"] = $account;
             $data["item"][1]["debit"] .= $entry->getAmount();
         }
-            
+
         if($entry->getAttachment()){
             $data['reference'] .= "Attachment: ".$entry->getAttachment();
         }
         else{
             $data['reference'] .= "No Attachment Included";
         }
-        
+
         if($entry->getEntryID()){
             $data['_method'] = "PATCH";
         }
-        
+
         //Make journal Entry
         // Only submit entries if we are not running off a production mechine
         if(!CATS_DEBUG){
-            $responce = self::$session->post("/akaunting/double-entry/journal-entry".($entry->getEntryID()?"/".$entry->getEntryID():""), array(), $data);
+            global $email_processor;
+            $responce = self::$session->post($email_processor['akauntingBaseUrl']."/double-entry/journal-entry".($entry->getEntryID()?"/".$entry->getEntryID():""), array(), $data);
             $ret = $responce->status_code;
         }
         else{
@@ -165,11 +169,12 @@ class AkauntingHook {
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
         }
-        
+
         if($company){
             self::switchCompany($company,TRUE);
         }
-        $responce = self::$session->get("/akaunting/double-entry/journal-entry/create");
+        global $email_processor;
+        $responce = self::$session->get($email_processor['akauntingBaseUrl']."/double-entry/journal-entry/create");
         preg_match('!<option.*?(?=</select>)!', $responce->body,$matches);
         $data = @$matches[0]?:"";
         if($company){
@@ -198,7 +203,7 @@ class AkauntingHook {
         }
         return $accounts;
     }
-    
+
     private static function getAccountByName($name, $override = FALSE){
         $possible = array();
         if(!$override && list($value,$possible) = self::getAccountByKeyWord($name)){
@@ -250,11 +255,11 @@ class AkauntingHook {
                 }
             }
         }
-        
+
         return array(NULL,array());
-        
+
     }
-    
+
     private static function getAccountByCode($code){
         foreach(self::$accounts as $k => $account){
             if($account['code'] == $code){
@@ -268,13 +273,14 @@ class AkauntingHook {
         if(!$recoverable){
             self::$company = $company;
         }
-        self::$session->get("/akaunting/common/companies/".$company."/set");
+        global $email_processor;
+        self::$session->get($email_processor['akauntingBaseUrl']."/common/companies/".$company."/set");
     }
-    
+
     private static function restoreCompany(){
         self::switchCompany(self::$company);
     }
-    
+
     public static function decodeErrors(array $errors):String{
         $s = "";
         foreach ($errors as $location=>$error){
@@ -282,7 +288,7 @@ class AkauntingHook {
         }
         return $s;
     }
-    
+
     public static function decodeError(String $location,array $details):String{
         $s = "[Result] Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
         $error = $details[0];
@@ -321,14 +327,14 @@ class AkauntingHook {
         $s = str_replace("[Result]", "!!ERROR!!", $s);
         return $s."\n";
     }
-    
+
 }
 
 class AccountingEntry {
-    
+
     //TODO find a more expandable way of doing this
     private static $liability_mappings = array('sue' => 210, 'alison' => 211);
-    
+
     private $amount;
     private $type;
     private $company;
@@ -338,7 +344,7 @@ class AccountingEntry {
      * A negative number is used to separate an account_id from an account code
      * since codes cant be negative.
      * Since account_id's also can't be negative it is converted to a positive before its submitted to Akaunting.
-     * 
+     *
      */
     private $category;
     private $paid_at;
@@ -346,7 +352,7 @@ class AccountingEntry {
     private $description;
     private $liability_account;
     private $entryId;
-    
+
     private function __construct($amount, String $type, int $company, $paid_at, $category, $attachment, String $description, int $liability_account, int $entryId = 0){
         $this->company = $company;
         $this->amount = $amount;
@@ -358,10 +364,10 @@ class AccountingEntry {
         $this->liability_account = $liability_account;
         $this->entryId = $entryId;
     }
-    
+
     public static function createFromEmail($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person, String $account, int $entryId = 0):AccountingEntry{
         $oApp = $GLOBALS['oApp'];
-        
+
         $clinics = (new Clinics($oApp))->getClinicsByName($clinic);
         if( !count($clinics) ) {
             self::dbg("You don't have clinic '".$clinic."' defined");
@@ -372,7 +378,7 @@ class AccountingEntry {
             self::dbg("Clinic $clinicId doesn't have an Akaunting company code");
             return NULL;
         }
-        
+
         $liability_account = 0;
         if($account == "UNPAID"){
             if($ccc){
@@ -390,20 +396,20 @@ class AccountingEntry {
                 $liability_account = 836;
             }
         }
-        
+
         return new AccountingEntry($amount, $type, $company, $date, $category, $attachment, $desc, $liability_account, $entryId);
-        
+
     }
-    
+
     public static function createFromRA(array $ra):AccountingEntry{
         //TODO Complete
         return NULL;
     }
-    
+
     public function getAmount(){
         return $this->amount;
     }
-    
+
     public function getType(){
         return $this->type;
     }
@@ -411,39 +417,39 @@ class AccountingEntry {
     {
         return $this->company;
     }
-    
+
     public function getCategory()
     {
         return $this->category;
     }
-    
+
     public function getDate()
     {
         return $this->paid_at;
     }
-    
+
     public function getAttachment()
     {
         return $this->attachment;
     }
-    
+
     public function getDescription()
     {
         return $this->description;
     }
-    
+
     public function getLiability(){
         return $this->liability_account;
     }
-    
+
     public function getEntryID(){
         return $this->entryId;
     }
-    
+
     private function parseDate(String $date): String {
         return (new DateTime($date))->format('Y-m-d');
     }
-    
+
 }
 
 function fixRedirects($return, $req_headers, $req_data, $options){
