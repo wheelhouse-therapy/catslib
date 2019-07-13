@@ -199,6 +199,7 @@ class AkauntingReports
                 ."<option value='monthly_sum' ".($reportParms['Ak_report']=='monthly_sum' ? "selected" : "").">Monthly Sum</option>"
                 ."<option value='detail' "     .($reportParms['Ak_report']=='detail'      ? "selected" : "").">Detail</option>"
                 ."<option value='ledger' "     .($reportParms['Ak_report']=='ledger'      ? "selected" : "").">Ledger</option>"
+                ."<option value='journalForm' ".($reportParms['Ak_report']=='journalForm' ? "selected" : "").">Journal Entry Form</option>"
                 ."</select>"
                 ."</form>";
 
@@ -232,10 +233,10 @@ class AkauntingReports
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
             case 'monthly_sum':  $s .= $this->drawMonthlySumReport();  break;
             case 'detail':       $s .= $this->drawDetailReport();      break;
+            case 'journalForm':  if(CATS_DEBUG) {$s .= journalEntryForm($reportParms['akCompanyId']);} break;
         }
 
         done:
-        if(CATS_DEBUG){$s .= journalEntryForm($reportParms['akCompanyId']);}
         return( $s );
     }
 
@@ -459,7 +460,7 @@ function journalEntryForm(int $company){
             <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
         </td>
         <td>
-            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>        
+            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>
         </td>
         <td>
             <input value="" class="form-control text-right input-price" required="required" name="item[0][debit]" type="text" id="item-debit-">
@@ -476,7 +477,7 @@ function journalEntryForm(int $company){
         <div class="input-group">
             <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
             <input class="form-control" placeholder="Enter Date" id="paid_at" required="required" data-inputmask="'alias': 'yyyy-mm-dd'" data-mask="" name="paid_at" type="text" value="2019-06-24">
-        </div> 
+        </div>
     </div>
     <div class="form-group col-md-6  ">
         <label for="reference" class="control-label">Reference</label>
@@ -507,14 +508,14 @@ function journalEntryForm(int $company){
                             <button type="button" onclick="$(this).tooltip('destroy'); $('this').parents().eq(1).remove(); totalItem();" data-toggle="tooltip" title="Delete" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
                         </td>
                         <td>
-                            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>        
+                            <select id="item-account-id-0" class="form-control account-select2 input-account select2-hidden-accessible" name="item[0][account_id]" tabindex="-1" aria-hidden="true">[[options]]</select>
                         </td>
                         <td>
                             <input value="" class="form-control text-right input-price" required="required" name="item[0][debit]" type="text" id="item-debit-0">
                         </td>
                         <td>
                             <input value="" class="form-control text-right input-price" required="required" name="item[0][credit]" type="text" id="item-credit-0">
-        
+
                         </td>
                     </tr>
                     <tr id="addItem">
