@@ -1,5 +1,20 @@
 <?php
 
+/* Get financial reports from Akaunting.
+ *
+ * AkauntingReportBase           analyses parameters and fetches ledger data from Akaunting
+ * AkauntingReportScreen         uses AkauntingReportBase to show reports on the screen, implements UI to sort/filter
+ * AkauntingReportSpreadsheet    uses AkauntingReportBase to download reports to spreadsheets
+ *
+ * To show reports on the screen, AkauntingReportScreen implements UI controls and gives those parameters to AkauntingReportBase.
+ * AkauntingReportBase uses the parameters to fetch the corresponding set of ledger entries and format the report.
+ *
+ * To download reports to spreadsheet, sort/filter using the UI controls on the screen, and code the Download button to send the
+ * corresponding parameters to AkauntingReportSpreadsheet. It uses those parameters with AkauntingReportBase to fetch data and
+ * format the report exactly as it appears on the screen, but outputs it as a spreadsheet.
+ */
+
+
 require_once 'AkauntingHook.php';
 
 class AkauntingReportBase
@@ -76,7 +91,9 @@ class AkauntingReportBase
     }
 }
 
-class AkauntingReports
+class AkauntingReportScreen
+/* Implement UI to select/sort/filter reports. Show them on screen.
+ */
 {
     private $oAkReport;
 
@@ -106,6 +123,9 @@ class AkauntingReports
     }
 
     function GetLedgerRA( $raParms = array() )
+    /*****************************************
+        Get ledger data from Akaunting, filtered and sorted according to the input parms
+     */
     {
         $raRows = array();
 
@@ -144,7 +164,8 @@ class AkauntingReports
 
     function GetLedgerRAForDisplay( $raParms = array() )
     /***************************************************
-        Same as GetLedgerRA but if sorting by account put a total after each account, and handle revenue cases for Combined clinic view
+        Same as GetLedgerRA but add rows for display purposes.
+        e.g. if sorting by account put a total after each account, and handle revenue cases for Combined clinic view
      */
     {
         $raOut = array();
@@ -322,23 +343,23 @@ class AkauntingReports
 
 function AkauntingReport( SEEDAppConsole $oApp )
 {
-    $s = "";
-
-    $o = new AkauntingReports( $oApp );
+    $o = new AkauntingReportScreen( $oApp );
 
     return( $o->DrawReport() );
 }
 
 function AkauntingReport_OutputXLSX( SEEDAppConsole $oApp )
 {
-    $o = new AkauntingReports( $oApp );
-
     $oXls = new AkauntingReportSpreadsheet( $oApp );
     $oXls->OutputXLSX();
 }
 
 
 class AkauntingReportSpreadsheet
+/* Use parameters from AkauntingReport's UI to put report data in a spreadsheet.
+ * The spreadsheet content should be identical to the report on the screen because they both use the same parameters
+ * to fetch data from AkauntingReportBase
+ */
 {
     private $oAkReport;
     private $oApp;
@@ -375,7 +396,7 @@ class AkauntingReportSpreadsheet
 
         $filename = "CATS Akaunting.xlsx";
 
-        $o = new AkauntingReports( $this->oApp );
+        $o = new AkauntingReportScreen( $this->oApp );
         $raRows = $o->GetLedgerRAForDisplay( $raParms );
 
         $raCols = array(
