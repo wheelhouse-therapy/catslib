@@ -102,7 +102,7 @@ class AkauntingReports
         } else {
             $this->oApp->oC->AddErrMsg( "config_KFDB['akaunting'] not defined" );   // cats_page will show this at the top of the screen
         }
-
+        if (CATS_DEBUG) {$this->oAppAk->kfdb->SetDebug(1);}
     }
 
     function GetLedgerRA( $raParms = array() )
@@ -112,7 +112,7 @@ class AkauntingReports
         $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
 
         $sql =
-            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
+            "select A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
             ."where A.account_id=B.id "
@@ -235,7 +235,7 @@ class AkauntingReports
         }
 
         done:
-        if(CATS_DEBUG){$s .= journalEntryForm($reportParms['akCompanyId']);}
+        //if(CATS_DEBUG){$s .= journalEntryForm($reportParms['akCompanyId']);}
         return( $s );
     }
 

@@ -2,7 +2,7 @@
 
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
-require_once(CATSLIB.'/vendor/autoload.php');
+require_once(CATSLIB.'vendor/autoload.php');
 require_once('email_processor.php');
 
 class AkauntingHook {
