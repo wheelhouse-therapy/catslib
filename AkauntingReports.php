@@ -254,11 +254,10 @@ class AkauntingReportScreen
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
             case 'monthly_sum':  $s .= $this->drawMonthlySumReport();  break;
             case 'detail':       $s .= $this->drawDetailReport();      break;
-            case 'journalForm':  if(CATS_DEBUG) {$s .= journalEntryForm($reportParms['akCompanyId']);} break;
+            case 'journalForm':  $s .= journalEntryForm($reportParms['akCompanyId']); break;
         }
 
         done:
-        if(CATS_DEBUG){$s .= journalEntryForm($reportParms['akCompanyId']);}
         return( $s );
     }
 
