@@ -266,7 +266,7 @@ class AkauntingReportScreen
     {
         $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
 
-        $s = "<table cellpadding='10' border='1'>"
+        $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
             ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=date'>Date</a></th>"
                 ."<th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=name'>Account</a></th>"
                 ."<th>Debit</th>"
