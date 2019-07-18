@@ -254,7 +254,13 @@ class AkauntingReportScreen
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
             case 'monthly_sum':  $s .= $this->drawMonthlySumReport();  break;
             case 'detail':       $s .= $this->drawDetailReport();      break;
-            case 'journalForm':  $s .= journalEntryForm($reportParms['akCompanyId']); break;
+            case 'journalForm':
+                $ra = array();
+                if($ledger_id = $this->oApp->sess->SmartGPC('ledger_id')){
+                    $ra = $this->oAppAk->kfdb->QueryRA("SELECT * FROM {$this->akTablePrefix}_double_entry_journals WHERE id = ".$ledger_id);
+                }
+                $s .= journalEntryForm($reportParms['akCompanyId'],$ra);
+                break;
         }
 
         done:
@@ -470,11 +476,12 @@ class AkauntingReportSpreadsheet
 }
 
 //TODO Move to better location
-function journalEntryForm(int $company){
+function journalEntryForm(int $company, array $entry){
     global $email_processor;
     if($company == -1){
         return "";
     }
+    //TODO Load accounts and values
     $s = <<<JournalEntryForm
 <template id='tableRow'>
     <tr>
@@ -498,19 +505,19 @@ function journalEntryForm(int $company){
         <label for="paid_at" class="control-label">Date</label>
         <div class="input-group">
             <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
-            <input class="form-control" placeholder="Enter Date" id="paid_at" required="required" data-inputmask="'alias': 'yyyy-mm-dd'" data-mask="" name="paid_at" type="text" value="2019-06-24">
+            <input class="form-control" placeholder="Enter Date" id="paid_at" required="required" data-inputmask="'alias': 'yyyy-mm-dd'" data-mask="" name="paid_at" type="text" value="[[paid_at]]">
         </div>
     </div>
     <div class="form-group col-md-6  ">
         <label for="reference" class="control-label">Reference</label>
         <div class="input-group">
             <div class="input-group-addon"><i class="fa fa-file-text-o"></i></div>
-            <input class="form-control" placeholder="Enter Reference" name="reference" type="text" id="reference">
+            <input class="form-control" placeholder="Enter Reference" name="reference" type="text" id="reference" value="[[reference]]">
         </div>
     </div>
     <div class="form-group col-md-12 required ">
         <label for="description" class="control-label">Description</label>
-        <textarea class="form-control" placeholder="Enter Description" rows="3" required="required" name="description" cols="50" id="description"></textarea>
+        <textarea class="form-control" placeholder="Enter Description" rows="3" required="required" name="description" cols="50" id="description">[[description]]</textarea>
     </div>
     <div class="form-group col-md-12">
         <label for="items" class="control-label">Items</label>
@@ -572,7 +579,8 @@ function journalEntryForm(int $company){
 </form>
 JournalEntryForm;
     AkauntingHook::login($email_processor['akauntingUSR'],$email_processor['akauntingPSW'],$email_processor['akauntingServer']);
-    $s = str_replace("[[options]]", AkauntingHook::fetchAccounts($company,TRUE,FALSE), $s);
+    $s = SEEDCore_ArrayExpand($entry, $s);
+    $s = str_replace(array("[[options]]","[[paid_at]]"), array(AkauntingHook::fetchAccounts($company,TRUE,FALSE),date("Y-m-d")), $s);
     AkauntingHook::logout();
     return $s;
 }
