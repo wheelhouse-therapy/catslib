@@ -262,6 +262,23 @@ ExistsWarning;
             case 'uploadxls':
                 $s .= $this->uploadSpreadsheet();
                 break;
+            case 'linkAccount':
+                $key = SEEDInput_Str('key');
+                $people_key = SEEDInput_Int('people_id');
+                $account = SEEDInput_Int('newAccount');
+                $this->oApp->kfdb->Execute("UPDATE `people` SET `uid` = '$account' WHERE `people`.`_key` = $people_key;");
+                switch(substr($key, 0,1)){
+                    case "C":
+                        $this->client_key = substr($key, 1);
+                        break;
+                    case "I":
+                        $this->therapist_key = substr($key, 1);
+                        break;
+                    case "E":
+                        $this->pro_key = substr($key, 1);
+                        break;
+                }
+                break;
         }
 
         $clientPros = array();
@@ -414,7 +431,7 @@ ExistsWarning;
         return(!empty($ra));
     }
 
-    function drawClientForm( $oForm, $myPros, $raPros )
+    function drawClientForm( KeyframeForm $oForm, $myPros, $raPros )
     /**************************************************
         The user clicked on a client name so show their form
      */
@@ -430,6 +447,12 @@ ExistsWarning;
             if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
                 $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
+        }
+        if($sTherapists == "<div style='padding:10px;border:1px solid #888'>"){
+            $sTherapists .= "No Staff Connected";
+        }
+        if($sPros == "<div style='padding:10px;border:1px solid #888'>"){
+            $sPros .= "No External Providers Connected";
         }
         $sTherapists .= "</div>";
         $sPros       .= "</div>".($oForm->Value('_key')?drawModal($oForm->GetValuesRA(), $this->oPeopleDB, $this->pro_roles_name ):"");
@@ -509,6 +532,7 @@ ExistsWarning;
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
+                 ."<br />".$this->getLinkedUser($oForm, "C".$this->client_key)
                  ."</div>"
              ."</div>"
              ."</div>";
@@ -573,7 +597,7 @@ ExistsWarning;
         $this->sForm = str_replace(array("[[label]]","[[control]]", "[[style]]"), "", $this->sForm);
     }
     
-    function drawProForm( SEEDCoreForm $oForm, $myClients, $raClients, $bTherapist )
+    function drawProForm( KeyframeForm $oForm, $myClients, $raClients, $bTherapist )
     /*******************************************************************************
         The user clicked on a therapist / external provider's name so show their form
      */
@@ -585,6 +609,9 @@ ExistsWarning;
             if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( 'C', $ra['fk_clients2'] )) ) {
                 $sClients .= $kfr->Expand( "[[P_first_name]] [[P_last_name]]<br />" );
             }
+        }
+        if($sClients == "<div style='padding:10px;border:1px solid #888'>Clients:<br/>"){
+            $sClients .= "No Clients Connected";
         }
         $sClients .=
                  "</div>"
@@ -664,7 +691,7 @@ ExistsWarning;
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
              ."<div class='col-md-8'>".$this->sForm."</div>"
-             ."<div class='col-md-4'>".$sClients."</div>"
+             ."<div class='col-md-4'>".$sClients.$this->getLinkedUser($oForm,($bTherapist?"I".$this->therapist_key:"E".$this->pro_key))."</div>"
              ."</div>"
              ."</div>";
              $s .= $this->clinicJS($oForm);
@@ -732,7 +759,7 @@ ExistsWarning;
 FilterJS;
     }
 
-    private function getPronounList($oForm){
+    private function getPronounList(KeyframeForm $oForm){
 
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
         $s = "<select name='".$oForm->Name("P_pronouns")."' required >";
@@ -749,6 +776,46 @@ FilterJS;
         return $s;
     }
 
+    private function getLinkedUser(KeyframeForm $oForm, String $key):String{
+        $sUser = "<div style='padding:10px;border:1px solid #888'>Linked Account: [[account]]<br/>";
+        if($this->oApp->sess->CanAdmin('admin')){
+            $sUser .= "<form>"
+                     ."<input type='hidden' name='cmd' value='linkAccount'/>"
+                     ."<input type='hidden' name='key' value='$key'/>"
+                     ."<input type='hidden' name='people_id' value='{$oForm->Value('P__key')}'/>"
+                     ."<select name='newAccount' id='newAccount' class='noAccount' onChange='updateAccountStyle()'>"
+                     ."<option value='0'>No Account</option>";
+             //TODO Improve system
+             $users = $this->kfdb->QueryRowsRA("SELECT * from seedsession_users WHERE _key != {$this->oApp->sess->GetUID()} AND eStatus = 'ACTIVE'",KEYFRAMEDB_RESULT_ASSOC);
+             $sUser .= SEEDCore_ArrayExpandRows($users, "<option value='[[_key]]'>[[realname]]</option>")
+                     ."</select>"
+                     ."<br /><input type='submit' value='Link'/>";
+        }
+        $sUser .= "</div>"
+                 ."<style>
+                 .noAccount {
+                    text-align: center;
+                    text-align-last: center;
+                 }
+                 </style>"
+                 ."<script>
+                 function updateAccountStyle(){
+                    var select = document.getElementById('newAccount');
+                    if(select.selectedOptions[0].value == 0){
+                        select.className = 'noAccount';
+                    }
+                    else{
+                        select.className = '';
+                    }
+                 }
+                 </script>";
+        
+        $account = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]['realname'];
+        
+        return str_replace("[[account]]", ($account?:"No Account"), $sUser);
+        
+    }
+    
     private function uploadSpreadsheet()
     /***********************************
         Insert or update client / staff / providers from uploaded file
