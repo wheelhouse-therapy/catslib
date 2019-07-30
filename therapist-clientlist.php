@@ -320,7 +320,7 @@ ExistsWarning;
                     <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                     <button onclick='filterClients(event);'>Filter</button>
                    </form>"
-                 .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client-[[_status]]' style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>CATS Staff</h3>"
@@ -342,7 +342,7 @@ ExistsWarning;
              //fix up status classes
              $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
 
-             $s .= "<div class='container'><div class='row'>";
+             $s .= "<div class='sidebar'><div class='container'><div class='row'>";
              if( $this->client_key || $sNew == "client") {
                  $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
              }
@@ -352,7 +352,7 @@ ExistsWarning;
              if( $this->pro_key || $sNew == "pro") {
                  $s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
              }
-             $s .= "</div></div>";
+             $s .= "</div></div></div>";
 
              foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
                  if($this->clinics->isCoreClinic()){
