@@ -558,7 +558,8 @@ ExistsWarning;
                                 ."</script>";
              }
 
-        $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
+        $s .= "<div class='container-fluid' style='position: relative;border:1px solid #aaa;padding:20px;margin:20px'>"
+            ."<div class='close-sidebar' onclick='document.getElementById(\"sidebar\").classList.remove(\"open\")'><i class='fas fa-times'></i></div>"
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
                  ."<div class='col-md-8'>".$this->sForm."</div>"
@@ -622,7 +623,7 @@ ExistsWarning;
     
     private function beginRowDraw(){
          $this->sForm .= "<tr class='row' [[style]]>"
-            ."<td class='col-md-5'><p>[[label]]</p></td>"
+            ."<td class='col-md-5'><span>[[label]]</span></td>"
             ."<td class='col-md-7'>[[control]]</td>"
             ."</tr>";
     }
@@ -721,7 +722,8 @@ ExistsWarning;
             }
             </script>";
 
-        $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
+        $s .= "<div class='container-fluid' style='position:relative;border:1px solid #aaa;padding:20px;margin:20px'>"
+             ."<div class='close-sidebar' onclick='document.getElementById(\"sidebar\").classList.remove(\"open\")'><i class='fas fa-times'></i></div>"
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
              ."<div class='col-md-8'>".$this->sForm."</div>"
