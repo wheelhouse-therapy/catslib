@@ -359,7 +359,7 @@ ExistsWarning;
              //fix up status classes
              $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
 
-             $s .= "<div class='sidebar'><div class='container'><div class='row'>";
+             $s .= "<div id='sidebar'>";
              if( $this->client_key || $sNew == "client") {
                  $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
              }
@@ -369,7 +369,7 @@ ExistsWarning;
              if( $this->pro_key || $sNew == "pro") {
                  $s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
              }
-             $s .= "</div></div></div>";
+             $s .= "</div>";
 
              foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
                  if($this->clinics->isCoreClinic()){
