@@ -396,16 +396,19 @@ ExistsWarning;
         switch($type){
             case self::CLIENT:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+                $oForm->SetKFR($kfr);
                 $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'");
                 $s = $this->drawClientForm($oForm, $myPros, $raPros);
                 break;
             case self::INTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
+                $oForm->SetKFR($kfr);
                 $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'" );
                 $s = $this->drawProForm($oForm, $myClients, $raClients, true);
                 break;
             case self::EXTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
+                $oForm->SetKFR($kfr);
                 $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'" );
                 $s = $this->drawProForm($oForm, $myClients, $raClients, false);
                 break;
