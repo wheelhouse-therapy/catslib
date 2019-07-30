@@ -496,10 +496,10 @@ ExistsWarning;
         $this->sForm =
              ($oForm->Value("_status")==0?"<form>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
-             .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$this->client_key}'/>":"")
+             .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
              ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
-             .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$this->client_key}</p>":""):"<p>New Client</p>")
+                 .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$oForm->Value('_key')}</p>":""):"<p>New Client</p>")
              ."<table class='container-fluid table table-striped table-sm'>";
              $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
              $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
@@ -566,7 +566,7 @@ ExistsWarning;
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
-                 ."<br />".$this->getLinkedUser($oForm, self::CLIENT.$this->client_key)
+                 ."<br />".$this->getLinkedUser($oForm, self::CLIENT.$oForm->Value('_key'))
                  ."</div>"
              ."</div>"
              ."</div>";
@@ -678,13 +678,13 @@ ExistsWarning;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm =
               "<form>"
-                  .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$this->therapist_key}'/>":"")
+                  .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
-                                 .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$this->therapist_key}</p>":""):"New Therapist")
+                                 .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$oForm->Value('_key')}</p>":""):"New Therapist")
                                  ))
-                             : (($oForm->Value('_key')?"<input type='hidden' name='pro_key' id='proId' value='{$this->pro_key}'/>":"")
+                                 : (($oForm->Value('_key')?"<input type='hidden' name='pro_key' id='proId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_pro'/>"
-                             .($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Provider # {$this->pro_key}</p>":""):"New Professional")
+                                 .($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Provider # {$oForm->Value('_key')}</p>":""):"New Professional")
                            ))
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>";
