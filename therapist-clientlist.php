@@ -342,17 +342,17 @@ ExistsWarning;
                     <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                     <button onclick='filterClients(event);'>Filter</button>
                    </form>"
-                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]</div>" )
+                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?client_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a>%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>CATS Staff</h3>"
                  ."<button onclick=\"window.location.href='?therapist_key=-1'\">Add Staff Member</button>"
-                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?therapist_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
              ."</div>"
              ."<div class='col-md-4'>"
                  ."<h3>External Providers</h3>"
                  ."<button onclick=\"window.location.href='?pro_key=-1'\">Add External Provider</button>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?pro_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]</div>" )
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><a href='?pro_key=[[_key]]'>[[P_first_name]] [[P_last_name]]</a> is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
              ."</div>"
              ."</div></div>"
              ."<style>"
@@ -364,7 +364,7 @@ ExistsWarning;
              //fix up status classes
              $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
 
-             $s .= "<div class='container'><div class='row'>";
+             $s .= "<div id='sidebar'>";
              if( $this->client_key || $sNew == "client") {
                  $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
              }
@@ -374,7 +374,7 @@ ExistsWarning;
              if( $this->pro_key || $sNew == "pro") {
                  $s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
              }
-             $s .= "</div></div>";
+             $s .= "</div>";
 
              foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
                  if($this->clinics->isCoreClinic()){
