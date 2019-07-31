@@ -58,8 +58,8 @@ class ClientList
                 .client-discharged{
                     display:".(@$this->oApp->sess->VarGet("clientlist-discharged")?"block":"none").";
                 }
-                .client-discharged a{
-                    color: #007bffa8;
+                .client-discharged{
+                    color: #0000008a;
                 }
               </style>
               <script src='".CATSDIR_JS."therapist-clientlist.js'></script>
@@ -273,15 +273,16 @@ ExistsWarning;
                 $people_key = SEEDInput_Int('people_id');
                 $account = SEEDInput_Int('newAccount');
                 $this->oApp->kfdb->Execute("UPDATE `people` SET `uid` = '$account' WHERE `people`.`_key` = $people_key;");
-                switch(substr($key, 0,strcspn($key, '0123456789'))){
+                list($type,$id) = self::parseID($key);
+                switch($type){
                     case self::CLIENT:
-                        $this->client_key = substr($key, strcspn($key, '0123456789'));
+                        $this->client_key = $id;
                         break;
                     case self::INTERNAL_PRO:
-                        $this->therapist_key = substr($key, strcspn($key, '0123456789'));
+                        $this->therapist_key = $id;
                         break;
                     case self::EXTERNAL_PRO:
-                        $this->pro_key = substr($key, strcspn($key, '0123456789'));
+                        $this->pro_key = $id;
                         break;
                 }
                 break;
@@ -356,26 +357,30 @@ ExistsWarning;
                  .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
              ."</div>"
              ."</div></div>"
-             ."<style>"
-                 ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
-                     ." { font-weight:bold;color:green;background-color:#dfd; }"
-             ."</style>"
+//              ."<style>"
+//                  ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
+//                      ." { font-weight:bold;color:green;background-color:#dfd; }"
+//              ."</style>"
              .$this->filterJS();
 
              //fix up status classes
-             $s = str_replace(array("class='client-0'","class='client-2'"), array("class='client-normal'","class='client-discharged'"), $s);
+             $s = str_replace(array("client-0","client-2"), array("client-normal","client-discharged"), $s);
 
-             $s .= "<div id='sidebar'>";
+             $s .= "<div id='sidebar'></div>";
+             $s .= "<script>$( document ).ready(function() {";
              if( $this->client_key || $sNew == "client") {
-                 $s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
+                 //$s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
+                 $s .= "getForm('".self::createID(self::CLIENT, $this->client_key)."');";
              }
              if( $this->therapist_key || $sNew == "therapist") {
-                 $s .= $this->drawProForm( $oFormTherapist, $myClients, $raClients, true );
+                 //$s .= $this->drawProForm( $oFormTherapist, $myClients, $raClients, true );
+                 $s .= "getForm('".self::createID(self::INTERNAL_PRO, $this->therapist_key)."');";
              }
              if( $this->pro_key || $sNew == "pro") {
-                 $s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
+                 //$s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
+                 $s .= "getForm('".self::createID(self::EXTERNAL_PRO, $this->pro_key)."');";
              }
-             $s .= "</div>";
+             $s .= "});</script>";
 
              foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
                  if($this->clinics->isCoreClinic()){
@@ -545,7 +550,7 @@ ExistsWarning;
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
-                 ."<br />".$this->getLinkedUser($oForm, self::CLIENT.$oForm->Value('_key'))
+                 ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                  ."</div>"
              ."</div>"
              ."</div>";
@@ -688,7 +693,7 @@ ExistsWarning;
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
              ."<div class='col-md-8'>".$this->sForm."</div>"
-             ."<div class='col-md-4'>".$sClients.$this->getLinkedUser($oForm,($bTherapist?"I".$this->therapist_key:"E".$this->pro_key))."</div>"
+             ."<div class='col-md-4'>".$sClients.$this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key))."</div>"
              ."</div>"
              ."</div>";
              $s .= $this->clinicJS($oForm);
@@ -841,6 +846,32 @@ FilterJS;
 
         return( $s );
     }
+    
+    /**
+     * Convert a string ID to a record type and key
+     * @param String $id - Id to parse
+     */
+    public static function parseID(String $id ):array{
+        $type = substr($id, 0,strcspn($id, "1234567890"));
+        $key = substr($id, strcspn($id, "1234567890"));
+        if($type == self::CLIENT || $type == self::INTERNAL_PRO || $type == self::EXTERNAL_PRO){
+            return array($type,$key);
+        }
+        return array();
+    }
+    
+    /**
+     * Convert a record type and key to a string ID
+     * @param String $type - type of record the key is for
+     * @param int $key - key unique to the record of the type specified
+     */
+    public static function createID(String $type,int $key):String{
+        if($type == self::CLIENT || $type == self::INTERNAL_PRO || $type == self::EXTERNAL_PRO){
+            return $type.$key;
+        }
+        return "";
+    }
+    
 }
 
 ?>
