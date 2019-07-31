@@ -62,7 +62,6 @@ class ClientList
                     color: #0000008a;
                 }
               </style>
-              <script src='".CATSDIR_JS."therapist-clientlist.js'></script>
              ";
 
         $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
@@ -80,12 +79,131 @@ class ClientList
 */
              ."</div>";
 
-        $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
-        $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
-        $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
+        
 
         // Put this before the GetClients call so the changes are shown in the list
         $cmd = SEEDInput_Str('cmd');
+        
+        $s .= "<div id='messageBox'>";
+        $s .= $this->proccessCommands($cmd)['message'];
+        $s .= "</div>";
+        
+        //Legacy Code kept for support of direct Request control
+        $sNew = "";
+        if($this->client_key == -1){
+            $this->client_key = 0;
+            $sNew = self::CLIENT;
+        }
+        elseif ($this->therapist_key == -1){
+            $this->therapist_key = 0;
+            $sNew = self::INTERNAL_PRO;
+        }
+        elseif ($this->pro_key == -1){
+            $this->pro_key = 0;
+            $sNew = self::EXTERNAL_PRO;
+        }
+
+        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+        $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+        $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
+        $raPros       = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
+        
+        $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
+             ."<div class='col-md-4'>"
+                 ."<h3>Clients</h3>"
+                 ."<button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
+                 ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
+                    <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
+                    <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
+                    <input type='hidden' name='cmd' value='therapist-clientList-sort' />
+                    <button onclick='filterClients(event);'>Filter</button>
+                   </form>"
+                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."</div>"
+             ."<div class='col-md-4'>"
+                 ."<h3>CATS Staff</h3>"
+                 ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
+                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."</div>"
+             ."<div class='col-md-4'>"
+                 ."<h3>External Providers</h3>"
+                 ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
+                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."</div>"
+             ."</div></div>"
+//              ."<style>"
+//                  ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
+//                      ." { font-weight:bold;color:green;background-color:#dfd; }"
+//              ."</style>"
+             .$this->filterJS();
+
+             //fix up status classes
+             $s = str_replace(array("client-0","client-2"), array("client-normal","client-discharged"), $s);
+
+             $s .= "<div id='sidebar'></div>";
+             $s .= "<script>$( document ).ready(function() {";
+             if( $this->client_key || $sNew == self::CLIENT) {
+                 $s .= "getForm('".self::createID(self::CLIENT, $this->client_key)."');";
+             }
+             if( $this->therapist_key || $sNew == self::INTERNAL_PRO) {
+                 $s .= "getForm('".self::createID(self::INTERNAL_PRO, $this->therapist_key)."');";
+             }
+             if( $this->pro_key || $sNew == self::EXTERNAL_PRO) {
+                 $s .= "getForm('".self::createID(self::EXTERNAL_PRO, $this->pro_key)."');";
+             }
+             $s .= "});</script>";
+
+             foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
+                 if($this->clinics->isCoreClinic()){
+                     $s = str_replace("%".$clinic['_key'], " @ the ".$clinic['clinic_name']." clinic", $s);
+                 }
+                 else {
+                     $s = str_replace("%".$clinic['_key'], "", $s);
+                 }
+             }
+             $s .= "<div id='modalBox'></div>";
+        return( $s );
+    }
+
+    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):String{
+        $s = "";
+        $kfr = $this->oPeopleDB->GetKFR($type, $pid );
+        if(!$kfr){
+            $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
+        }
+        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+        $raPros = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
+        switch($type){
+            case self::CLIENT:
+                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+                $oForm->SetKFR($kfr);
+                $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'");
+                $s = $this->drawClientForm($oForm, $myPros, $raPros);
+                break;
+            case self::INTERNAL_PRO:
+                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
+                $oForm->SetKFR($kfr);
+                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'" );
+                $s = $this->drawProForm($oForm, $myClients, $raClients, true);
+                break;
+            case self::EXTERNAL_PRO:
+                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
+                $oForm->SetKFR($kfr);
+                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'" );
+                $s = $this->drawProForm($oForm, $myClients, $raClients, false);
+                break;
+        }
+        return $s;
+    }
+    
+    public function proccessCommands(String $cmd){
+        $s = "";
+        $id = "";
+        $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+        $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
+        $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
+        
         $overrideCheck = FALSE;
         if(isset($_SESSION["cmdData"])){
             $type = SEEDInput_Str("type");
@@ -159,12 +277,12 @@ class ClientList
                     break;
             }
         }
-
+        
         $existsWarning = <<<ExistsWarning
         <div class='alert alert-warning' style='width: 85%;justify-content: space-around;'>
             A [[type]] with this name is already exists in this clinic<br />
             <div style='justify-content: space-around;display: flex'>
-                <form style='display:inline'>
+                <form style='display:inline' onSubmit='submitForm(event)'>
                     <input type='hidden' name='cmd' value='overwrite' />
                     <input type='hidden' name='type' value='[[type]]' />
                     <input type='submit' value='Replace:' />
@@ -172,12 +290,12 @@ class ClientList
                         [[options]]
                     </select>
                 </form>
-                <a href='?cmd=keep'><button>Use Original</button></a>
-                <a href='?cmd=new&type=[[type]]'><button>Save as new [[type]]</button></a>
+                <button onClick='sendCMD(e,"keep")'>Use Original</button>
+                <form style='display:inline' onSubmit='submitForm(event)'><input type='hidden' name='cmd' value='new' /><input type='hidden' name='type' value='[[type]]' /><input type='submit' value='Save as new [[type]]' /></form>
             </div>
         </div>
 ExistsWarning;
-
+        
         switch( $cmd ) {
             case "update_client":
                 $exists = $this->checkExists($oFormClient, self::CLIENT);
@@ -198,6 +316,7 @@ ExistsWarning;
                         // Only create client code once first and last name are set
                         $this->oCCG->getClientCode($this->client_key);
                     }
+                    $id = self::createID(self::CLIENT, $this->client_key);
                 }
                 break;
             case "discharge_client":
@@ -205,16 +324,18 @@ ExistsWarning;
                 $kfr->StatusSet("Hidden");
                 $kfr->PutDBRow();
                 $s .= "<div class='alert alert-success alert-dismissible'>Client Discharged</div>";
+                $id = self::createID(self::CLIENT, $this->client_key);
                 break;
             case "admit_client":
                 $kfr = $this->oPeopleDB->GetKFR(self::CLIENT, $this->client_key);
                 $kfr->StatusSet("Normal");
                 $kfr->PutDBRow();
                 $s .= "<div class='alert alert-success alert-dismissible'>Client Admitted</div>";
+                $id = self::createID(self::CLIENT, $this->client_key);
                 break;
             case "regenerate_client_code":
                 /* WARNING this will overwrite the existing code.
-                 * This action should only be preformed by a developer
+                 * This action should only be performed by a developer
                  * as it can affect the codes of other clients
                  */
                 if($this->oCCG->regenerateCode($this->client_key)){
@@ -240,6 +361,7 @@ ExistsWarning;
                     $this->updatePeople( $oFormTherapist );
                     $this->therapist_key = $oFormTherapist->GetKey();
                 }
+                $id = self::createID(self::INTERNAL_PRO, $this->therapist_key);
                 break;
             case "update_pro":
                 $exists = $this->checkExists($oFormPro, self::EXTERNAL_PRO);
@@ -257,6 +379,7 @@ ExistsWarning;
                     $this->updatePeople( $oFormPro );
                     $this->pro_key = $oFormPro->GetKey();
                 }
+                $id = $id = self::createID(self::EXTERNAL_PRO, $this->pro_key);
                 break;
             case "link":
                 $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
@@ -264,6 +387,11 @@ ExistsWarning;
                 $kfr->SetValue("fk_clients2", SEEDInput_Int("add_client_key"));
                 $kfr->SetValue("fk_pros_internal", SEEDInput_Int("add_internal_key"));
                 $kfr->PutDBRow();
+                
+                $type = ($this->client_key?"C":($this->therapist_key?"PI":($this->pro_key?"PE":"")));
+                $key = ($this->client_key?:($this->therapist_key?:$this->pro_key));
+                $id = self::createID($type, $key);
+                
                 break;
             case 'uploadxls':
                 $s .= $this->uploadSpreadsheet();
@@ -285,142 +413,10 @@ ExistsWarning;
                         $this->pro_key = $id;
                         break;
                 }
+                $id = $key;
                 break;
         }
-
-        $clientPros = array();
-        $proClients = array();
-        $myPros = array();
-        $myClients = array();
-
-        $sNew = "";
-
-        if($this->client_key == -1){
-            $this->client_key = 0;
-            $oFormClient->SetKFR($this->oPeopleDB->KFRel(self::CLIENT)->CreateRecord());
-            $sNew = "client";
-        }
-        elseif ($this->therapist_key == -1){
-            $this->therapist_key = 0;
-            $oFormTherapist->SetKFR($this->oPeopleDB->KFRel(self::INTERNAL_PRO)->CreateRecord());
-            $sNew = "therapist";
-        }
-        elseif ($this->pro_key == -1){
-            $this->pro_key = 0;
-            $oFormPro->SetKFR($this->oPeopleDB->KFRel(self::EXTERNAL_PRO)->CreateRecord());
-            $sNew = "pro";
-        }
-
-        /* Set the form to use the selected client.
-         */
-        if( $this->client_key && ($kfr = $this->oPeopleDB->GetKFR(self::CLIENT, $this->client_key )) ) {
-            $oFormClient->SetKFR( $kfr );
-            // A client has been clicked. Who are their pros?
-            $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$this->client_key}'");
-        }
-        if( $this->therapist_key && ($kfr = $this->oPeopleDB->GetKFR(self::INTERNAL_PRO, $this->therapist_key )) ) {
-            $oFormTherapist->SetKFR( $kfr );
-            // A therapist has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$this->therapist_key}'" );
-        }
-        if( $this->pro_key && ($kfr = $this->oPeopleDB->GetKFR(self::EXTERNAL_PRO, $this->pro_key )) ) {
-            $oFormPro->SetKFR( $kfr );
-            // A pro has been clicked. Who are their clients?
-            $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$this->pro_key}'" );
-        }
-
-        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-        $raTherapists = $this->oPeopleDB->GetList('PI', $condClinic, $this->queryParams);
-        $raPros       = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
-
-        $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
-             ."<div class='col-md-4'>"
-                 ."<h3>Clients</h3>"
-                 ."<button onclick=\"window.location.href='?client_key=-1'\">Add Client</button><br />"
-                 ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
-                    <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
-                    <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
-                    <input type='hidden' name='cmd' value='therapist-clientList-sort' />
-                    <button onclick='filterClients(event);'>Filter</button>
-                   </form>"
-                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
-             ."</div>"
-             ."<div class='col-md-4'>"
-                 ."<h3>CATS Staff</h3>"
-                 ."<button onclick=\"window.location.href='?therapist_key=-1'\">Add Staff Member</button>"
-                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
-             ."</div>"
-             ."<div class='col-md-4'>"
-                 ."<h3>External Providers</h3>"
-                 ."<button onclick=\"window.location.href='?pro_key=-1'\">Add External Provider</button>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
-             ."</div>"
-             ."</div></div>"
-//              ."<style>"
-//                  ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
-//                      ." { font-weight:bold;color:green;background-color:#dfd; }"
-//              ."</style>"
-             .$this->filterJS();
-
-             //fix up status classes
-             $s = str_replace(array("client-0","client-2"), array("client-normal","client-discharged"), $s);
-
-             $s .= "<div id='sidebar'></div>";
-             $s .= "<script>$( document ).ready(function() {";
-             if( $this->client_key || $sNew == "client") {
-                 //$s .= $this->drawClientForm( $oFormClient, $myPros, $raPros );
-                 $s .= "getForm('".self::createID(self::CLIENT, $this->client_key)."');";
-             }
-             if( $this->therapist_key || $sNew == "therapist") {
-                 //$s .= $this->drawProForm( $oFormTherapist, $myClients, $raClients, true );
-                 $s .= "getForm('".self::createID(self::INTERNAL_PRO, $this->therapist_key)."');";
-             }
-             if( $this->pro_key || $sNew == "pro") {
-                 //$s .= $this->drawProForm( $oFormPro, $myClients, $raClients, false );
-                 $s .= "getForm('".self::createID(self::EXTERNAL_PRO, $this->pro_key)."');";
-             }
-             $s .= "});</script>";
-
-             foreach($this->oClinicsDB->KFRel()->GetRecordSetRA("") as $clinic){
-                 if($this->clinics->isCoreClinic()){
-                     $s = str_replace("%".$clinic['_key'], " @ the ".$clinic['clinic_name']." clinic", $s);
-                 }
-                 else {
-                     $s = str_replace("%".$clinic['_key'], "", $s);
-                 }
-             }
-             $s .= "<div id='modalBox'></div>";
-        return( $s );
-    }
-
-    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):String{
-        $s = "";
-        $kfr = $this->oPeopleDB->GetKFR($type, $pid );
-        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-        $raPros = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
-        switch($type){
-            case self::CLIENT:
-                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
-                $oForm->SetKFR($kfr);
-                $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'");
-                $s = $this->drawClientForm($oForm, $myPros, $raPros);
-                break;
-            case self::INTERNAL_PRO:
-                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
-                $oForm->SetKFR($kfr);
-                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'" );
-                $s = $this->drawProForm($oForm, $myClients, $raClients, true);
-                break;
-            case self::EXTERNAL_PRO:
-                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
-                $oForm->SetKFR($kfr);
-                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'" );
-                $s = $this->drawProForm($oForm, $myClients, $raClients, false);
-                break;
-        }
-        return $s;
+        return array("message"=>$s,"id"=>$id);
     }
     
     private function updatePeople( SEEDCoreForm $oForm )
@@ -501,7 +497,7 @@ ExistsWarning;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
         $this->sForm =
-             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event)'>":"")
+             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event);submitForm(event)'>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
@@ -548,7 +544,7 @@ ExistsWarning;
                  ."<div class='col-md-8'>".$this->sForm."</div>"
                  ."<div class='col-md-4'>".$sTherapists.$sPros
                  ."<br /><br />"
-                 .($oForm->Value("_key")?"<button onclick=\"window.location='?cmd=".($oForm->Value("_status")==0?"discharge":"admit")."_client&client_key=".$oForm->Value("_key")."';event.preventDefault();\">".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button>":"")
+                 .($oForm->Value("_key")?"<form onSubmit='submitForm(event)'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><input type='submit' value='".($oForm->Value("_status")==0?"Discharge":"Admit")." Client' /></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                  ."</div>"
@@ -616,7 +612,7 @@ ExistsWarning;
         }
         $sClients .=
                  "</div>"
-                ."<form>"
+                ."<form onSubmit='submitForm(event)'>"
                 ."<input type='hidden' name='cmd' value='link'/>"
                 ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
                 .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
@@ -644,7 +640,7 @@ ExistsWarning;
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm =
-              "<form onSubmit='clinicHack(event)'>"
+              "<form onSubmit='clinicHack(event);submitForm(event);'>"
                   .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
                                  .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$oForm->Value('_key')}</p>":""):"New Therapist")
@@ -696,7 +692,6 @@ ExistsWarning;
              ."<div class='col-md-4'>".$sClients.$this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key))."</div>"
              ."</div>"
              ."</div>";
-             $s .= $this->clinicJS($oForm);
          return( $s );
     }
 
@@ -770,7 +765,7 @@ FilterJS;
     private function getLinkedUser(KeyframeForm $oForm, String $key):String{
         $sUser = "<div style='padding:10px;border:1px solid #888'>Linked Account: [[account]]<br/>";
         if($this->oApp->sess->CanAdmin('admin')){
-            $sUser .= "<form>"
+            $sUser .= "<form onSubmit='submitForm(event)'>"
                      ."<input type='hidden' name='cmd' value='linkAccount'/>"
                      ."<input type='hidden' name='key' value='$key'/>"
                      ."<input type='hidden' name='people_id' value='{$oForm->Value('P__key')}'/>"
