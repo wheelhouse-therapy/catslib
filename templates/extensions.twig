@@ -1,9 +1,108 @@
+%% home
+{# Circles code #}
+<style>
+	:root {
+		--color1: #63cdfc;
+		--color2: #388ed4;
+		--textColor: black;
+	}
+	body {
+		margin: 0 8px;
+	}
+	.toCircle {
+		text-decoration: none;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		margin-bottom: 20px;
+		margin-left: 10px;
+		border-style: inset outset outset inset;
+		border-width: 3px;
+		border-radius: 50%;
+	}
+	@keyframes colorChange {
+		from {background-color: var(--color1); border-color: var(--color1);}
+		to {background-color: var(--color2); border-color: var(--color2);}
+	}
+	[class *= catsCircle] {
+		box-sizing: border-box;
+		height: 200px;
+		width: 200px;
+		color: var(--textColor) !important;
+	}
+	.catsCircle1 {
+		animation: colorChange 10s ease-in-out infinite alternate;
+	}
+	.catsCircle2 {
+		animation: colorChange 10s ease-in-out -5s infinite alternate;
+	}
+</style>
+<script>
+function createCircle(elements, styles) {
+	for (var x in elements) {
+		var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		elements[x].style.height = diameter;
+		elements[x].style.width = diameter;
+		elements[x].style.color = textColor;
+		elements[x].style.backgroundColor = color;
+		elements[x].style.borderColor = color;
+	}
+	return true;
+}
+function run() {
+    var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
+    var elements = [], styles = [];
+    for(var y = 0; y < x.length; y++) {
+		elements.push(x[y]);
+		styles.push(x[y].dataset.format.split(' '));
+	}
+	createCircle(elements, styles);
+
+	/* Unused Appointments code
+	$(document).ready( function () {
+
+		// Generic seedjx submission
+		
+		$('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
+
+		// the Appointment Review button launches catsappt--reviewd
+		
+		$('.appt-newform').submit( function (e) {
+			e.preventDefault();
+			var gid = $(this).find('#appt-gid').val();
+			var cid = $(this).find('#appt-clientid').val();
+			var divSpecial = this.appt();
+
+			$.ajax({
+				type: 'POST',
+				data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
+				url: 'jx.php',
+				success: function(data, textStatus, jqXHR) {
+					var jsData = JSON.parse(data);
+					var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
+					divSpecial.outerHTML = sSpecial;
+				},
+				error: function(jqXHR, status, error) {
+					console.log(status + ": " + error);
+				}
+			});
+		});
+	}); */
+
+}
+window.addEventListener("DOMContentLoaded", function(){
+    $('body').backDetect(function(){
+	  window.location = '?screen=goBack';
+    });
+});
+</script>
+
+
 %% tnrs
 <link rel='stylesheet' href='{{ CATSDIR_CSS }}tnrs.css'>
 
 %% akaunting
-<!-- Font Awesome -->
-<link rel="stylesheet" href="{{ CATSDIR_AKAUNTING }}css/font-awesome.min.css">
 <!-- AdminLTE Skins -->
 <link rel="stylesheet" href="{{ CATSDIR_AKAUNTING }}almasaeed2010/adminlte/dist/css/skins/skin-green-light.min.css">
 <!-- Select2 -->
@@ -177,6 +276,8 @@ debugger;
         });
     });
 </script>
+<!-- Ledger Report Styling -->
+<link rel='stylesheet' href='w/css/akLedgerReport.css'>
 
 %% therapist-clientlist
 <link rel='stylesheet' href='{{ CATSDIR_CSS }}slider.css'>
