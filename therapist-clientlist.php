@@ -62,6 +62,7 @@ class ClientList
                     color: #007bffa8;
                 }
               </style>
+              <script src='".CATSDIR_JS."therapist-clientlist.js'></script>
              ";
 
         $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
@@ -384,6 +385,7 @@ ExistsWarning;
                      $s = str_replace("%".$clinic['_key'], "", $s);
                  }
              }
+             $s .= "<div id='modalBox'></div>";
         return( $s );
     }
 
@@ -489,12 +491,12 @@ ExistsWarning;
             $sPros .= "No External Providers Connected";
         }
         $sTherapists .= "</div>";
-        $sPros       .= "</div>".($oForm->Value('_key')?drawModal($oForm->GetValuesRA(), $this->oPeopleDB, $this->pro_roles_name ):"");
+        $sPros       .= "</div>".($oForm->Value('_key')?drawModalButton($oForm->Value('_key')):"");
 
-        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
         $this->sForm =
-             ($oForm->Value("_status")==0?"<form>":"")
+             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event)'>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
@@ -510,7 +512,7 @@ ExistsWarning;
              $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
              $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
              $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
-             $this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"))));
+             $this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"),$oForm)));
              $this->drawPartialFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'")) );
              $this->drawPartialFormRow( "Age", $age);
              $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
@@ -528,34 +530,10 @@ ExistsWarning;
              ."</tr>"
              ."</tr>"
              ."</table>"
-             ."<script>"
-                 ."function sendcreds(e){
-                     e.preventDefault();
-                     var credsDiv = document.getElementById('credsDiv');
-                     var cid = document.getElementById('clientId').value;
-                     $.ajax({
-                         type: 'POST',
-                         data: { cmd: 'therapist---credentials', client: cid },
-                         url: 'jx.php',
-                         success: function(data, textStatus, jqXHR) {
-                             var jsData = JSON.parse(data);
-                             var sSpecial = jsData.bOk ? jsData.sOut : 'Failed to send Email';
-                             credsDiv.innerHTML =  sSpecial;
-                         },
-                         error: function(jqXHR, status, error) {
-                             console.log(status + \": \" + error);
-                             debugger;
-                         }
-                     });
-                 }
-               </script>"
              ."</form>";
              }
              else{
-                 $this->sForm .= "</table>"
-                                ."<script>"
-                                .'$(":input",":parent").attr("disabled", true);'
-                                ."</script>";
+                 $this->sForm .= "</table>";
              }
 
         $s .= "<div class='container-fluid' style='border:1px solid #aaa;padding:20px;margin:20px'>"
@@ -570,33 +548,16 @@ ExistsWarning;
                  ."</div>"
              ."</div>"
              ."</div>";
-             $s .= $this->clinicJS($oForm);
          return( $s );
     }
 
-    private function schoolField( $value )
+    private function schoolField( $value, $oForm )
     {
-        $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]]>In School</input>
+        $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]] ".($oForm->Value('_status')==0?'':'disabled').">In School</input>
          <input type='text' style='display:[[display]]' name='[name]' id='schoolField' value='[[value]]' [[disabled]] required placeholder='School' />
-         <input type='hidden' value='' id='schoolHidden' name='[name]' [[!disabled]] />
-         <script>
-	       function inSchool() {
-		      var checkBox = document.getElementById('schoolBox');
-		      var text = document.getElementById('schoolField');
-              var hidden = document.getElementById('schoolHidden');
-		      if (checkBox.checked == true){
-			     text.style.display = 'block';
-			     text.disabled = false;
-                 hidden.disabled = true;
-		      } else {
-			     text.style.display = 'none';
-			     text.disabled = true;
-                 hidden.disabled = false;
-		      }
-           }
-         </script>";
+         <input type='hidden' value='' id='schoolHidden' name='[name]' [[!disabled]] />";
         $s = str_replace("[[checked]]", ($value?"checked":""), $s);
-        $s = str_replace(array("[[disabled]]","[[!disabled]]"), ($value?array("","disabled"):array("disabled","")), $s);
+        $s = str_replace(array("[[disabled]]","[[!disabled]]"), ($oForm->Value('_status')==0&&$value?array("","disabled"):array("disabled","")), $s);
         $s = str_replace("[[display]]", ($value?"block":"none"), $s);
         $s = str_replace("[[value]]", $value, $s);
         return $s;
@@ -677,7 +638,7 @@ ExistsWarning;
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm =
-              "<form>"
+              "<form onSubmit='clinicHack(event)'>"
                   .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
                                  .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$oForm->Value('_key')}</p>":""):"New Therapist")
@@ -735,24 +696,13 @@ ExistsWarning;
     private function getClinicList( $oForm)
     {
         $clinicId = $oForm->Value("clinic");
-        $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' ".($this->clinics->isCoreClinic()?"":"disabled ").">";
+        $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' ".($this->clinics->isCoreClinic()&&$oForm->Value('_status')==0?"":"disabled ").">";
         $raClinics = $this->oClinicsDB->KFRel()->GetRecordSetRA("");
         foreach($raClinics as $clinic){
             $sSelected = (($oForm->Value("_key") == 0 && $this->clinics->GetCurrentClinic() == $clinic['_key']) || $clinicId == $clinic['_key']) ? " selected" : "";
             $s .= "<option$sSelected value='{$clinic['_key']}'>{$clinic['clinic_name']}</option>";
         }
         $s .= "</select>";
-        return $s;
-    }
-
-    private function clinicJS($oForm){
-        $s = "<script>"
-            ."addEventListener('DOMContentLoaded', function() {
-                document.getElementById('".$oForm->Name("clinic")."').form.addEventListener('submit', function(){
-                    document.getElementById('".$oForm->Name("clinic")."').disabled = false;
-                });
-            });
-            </script>";
         return $s;
     }
 
@@ -796,7 +746,7 @@ FilterJS;
     private function getPronounList(KeyframeForm $oForm){
 
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
-        $s = "<select name='".$oForm->Name("P_pronouns")."' required >";
+        $s = "<select name='".$oForm->Name("P_pronouns")."' required ".($oForm->Value('_status')==0?"":"disabled").">";
         $s .= "<option value=''>Select Pronouns</option>";
         foreach($pronouns as $key => $name){
             if($oForm->Value("P_pronouns") == $key){
@@ -831,18 +781,7 @@ FilterJS;
                     text-align: center;
                     text-align-last: center;
                  }
-                 </style>"
-                 ."<script>
-                 function updateAccountStyle(){
-                    var select = document.getElementById('newAccount');
-                    if(select.selectedOptions[0].value == 0){
-                        select.className = 'noAccount';
-                    }
-                    else{
-                        select.className = '';
-                    }
-                 }
-                 </script>";
+                 </style>";
         
         $account = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]['realname'];
         
