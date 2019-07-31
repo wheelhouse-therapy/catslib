@@ -483,11 +483,11 @@ class CATSBaseDB extends Keyframe_NamedRelations
     function __construct( SEEDAppSession $oApp, $raConfig = array() )
     {
         // People tables
-        $this->t['P']  = array( "Table" => DBNAME.".people",        "Fields" => 'Auto' );
-        $this->t['C']  = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
-        $this->t['PI'] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
-        $this->t['PE'] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
-        $this->t['CX'] = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
+        $this->t['P']                      = array( "Table" => DBNAME.".people",        "Fields" => 'Auto' );
+        $this->t[ClientList::CLIENT]       = array( "Table" => DBNAME.".clients2",      "Fields" => 'Auto' );
+        $this->t[ClientList::INTERNAL_PRO] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
+        $this->t[ClientList::EXTERNAL_PRO] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
+        $this->t['CX']                     = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
 
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
@@ -519,11 +519,11 @@ class PeopleDB extends CATSBaseDB
         $raKfrel = array();
         $sLogfile = $logdir ? "$logdir/people.log" : "";
 
-        $raKfrel['P']  = $this->newKfrel( $kfdb, $uid, array(                       'P' => $this->t['P'] ), $sLogfile );
-        $raKfrel['C']  = $this->newKfrel( $kfdb, $uid, array( 'C' =>$this->t['C'],  'P' => $this->t['P'] ), $sLogfile );
-        $raKfrel['PI'] = $this->newKfrel( $kfdb, $uid, array( 'PI'=>$this->t['PI'], 'P' => $this->t['P'] ), $sLogfile );
-        $raKfrel['PE'] = $this->newKfrel( $kfdb, $uid, array( 'PE'=>$this->t['PE'], 'P' => $this->t['P'] ), $sLogfile );
-        $raKfrel['CX'] = $this->newKfrel( $kfdb, $uid, array( 'CX'=>$this->t['CX'] ),                       $sLogfile );
+        $raKfrel['P']                      = $this->newKfrel( $kfdb, $uid, array(                                                               'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel[ClientList::CLIENT]       = $this->newKfrel( $kfdb, $uid, array( ClientList::CLIENT =>$this->t[ClientList::CLIENT],            'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel[ClientList::INTERNAL_PRO] = $this->newKfrel( $kfdb, $uid, array( ClientList::INTERNAL_PRO=>$this->t[ClientList::INTERNAL_PRO], 'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel[ClientList::EXTERNAL_PRO] = $this->newKfrel( $kfdb, $uid, array( ClientList::EXTERNAL_PRO=>$this->t[ClientList::EXTERNAL_PRO], 'P' => $this->t['P'] ), $sLogfile );
+        $raKfrel['CX']                     = $this->newKfrel( $kfdb, $uid, array( 'CX'=>$this->t['CX'] ),                                                               $sLogfile );
 
         return( $raKfrel );
     }
