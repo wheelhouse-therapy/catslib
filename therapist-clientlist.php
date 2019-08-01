@@ -538,13 +538,13 @@ ExistsWarning;
              }
 
         $s .= "<div class='container-fluid' style='position: relative;border:1px solid #aaa;padding:20px;margin:20px'>"
-            ."<div class='close-sidebar' onclick='document.getElementById(\"sidebar\").classList.remove(\"open\")'><i class='fas fa-times'></i></div>"
+            ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"
              ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
                  ."<div class='col-md-8'>".$this->sForm."</div>"
                  ."<div class='col-md-4'>".$sTherapists.$sPros
                  ."<br /><br />"
-                 .($oForm->Value("_key")?"<form onSubmit='submitForm(event)'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><input type='submit' value='".($oForm->Value("_status")==0?"Discharge":"Admit")." Client' /></form>":"")
+                 .($oForm->Value("_key")?"<form id='client-form' onSubmit='submitForm(event)'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                  ."</div>"
