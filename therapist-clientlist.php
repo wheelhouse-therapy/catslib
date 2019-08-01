@@ -57,8 +57,6 @@ class ClientList
                 }
                 .client-discharged{
                     display:".(@$this->oApp->sess->VarGet("clientlist-discharged")?"block":"none").";
-                }
-                .client-discharged{
                     color: #0000008a;
                 }
               </style>
@@ -104,31 +102,16 @@ class ClientList
         }
 
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-        $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
-        $raPros       = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
         
         $s .= "<div style='clear:both' class='container-fluid'><div class='row'>"
-             ."<div class='col-md-4'>"
-                 ."<h3>Clients</h3>"
-                 ."<button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
-                 ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
-                    <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
-                    <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
-                    <input type='hidden' name='cmd' value='therapist-clientList-sort' />
-                    <button onclick='filterClients(event);'>Filter</button>
-                   </form>"
-                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."<div id='clients' class='col-md-4'>"
+                 .$this->drawList(self::CLIENT,$condClinic)
              ."</div>"
-             ."<div class='col-md-4'>"
-                 ."<h3>CATS Staff</h3>"
-                 ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
-                 .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."<div id='therapists' class='col-md-4'>"
+                 .$this->drawList(self::INTERNAL_PRO,$condClinic)
              ."</div>"
-             ."<div class='col-md-4'>"
-                 ."<h3>External Providers</h3>"
-                 ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
-                 .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+             ."<div id='pros' class='col-md-4'>"
+                 .$this->drawList(self::EXTERNAL_PRO,$condClinic)
              ."</div>"
              ."</div></div>"
 //              ."<style>"
@@ -416,7 +399,41 @@ ExistsWarning;
                 $id = $key;
                 break;
         }
-        return array("message"=>$s,"id"=>$id);
+        return array("message"=>$s,"id"=>$id, "list"=>$this->drawList(@$this->parseID($id)['type']));
+    }
+    
+    private function drawList(String $type, String $condClinic = ""):String{
+        if(!$condClinic){
+            $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+        }
+        switch($type){
+            case self::CLIENT:
+                $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+                return "<h3>Clients</h3>"
+                      ."<button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
+                      ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
+                            <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
+                            <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
+                            <input type='hidden' name='cmd' value='therapist-clientList-sort' />
+                            <button onclick='filterClients(event);'>Filter</button>
+                        </form>"
+                      .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" );
+                break;
+            case self::INTERNAL_PRO:
+                $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
+                return "<h3>CATS Staff</h3>"
+                      ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
+                      .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" );
+                break;
+            case self::EXTERNAL_PRO:
+                $raPros       = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
+                return "<h3>External Providers</h3>"
+                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
+                      .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" );
+                break;
+            default:
+                return "";
+        }
     }
     
     private function updatePeople( SEEDCoreForm $oForm )
