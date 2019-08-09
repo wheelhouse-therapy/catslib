@@ -153,19 +153,19 @@ class ClientList
             case self::CLIENT:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
                 $oForm->SetKFR($kfr);
-                $myPros = $this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'");
+                $myPros = ($pid?$this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'"):array());
                 $s = $this->drawClientForm($oForm, $myPros, $raPros);
                 break;
             case self::INTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
                 $oForm->SetKFR($kfr);
-                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'" );
+                $myClients = ($pid?$this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'"):array());
                 $s = $this->drawProForm($oForm, $myClients, $raClients, true);
                 break;
             case self::EXTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
                 $oForm->SetKFR($kfr);
-                $myClients = $this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'" );
+                $myClients = ($pid?$this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'"):array());
                 $s = $this->drawProForm($oForm, $myClients, $raClients, false);
                 break;
         }
@@ -707,7 +707,7 @@ ExistsWarning;
             </script>";
 
         $s .= "<div class='container-fluid' style='position:relative;border:1px solid #aaa;padding:20px;margin:20px'>"
-             ."<div class='close-sidebar' onclick='document.getElementById(\"sidebar\").classList.remove(\"open\")'><i class='fas fa-times'></i></div>"
+             ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
              ."<div class='col-md-8'>".$this->sForm."</div>"
