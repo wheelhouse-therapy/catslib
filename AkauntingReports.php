@@ -132,7 +132,7 @@ class AkauntingReportScreen
         $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
 
         $sql =
-            "select A.account_id,A.entry_type,A.debit as d,A.credit as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
+            "select A.id as ledger_id,A.account_id,A.entry_type,A.debit as d,A.credit as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
             ."where A.account_id=B.id "
