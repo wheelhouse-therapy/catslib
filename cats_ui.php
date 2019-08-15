@@ -264,6 +264,10 @@ ResetPassword;
                 $tnrs = new TagNameResolutionService($oApp->kfdb);
                 $s .= $tnrs->listResolution();
                 break;
+            case 'admin-SEEDBasket':
+                include_once( SEEDAPP."basket/basketManager.php" );
+                $s .= SEEDBasketManagerApp( $oApp );
+                break;
             default:
                 //Unimplemented Bubbles have been commented out to clean up display
                 $raScreens = array(
@@ -272,6 +276,9 @@ ResetPassword;
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
+                if( CATS_DEBUG ) {
+                    $raScreens[] = ['admin-SEEDBasket', "Temporary SEEDBasket Development"];
+                }
                 $s .= $this->drawCircles( $raScreens );
 
                 break;
@@ -365,7 +372,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $o = new UsersGroupsPermsUI( $this->oApp );
         return( $o->DrawUI() );
     }
-    
+
     private function pswdIsTemporary(){
         $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
         if(($newPswd = @$_POST['new_pswd']) && ($confirmPswd = @$_POST['confirm_pswd'])){
@@ -383,7 +390,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $pswd = $accountDB->GetUserInfo($this->oApp->sess->GetUID())[1]["password"];
         return $pswd=="cats" && strtolower($email) == strtolower(substr($fname, 0,1).$lname);
     }
-    
+
 }
 
 class ScreenManager{
