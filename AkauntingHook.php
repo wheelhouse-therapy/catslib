@@ -2,9 +2,14 @@
 
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
-require_once(CATSLIB.'/vendor/autoload.php');
+require_once(CATSLIB.'vendor/autoload.php');
 require_once('email_processor.php');
 
+/**
+ * Hook to submit journal entries to akaunting
+ * @author Eric
+ * @version 1.1
+ */
 class AkauntingHook {
 
     const REJECTED_NO_ACCOUNT = -1;
@@ -232,10 +237,10 @@ class AkauntingHook {
         $keywords = array(
             'advertising'                               => array("ads","ad", "advertising"),
             'wages and salaries'                        => array("wages", "salary"),
-            'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'payroll tax expense (CPP EI)'            => array("deductions", "payroll_tax"),
             'rent'                                      => array("rent"),
-            'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
-            'meals & entertainment'                     => array("meal", "meals", "restaurant"),
+            'consulting - legal and accounting'            => array("tax-help", "lawyer", "accountant"),
+            'meals and entertainment'                     => array("meal", "meals", "restaurant"),
             'postage - for reports (not advertising)'   => array("stamps", "postage"),
             'therapy supplies - toys/small items'       => array("toys", "toy"),
             'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
@@ -245,12 +250,14 @@ class AkauntingHook {
             'education expense'                         => array("course", "courses", "education", "pd"),
             'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
             'office supplies'                           => array("office"),
-            'professional dues & memberships'           => array("caot", "osot", "dues"),
-            'telephone and internet'                    => array("phone", "telephone")
+            'professional dues and memberships'           => array("caot", "osot", "dues"),
+            'telephone and internet'                    => array("phone", "telephone"),
+            'travel expense'                            => array("travel")
         );
+        
         foreach($keywords as $account=>$words){
             foreach ($words as $word){
-                if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
+                if(preg_match("/(^|[^\\w])".$word."([^\\w]|$)/i", $string)){
                     return self::getAccountByName($account, true);
                 }
             }
@@ -330,29 +337,67 @@ class AkauntingHook {
 
 }
 
+/**
+ * Class which contains the information for a journal entry in Akaunting
+ * Used by Akaunting Hook to submit entries to Akaunting
+ * @author Eric
+ * @version 2
+ */
 class AccountingEntry {
 
     //TODO find a more expandable way of doing this
+    /**
+     * @var array Mappings of names to liability accounts
+     * @static
+     */
     private static $liability_mappings = array('sue' => 210, 'alison' => 211);
 
+    /**
+     * @var float The amount the entry is for
+     */
     private $amount;
+    /**
+     * @var String The type of the entry
+     * Accepted types are Income or Expense
+     */
     private $type;
+    /**
+     * @var int The akaunting company id to put the entry into
+     */
     private $company;
     /**
-     * Catagory to put the entry.
+     * @var String|int Category to put the entry.
      * This can be the account name, account code, or account_id.
      * A negative number is used to separate an account_id from an account code
      * since codes cant be negative.
      * Since account_id's also can't be negative it is converted to a positive before its submitted to Akaunting.
-     *
      */
     private $category;
+    /**
+     * @var String Date which the entry is to be filed under
+     */
     private $paid_at;
+    /**
+     * @var String reference to the attachment file if any.
+     */
     private $attachment;
+    /**
+     * @var String description of entry
+     */
     private $description;
+    /**
+     * @var int Liability account to balance the entry
+     */
     private $liability_account;
+    /**
+     * @var int id of the entry in akaunting, set to zero for new entry
+     */
     private $entryId;
 
+    private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
+    
+    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
+    
     private function __construct($amount, String $type, int $company, $paid_at, $category, $attachment, String $description, int $liability_account, int $entryId = 0){
         $this->company = $company;
         $this->amount = $amount;
@@ -365,6 +410,23 @@ class AccountingEntry {
         $this->entryId = $entryId;
     }
 
+    /**
+     * Create an entry from the data recieved in an email.
+     * Pre Version 2 the code in this method could be found in the constructor
+     * @since Version 1
+     * @param float $amount Amount of entry
+     * @param String $type Type of entry
+     * @param String $clinic Name of clinic with akaunting company linked to file entry in
+     * @param String $date Date when entry is to be submitted under
+     * @param String $category Category of entry
+     * @param String|null $attachment Reference to an attachment is any
+     * @param bool $ccc If company credit card was used
+     * @param String $desc Description of entry
+     * @param String $person Who made the entry. If $ccc is false this is used to determine the liability account to balance entry
+     * @param String $account Type of account. Can be UNPAID or CA
+     * @param int $entryId Id of entry in akaunting or zero to create a new entry
+     * @return AccountingEntry
+     */
     public static function createFromEmail($amount, String $type, String $clinic, $date, String $category, $attachment, bool $ccc, String $desc, String $person, String $account, int $entryId = 0):AccountingEntry{
         $oApp = $GLOBALS['oApp'];
 
@@ -401,6 +463,13 @@ class AccountingEntry {
 
     }
 
+    /**
+     * Create an entry from an array
+     * @since Version 2
+     * @todo Complete method
+     * @param array $ra Data for the journal entry
+     * @return AccountingEntry
+     */
     public static function createFromRA(array $ra):AccountingEntry{
         //TODO Complete
         return NULL;

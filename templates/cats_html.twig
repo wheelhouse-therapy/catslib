@@ -15,127 +15,45 @@
  # All the header stuff goes here.
  # If you have custom header content for a particular page, define a block here and provide it in the template for that page.
  #}
+ <!-- Meta tag crap -->
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
 <meta http-equiv="X-UA-Compatible" content="IE=10; IE=9; IE=8; IE=7; IE=EDGE" />
-<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
-<link rel='stylesheet' href='{{CATSDIR_CSS}}tooltip.css'>
+<!-- Appointments Code (unused) -->
+<!-- <script src='{{ CATSDIR_JS }}appointments.js'></script> -->
+<!-- JQuery -->
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
-<script src='{{ CATSDIR_JS }}appointments.js'></script>
-<script src='{{ W_CORE_URL }}js/SEEDCore.js'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
-<script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
+<!-- JQuery Plugins -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
 <script src='{{ CATSDIR_JS }}jquery.backDetect.js'></script>
-<link rel='stylesheet' href='w/css/tooltip.css'>
+<!-- Popper.js -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
+<!-- Bootstrap -->
+<script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
+<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
+<!-- Font Awesome -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/js/all.min.js'></script>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/css/all.min.css'>
+<!-- Tooltip -->
+<link rel='stylesheet' href='{{CATSDIR_CSS}}tooltip.css'>
+<!-- Seeds stuff -->
+<script src='{{ W_CORE_URL }}js/SEEDCore.js'></script>
 <link rel='stylesheet' href='{{ W_CORE_URL }}css/console02.css'>
+<!-- Favicon -->
 <link rel="icon" href="https://catherapyservices.ca/wp-content/uploads/2018/08/cropped-cats_icon-32x32.jpg" sizes="32x32">
+<!-- Header Styles -->
 <style>
-	:root {
-		--color1: #63cdfc;
-		--color2: #388ed4;
-		--textColor: black;
-	}
-	body {
-		margin: 0 8px;
-	}
-	.toCircle {
-		text-decoration: none;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		text-align: center;
-		margin-bottom: 20px;
-		margin-left: 10px;
-		border-style: inset outset outset inset;
-		border-width: 3px;
-		border-radius: 50%;
-	}
-	@keyframes colorChange {
-		from {background-color: var(--color1); border-color: var(--color1);}
-		to {background-color: var(--color2); border-color: var(--color2);}
-	}
-	[class *= catsCircle] {
-		box-sizing: border-box;
-		height: 200px;
-		width: 200px;
-		color: var(--textColor) !important;
-	}
-	.catsCircle1 {
-		animation: colorChange 10s ease-in-out infinite alternate;
-	}
-	.catsCircle2 {
-		animation: colorChange 10s ease-in-out -5s infinite alternate;
-	}
-	.selectedClinic {
-		font-size: 20pt;
-	}
-	div.cats_header {
-		overflow: visible;
-		position: sticky;
-		background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
-		top: 0;
-		z-index: 1;
-		display: inline-block;
-		width: 100%;
-	}
+.selectedClinic {
+	font-size: 20pt;
+}
+div.cats_header {
+	overflow: visible;
+	position: sticky;
+	background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+	top: 0;
+	z-index: 99;
+	display: inline-block;
+	width: 100%;
+}
 </style>
-<script>
-function createCircle(elements, styles) {
-	for (var x in elements) {
-		var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
-		elements[x].style.height = diameter;
-		elements[x].style.width = diameter;
-		elements[x].style.color = textColor;
-		elements[x].style.backgroundColor = color;
-		elements[x].style.borderColor = color;
-	}
-	return true;
-}
-function run() {
-    var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
-    var elements = [], styles = [];
-    for(var y = 0; y < x.length; y++) {
-		elements.push(x[y]);
-		styles.push(x[y].dataset.format.split(' '));
-	}
-	createCircle(elements, styles);
-	
-	$(document).ready( function () {
-
-		/* Generic seedjx submission
-		*/
-		$('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
-
-		/* the Appointment Review button launches catsappt--reviewd
-		*/
-		$('.appt-newform').submit( function (e) {
-			e.preventDefault();
-			var gid = $(this).find('#appt-gid').val();
-			var cid = $(this).find('#appt-clientid').val();
-			var divSpecial = this.appt();
-
-			$.ajax({
-				type: 'POST',
-				data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
-				url: 'jx.php',
-				success: function(data, textStatus, jqXHR) {
-					var jsData = JSON.parse(data);
-					var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
-					divSpecial.outerHTML = sSpecial;
-				},
-				error: function(jqXHR, status, error) {
-					console.log(status + ": " + error);
-				}
-			});
-		});
-	});
-
-}
-window.addEventListener("DOMContentLoaded", function(){
-    $('body').backDetect(function(){
-	  window.location = '?screen=goBack';
-    });
-});
-</script>
 {% include ExtensionTmpl ignore missing %}

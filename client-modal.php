@@ -1,37 +1,7 @@
 <?php
 
 function drawModal($ra, $oPeopleDB, $pro_roles_name){
-    $s = "<script>
-            /* must apply only after HTML has loaded */
-            $(document).ready(function () {
-                $(\"#contact_form\").on(\"submit\", function(e) {
-                    var postData = $(this).serializeArray();
-                    var formURL = $(this).attr(\"action\");
-                    $.ajax({
-                        type: \"POST\",
-                        data: postData,
-                        url: formURL,
-                        success: function(data, textStatus, jqXHR) {
-                            $('#contact_dialog').modal('hide');
-                        },
-                        error: function(jqXHR, status, error) {
-                            console.log(status + \": \" + error);
-                        }
-                    });
-                    e.preventDefault();
-                });
-                
-                $(\"#submitForm\").on('click', function() {
-                    $(\"#contact_form\").submit();
-                });
-                $(\"#contact_dialog\").on(\"hidden.bs.modal\", function(){
-                    location.reload();
-                });
-            });
-        </script>
-        
-        <button type=\"button\" data-toggle=\"modal\" data-target=\"#contact_dialog\">Connect Providers</button>
-        
+    $s = "
         <!-- the div that represents the modal dialog -->
         <div class=\"modal fade\" id=\"contact_dialog\" role=\"dialog\">
             <div class=\"modal-dialog\">
@@ -67,4 +37,11 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
             </div>
         </div>";
     return($s);
+}
+
+function drawModalButton(int $key):String{
+    return <<<ModalButton
+<button onClick='connectButton(event,$key)'>Connect Providers</button>
+ModalButton;
+    
 }

@@ -40,9 +40,8 @@ class CATS_UI
         }
 
         $body .=
-            "<script> SEEDCore_CleanBrowserAddress(); </script>
-             <script> run(); </script>
-             <script src='w/js/tooltip.js'></script>";
+            "<script> SEEDCore_CleanBrowserAddress(); </script>"
+             .($this->oHistory->getScreen()=="home"?"<script> run(); </script>":"");
 
         $clinics = new Clinics($this->oApp);
         $s = $this->oTmpl->ExpandTmpl( 'cats_page',
