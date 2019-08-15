@@ -263,10 +263,6 @@ ResetPassword;
                 $tnrs = new TagNameResolutionService($oApp->kfdb);
                 $s .= $tnrs->listResolution();
                 break;
-            case 'admin-SEEDBasket':
-                include_once( SEEDAPP."basket/basketManager.php" );
-                $s .= SEEDBasketManagerApp( $oApp );
-                break;
             default:
                 //Unimplemented Bubbles have been commented out to clean up display
                 $raScreens = array(
@@ -275,9 +271,6 @@ ResetPassword;
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
-                if( CATS_DEBUG ) {
-                    $raScreens[] = ['admin-SEEDBasket', "Temporary SEEDBasket Development"];
-                }
                 $s .= $this->drawCircles( $raScreens );
 
                 break;
@@ -326,11 +319,18 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
+            case 'developer-SEEDBasket':
+                include_once( SEEDAPP."basket/basketManager.php" );
+                $s .= SEEDBasketManagerApp( $oApp );
+                break;
             default:
                     $raScreens = array(
                         array( 'developer-confirmdrop',    "Drop Tables"    ),
                         array( 'developer-clinics',        "Manage Clinics" ),
                     );
+                    if( CATS_DEBUG ) {
+                        $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
+                    }
                     $s .= $this->drawCircles( $raScreens );
         }
         return( $s );
