@@ -237,10 +237,10 @@ class AkauntingHook {
         $keywords = array(
             'advertising'                               => array("ads","ad", "advertising"),
             'wages and salaries'                        => array("wages", "salary"),
-            'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'payroll tax expense (CPP EI)'            => array("deductions", "payroll_tax"),
             'rent'                                      => array("rent"),
-            'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
-            'meals & entertainment'                     => array("meal", "meals", "restaurant"),
+            'consulting - legal and accounting'            => array("tax-help", "lawyer", "accountant"),
+            'meals and entertainment'                     => array("meal", "meals", "restaurant"),
             'postage - for reports (not advertising)'   => array("stamps", "postage"),
             'therapy supplies - toys/small items'       => array("toys", "toy"),
             'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
@@ -250,12 +250,14 @@ class AkauntingHook {
             'education expense'                         => array("course", "courses", "education", "pd"),
             'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
             'office supplies'                           => array("office"),
-            'professional dues & memberships'           => array("caot", "osot", "dues"),
-            'telephone and internet'                    => array("phone", "telephone")
+            'professional dues and memberships'           => array("caot", "osot", "dues"),
+            'telephone and internet'                    => array("phone", "telephone"),
+            'travel expense'                            => array("travel")
         );
+        
         foreach($keywords as $account=>$words){
             foreach ($words as $word){
-                if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
+                if(preg_match("/(^|[^\\w])".$word."([^\\w]|$)/i", $string)){
                     return self::getAccountByName($account, true);
                 }
             }
@@ -392,6 +394,10 @@ class AccountingEntry {
      */
     private $entryId;
 
+    private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
+    
+    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
+    
     private function __construct($amount, String $type, int $company, $paid_at, $category, $attachment, String $description, int $liability_account, int $entryId = 0){
         $this->company = $company;
         $this->amount = $amount;

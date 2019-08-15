@@ -76,7 +76,7 @@ if( !isset($email_processor['emailServer']) ) {
 // $email_processor is a global that must be defined in catsdef.php
 // The default server for akaunting is set here
 if( !isset($email_processor['akauntingServer']) ) {
-    $email_processor['akauntingServer'] = "https://localhost/";
+    $email_processor['akauntingServer'] = "https://catherapyservices.ca";
 }
 
 // set this in catsdef.php if your Akaunting installation is not at http://localhost/akaunting
