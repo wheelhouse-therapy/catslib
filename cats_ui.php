@@ -321,7 +321,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       break;
             case 'developer-SEEDBasket':
                 include_once( SEEDAPP."basket/basketManager.php" );
-                $s .= SEEDBasketManagerApp( $oApp );
+                $s .= SEEDBasketManagerApp( $this->oApp );
                 break;
             default:
                     $raScreens = array(
