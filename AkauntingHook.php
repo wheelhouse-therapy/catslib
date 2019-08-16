@@ -353,7 +353,7 @@ class AccountingEntry {
     private static $liability_mappings = array('sue' => 210, 'alison' => 211);
 
     /**
-     * @var float The amount the entry is for
+     * @var double The amount the entry is for
      */
     private $amount;
     /**
