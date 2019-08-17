@@ -83,6 +83,11 @@ class AkauntingHook {
 
         self::dbg("\nSubmitting Entry");
 
+        if(self::$bDebug){
+            var_dump($entry);
+            echo "<br />";
+        }
+        
         // Switch to the correct Company
         self::switchCompany($entry->getCompany());
 
@@ -302,9 +307,10 @@ class AkauntingHook {
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in.\n
-                       When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word.\n
-                       The following accounts were detected as possible accounts:"
-                      .SEEDCore_ArrayExpandSeries($details[1], "\n[[]]");
+                       When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word."
+                     .(@$details[1]?"\nThe following accounts were detected as possible accounts:"
+                     .SEEDCore_ArrayExpandSeries($details[1], "\n[[]]"):"");
+                $s .= "\nReminder to use double quotes for memos";
                 break;
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
