@@ -22,6 +22,7 @@ class AkauntingHook {
     private static $_token = NULL;
     private static $accounts = array();
     private static $company = 0;
+    private static $fetchRequired = true;
 
     private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
 
@@ -91,8 +92,10 @@ class AkauntingHook {
         // Switch to the correct Company
         self::switchCompany($entry->getCompany());
 
-        //Fetch accounts
-        self::fetchAccounts();
+        //Fetch accounts if required
+        if(self::$fetchRequired){
+            self::fetchAccounts();
+        }
 
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDescription(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
@@ -194,6 +197,7 @@ class AkauntingHook {
             $accounts = self::loadAccounts($data);
             if($loadCach){
                 self::$accounts = $accounts;
+                self::$fetchRequired = false;
             }
             return $accounts;
         }
@@ -282,15 +286,21 @@ class AkauntingHook {
     }
 
     private static function switchCompany(int $company,bool $recoverable = FALSE){
+        if(self::$company == $company){
+            //The company hasn't changed so dont bother sending the switch request
+            return;
+        }
         if(!$recoverable){
             self::$company = $company;
         }
         global $email_processor;
         self::$session->get($email_processor['akauntingBaseUrl']."/common/companies/".$company."/set");
+        self::$fetchRequired = true;
     }
 
     private static function restoreCompany(){
         self::switchCompany(self::$company);
+        self::$fetchRequired = false;
     }
 
     public static function decodeErrors(array $errors):String{
