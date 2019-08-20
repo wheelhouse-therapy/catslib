@@ -693,18 +693,7 @@ ExistsWarning;
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
              ."</table>"
-             ."</form>"
-            ."<script>function doUpdateForm() {
-                var sel = document.getElementById('mySelect').value;
-                if( sel == 'Other' ) {
-                    document.getElementById('other').style.display = 'inline';
-                    document.getElementById('other').disabled = false;
-                } else {
-                    document.getElementById('other').style.display = 'none';
-                    document.getElementById('other').disabled = true;
-                }
-            }
-            </script>";
+             ."</form>";
 
         $s .= "<div class='container-fluid' style='position:relative;border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"
