@@ -43,6 +43,10 @@ class AkauntingReportBase
         // Ak_report is the report type
         $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
 
+        // Ak_date are the bounds of the date range to show.
+        $raParms['Ak_date_min'] = $this->oApp->sess->SmartGPC('Ak_date_min');
+        $raParms['Ak_date_max'] = $this->oApp->sess->SmartGPC('Ak_date_max');
+        
         // Ak_sort sorts a ledger by date or account name
         // sortdb is the sql ORDER BY
         switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
@@ -129,14 +133,14 @@ class AkauntingReportScreen
     {
         $raRows = array();
 
-        $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
+        $sOrderBy = @$raParms['sortdb'] ? "ORDER BY {$raParms['sortdb']} " : "";
 
         $sql =
             "select A.id as ledger_id,A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
             ."where A.account_id=B.id "
-                .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}'" : "")
+                .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -199,8 +203,9 @@ class AkauntingReportScreen
 
         if( ($clinics = $this->clinics->getClinicsWithAkaunting()) ) {
             $clinicsDB = new ClinicsDB($this->oApp->kfdb);
-            $sForm = "<form style='display:inline' id='companyForm'>"
-                    ."<select name='Ak_clinic' onChange=\"document.getElementById('companyForm').submit()\">"
+            $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+                    ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                    ."<select name='Ak_clinic' onChange=\"this.form.dispatchEvent(new Event('submit'))\">"
                     ."<option value='-1'".($reportParms['Ak_clinic']==-1 ? " selected" : "").">Combined</option>";
             foreach($clinics as $c){
                 $selected = $c==$reportParms['Ak_clinic'] ? "selected" : "";
@@ -214,8 +219,9 @@ class AkauntingReportScreen
 
     private function reportSelector( $reportParms )
     {
-        $sForm = "<form style='display:inline'>"
-                ."<select name='Ak_report' onChange='submit();'>"
+        $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+                ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                ."<select name='Ak_report' onChange=\"this.form.dispatchEvent(new Event('submit'));\">"
                 ."<option value='monthly' "    .($reportParms['Ak_report']=='monthly'     ? "selected" : "").">Monthly</option>"
                 ."<option value='monthly_sum' ".($reportParms['Ak_report']=='monthly_sum' ? "selected" : "").">Monthly Sum</option>"
                 ."<option value='detail' "     .($reportParms['Ak_report']=='detail'      ? "selected" : "").">Detail</option>"
@@ -227,7 +233,67 @@ class AkauntingReportScreen
         return( $sForm );
     }
 
-    function DrawReport()
+    private function dateSelector( $reportParms ){
+        $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+                ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                ."<input type='date' name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
+                ."<input type='date' name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
+                ."<input type='submit' value='Filter' />"
+                ."</div>";
+        return( $sForm );
+    }
+    
+    private function updateScript(){
+        return <<<UpdateScript
+<script>
+    function updateReport(e){
+        document.getElementById('reportLoading').style.display = "block";
+        document.getElementById('reportError').style.display = "none";
+        var postData = $(e.currentTarget).serializeArray();
+        $.ajax({
+            type: "POST",
+            data: postData,
+            url: "jx.php",
+            success: function(data, textStatus, jqXHR) {
+        	   var jsData = JSON.parse(data);
+                if(jsData.bOk){
+            	   document.getElementById('report').innerHTML = jsData.sOut;
+                   document.getElementById('reportLoading').style.display = "none";
+            	}
+                else{
+                    document.getElementById('reportLoading').style.display = "none";
+                    document.getElementById('reportError').style.display = "block";
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+                document.getElementById('reportLoading').style.display = "none";
+                document.getElementById('reportError').style.display = "block";
+            }
+        });
+        e.preventDefault();
+    }
+</script>
+UpdateScript;
+    }
+    
+    private function drawOverlays(){
+        $s = <<<Overlays
+<div class='overlay' id='reportLoading'>
+    <div class="loader"></div>
+    <div class="overlayText">Report is Loading</div>
+</div>
+<div class='overlay' id='reportError'>
+    <div class="overlayText">
+        <img src='CATSDIR_IMGerror.png' />
+        An Error occured while loading this report
+    </div>
+</div>
+Overlays;
+        return str_replace("CATSDIR_IMG", CATSDIR_IMG, $s);
+    }
+    
+    function DrawReport(bool $reportOnly)
     {
         $s = "";
 
@@ -239,16 +305,22 @@ class AkauntingReportScreen
             goto done;
         }
 
-        $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
-                 ."<a href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
-                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
-                 ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
-                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
-             ."</div>";
-
-        $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
-             ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>";
-
+        if(!$reportOnly){
+            $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
+                     ."<a href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
+                     ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                     ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
+                     ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                 ."</div>";
+    
+            $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
+                 ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>"
+                 ."<div id='companyFormContainer'>".$this->dateSelector( $reportParms )."</div>";
+            
+            $s .= $this->updateScript();
+            $s .="<div style='position:relative'>".$this->drawOverlays()."<div id='report'>";
+        }
+             
         switch( $reportParms['Ak_report'] ) {
             case 'ledger':       $s .= $this->drawLedgerReport();      break;
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
@@ -261,6 +333,9 @@ class AkauntingReportScreen
                 }
                 $s .= journalEntryForm($reportParms['akCompanyId'],$ra);
                 break;
+        }
+        if(!$reportOnly){
+            $s .="</div></div>";
         }
 
         done:
@@ -346,13 +421,14 @@ class AkauntingReportScreen
 
         return( $s );
     }
+    
 }
 
-function AkauntingReport( SEEDAppConsole $oApp )
+function AkauntingReport( SEEDAppConsole $oApp, bool $reportOnly = false )
 {
     $o = new AkauntingReportScreen( $oApp );
 
-    return( $o->DrawReport() );
+    return( $o->DrawReport($reportOnly) );
 }
 
 function AkauntingReport_OutputXLSX( SEEDAppConsole $oApp )
