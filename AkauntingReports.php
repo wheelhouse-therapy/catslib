@@ -140,7 +140,8 @@ class AkauntingReportScreen
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
             ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
             ."where A.account_id=B.id "
-                .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
+            .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
+            .($raParms['Ak_date_min']?"AND issued_at BETWEEN '".$raParms['Ak_date_min']."' AND '".$raParms['Ak_date_max']."' ":"")
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -236,8 +237,8 @@ class AkauntingReportScreen
     private function dateSelector( $reportParms ){
         $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
                 ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
-                ."<input type='date' name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
-                ."<input type='date' name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
+                ."<input type='date' required name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
+                ."<input type='date' required name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
                 ."<input type='submit' value='Filter' />"
                 ."</div>";
         return( $sForm );
