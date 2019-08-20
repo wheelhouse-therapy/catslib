@@ -26,7 +26,7 @@ class AkauntingHook {
 
     private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
 
-    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
+    private static function dbg( $s )  { if( self::$bDebug && $_SERVER['PHP_SELF'] != CATSDIR."jx.php" )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
     public static function login(String $email, String $password, String $server){
         global $email_processor;
