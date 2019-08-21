@@ -348,8 +348,8 @@ Overlays;
         $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
 
         $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
-            ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=date'>Date</a></th>"
-                ."<th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=name'>Account</a></th>"
+            ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
+                ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
                 ."<th>Debit</th>"
                 ."<th>Credit</th>"
                 ."<th>&nbsp;</th>"
