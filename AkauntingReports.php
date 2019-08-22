@@ -425,9 +425,33 @@ Overlays;
 
     private function drawDetailReport()
     {
-        $s = "";
-
-        return( $s );
+        $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
+        
+        $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
+            ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
+                ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
+                    ."<th>Debit</th>"
+                        ."<th>Credit</th>"
+                            ."<th>&nbsp;</th>"
+                                ."<th>Description</th>"
+                                    ."</tr>";
+                                    foreach( $raRows as $ra ) {
+                                        if( isset($ra['total']) ) {
+                                            // sometimes we insert a special row with a total element
+                                            $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td>"
+                                                ."<td><span style='color:gray'>[[dtotal]]</span></td>"
+                                                ."<td><span style='color:gray'>[[ctotal]]</span></td>"
+                                                ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
+                                            $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
+                                        } else {
+                                            $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                                            $s .= SEEDCore_ArrayExpand( $ra, "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
+                                                ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[description]]</td></tr>" );
+                                        }
+                                    }
+                                    $s .= "</table>";
+                                    
+                                    return( $s );
     }
     
 }
