@@ -136,10 +136,10 @@ class AkauntingReportScreen
         $sOrderBy = @$raParms['sortdb'] ? "ORDER BY {$raParms['sortdb']} " : "";
 
         $sql =
-            "select A.id as ledger_id,A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
+            "select A.id as ledger_id,A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
-            ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
-            ."where A.account_id=B.id "
+                      ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
+            ."where A.account_id=B.id AND A.ledgerable_id=C.id "
             .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
             .($raParms['Ak_date_min']?"AND issued_at BETWEEN '".$raParms['Ak_date_min']."' AND '".$raParms['Ak_date_max']."' ":"")
             .$sOrderBy;
@@ -163,6 +163,13 @@ class AkauntingReportScreen
             $raRows = $ra2;
         }
 
+        $ra2 = array();
+        foreach ($raRows as $ra){
+            $ra['description'] = str_replace(array('“','”'), '"', $ra['description']);
+            $ra2[] = $ra;
+        }
+        $raRows = $ra2;
+        
         done:
         return( $raRows );
     }
@@ -366,7 +373,7 @@ Overlays;
             } else {
                 $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
                 $s .= SEEDCore_ArrayExpand( $ra, "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
-                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[reference]]</td></tr>" );
+                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[description]]</td></tr>" );
             }
         }
         $s .= "</table>";
