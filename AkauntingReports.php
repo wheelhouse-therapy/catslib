@@ -44,9 +44,12 @@ class AkauntingReportBase
         $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
 
         // Ak_date are the bounds of the date range to show.
+        // Use escaped strings in sql to prevent injection attacks.
         $raParms['Ak_date_min'] = $this->oApp->sess->SmartGPC('Ak_date_min');
         $raParms['Ak_date_max'] = $this->oApp->sess->SmartGPC('Ak_date_max');
-        
+        $raParms['dateDbMin'] = addslashes($raParms['Ak_date_min']);
+        $raParms['dateDbMax'] = addslashes($raParms['Ak_date_max']);
+
         // Ak_sort sorts a ledger by date or account name
         // sortdb is the sql ORDER BY
         switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
@@ -141,7 +144,7 @@ class AkauntingReportScreen
                       ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
             ."where A.account_id=B.id AND A.ledgerable_id=C.id "
             .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
-            .($raParms['Ak_date_min']?"AND issued_at BETWEEN '".$raParms['Ak_date_min']."' AND '".$raParms['Ak_date_max']."' ":"")
+            .($raParms['dateDbMin']?"AND issued_at BETWEEN '".$raParms['dateDbMin']."' AND '".$raParms['dateDbMax']."' ":"")
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -165,11 +168,11 @@ class AkauntingReportScreen
 
         $ra2 = array();
         foreach ($raRows as $ra){
-            $ra['description'] = str_replace(array('“','”'), '"', $ra['description']);
+            $ra['description'] = str_replace(array('ï¿½','ï¿½'), '"', $ra['description']);
             $ra2[] = $ra;
         }
         $raRows = $ra2;
-        
+
         done:
         return( $raRows );
     }
@@ -250,7 +253,7 @@ class AkauntingReportScreen
                 ."</div>";
         return( $sForm );
     }
-    
+
     private function updateScript(){
         return <<<UpdateScript
 <script>
@@ -284,7 +287,7 @@ class AkauntingReportScreen
 </script>
 UpdateScript;
     }
-    
+
     private function drawOverlays(){
         $s = <<<Overlays
 <div class='overlay' id='reportLoading'>
@@ -300,7 +303,7 @@ UpdateScript;
 Overlays;
         return str_replace("CATSDIR_IMG", CATSDIR_IMG, $s);
     }
-    
+
     function DrawReport(bool $reportOnly)
     {
         $s = "";
@@ -320,15 +323,15 @@ Overlays;
                      ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
                      ."&nbsp;&nbsp;&nbsp;&nbsp;"
                  ."</div>";
-    
+
             $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
                  ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>"
                  ."<div id='companyFormContainer'>".$this->dateSelector( $reportParms )."</div>";
-            
+
             $s .= $this->updateScript();
             $s .="<div style='position:relative'>".$this->drawOverlays()."<div id='report'>";
         }
-             
+
         switch( $reportParms['Ak_report'] ) {
             case 'ledger':       $s .= $this->drawLedgerReport();      break;
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
@@ -426,7 +429,7 @@ Overlays;
     private function drawDetailReport()
     {
         $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
-        
+
         $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
             ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
                 ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
@@ -450,10 +453,10 @@ Overlays;
                                         }
                                     }
                                     $s .= "</table>";
-                                    
+
                                     return( $s );
     }
-    
+
 }
 
 function AkauntingReport( SEEDAppConsole $oApp, bool $reportOnly = false )
