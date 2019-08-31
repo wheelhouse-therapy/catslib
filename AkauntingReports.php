@@ -46,7 +46,7 @@ class AkauntingReportBase
         // Ak_date are the bounds of the date range to show.
         $raParms['Ak_date_min'] = $this->oApp->sess->SmartGPC('Ak_date_min');
         $raParms['Ak_date_max'] = $this->oApp->sess->SmartGPC('Ak_date_max');
-        
+
         // Ak_sort sorts a ledger by date or account name
         // sortdb is the sql ORDER BY
         switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
@@ -135,13 +135,36 @@ class AkauntingReportScreen
 
         $sOrderBy = @$raParms['sortdb'] ? "ORDER BY {$raParms['sortdb']} " : "";
 
+        $raCond = array();
+        // filter by company
+        if( ($p = $raParms['akCompanyId']) != -1 ) {
+            $raCond[] = "B.company_id=$p";
+        }
+        // filter by start / end date
+        if( @$raParms['Ak_date_min'] || @$raParms['Ak_date_max'] ) {
+            $pMin = addslashes($raParms['Ak_date_min']);
+            $pMax = addslashes($raParms['Ak_date_max']);
+
+            if( !$pMin ) {
+                $raCond[] = "A.issued_at <= '$pMax'";
+            } else if( !$pMax ) {
+                $raCond[] = "A.issued_at >= '$pMin'";
+            } else {
+                $raCond[] = "(A.issued_at BETWEEN '$pMin' AND '$pMax')";
+            }
+        }
+        // filter by account code prefix (e.g. 2=200s, 4=400s
+        if( ($p = @$raParms['codePrefix']) ) {
+            $len = strlen($p);
+            $raCond[] = "LEFT(code,$len)='$p'";
+        }
+
         $sql =
             "select A.id as ledger_id,A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
                       ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
             ."where A.account_id=B.id AND A.ledgerable_id=C.id "
-            .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}' " : "")
-            .($raParms['Ak_date_min']?"AND issued_at BETWEEN '".$raParms['Ak_date_min']."' AND '".$raParms['Ak_date_max']."' ":"")
+            .SEEDCore_ArrayExpandSeries( $raCond, "AND [[]] ", false ) // don't turn sql quotes into entities
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -165,11 +188,11 @@ class AkauntingReportScreen
 
         $ra2 = array();
         foreach ($raRows as $ra){
-            $ra['description'] = str_replace(array('“','”'), '"', $ra['description']);
+            $ra['description'] = str_replace(array('ï¿½','ï¿½'), '"', $ra['description']);
             $ra2[] = $ra;
         }
         $raRows = $ra2;
-        
+
         done:
         return( $raRows );
     }
@@ -244,13 +267,13 @@ class AkauntingReportScreen
     private function dateSelector( $reportParms ){
         $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
                 ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
-                ."<input type='date' required name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
-                ."<input type='date' required name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
+                ."<input type='date'  name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
+                ."<input type='date'  name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
                 ."<input type='submit' value='Filter' />"
                 ."</div>";
         return( $sForm );
     }
-    
+
     private function updateScript(){
         return <<<UpdateScript
 <script>
@@ -263,6 +286,7 @@ class AkauntingReportScreen
             data: postData,
             url: "jx.php",
             success: function(data, textStatus, jqXHR) {
+//console.log(data);
         	   var jsData = JSON.parse(data);
                 if(jsData.bOk){
             	   document.getElementById('report').innerHTML = jsData.sOut;
@@ -284,7 +308,7 @@ class AkauntingReportScreen
 </script>
 UpdateScript;
     }
-    
+
     private function drawOverlays(){
         $s = <<<Overlays
 <div class='overlay' id='reportLoading'>
@@ -300,7 +324,7 @@ UpdateScript;
 Overlays;
         return str_replace("CATSDIR_IMG", CATSDIR_IMG, $s);
     }
-    
+
     function DrawReport(bool $reportOnly)
     {
         $s = "";
@@ -320,15 +344,15 @@ Overlays;
                      ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
                      ."&nbsp;&nbsp;&nbsp;&nbsp;"
                  ."</div>";
-    
+
             $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
                  ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>"
                  ."<div id='companyFormContainer'>".$this->dateSelector( $reportParms )."</div>";
-            
+
             $s .= $this->updateScript();
             $s .="<div style='position:relative'>".$this->drawOverlays()."<div id='report'>";
         }
-             
+
         switch( $reportParms['Ak_report'] ) {
             case 'ledger':       $s .= $this->drawLedgerReport();      break;
             case 'monthly':      $s .= $this->drawMonthlyReport();     break;
@@ -426,7 +450,7 @@ Overlays;
     private function drawDetailReport()
     {
         $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
-        
+
         $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
             ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
                 ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
@@ -450,10 +474,10 @@ Overlays;
                                         }
                                     }
                                     $s .= "</table>";
-                                    
+
                                     return( $s );
     }
-    
+
 }
 
 function AkauntingReport( SEEDAppConsole $oApp, bool $reportOnly = false )
