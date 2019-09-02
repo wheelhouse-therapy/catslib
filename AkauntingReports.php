@@ -153,14 +153,14 @@ class AkauntingReportScreen
                 $raCond[] = "(A.issued_at BETWEEN '$pMin' AND '$pMax')";
             }
         }
-        // filter by account code prefix (e.g. 2=200s, 4=400s
+        // filter by account code prefix (e.g. 2=200s, 4=400)
         if( ($p = @$raParms['codePrefix']) ) {
             $len = strlen($p);
             $raCond[] = "LEFT(code,$len)='$p'";
         }
 
         $sql =
-            "select A.id as ledger_id,A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
+            "select A.id as ledger_id,A.account_id,A.entry_type,ROUND(A.debit,2) as d,ROUND(A.credit,2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
                       ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
             ."where A.account_id=B.id AND A.ledgerable_id=C.id "
@@ -209,23 +209,56 @@ class AkauntingReportScreen
         $raAcctLast = "";
         $total = $dtotal = $ctotal = 0;
         foreach( $raRows as $ra ) {
+            $acctName = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
+
             if( $raParms['Ak_sort'] == 'name' ) {
-                if( $raAcctLast && $raAcctLast != $ra['code'] ) {
+                $bStartSection = $raAcctLast != $ra['code'];
+
+                // show the total at the end of each account section
+                if( $raAcctLast && $bStartSection ) {
                     $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
                     $total = $dtotal = $ctotal = 0;
                 }
+                // show the opening balance at the beginning of each asset/liability account section
+                if( $bStartSection && in_array( substr($ra['code'],0,1), ['2','8'] ) ) {
+                    // get the dtotal and ctotal of all entries prior to the first shown entry
+                    list($ctotal,$dtotal) = $this->oAppAk->kfdb->QueryRA(
+                        "SELECT ROUND(SUM(A.credit),2),ROUND(SUM(A.debit),2) "
+                       ."FROM `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B "
+                       ."WHERE A.account_id=B.id AND B.code='".addslashes($ra['code'])."' "
+                       .(($p = $raParms['akCompanyId']) != -1 ? " AND B.company_id=$p" : "")
+                       .(($p = addslashes($raParms['Ak_date_min'])) ? " AND A.issued_at<'$p'" : "") );
+
+                    $ctotal = floatval($ctotal);    // change null to 0.0
+                    $dtotal = floatval($dtotal);
+                    $total = $this->addCD($ra['code'],$ctotal,$dtotal);
+
+                    $raOut[] = ['bOpening'=>true, 'dOpening'=>$dtotal, 'cOpening'=>$ctotal, 'acct'=>$acctName, 'total1'=>$total];
+                }
+
                 $dtotal += $ra['d'];
                 $ctotal += $ra['c'];
-                $total += $ra['d'] - $ra['c'];
+                $total += $this->addCD($ra['code'],$ra['c'],$ra['d']);
+
                 $raAcctLast = $ra['code'];
             }
 
             // Make the name of the account. If viewing Combined clinics show which clinic this account is for.
-            $ra['acct'] = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
+            $ra['acct'] = $acctName;
+            $ra['total1'] = $total;
             $raOut[] = $ra;
+        }
+        if( $raParms['Ak_sort'] == 'name' && $total != 0 ) {
+            $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
         }
 
         return( $raOut );
+    }
+
+    private function addCD( $code, $c, $d )
+    {
+        // A credit increases 400s, decreases 600s, etc
+        return( in_array( substr($code,0,1), ['2','4'] ) ? $c - $d : $d - $c );
     }
 
     private function clinicSelector( $reportParms )
@@ -449,33 +482,47 @@ Overlays;
 
     private function drawDetailReport()
     {
-        $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
+        $raRows = [];
+        foreach( [4,5,6,1,2,3,5,7,8,9] as $c ) {
+            $this->oAkReport->raReportParms['codePrefix'] = $c;
+            $raRows = array_merge( $raRows, $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms ) );  // do not use $raRows += because it does the wrong thing
+        }
 
         $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
-            ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
+                ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
                 ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
-                    ."<th>Debit</th>"
-                        ."<th>Credit</th>"
-                            ."<th>&nbsp;</th>"
-                                ."<th>Description</th>"
-                                    ."</tr>";
-                                    foreach( $raRows as $ra ) {
-                                        if( isset($ra['total']) ) {
-                                            // sometimes we insert a special row with a total element
-                                            $s .= SEEDCore_ArrayExpand( $ra, "<tr><td>&nbsp;</td><td>&nbsp;</td>"
-                                                ."<td><span style='color:gray'>[[dtotal]]</span></td>"
-                                                ."<td><span style='color:gray'>[[ctotal]]</span></td>"
-                                                ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
-                                            $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
-                                        } else {
-                                            $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
-                                            $s .= SEEDCore_ArrayExpand( $ra, "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
-                                                ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[description]]</td></tr>" );
-                                        }
-                                    }
-                                    $s .= "</table>";
+                ."<th>Debit</th>"
+                ."<th>Credit</th>"
+                ."<th>&nbsp;</th>"
+                ."<th>Description</th>"
+                ."</tr>";
+        foreach( $raRows as $ra ) {
+            if( isset($ra['total']) ) {
+                // sometimes we insert a special row with a total element
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr><td>&nbsp;</td><td>&nbsp;</td>"
+                       ."<td><span style='color:gray'>[[dtotal]]</span></td>"
+                       ."<td><span style='color:gray'>[[ctotal]]</span></td>"
+                       ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
+                $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
+            } else if( isset($ra['bOpening']) ) {
+                // sometimes we insert a special row with an opening balance
+                $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr class='AkReportRow$a'><td>&nbsp;</td><td>[[acct]] - Opening Balance</td>"
+                       ."<td><span style='color:gray'>[[dOpening]]</span></td>"
+                       ."<td><span style='color:gray'>[[cOpening]]</span></td>"
+                       ."<td><strong>[[total1]]</strong></td><td>&nbsp;</td></tr>" );
+            } else {
+                $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
+                       ."<td>[[d]]</td><td>[[c]]</td><td><strong>[[total1]]</strong></td><td>[[description]]</td></tr>" );
+            }
+        }
+        $s .= "</table>";
 
-                                    return( $s );
+        return( $s );
     }
 
 }
