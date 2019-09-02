@@ -283,9 +283,9 @@ class AkauntingReportScreen
 
     private function reportSelector( $reportParms )
     {
-        $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+        $sForm = "<form id='formReportSelect' style='display:inline' onSubmit='updateReport(event);'>"
                 ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
-                ."<select name='Ak_report' onChange=\"this.form.dispatchEvent(new Event('submit'));\">"
+                ."<select name='Ak_report' id='Ak_report' onChange=\"this.form.dispatchEvent(new Event('submit'));\">"
                 ."<option value='monthly' "    .($reportParms['Ak_report']=='monthly'     ? "selected" : "").">Monthly</option>"
                 ."<option value='monthly_sum' ".($reportParms['Ak_report']=='monthly_sum' ? "selected" : "").">Monthly Sum</option>"
                 ."<option value='detail' "     .($reportParms['Ak_report']=='detail'      ? "selected" : "").">Detail</option>"
@@ -298,10 +298,10 @@ class AkauntingReportScreen
     }
 
     private function dateSelector( $reportParms ){
-        $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+        $sForm = "<form id='formDateSelect' style='display:inline' onSubmit='updateReport(event);'>"
                 ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
-                ."<input type='date'  name='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
-                ."<input type='date'  name='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
+                ."<input type='date'  name='Ak_date_min' id='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
+                ."<input type='date'  name='Ak_date_max' id='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
                 ."<input type='submit' value='Filter' />"
                 ."</div>";
         return( $sForm );
@@ -320,11 +320,11 @@ class AkauntingReportScreen
             url: "jx.php",
             success: function(data, textStatus, jqXHR) {
 //console.log(data);
-        	   var jsData = JSON.parse(data);
+                var jsData = JSON.parse(data);
                 if(jsData.bOk){
-            	   document.getElementById('report').innerHTML = jsData.sOut;
-                   document.getElementById('reportLoading').style.display = "none";
-            	}
+                    document.getElementById('report').innerHTML = jsData.sOut;
+                    document.getElementById('reportLoading').style.display = "none";
+                }
                 else{
                     document.getElementById('reportLoading').style.display = "none";
                     document.getElementById('reportError').style.display = "block";
@@ -337,6 +337,18 @@ class AkauntingReportScreen
             }
         });
         e.preventDefault();
+
+        /* Change the Download button url to have the settings in the Report and Date forms
+         */
+        let downBtn = new URLSearchParams( $('#buttonDownload').attr('href').substring(7) ); // cut off prefix "jx.php" and parse parms
+//for (let p of downBtn) {
+//  console.log(p);
+//}
+        downBtn.set( 'Ak_report',   $('#Ak_report').val() );
+        downBtn.set( 'Ak_date_min', $('#Ak_date_min').val() );
+        downBtn.set( 'Ak_date_max', $('#Ak_date_max').val() );
+
+        $('#buttonDownload').attr('href', "jx.php?"+ downBtn.toString() );
     }
 </script>
 UpdateScript;
@@ -372,7 +384,7 @@ Overlays;
 
         if(!$reportOnly){
             $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
-                     ."<a href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
+                     ."<a id='buttonDownload' href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
                      ."&nbsp;&nbsp;&nbsp;&nbsp;"
                      ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
                      ."&nbsp;&nbsp;&nbsp;&nbsp;"
