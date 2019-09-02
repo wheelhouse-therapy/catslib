@@ -209,17 +209,18 @@ class AkauntingReportScreen
         $raAcctLast = "";
         $total = $dtotal = $ctotal = 0;
         foreach( $raRows as $ra ) {
+            // The name of the account shows the clinic name if viewing Combined
             $acctName = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
 
             if( $raParms['Ak_sort'] == 'name' ) {
                 $bStartSection = $raAcctLast != $ra['code'];
 
-                // show the total at the end of each account section
+                // total at the end of each account section
                 if( $raAcctLast && $bStartSection ) {
                     $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
                     $total = $dtotal = $ctotal = 0;
                 }
-                // show the opening balance at the beginning of each asset/liability account section
+                // opening balance at the beginning of each asset/liability account section
                 if( $bStartSection && in_array( substr($ra['code'],0,1), ['2','8'] ) ) {
                     // get the dtotal and ctotal of all entries prior to the first shown entry
                     list($ctotal,$dtotal) = $this->oAppAk->kfdb->QueryRA(
@@ -232,7 +233,6 @@ class AkauntingReportScreen
                     $ctotal = floatval($ctotal);    // change null to 0.0
                     $dtotal = floatval($dtotal);
                     $total = $this->addCD($ra['code'],$ctotal,$dtotal);
-
                     $raOut[] = ['bOpening'=>true, 'dOpening'=>$dtotal, 'cOpening'=>$ctotal, 'acct'=>$acctName, 'total1'=>$total];
                 }
 
@@ -243,12 +243,12 @@ class AkauntingReportScreen
                 $raAcctLast = $ra['code'];
             }
 
-            // Make the name of the account. If viewing Combined clinics show which clinic this account is for.
             $ra['acct'] = $acctName;
             $ra['total1'] = $total;
             $raOut[] = $ra;
         }
         if( $raParms['Ak_sort'] == 'name' && $total != 0 ) {
+// TODO: $total!=0 is not always the correct way to detect the end of a section because it might not always be true
             $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
         }
 
@@ -497,6 +497,11 @@ Overlays;
                 ."<th>Description</th>"
                 ."</tr>";
         foreach( $raRows as $ra ) {
+            // dollarize these values unless they are blank
+            foreach( ['c','d','dtotal','ctotal','total','total1'] as $i ) {
+                if( @$ra[$i] )  $ra[$i] = "$".sprintf( "%0.2f", $ra[$i] );
+            }
+
             if( isset($ra['total']) ) {
                 // sometimes we insert a special row with a total element
                 $s .= SEEDCore_ArrayExpand( $ra,
@@ -590,8 +595,8 @@ class AkauntingReportSpreadsheet
 // Do we still need Ledger Report at all?
         $raRows = [];
         foreach( [4,5,6,1,2,3,5,7,8,9] as $c ) {
-            $this->oAkReport->raReportParms['codePrefix'] = $c;
-            $raRows = array_merge( $raRows, $o->GetLedgerRAForDisplay( $this->oAkReport->raReportParms ) );  // do not use $raRows += because it does the wrong thing
+            $raParms['codePrefix'] = $c;
+            $raRows = array_merge( $raRows, $o->GetLedgerRAForDisplay( $raParms ) );  // do not use $raRows += because it does the wrong thing
         }
 
         $raCols = [
