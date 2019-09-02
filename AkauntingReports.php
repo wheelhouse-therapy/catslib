@@ -582,29 +582,46 @@ class AkauntingReportSpreadsheet
 
         $filename = "CATS Akaunting.xlsx";
 
+// why are we getting this from the Screen object? It should be in the ReportBase object
         $o = new AkauntingReportScreen( $this->oApp );
-        $raRows = $o->GetLedgerRAForDisplay( $raParms );
+// $raRows = $o->GetLedgerRAForDisplay( $raParms );
 
-        $raCols = array(
+// This does what Detail Report does, which should be encapsulated into this report type only.
+// Do we still need Ledger Report at all?
+        $raRows = [];
+        foreach( [4,5,6,1,2,3,5,7,8,9] as $c ) {
+            $this->oAkReport->raReportParms['codePrefix'] = $c;
+            $raRows = array_merge( $raRows, $o->GetLedgerRAForDisplay( $this->oAkReport->raReportParms ) );  // do not use $raRows += because it does the wrong thing
+        }
+
+        $raCols = [
             'date'  => 'Date',
             'acct'  => 'Account',
             'd'     => 'Debit',
-            'c'     => 'Credit'
-        );
+            'c'     => 'Credit',
+            'total' => 'Total',         // removed below for date-sorted reports
+            'description' => 'Description'
+        ];
         if( $raParms['Ak_sort'] == 'name' ) {
-            $raCols['total'] = 'Total';
-
             $ra2 = $raRows;
             $raRows = array();
             foreach( $ra2 as $ra ) {
                 if( isset($ra['total']) ) {
-                    $raRows[] = ['date'=>'','acct'=>'','d'=>$ra['dtotal'],'c'=>$ra['ctotal'],'total'=>$ra['total']];
-                    $raRows[] = ['date'=>'','acct'=>'','d'=>'','c'=>'','total'=>''];
+                    // special row with a total
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>$ra['dtotal'],'c'=>$ra['ctotal'],'total'=>$ra['total'],'description'=>''];
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>'','c'=>'','total'=>'','description'=>''];
+                } else if( isset($ra['bOpening']) ) {
+                    // special row with an opening balance
+                    $raRows[] = ['date'=>'','acct'=>$ra['acct']." - Opening Balance",
+                                 'd'=>$ra['dOpening'],'c'=>$ra['cOpening'],'total'=>$ra['total1'],'description'=>''];
                 } else {
-                    $ra['total'] = '';
+                    $ra['total'] = $ra['total1'];
                     $raRows[] = $ra;
                 }
             }
+        } else {
+            // date-sorted reports don't have running totals
+            unset($raCols['total']);
         }
 
         $this->storeSheet( $oXls, 0, "Akaunting", $raRows, $raCols );
