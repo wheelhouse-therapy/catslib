@@ -430,10 +430,10 @@ class AssessmentsCommon
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
         $oPeopleDB = new PeopleDB( $this->oApp );
-        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
+        $raClients = $oPeopleDB->GetList( ClientList::CLIENT, $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'"),array("sSortCol" => "P.first_name,_key") );
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
-            $opts["{$ra['P_first_name']} {$ra['P_last_name']} ({$ra['_key']})"] = $ra['_key'];
+            $opts["{$ra['P_first_name']} {$ra['P_last_name']}".($clinics->isCoreClinic() || $this->oApp->sess->GetUID() == 1?" ({$ra['_key']})":"")] = $ra['_key'];
         }
 
         return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
