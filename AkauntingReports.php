@@ -226,7 +226,7 @@ class AkauntingReportScreen
                     list($ctotal,$dtotal) = $this->oAppAk->kfdb->QueryRA(
                         "SELECT ROUND(SUM(A.credit),2),ROUND(SUM(A.debit),2) "
                        ."FROM `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B "
-                       ."WHERE A.account_id=B.id AND B.code='".addslashes($ra['code'])."' "
+                       ."WHERE A.account_id=B.id AND B.code='".addslashes($ra['code'])."' AND A.deleted_at IS NULL "
                        .(($p = $raParms['akCompanyId']) != -1 ? " AND B.company_id=$p" : "")
                        .(($p = addslashes($raParms['Ak_date_min'])) ? " AND A.issued_at<'$p'" : "") );
 
