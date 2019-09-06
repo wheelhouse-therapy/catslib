@@ -163,7 +163,7 @@ class AkauntingReportScreen
             "select A.id as ledger_id,A.account_id,A.entry_type,ROUND(A.debit,2) as d,ROUND(A.credit,2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
                       ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
-            ."where A.account_id=B.id AND A.ledgerable_id=C.id "
+            ."where A.account_id=B.id AND A.ledgerable_id=C.id AND A.deleted_at IS NULL "
             .SEEDCore_ArrayExpandSeries( $raCond, "AND [[]] ", false ) // don't turn sql quotes into entities
             .$sOrderBy;
 
