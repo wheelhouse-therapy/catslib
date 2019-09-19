@@ -63,7 +63,7 @@ function getExtensions(){
 function share_resources(){
     return "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
                     Select resource to upload:
-                    <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\"> Max File size:".ini_get('upload_max_filesize')."b"."
+                    <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\" accept='".SEEDCore_ArrayExpandSeries(array_unique(getExtensions()), ".[[]],",true,array("sTemplateLast"=>".[[]]"))."'> Max File size:".ini_get('upload_max_filesize')."b"."
                     <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
                     </form>";
 }
