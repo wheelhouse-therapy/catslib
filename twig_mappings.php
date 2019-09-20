@@ -13,4 +13,6 @@ $mappings = array(
     "therapist-akaunting" => "akaunting",
     "therapist-clientlist" => "therapist-clientlist",
     "home" => "home",
+    "developer-clinics" => "clinics",
+    "leader-clinics" => "clinics",
 );
