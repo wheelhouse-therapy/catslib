@@ -684,27 +684,18 @@ ExistsWarning;
              $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
              $this->drawFormRow( "Pronouns", $this->getPronounList($oForm) );
              $this->drawFormRow( "Role", $selRoles );
-             $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
-             $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
-             $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+             if($bTherapist){
+                $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
+                $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
+                $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+             }
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
              $this->endRowDraw();
              $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
              ."</tr>"
              ."</table>"
-             ."</form>"
-            ."<script>function doUpdateForm() {
-                var sel = document.getElementById('mySelect').value;
-                if( sel == 'Other' ) {
-                    document.getElementById('other').style.display = 'inline';
-                    document.getElementById('other').disabled = false;
-                } else {
-                    document.getElementById('other').style.display = 'none';
-                    document.getElementById('other').disabled = true;
-                }
-            }
-            </script>";
+             ."</form>";
 
         $s .= "<div class='container-fluid' style='position:relative;border:1px solid #aaa;padding:20px;margin:20px'>"
              ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"

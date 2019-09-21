@@ -23,22 +23,15 @@ if( CATS_DEBUG ) {
  */
 if( !defined("CATSDIR") ) { define( "CATSDIR", "./" ); }
 
-if( !defined("W_CORE") )       define( "W_CORE", SEEDROOT."wcore/" );       // use for php include, fileopen()
-if( !defined("W_CORE_URL") )   define( "W_CORE_URL", W_CORE );              // use for references to files that the browser has to find (e.g. js, css in <head>)
+// SEEDROOT has to be configured; seedConfig.php should be able to find everything from there. If not, predefine what it can't find.
+if( !file_exists(SEEDROOT."seedConfig.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );
+require_once SEEDROOT."seedConfig.php";
+
 if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 
 // deprecate W_ROOT: SEEDGoogleService uses W_ROOT, but it should use W_CORE instead
 if( !defined("W_ROOT") )   define( "W_ROOT", "./w/" );
 
-
-if( !file_exists(SEEDROOT."seedcore/SEEDCore.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );
-
-define( "SEEDCORE", SEEDROOT."seedcore/" );
-define( "SEEDAPP", SEEDROOT."seedapp/" );
-define( "SEEDLIB", SEEDROOT."seedlib/" );
-
-// include everything that SEEDROOT gets via composer
-require_once SEEDROOT."vendor/autoload.php";
 
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
@@ -76,7 +69,7 @@ if( !isset($email_processor['emailServer']) ) {
 // $email_processor is a global that must be defined in catsdef.php
 // The default server for akaunting is set here
 if( !isset($email_processor['akauntingServer']) ) {
-    $email_processor['akauntingServer'] = "https://localhost/";
+    $email_processor['akauntingServer'] = "https://catherapyservices.ca";
 }
 
 // set this in catsdef.php if your Akaunting installation is not at http://localhost/akaunting

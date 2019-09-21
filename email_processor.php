@@ -72,9 +72,9 @@ class ReceiptsProcessor {
         "income" => "/".self::INCOME."/i",
         "scheduled" => "/".self::SCHEDULED_PAYMENT."/i",
         "dates"   => array(
-            "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
-            "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})/i",
-            "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}|\d{4})/i"
+            "/(?<=^| )(?'month'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})(?=$| |,)/i",
+            "/(?<=^| )(?'month'january|febuary|march|april|may|june|july|augest|september|october|november|december),? (?'day'[1-3][0-9]|0?[1-9])(?:, |\/)(?'year'\d{2}|\d{4})(?=$| |,)/i",
+            "/(?<=^| )(?'month'1[0-2]|0?[1-9])\/(?'day'[1-3][0-9]|0?[1-9])\/(?'year'\d{2}|\d{4})(?=$| |,)/i"
         ),
         "companyCreditCard" => "/(?<=^|[^\\w])".self::COMPANY_CREDIT_CARD_ACCOUNT."(?=$|[^\\w])/i",
         "companyAccount" => "/(?<=^|[^\\w])".self::COMPANY_ACCOUNT."(?=$|[^\\w])/i",

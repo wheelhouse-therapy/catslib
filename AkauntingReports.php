@@ -43,6 +43,10 @@ class AkauntingReportBase
         // Ak_report is the report type
         $raParms['Ak_report'] = $this->oApp->sess->SmartGPC('Ak_report', array('monthly'));
 
+        // Ak_date are the bounds of the date range to show.
+        $raParms['Ak_date_min'] = $this->oApp->sess->SmartGPC('Ak_date_min');
+        $raParms['Ak_date_max'] = $this->oApp->sess->SmartGPC('Ak_date_max');
+
         // Ak_sort sorts a ledger by date or account name
         // sortdb is the sql ORDER BY
         switch( ($raParms['Ak_sort'] = $this->oApp->sess->SmartGPC('Ak_sort', ['date'])) ) {
@@ -129,14 +133,38 @@ class AkauntingReportScreen
     {
         $raRows = array();
 
-        $sOrderBy = @$raParms['sortdb'] ? " ORDER BY {$raParms['sortdb']} " : "";
+        $sOrderBy = @$raParms['sortdb'] ? "ORDER BY {$raParms['sortdb']} " : "";
+
+        $raCond = array();
+        // filter by company
+        if( ($p = $raParms['akCompanyId']) != -1 ) {
+            $raCond[] = "B.company_id=$p";
+        }
+        // filter by start / end date
+        if( @$raParms['Ak_date_min'] || @$raParms['Ak_date_max'] ) {
+            $pMin = addslashes($raParms['Ak_date_min']);
+            $pMax = addslashes($raParms['Ak_date_max']);
+
+            if( !$pMin ) {
+                $raCond[] = "A.issued_at <= '$pMax'";
+            } else if( !$pMax ) {
+                $raCond[] = "A.issued_at >= '$pMin'";
+            } else {
+                $raCond[] = "(A.issued_at BETWEEN '$pMin' AND '$pMax')";
+            }
+        }
+        // filter by account code prefix (e.g. 2=200s, 4=400)
+        if( ($p = @$raParms['codePrefix']) ) {
+            $len = strlen($p);
+            $raCond[] = "LEFT(code,$len)='$p'";
+        }
 
         $sql =
-            "select A.account_id,A.entry_type,LEFT(A.debit, LENGTH(A.debit) - 2) as d,LEFT(A.credit, LENGTH(A.credit) - 2) as c,A.reference as reference,LEFT(A.issued_at,10) as date,A.reference as reference, "
+            "select A.id as ledger_id,A.account_id,A.entry_type,ROUND(A.debit,2) as d,ROUND(A.credit,2) as c,LEFT(A.issued_at,10) as date,C.description as description, "
                   ."B.company_id as company_id, B.type_id as type_id, B.code as code, B.name as name "
-            ."from {$this->akTablePrefix}_double_entry_ledger A, {$this->akTablePrefix}_double_entry_accounts B "
-            ."where A.account_id=B.id "
-                .($raParms['akCompanyId'] != -1 ? "AND B.company_id='{$raParms['akCompanyId']}'" : "")
+                      ."from `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B, `{$this->akTablePrefix}_double_entry_journals` C "
+            ."where A.account_id=B.id AND A.ledgerable_id=C.id AND A.deleted_at IS NULL "
+            .SEEDCore_ArrayExpandSeries( $raCond, "AND [[]] ", false ) // don't turn sql quotes into entities
             .$sOrderBy;
 
         $raRows = $this->oAppAk->kfdb->QueryRowsRA( $sql );
@@ -158,6 +186,13 @@ class AkauntingReportScreen
             $raRows = $ra2;
         }
 
+        $ra2 = array();
+        foreach ($raRows as $ra){
+            $ra['description'] = str_replace(array('�','�'), '"', $ra['description']);
+            $ra2[] = $ra;
+        }
+        $raRows = $ra2;
+
         done:
         return( $raRows );
     }
@@ -174,23 +209,56 @@ class AkauntingReportScreen
         $raAcctLast = "";
         $total = $dtotal = $ctotal = 0;
         foreach( $raRows as $ra ) {
+            // The name of the account shows the clinic name if viewing Combined
+            $acctName = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
+
             if( $raParms['Ak_sort'] == 'name' ) {
-                if( $raAcctLast && $raAcctLast != $ra['code'] ) {
+                $bStartSection = $raAcctLast != $ra['code'];
+
+                // total at the end of each account section
+                if( $raAcctLast && $bStartSection ) {
                     $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
                     $total = $dtotal = $ctotal = 0;
                 }
+                // opening balance at the beginning of each asset/liability account section
+                if( $bStartSection && in_array( substr($ra['code'],0,1), ['2','8'] ) ) {
+                    // get the dtotal and ctotal of all entries prior to the first shown entry
+                    list($ctotal,$dtotal) = $this->oAppAk->kfdb->QueryRA(
+                        "SELECT ROUND(SUM(A.credit),2),ROUND(SUM(A.debit),2) "
+                       ."FROM `{$this->akTablePrefix}_double_entry_ledger` A, `{$this->akTablePrefix}_double_entry_accounts` B "
+                       ."WHERE A.account_id=B.id AND B.code='".addslashes($ra['code'])."' AND A.deleted_at IS NULL "
+                       .(($p = $raParms['akCompanyId']) != -1 ? " AND B.company_id=$p" : "")
+                       .(($p = addslashes($raParms['Ak_date_min'])) ? " AND A.issued_at<'$p'" : "") );
+
+                    $ctotal = floatval($ctotal);    // change null to 0.0
+                    $dtotal = floatval($dtotal);
+                    $total = $this->addCD($ra['code'],$ctotal,$dtotal);
+                    $raOut[] = ['bOpening'=>true, 'dOpening'=>$dtotal, 'cOpening'=>$ctotal, 'acct'=>$acctName, 'total1'=>$total];
+                }
+
                 $dtotal += $ra['d'];
                 $ctotal += $ra['c'];
-                $total += $ra['d'] - $ra['c'];
+                $total += $this->addCD($ra['code'],$ra['c'],$ra['d']);
+
                 $raAcctLast = $ra['code'];
             }
 
-            // Make the name of the account. If viewing Combined clinics show which clinic this account is for.
-            $ra['acct'] = ($raParms['Ak_clinic']==-1 ? ($ra['company_id']." : ") : "").$ra['code']." : ".$ra['name'];
+            $ra['acct'] = $acctName;
+            $ra['total1'] = $total;
             $raOut[] = $ra;
+        }
+        if( $raParms['Ak_sort'] == 'name' && $total != 0 ) {
+// TODO: $total!=0 is not always the correct way to detect the end of a section because it might not always be true
+            $raOut[] = ['total'=>$total, 'dtotal'=>$dtotal, 'ctotal'=>$ctotal];
         }
 
         return( $raOut );
+    }
+
+    private function addCD( $code, $c, $d )
+    {
+        // A credit increases 400s, decreases 600s, etc
+        return( in_array( substr($code,0,1), ['2','4'] ) ? $c - $d : $d - $c );
     }
 
     private function clinicSelector( $reportParms )
@@ -199,8 +267,9 @@ class AkauntingReportScreen
 
         if( ($clinics = $this->clinics->getClinicsWithAkaunting()) ) {
             $clinicsDB = new ClinicsDB($this->oApp->kfdb);
-            $sForm = "<form style='display:inline' id='companyForm'>"
-                    ."<select name='Ak_clinic' onChange=\"document.getElementById('companyForm').submit()\">"
+            $sForm = "<form style='display:inline' onSubmit='updateReport(event);'>"
+                    ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                    ."<select name='Ak_clinic' onChange=\"this.form.dispatchEvent(new Event('submit'))\">"
                     ."<option value='-1'".($reportParms['Ak_clinic']==-1 ? " selected" : "").">Combined</option>";
             foreach($clinics as $c){
                 $selected = $c==$reportParms['Ak_clinic'] ? "selected" : "";
@@ -214,8 +283,9 @@ class AkauntingReportScreen
 
     private function reportSelector( $reportParms )
     {
-        $sForm = "<form style='display:inline'>"
-                ."<select name='Ak_report' onChange='submit();'>"
+        $sForm = "<form id='formReportSelect' style='display:inline' onSubmit='updateReport(event);'>"
+                ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                ."<select name='Ak_report' id='Ak_report' onChange=\"this.form.dispatchEvent(new Event('submit'));\">"
                 ."<option value='monthly' "    .($reportParms['Ak_report']=='monthly'     ? "selected" : "").">Monthly</option>"
                 ."<option value='monthly_sum' ".($reportParms['Ak_report']=='monthly_sum' ? "selected" : "").">Monthly Sum</option>"
                 ."<option value='detail' "     .($reportParms['Ak_report']=='detail'      ? "selected" : "").">Detail</option>"
@@ -227,7 +297,80 @@ class AkauntingReportScreen
         return( $sForm );
     }
 
-    function DrawReport()
+    private function dateSelector( $reportParms ){
+        $sForm = "<form id='formDateSelect' style='display:inline' onSubmit='updateReport(event);'>"
+                ."<input type='hidden' name='cmd' value='therapist-akaunting-updateReport' />"
+                ."<input type='date'  name='Ak_date_min' id='Ak_date_min' value='".($reportParms['Ak_date_min']?:"")."' />"
+                ."<input type='date'  name='Ak_date_max' id='Ak_date_max' value='".($reportParms['Ak_date_max']?:"")."' />"
+                ."<input type='submit' value='Filter' />"
+                ."</div>";
+        return( $sForm );
+    }
+
+    private function updateScript(){
+        return <<<UpdateScript
+<script>
+    function updateReport(e){
+        document.getElementById('reportLoading').style.display = "block";
+        document.getElementById('reportError').style.display = "none";
+        var postData = $(e.currentTarget).serializeArray();
+        $.ajax({
+            type: "POST",
+            data: postData,
+            url: "jx.php",
+            success: function(data, textStatus, jqXHR) {
+//console.log(data);
+                var jsData = JSON.parse(data);
+                if(jsData.bOk){
+                    document.getElementById('report').innerHTML = jsData.sOut;
+                    document.getElementById('reportLoading').style.display = "none";
+                }
+                else{
+                    document.getElementById('reportLoading').style.display = "none";
+                    document.getElementById('reportError').style.display = "block";
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+                document.getElementById('reportLoading').style.display = "none";
+                document.getElementById('reportError').style.display = "block";
+            }
+        });
+        e.preventDefault();
+
+        /* Change the Download button url to have the settings in the Report and Date forms
+         */
+        let downBtn = new URLSearchParams( $('#buttonDownload').attr('href').substring(7) ); // cut off prefix "jx.php" and parse parms
+//for (let p of downBtn) {
+//  console.log(p);
+//}
+        downBtn.set( 'Ak_report',   $('#Ak_report').val() );
+        downBtn.set( 'Ak_date_min', $('#Ak_date_min').val() );
+        downBtn.set( 'Ak_date_max', $('#Ak_date_max').val() );
+
+        $('#buttonDownload').attr('href', "jx.php?"+ downBtn.toString() );
+    }
+</script>
+UpdateScript;
+    }
+
+    private function drawOverlays(){
+        $s = <<<Overlays
+<div class='overlay' id='reportLoading'>
+    <div class="loader"></div>
+    <div class="overlayText">Report is Loading</div>
+</div>
+<div class='overlay' id='reportError'>
+    <div class="overlayText">
+        <img src='CATSDIR_IMGerror.png' />
+        An Error occured while loading this report
+    </div>
+</div>
+Overlays;
+        return str_replace("CATSDIR_IMG", CATSDIR_IMG, $s);
+    }
+
+    function DrawReport(bool $reportOnly)
     {
         $s = "";
 
@@ -239,15 +382,21 @@ class AkauntingReportScreen
             goto done;
         }
 
-        $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
-                 ."<a href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
-                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
-                 ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
-                 ."&nbsp;&nbsp;&nbsp;&nbsp;"
-             ."</div>";
+        if(!$reportOnly){
+            $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
+                     ."<a id='buttonDownload' href='jx.php?cmd=therapist-akaunting-xlsx&{$reportParms['parmsForLink']}'><button>Download</button></a>"
+                     ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                     ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
+                     ."&nbsp;&nbsp;&nbsp;&nbsp;"
+                 ."</div>";
 
-        $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
-             ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>";
+            $s .= "<div id='companyFormContainer'>".$this->clinicSelector( $reportParms )."</div>"
+                 ."<div id='companyFormContainer'>".$this->reportSelector( $reportParms )."</div>"
+                 ."<div id='companyFormContainer'>".$this->dateSelector( $reportParms )."</div>";
+
+            $s .= $this->updateScript();
+            $s .="<div style='position:relative'>".$this->drawOverlays()."<div id='report'>";
+        }
 
         switch( $reportParms['Ak_report'] ) {
             case 'ledger':       $s .= $this->drawLedgerReport();      break;
@@ -262,6 +411,9 @@ class AkauntingReportScreen
                 $s .= journalEntryForm($reportParms['akCompanyId'],$ra);
                 break;
         }
+        if(!$reportOnly){
+            $s .="</div></div>";
+        }
 
         done:
         return( $s );
@@ -272,8 +424,8 @@ class AkauntingReportScreen
         $raRows = $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms );
 
         $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
-            ."<tr><th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=date'>Date</a></th>"
-                ."<th><a href='{$_SERVER['PHP_SELF']}?Ak_sort=name'>Account</a></th>"
+            ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
+                ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
                 ."<th>Debit</th>"
                 ."<th>Credit</th>"
                 ."<th>&nbsp;</th>"
@@ -290,7 +442,7 @@ class AkauntingReportScreen
             } else {
                 $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
                 $s .= SEEDCore_ArrayExpand( $ra, "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
-                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[reference]]</td></tr>" );
+                                                    ."<td>[[d]]</td><td>[[c]]</td><td>[[total]]</td><td>[[description]]</td></tr>" );
             }
         }
         $s .= "</table>";
@@ -342,17 +494,61 @@ class AkauntingReportScreen
 
     private function drawDetailReport()
     {
-        $s = "";
+        $raRows = [];
+        foreach( [4,5,6,1,2,3,5,7,8,9] as $c ) {
+            $this->oAkReport->raReportParms['codePrefix'] = $c;
+            $raRows = array_merge( $raRows, $this->GetLedgerRAForDisplay( $this->oAkReport->raReportParms ) );  // do not use $raRows += because it does the wrong thing
+        }
+
+        $s = "<table id='AkLedgerReport' cellpadding='10' border='1'>"
+                ."<tr><th><a href='".CATSDIR."?Ak_sort=date'>Date</a></th>"
+                ."<th><a href='".CATSDIR."?Ak_sort=name'>Account</a></th>"
+                ."<th>Debit</th>"
+                ."<th>Credit</th>"
+                ."<th>&nbsp;</th>"
+                ."<th>Description</th>"
+                ."</tr>";
+        foreach( $raRows as $ra ) {
+            // dollarize these values unless they are blank
+            foreach( ['c','d','dtotal','ctotal','total','total1'] as $i ) {
+                if( @$ra[$i] )  $ra[$i] = "$".sprintf( "%0.2f", $ra[$i] );
+            }
+
+            if( isset($ra['total']) ) {
+                // sometimes we insert a special row with a total element
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr><td>&nbsp;</td><td>&nbsp;</td>"
+                       ."<td><span style='color:gray'>[[dtotal]]</span></td>"
+                       ."<td><span style='color:gray'>[[ctotal]]</span></td>"
+                       ."<td><strong>[[total]]</strong></td><td>&nbsp;</td></tr>" );
+                $s .= "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>";
+            } else if( isset($ra['bOpening']) ) {
+                // sometimes we insert a special row with an opening balance
+                $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr class='AkReportRow$a'><td>&nbsp;</td><td>[[acct]] - Opening Balance</td>"
+                       ."<td><span style='color:gray'>[[dOpening]]</span></td>"
+                       ."<td><span style='color:gray'>[[cOpening]]</span></td>"
+                       ."<td><strong>[[total1]]</strong></td><td>&nbsp;</td></tr>" );
+            } else {
+                $a = substr($ra['acct'], 0, 1); // first digit of acct determines the row colour
+                $s .= SEEDCore_ArrayExpand( $ra,
+                        "<tr class='AkReportRow$a'><td>[[date]]</td><td>[[acct]]</td>"
+                       ."<td>[[d]]</td><td>[[c]]</td><td><strong>[[total1]]</strong></td><td>[[description]]</td></tr>" );
+            }
+        }
+        $s .= "</table>";
 
         return( $s );
     }
+
 }
 
-function AkauntingReport( SEEDAppConsole $oApp )
+function AkauntingReport( SEEDAppConsole $oApp, bool $reportOnly = false )
 {
     $o = new AkauntingReportScreen( $oApp );
 
-    return( $o->DrawReport() );
+    return( $o->DrawReport($reportOnly) );
 }
 
 function AkauntingReport_OutputXLSX( SEEDAppConsole $oApp )
@@ -403,29 +599,46 @@ class AkauntingReportSpreadsheet
 
         $filename = "CATS Akaunting.xlsx";
 
+// why are we getting this from the Screen object? It should be in the ReportBase object
         $o = new AkauntingReportScreen( $this->oApp );
-        $raRows = $o->GetLedgerRAForDisplay( $raParms );
+// $raRows = $o->GetLedgerRAForDisplay( $raParms );
 
-        $raCols = array(
+// This does what Detail Report does, which should be encapsulated into this report type only.
+// Do we still need Ledger Report at all?
+        $raRows = [];
+        foreach( [4,5,6,1,2,3,5,7,8,9] as $c ) {
+            $raParms['codePrefix'] = $c;
+            $raRows = array_merge( $raRows, $o->GetLedgerRAForDisplay( $raParms ) );  // do not use $raRows += because it does the wrong thing
+        }
+
+        $raCols = [
             'date'  => 'Date',
             'acct'  => 'Account',
             'd'     => 'Debit',
-            'c'     => 'Credit'
-        );
+            'c'     => 'Credit',
+            'total' => 'Total',         // removed below for date-sorted reports
+            'description' => 'Description'
+        ];
         if( $raParms['Ak_sort'] == 'name' ) {
-            $raCols['total'] = 'Total';
-
             $ra2 = $raRows;
             $raRows = array();
             foreach( $ra2 as $ra ) {
                 if( isset($ra['total']) ) {
-                    $raRows[] = ['date'=>'','acct'=>'','d'=>$ra['dtotal'],'c'=>$ra['ctotal'],'total'=>$ra['total']];
-                    $raRows[] = ['date'=>'','acct'=>'','d'=>'','c'=>'','total'=>''];
+                    // special row with a total
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>$ra['dtotal'],'c'=>$ra['ctotal'],'total'=>$ra['total'],'description'=>''];
+                    $raRows[] = ['date'=>'','acct'=>'','d'=>'','c'=>'','total'=>'','description'=>''];
+                } else if( isset($ra['bOpening']) ) {
+                    // special row with an opening balance
+                    $raRows[] = ['date'=>'','acct'=>$ra['acct']." - Opening Balance",
+                                 'd'=>$ra['dOpening'],'c'=>$ra['cOpening'],'total'=>$ra['total1'],'description'=>''];
                 } else {
-                    $ra['total'] = '';
+                    $ra['total'] = $ra['total1'];
                     $raRows[] = $ra;
                 }
             }
+        } else {
+            // date-sorted reports don't have running totals
+            unset($raCols['total']);
         }
 
         $this->storeSheet( $oXls, 0, "Akaunting", $raRows, $raCols );

@@ -1,5 +1,7 @@
 <?php
 
+use Twig\Error\Error;
+
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
 require_once(CATSLIB.'vendor/autoload.php');
@@ -22,10 +24,11 @@ class AkauntingHook {
     private static $_token = NULL;
     private static $accounts = array();
     private static $company = 0;
+    private static $fetchRequired = true;
 
     private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
 
-    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
+    private static function dbg( $s )  { if( self::$bDebug && stripos($_SERVER['PHP_SELF'],"jx.php") == false )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
     public static function login(String $email, String $password, String $server){
         global $email_processor;
@@ -39,8 +42,8 @@ class AkauntingHook {
         self::$session = new Requests_Session($server);
         self::$session->options['hooks'] = $hooks;
         $responce = self::$session->get($email_processor['akauntingBaseUrl']."/auth/login");
-        preg_match('|(?<=_token" value=").*?(?=")|', $responce->body, $matches);
-        self::$_token = $matches[0];
+        preg_match('|name=["\']_token["\'].*?value=["\'](?\'token\'.*?)["\']|', $responce->body, $matches);
+        self::$_token = $matches['token'];
         self::$session->cookies = new Requests_Cookie_Jar(Requests_Cookie::parse_from_headers($responce->headers));
         self::$session->post($email_processor['akauntingBaseUrl']."/auth/login", array(), array('_token' => self::$_token, 'email' => $email, 'password' => $password));
         self::dbg("connected");
@@ -83,11 +86,18 @@ class AkauntingHook {
 
         self::dbg("\nSubmitting Entry");
 
+        if(self::$bDebug){
+            var_dump($entry);
+            echo "<br />";
+        }
+        
         // Switch to the correct Company
         self::switchCompany($entry->getCompany());
 
-        //Fetch accounts
-        self::fetchAccounts();
+        //Fetch accounts if required
+        if(self::$fetchRequired){
+            self::fetchAccounts();
+        }
 
         $data = array("_token" => self::$_token, "paid_at" => $entry->getDate(), "description" => $entry->getDescription(), "item" => array(
                       array("account_id" => "", "debit" => "$0.00", "credit" => "$"),
@@ -180,7 +190,7 @@ class AkauntingHook {
         }
         global $email_processor;
         $responce = self::$session->get($email_processor['akauntingBaseUrl']."/double-entry/journal-entry/create");
-        preg_match('!<option.*?(?=</select>)!', $responce->body,$matches);
+        preg_match('!<option.*?(?=<\/select>)!', $responce->body,$matches);
         $data = @$matches[0]?:"";
         if($company){
             self::restoreCompany();
@@ -189,6 +199,7 @@ class AkauntingHook {
             $accounts = self::loadAccounts($data);
             if($loadCach){
                 self::$accounts = $accounts;
+                self::$fetchRequired = false;
             }
             return $accounts;
         }
@@ -198,13 +209,17 @@ class AkauntingHook {
     }
 
     private static function loadAccounts(String $data):array{
-        preg_match_all('|(?<=\<option value=")(\d*)">(\d*) - (.*?)(?=<\/option>)|', $data, $matches, PREG_SET_ORDER);
+        preg_match_all('/label="(.*?)">(.*?)<\/optgroup>/',$data,$matches,PREG_SET_ORDER);
         if(!$matches){
             throw new Exception("Could not find any accounts");
         }
         $accounts = array();
         foreach($matches as $match){
-            $accounts[$match[1]] = array( "code" => $match[2], "name" => $match[3]);
+            $type = $match[1];
+            preg_match_all('/<option value="(\d*?)">(\d*?) - (.*?)<\/option>/', $match[2],$accountData,PREG_SET_ORDER);
+            foreach($accountData as $account){
+                $accounts[$account[1]] = array( "code" => $account[2], "name" => $account[3]);
+            }
         }
         return $accounts;
     }
@@ -237,10 +252,10 @@ class AkauntingHook {
         $keywords = array(
             'advertising'                               => array("ads","ad", "advertising"),
             'wages and salaries'                        => array("wages", "salary"),
-            'payroll tax expense (CPP & EI)'            => array("deductions", "payroll_tax"),
+            'payroll tax expense (CPP EI)'            => array("deductions", "payroll_tax"),
             'rent'                                      => array("rent"),
-            'consulting - legal &accounting'            => array("tax-help", "lawyer", "accountant"),
-            'meals & entertainment'                     => array("meal", "meals", "restaurant"),
+            'consulting - legal and accounting'            => array("tax-help", "lawyer", "accountant"),
+            'meals and entertainment'                     => array("meal", "meals", "restaurant"),
             'postage - for reports (not advertising)'   => array("stamps", "postage"),
             'therapy supplies - toys/small items'       => array("toys", "toy"),
             'therapy supplies -- assessment tools'      => array("ax", "assessment", "ax_forms"),
@@ -250,12 +265,14 @@ class AkauntingHook {
             'education expense'                         => array("course", "courses", "education", "pd"),
             'mileage expenses (not clinical)'           => array("kms", "km", "mileage"),
             'office supplies'                           => array("office"),
-            'professional dues & memberships'           => array("caot", "osot", "dues"),
-            'telephone and internet'                    => array("phone", "telephone")
+            'professional dues and memberships'           => array("caot", "osot", "dues"),
+            'telephone and internet'                    => array("phone", "telephone"),
+            'travel expense'                            => array("travel")
         );
+        
         foreach($keywords as $account=>$words){
             foreach ($words as $word){
-                if(preg_match("/(^|[^\\w])"."$word"."([^\\w]|$)/i", $string)){
+                if(preg_match("/(^|[^\\w])".$word."([^\\w]|$)/i", $string)){
                     return self::getAccountByName($account, true);
                 }
             }
@@ -275,15 +292,21 @@ class AkauntingHook {
     }
 
     private static function switchCompany(int $company,bool $recoverable = FALSE){
+        if(self::$company == $company){
+            //The company hasn't changed so dont bother sending the switch request
+            return;
+        }
         if(!$recoverable){
             self::$company = $company;
         }
         global $email_processor;
         self::$session->get($email_processor['akauntingBaseUrl']."/common/companies/".$company."/set");
+        self::$fetchRequired = true;
     }
 
     private static function restoreCompany(){
         self::switchCompany(self::$company);
+        self::$fetchRequired = false;
     }
 
     public static function decodeErrors(array $errors):String{
@@ -300,9 +323,10 @@ class AkauntingHook {
         switch ($error){
             case self::REJECTED_NO_ACCOUNT:
                 $s .= "not being able to find an account to put the entry in.\n
-                       When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word.\n
-                       The following accounts were detected as possible accounts:"
-                      .SEEDCore_ArrayExpandSeries($details[1], "\n[[]]");
+                       When using key words, the Akaunting company associated with the clinic might not have an account that matches the name associated with the key word."
+                     .(@$details[1]?"\nThe following accounts were detected as possible accounts:"
+                     .SEEDCore_ArrayExpandSeries($details[1], "\n[[]]"):"");
+                $s .= "\nReminder to use double quotes for memos";
                 break;
             case self::REJECTED_NOT_SETUP:
                 $s .= "the clinic is not setup for automatic Akaunting entries.";
@@ -351,7 +375,7 @@ class AccountingEntry {
     private static $liability_mappings = array('sue' => 210, 'alison' => 211);
 
     /**
-     * @var float The amount the entry is for
+     * @var double The amount the entry is for
      */
     private $amount;
     /**
@@ -392,6 +416,10 @@ class AccountingEntry {
      */
     private $entryId;
 
+    private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
+    
+    private static function dbg( $s )  { if( self::$bDebug )  echo str_replace("\n", "<br />", "$s<br/>"); }
+    
     private function __construct($amount, String $type, int $company, $paid_at, $category, $attachment, String $description, int $liability_account, int $entryId = 0){
         $this->company = $company;
         $this->amount = $amount;
@@ -513,6 +541,228 @@ class AccountingEntry {
         return (new DateTime($date))->format('Y-m-d');
     }
 
+}
+
+class AccountingAccount {
+    
+    // Account Types
+    const ASSET = "ASSET";
+    const EQUITY = "EQUITY";
+    const EXPENSE = "EXPENSE";
+    const INCOME = "INCOME";
+    const LIABILITY = "LIABILITY";
+    
+    // Actions
+    const INCREASE = "INCREASE";
+    const DECREASE = "DECREASE";
+    
+    //Serializable details
+    private const SERIALIZE_START = "***";
+    private const SERIALIZE_END = "***";
+    private const SERIALIZE_SPLIT = "*";
+    
+    private static $accounts = array();
+    
+    /**
+     * External code displayed to user
+     * @var int
+     */
+    private $code;
+    /**
+     * Internal code used to submit entries to akaunting
+     * @var int
+     */
+    private $account_id;
+    /**
+     * Account name
+     * @var String
+     */
+    private $name;
+    /**
+     * Type of account
+     * @var mixed
+     */
+    private $type;
+    
+    private function __construct($account_id,$code,$name,$type){
+        $this->account_id = $account_id;
+        $this->code = $code;
+        $this->name = $name;
+        $this->type = $type;
+    }
+    
+    public function serialize(){
+        return self::SERIALIZE_START.$this->account_id.self::SERIALIZE_SPLIT.$this->code.self::SERIALIZE_SPLIT.$this->name.self::SERIALIZE_SPLIT.$this->type.self::SERIALIZE_END;
+    }
+    
+    public static function deSerialize(String $data){
+        if(stripos($data, self::SERIALIZE_START) !== 0 || strripos($data, self::SERIALIZE_END) !== strlen($data)-strlen(self::SERIALIZE_END)){
+            throw new Error("Not a serialized account");
+        }
+        $data = substr($data, strlen(self::SERIALIZE_START),0-strlen(self::SERIALIZE_END));
+        list($account_id,$code,$name,$type) = explode(self::SERIALIZE_SPLIT, $data);
+        return new AccountingAccount($account_id, $code, $name, $type);
+    }
+    
+    public static function fetchFromDB(int $company, SEEDAppDB $oAppAk = NULL):array{
+        global $config_KFDB;
+        if(!$oAppAk){
+            $oAppAk = new SEEDAppDB( $config_KFDB['akaunting'] );
+        }
+        $raOut = array();
+        $sql = "SELECT A.id as id,A.company_id as company_id,A.code as code,A.name as name,C.name as type FROM `[[ak_prefix]]_double_entry_accounts` as A, `[[ak_prefix]]_double_entry_types` as T, `[[ak_prefix]]_double_entry_classes` as C WHERE T.class_id=C.id AND A.type_id=T.id AND A.enabled=1 and A.company_id=[[company]]";
+        $sql = str_replace(array("[[company]]","[[ak_prefix]]"), array($company,$config_KFDB['akaunting']['ak_tableprefix']), $sql);
+        $raRows = $oAppAk->kfdb->QueryRowsRA( $sql );
+        foreach ($raRows as $ra){
+            $raOut[] = new AccountingAccount($ra['id'], $ra['code'], $ra['name'], strtoupper(substr(str_replace("ies", "ys", substr($ra['type'], strripos($ra['type'], '.')+1)), 0, -1)));
+        }
+        return $raOut;
+    }
+    
+    public static function updateCache($data = array(), int $company = 0,SEEDAppDB $oAppAk = NULL){
+        if($data){
+            self::$accounts = array();
+            foreach($data as $ra){
+                if(!@$ra['code'] || !@$ra['name'] || !@$ra['id'] || !@$ra['type']){
+                    self::$accounts[] = new AccountingAccount($ra['id'], $ra['code'], $ra['name'], $ra['type']);
+                }
+            }
+        }
+        else{
+            self::$accounts = self::fetchFromDB($company,$oAppAk);
+        }
+        self::store();
+    }
+    
+    public static function store(){
+        $data = array();
+        foreach(self::$accounts as $account){
+            $data[] = $account->serialize();
+        }
+        $_SESSION['ak_accounts'] = $data;
+    }
+    
+    public  static function load(int $company,bool $doFetch = true){
+        if(isset($_SESSION['ak_accounts'])){
+            $data = array();
+            foreach ($_SESSION['ak_accounts'] as $account){
+                $data[] = AccountingAccount::deSerialize($account);
+            }
+            self::$accounts = $data;
+        }
+        elseif ($doFetch){
+            self::updateCache(array(),$company);
+        }
+    }
+    
+    public function checkCreditOperation(){
+        switch ($this->type){
+            case self::ASSET:
+            case self::EXPENSE:
+                return self::DECREASE;
+            case self::LIABILITY:
+            case self::INCOME:
+            case self::EQUITY:
+                return self::INCREASE;
+        }
+    }
+    
+    public function checkDebitOperation(){
+        switch ($this->type){
+            case self::ASSET:
+            case self::EXPENSE:
+                return self::INCREASE;
+            case self::LIABILITY:
+            case self::INCOME:
+            case self::EQUITY:
+                return self::DECREASE;
+        }
+    }
+    
+    public function getName(){
+        return $this->name;
+    }
+    
+    public function getCode(){
+        return $this->code;
+    }
+    
+    public function getID(){
+        return $this->account_id;
+    }
+    
+    public function getType(){
+        return $this->type;
+    }
+    
+    /**
+     * Check if the combinations of accounts is permitted by the Rule of Accounting
+     * @param String|AccountingAccount $type1 - Type of one account to compare
+     * @param String|AccountingAccount $type2 - Type of other account to compare
+     * @return bool - True if the pair of accounts is valid and allowed, False otherwise
+     */
+    public static function isAllowed($type1, $type2):bool{
+        if($type1 instanceof AccountingAccount){
+            $type1 = $type1->getType();
+        }
+        if($type2 instanceof  AccountingAccount){
+            $type2 = $type2->getType();
+        }
+        switch ($type1){
+            case self::ASSET:
+            case self::EXPENSE:
+                switch ($type2){
+                    case self::EQUITY:
+                    case self::INCOME:
+                    case self::LIABILITY:
+                        return TRUE;
+                    default:
+                        return FALSE;
+                }
+                break;
+            case self::EQUITY:
+            case self::INCOME:
+            case self::LIABILITY:
+                switch ($type2){
+                    case self::ASSET:
+                    case self::EXPENSE:
+                        return TRUE;
+                    default:
+                        return FALSE;
+                }
+                break;
+            default:
+                return FALSE;
+        }
+    }
+    
+    public static function getAccountByName(String $name):AccountingAccount{
+        foreach($accounts as $account){
+            if(strtolower($account->getName()) == strtolower($name)){
+                return $account;
+            }
+        }
+        return NULL; // The account with the provided name does not exist
+    }
+    
+    public  static function getAccountByCode($code){
+        foreach($accounts as $account){
+            if($account->getCode() == $code){
+                return $account;
+            }
+        }
+        return NULL; // The account with the provided code does not exist
+    }
+    
+    public static function getAccountByID($id){
+        foreach($accounts as $account){
+            if($account->getID() == $id){
+                return $account;
+            }
+        }
+        return NULL; // The account with the provided id does not exist
+    }
+    
 }
 
 function fixRedirects($return, $req_headers, $req_data, $options){

@@ -322,11 +322,18 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
+            case 'developer-SEEDBasket':
+                include_once( SEEDAPP."basket/basketManager.php" );
+                $s .= SEEDBasketManagerApp( $this->oApp );
+                break;
             default:
                     $raScreens = array(
                         array( 'developer-confirmdrop',    "Drop Tables"    ),
                         array( 'developer-clinics',        "Manage Clinics" ),
                     );
+                    if( CATS_DEBUG ) {
+                        $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
+                    }
                     $s .= $this->drawCircles( $raScreens );
         }
         return( $s );
@@ -367,7 +374,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $o = new UsersGroupsPermsUI( $this->oApp );
         return( $o->DrawUI() );
     }
-    
+
     private function pswdIsTemporary(){
         $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
         if(($newPswd = @$_POST['new_pswd']) && ($confirmPswd = @$_POST['confirm_pswd'])){
@@ -385,7 +392,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         $pswd = $accountDB->GetUserInfo($this->oApp->sess->GetUID())[1]["password"];
         return $pswd=="cats" && strtolower($email) == strtolower(substr($fname, 0,1).$lname);
     }
-    
+
 }
 
 class ScreenManager{
