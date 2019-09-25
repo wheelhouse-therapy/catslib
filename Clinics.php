@@ -257,6 +257,78 @@ class Clinics {
         return $filepath;
     }
     
+    public function setImage($imageID, bool $isRestore = false, $clinic = null){
+        $accessType = $this->checkAccess();
+        if($accessType == self::NO_ACCESS){
+            return "No Access"; // Abort the opperation because the user lacks the permission to perform the action
+        }
+        if($clinic == null){
+            $clinic = $this->GetCurrentClinic();
+        }
+        $filepath = CATSDIR_FILES."clinic Images/".$clinic."/";
+        if(!file_exists($filepath)){
+            @mkdir($filepath, 0777, true);
+        }
+        $filename = "";
+        switch ($imageID){
+            case self::LOGO_SQUARE:
+                $filename = "Logo Square";
+                break;
+            case self::LOGO_WIDE:
+                $filename = "Logo Wide";
+                break;
+            case self::FOOTER:
+                $filename = "Footer";
+                break;
+        }
+        if($isRestore){
+            $filename .= " old";
+            if(file_exists($filepath)){
+                foreach (scandir($filepath) as $file){
+                    if(substr($file, 0,strlen($filename)) == $filename){
+                        $filename = $file;
+                    }
+                }
+            }
+            if(strpos($filename, ".") === false || !file_exists($filepath.$filename)){
+                return "No Backup"; // Abort because we could not find a backup to restore
+            }
+            else{
+                if(rename($filepath.$filename, $filepath.str_replace(" old", "", $filename))){
+                    return "Restore successful";
+                }
+                else{
+                    return "Error restoring";
+                }
+            }
+        }
+        else{
+            $documentFileType = strtolower(pathinfo(basename($_FILES["clinicImage"]["name"]),PATHINFO_EXTENSION));
+            if(!in_array($documentFileType, array("gif","jpg","png"))){
+                return "Only .jpg,.png,and .gif Images are supported";
+            }
+            else{
+                $newFilename = $filename;
+                if(file_exists($filepath)){
+                    foreach (scandir($filepath) as $file){
+                        if(substr($file, 0,strlen($filename)) == $filename){
+                            $filename = $file;
+                        }
+                    }
+                }
+                if(strpos($filename, ".") !== false && file_exists($filepath.$filename)){
+                    rename($filepath.$filename, $filepath.str_replace(".", " old.", $filename));
+                }
+                if(move_uploaded_file($_FILES["clinicImage"]["tmp_name"], $filepath.$newFilename.".".$documentFileType)){
+                    return "Clinic Image Set";
+                }
+                else{
+                    return "Could not set Clinic Image";
+                }
+            }
+        }
+    }
+    
     //These functions are for managing clinics.
 
     function manageClinics(){
@@ -497,15 +569,46 @@ class Clinics {
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
-            $images = "<h4>Square Logo:</h4><iframe style='max-width:30%' src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."'></iframe><br />"
-                     ."<h4>Wide Logo:</h4><iframe style='height:5%;' src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."'></iframe><br />"
-                     ."<h4>Footer:</h4><iframe style='height:5%;' src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."'></iframe>";
-            $s .= "<div><div style='width:60%;display:inline-block;float:left'>".$sForm."</div><div style='width:20%;display:inline-block;float:left'>".$images."</div></div>"
-                 ."<style>.col-md-6{max-width:100%;flex:0 0 100%}</style>";
+            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:160px'></iframe><br />"
+                     ."<button style='margin-top:3px' onclick='showModal(\"slogo\")'>Change</button>"
+                     ."<h4>Wide Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px'></iframe><br />"
+                     ."<button style='margin-top:3px' onclick='showModal(\"wlogo\")'>Change</button>"
+                     ."<h4>Footer:</h4><iframe src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."' style='width:400px;height:100px'></iframe><br />"
+                     ."<button style='margin-top:3px' onclick='showModal(\"footer\")'>Change</button>";
+            $s .= "<div><div style='width:60%;display:inline-block;float:left'>".$sForm."</div><div style='width:40%;display:inline-block;float:left'>".$images."</div></div>"
+                 ."<style>.col-md-6{max-width:100%;flex:0 0 100%}iframe{border:none}</style>"
+                 .$this->getClinicImageModal();
         }
         return($s);
     }
 
+    private function getClinicImageModal(){
+        return <<<Modal
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="clinic_image_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Change Clinic <span id='imageName'></span></h4>
+            </div>
+            <div class="modal-body">
+                <div id='action_result'></div>
+                <form id="clinic_image_form" onsubmit='submitModal(event)' action="jx.php" method="POST">
+                    <input type='hidden' name='cmd' value='therapist--modal' />
+                    <input type='hidden' name='image_ID' value='' id='image_ID' />";
+                    <input type='file' name='clinicImage' />
+                </form>
+            </div>
+            <div class="modal-footer">
+                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Restore' />
+                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Change' />
+            </div>
+        </div>
+    </div>
+</div>
+Modal;
+    }
+    
     private function getMailingAddress($ra){
         $isAddress = $ra['address'] == $ra['mailing_address'];
         $s = "<input type='checkbox' value='add%91ress' id='mailingAddress' name='mailing_address' onclick='notAddress()' ".($isAddress?"checked":"").">Same as Address</input>"

@@ -336,7 +336,42 @@ debugger;
 
 %% clinics
 <script>
-  function resizeIframe(obj) {
-    obj.style.height = obj.contentWindow.document.body.scrollHeight + 'px';
-  }
+	function submitModal(e){
+		var postData = $(e.currentTarget).serializeArray();
+        var formURL = $(e.currentTarget).attr("action");
+        $.ajax({
+            type: "POST",
+            data: postData,
+            url: formURL,
+            success: function(data, textStatus, jqXHR) {
+                var jsData = JSON.parse(data)
+                if(jsData.bOk){
+					document.getElementById('action_result').innerHTML = jsData.sOut;
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+        e.preventDefault();
+	}
+
+	function showModal(id){
+		document.getElementById('action_result').innerHTML = "";
+		switch(id){
+		case 'slogo':
+			document.getElementById('imageName').innerHTML = "Square Logo";
+			break;
+		case 'wlogo':
+			document.getElementById('imageName').innerHTML = "Wide Logo";
+			break;
+		case 'footer':
+			document.getElementById('imageName').innerHTML = "Footer";
+			break;
+		}
+		document.getElementById('clinic_image_form').reset();
+		document.getElementById('image_ID').value=id;
+		$('#clinic_image_dialog').modal('show');
+	}
+	
 </script>
