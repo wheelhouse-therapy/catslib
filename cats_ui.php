@@ -168,7 +168,8 @@ ResetPassword;
             //array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clinicresources', "Print Clinic Resources"),
             array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
-            array( 'therapist-akaunting',       "Akaunting" )
+            array( 'therapist-akaunting',       "Akaunting" ),
+            array( 'therapist-distributeReports', "Distribute Reports" )
         );
 
         $s = "";
@@ -240,6 +241,8 @@ ResetPassword;
                 require_once CATSLIB."AkauntingReports.php";
                 $s .= AkauntingReport($this->oApp);
                 break;
+            case "therapist-distributeReports":
+                require_once CATSLIB."DistributeReports.php";
         }
         return( $s );
     }
