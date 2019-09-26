@@ -337,16 +337,22 @@ debugger;
 %% clinics
 <script>
 	function submitModal(e){
-		var postData = $(e.currentTarget).serializeArray();
-        var formURL = $(e.currentTarget).attr("action");
+		var formData = new FormData(e.currentTarget.form);
+		formData.append("action",e.currentTarget.value);
+        var formURL = $(e.currentTarget.form).attr("action");
         $.ajax({
             type: "POST",
-            data: postData,
+            data: formData,
+            cache       : false,
+            contentType : false,
+            processData : false,
             url: formURL,
             success: function(data, textStatus, jqXHR) {
                 var jsData = JSON.parse(data)
                 if(jsData.bOk){
 					document.getElementById('action_result').innerHTML = jsData.sOut;
+					var iframe = document.getElementById('image_ID').value;
+					document.getElementById(iframe).contentWindow.location.reload();
                 }
             },
             error: function(jqXHR, status, error) {
@@ -358,6 +364,7 @@ debugger;
 
 	function showModal(id){
 		document.getElementById('action_result').innerHTML = "";
+		$('#imagePreview').attr('src', "#");
 		switch(id){
 		case 'slogo':
 			document.getElementById('imageName').innerHTML = "Square Logo";
@@ -371,7 +378,26 @@ debugger;
 		}
 		document.getElementById('clinic_image_form').reset();
 		document.getElementById('image_ID').value=id;
+		var iframe = document.getElementById(id);
+		document.getElementById('imagePreview').style.maxWidth = iframe.style.width;
+		document.getElementById('imagePreview').style.maxHeight = iframe.style.height;
 		$('#clinic_image_dialog').modal('show');
 	}
+	
+	var reader = new FileReader();
+	reader.onload = function (e) {
+	    $('#imagePreview').attr('src', e.target.result);
+	}
+	
+   function readURL(input) {
+        if (input.files && input.files[0]) {
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+   window.addEventListener("DOMContentLoaded", function(){
+        $("#imageSelector").change(function(){
+            readURL(this);
+        });
+   });
 	
 </script>

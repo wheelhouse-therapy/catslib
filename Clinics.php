@@ -232,13 +232,7 @@ class Clinics {
                 $filename = "Footer";
                 break;
         }
-        if(file_exists($filepath)){
-            foreach (scandir($filepath) as $file){
-                if(substr($file, 0,strlen($filename)) == $filename){
-                    $filename = $file;
-                }
-            }
-        }
+        $filename = $this->getFile($filepath, $filename);
         if(strpos($filename, ".") === false || !file_exists($filepath.$filename)){
             switch ($imageID){
                 case self::LOGO_SQUARE:
@@ -283,15 +277,16 @@ class Clinics {
         }
         if($isRestore){
             $filename .= " old";
-            if(file_exists($filepath)){
-                foreach (scandir($filepath) as $file){
-                    if(substr($file, 0,strlen($filename)) == $filename){
-                        $filename = $file;
-                    }
-                }
-            }
+            $filename = $this->getFile($filepath,$filename);
             if(strpos($filename, ".") === false || !file_exists($filepath.$filename)){
-                return "No Backup"; // Abort because we could not find a backup to restore
+                $filename = $this->getFile($filepath, str_replace(" old", "", $filename));
+                if(strpos($filename, ".") !== false && file_exists($filepath.$filename)){
+                    if(unlink($filepath.$filename)){
+                        return "Default Restored";
+                    }
+                    return "Unable to restore default image";
+                }
+                return "No Backup Found"; // Abort because we could not find a backup to restore
             }
             else{
                 if(rename($filepath.$filename, $filepath.str_replace(" old", "", $filename))){
@@ -309,13 +304,7 @@ class Clinics {
             }
             else{
                 $newFilename = $filename;
-                if(file_exists($filepath)){
-                    foreach (scandir($filepath) as $file){
-                        if(substr($file, 0,strlen($filename)) == $filename){
-                            $filename = $file;
-                        }
-                    }
-                }
+                $filename = $this->getFile($filepath,$filename);
                 if(strpos($filename, ".") !== false && file_exists($filepath.$filename)){
                     rename($filepath.$filename, $filepath.str_replace(".", " old.", $filename));
                 }
@@ -569,11 +558,11 @@ class Clinics {
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
-            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:160px'></iframe><br />"
+            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:160px' id='slogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"slogo\")'>Change</button>"
-                     ."<h4>Wide Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px'></iframe><br />"
+                     ."<h4>Wide Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px' id='wlogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"wlogo\")'>Change</button>"
-                     ."<h4>Footer:</h4><iframe src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."' style='width:400px;height:100px'></iframe><br />"
+                     ."<h4>Footer:</h4><iframe src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."' style='width:400px;height:100px' id='footer'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"footer\")'>Change</button>";
             $s .= "<div><div style='width:60%;display:inline-block;float:left'>".$sForm."</div><div style='width:40%;display:inline-block;float:left'>".$images."</div></div>"
                  ."<style>.col-md-6{max-width:100%;flex:0 0 100%}iframe{border:none}</style>"
@@ -593,15 +582,16 @@ class Clinics {
             </div>
             <div class="modal-body">
                 <div id='action_result'></div>
-                <form id="clinic_image_form" onsubmit='submitModal(event)' action="jx.php" method="POST">
-                    <input type='hidden' name='cmd' value='therapist--modal' />
-                    <input type='hidden' name='image_ID' value='' id='image_ID' />";
-                    <input type='file' name='clinicImage' />
+                <form id="clinic_image_form" onsubmit='event.preventDefault();' action="jx.php" method="POST" enctype="multipart/form-data">
+                    <input type='hidden' name='cmd' value='clinicImg' />
+                    <input type='hidden' name='image_ID' value='' id='image_ID' />
+                    <input type='file' accept='.png,.jpg,.gif' name='clinicImage' id='imageSelector' />
+                    <img id='imagePreview' alt='Image Preview' />
                 </form>
             </div>
             <div class="modal-footer">
-                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Restore' />
-                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Change' />
+                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Restore' onclick='submitModal(event)' />
+                <input type='submit' form='clinic_image_form' name='action' class="btn btn-default" value='Change' onclick='submitModal(event)' />
             </div>
         </div>
     </div>
@@ -677,4 +667,15 @@ Modal;
         return($s);
     }
 
+    private function getFile($filepath,$filename){
+        if(file_exists($filepath)){
+            foreach (scandir($filepath) as $file){
+                if(substr($file, 0,strlen($filename)) == $filename){
+                    $filename = $file;
+                }
+            }
+        }
+        return $filename;
+    }
+    
 }
