@@ -514,6 +514,11 @@ class Clinics {
                 top: 0; 
                 left: 0;
                 max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+              }
+              body {
+                margin: 0;
               }"
             ."</style>";
         echo "<img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'>";
@@ -558,7 +563,7 @@ class Clinics {
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
-            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:160px' id='slogo'></iframe><br />"
+            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:200px' id='slogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"slogo\")'>Change</button>"
                      ."<h4>Wide Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px' id='wlogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"wlogo\")'>Change</button>"
