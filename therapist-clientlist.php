@@ -257,10 +257,10 @@ class ClientList
         <div class='alert alert-warning' style='width: 85%;justify-content: space-around;'>
             A [[type]] with this name is already exists in this clinic<br />
             <div style='justify-content: space-around;display: flex'>
-                <form style='display:inline' onSubmit='submitForm(event)'>
+                <form style='display:inline' onSubmit='event.preventDefault()'>
                     <input type='hidden' name='cmd' value='overwrite' />
                     <input type='hidden' name='type' value='[[type]]' />
-                    <input type='submit' value='Replace:' />
+                    <input type='submit' value='Replace:' onclick='submitForm(event)' />
                     <select name='key'>
                         [[options]]
                     </select>
@@ -392,6 +392,11 @@ ExistsWarning;
                 break;
         }
         $list = $this->drawList((@$this->parseID($id)[0]?:""));
+        
+        if(SEEDInput_Str("action") == "Save and Close"){
+            $id = "";
+        }
+        
         return array("message"=>$s,"id"=>$id, "list"=>$list[0],"listId" => $list[1]);
     }
     
@@ -519,7 +524,7 @@ ExistsWarning;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
         $this->sForm =
-             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event);submitForm(event)'>":"")
+             ($oForm->Value("_status")==0?"<form onSubmit='event.preventDefault()'>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
@@ -545,7 +550,8 @@ ExistsWarning;
              $this->endRowDraw();
              if($oForm->Value("_status")==0){
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event)' /></td>"
+                ."<td class='col-md-12'><input type='submit' value='Save and Close' style='margin:auto' onclick='clinicHack(event);submitForm(event)' /></td>"
              ."</tr>"
              ."<tr class='row'>"
                  .($oForm->Value('P_email')
@@ -566,7 +572,7 @@ ExistsWarning;
                  ."<div class='col-md-8'>".$this->sForm."</div>"
                  ."<div class='col-md-4'>".$sTherapists.$sPros
                  ."<br /><br />"
-                 .($oForm->Value("_key")?"<form id='client-form' onSubmit='submitForm(event)'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
+                 .($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                  ."</div>"
@@ -634,12 +640,12 @@ ExistsWarning;
         }
         $sClients .=
                  "</div>"
-                ."<form onSubmit='submitForm(event)'>"
+                ."<form onSubmit='event.preventDefault()'>"
                 ."<input type='hidden' name='cmd' value='link'/>"
                 ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
                 .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
                 .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
-                ."</select><input type='submit' value='add'></form>":"");
+                ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
 
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
@@ -662,7 +668,7 @@ ExistsWarning;
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm =
-              "<form onSubmit='clinicHack(event);submitForm(event);'>"
+              "<form onSubmit='event.preventDefault()'>"
                   .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
                                  .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$oForm->Value('_key')}</p>":""):"New Therapist")
@@ -692,7 +698,8 @@ ExistsWarning;
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
              $this->endRowDraw();
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
+                ."<td class='col-md-12'><input type='submit' name='action' value='Save and Close' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
              ."</tr>"
              ."</table>"
              ."</form>";
@@ -778,7 +785,7 @@ FilterJS;
     private function getLinkedUser(KeyframeForm $oForm, String $key):String{
         $sUser = "<div style='padding:10px;border:1px solid #888'>Linked Account: [[account]]<br/>";
         if($this->oApp->sess->CanAdmin('admin')){
-            $sUser .= "<form onSubmit='submitForm(event)'>"
+            $sUser .= "<form onSubmit='event.preventDefault()'>"
                      ."<input type='hidden' name='cmd' value='linkAccount'/>"
                      ."<input type='hidden' name='key' value='$key'/>"
                      ."<input type='hidden' name='people_id' value='{$oForm->Value('P__key')}'/>"
@@ -788,7 +795,7 @@ FilterJS;
              $users = $this->kfdb->QueryRowsRA("SELECT * from seedsession_users WHERE _key != {$this->oApp->sess->GetUID()} AND eStatus = 'ACTIVE'",KEYFRAMEDB_RESULT_ASSOC);
              $sUser .= SEEDCore_ArrayExpandRows($users, "<option value='[[_key]]'>[[realname]]</option>")
                      ."</select>"
-                     ."<br /><input type='submit' value='Link'/>";
+                     ."<br /><input type='submit' value='Link' onclick='submitForm(event)' />";
         }
         $sUser .= "</div>"
                  ."<style>
