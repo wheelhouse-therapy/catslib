@@ -243,6 +243,7 @@ ResetPassword;
                 break;
             case "therapist-distributeReports":
                 require_once CATSLIB."DistributeReports.php";
+                $s .= distributeReports($this->oApp);
         }
         return( $s );
     }
