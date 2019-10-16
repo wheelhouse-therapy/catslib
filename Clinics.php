@@ -200,10 +200,10 @@ class Clinics {
             }
         }
         else{
-            $sql = "SELECT * FROM SEEDSession_Users WHERE";
+            $sql = "SELECT * FROM SEEDSession_Users";
             foreach(array_column($users, "fk_SEEDSession_users") as $key){
-                if(str_word_count($sql,0,"_*") == 5){
-                    $sql .= " _key != ".$key;
+                if(str_word_count($sql,0,"_*") == 4){
+                    $sql .= " WHERE _key != ".$key;
                 }
                 else{
                     $sql .= " AND _key != ".$key;
@@ -414,8 +414,15 @@ class Clinics {
         }
         if($clinic_key > 0){
             $attached_users = $this->getUsersInClinic($clinic_key);
-            $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpandRows($attached_users, "<option value='[[_key]]'>[[realname]]</option>"), $s);
-            $non_attached_users = array();
+            foreach ($attached_users as $ra){
+                if($ra['_key'] == $this->clinicsDB->GetClinic($clinic_key)->Value("fk_leader")){
+                    $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpand($ra, "<option value='[[_key]]' disabled>[[realname]]</option>")."[[Assigned]]", $s);
+                }
+                else{
+                    $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpand($ra, "<option value='[[_key]]'>[[realname]]</option>")."[[Assigned]]", $s);
+                }
+            }
+            $s = str_replace("[[Assigned]]","", $s);
             if($accessType == self::FULL_ACCESS){
                 $non_attached_users = $this->getUsersInClinic($clinic_key,true);
                 $s = str_replace("[[unassignedTitle]]", "Users not in Clinic", $s);
