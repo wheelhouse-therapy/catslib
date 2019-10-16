@@ -412,6 +412,9 @@ class Clinics {
         if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
             $clinic_key = 0;
         }
+        if($accessType == self::LEADER_ACCESS && in_array($this->GetCurrentClinic(), $this->getClinicsILead())){
+            $clinic_key = $this->GetCurrentClinic();
+        }
         if($clinic_key > 0){
             $attached_users = $this->getUsersInClinic($clinic_key);
             foreach ($attached_users as $ra){
