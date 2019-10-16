@@ -449,7 +449,7 @@ class Clinics {
                 $toAdd = $_REQUEST['toAdd'];
                 if(is_array($toAdd)){
                     foreach($toAdd as $user){
-                        $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE _key = $user;");
+                        $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE _key = $user;");
                         if(!$userData){
                             $this->oApp->oC->AddErrMsg("User $user Not Found<br />");
                         }
@@ -464,7 +464,7 @@ class Clinics {
                     }
                 }
                 else{
-                    $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE email = '$toAdd' OR realname = '$toAdd';");
+                    $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE email = '$toAdd' OR realname = '$toAdd';");
                     if(!$userData){
                         $this->oApp->oC->AddErrMsg("User Not Found<br />");
                     }
@@ -482,8 +482,8 @@ class Clinics {
             case "remove_user":
                 $toRemove = $_REQUEST['toRemove'];
                 foreach($toRemove as $user){
-                    $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_users WHERE _key = $user;");
-                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_users = $user AND fk_clinics = $clinic_id;");
+                    $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_Users WHERE _key = $user;");
+                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_Users = $user AND fk_clinics = $clinic_id;");
                     if($this->oApp->kfdb->Execute("DELETE FROM `users_clinics` WHERE `users_clinics`.`_key` = $key;")){
                         $this->oApp->oC->AddUserMsg("Removed $userName from the clinic<br />");
                     }
