@@ -354,7 +354,7 @@ class Clinics {
                 break;
             case "new_clinic":
                 if($accessType != self::FULL_ACCESS){
-                    $s .= "Cannot create new clinic. NO ACESS";
+                    $s .= "Cannot create new clinic. NO ACCESS";
                     break;
                 }
                 $name = SEEDInput_Str("new_clinic_name");
@@ -363,6 +363,10 @@ class Clinics {
                 $kfr->PutDBRow();
                 $clinic_key = $kfr->Key();
                 break;
+        }
+        if($clinic_key){
+            //Process user commands here so that changes can be reflected in the leader list
+            $this->processUserCommands();
         }
         $raClinics = $ClinicsDB->KFRel()->GetRecordSetRA($accessType == self::LEADER_ACCESS?"Clinics.fk_leader='".$this->oApp->sess->GetUID()."'":"");
         $s .= "<div class='container-fluid'><div class='row'>"
@@ -388,12 +392,14 @@ class Clinics {
         $s .= ($accessType == self::FULL_ACCESS ?SEEDCore_ArrayExpandRows( $raClinics, "<div style='padding:5px;'><a href='?clinic_key=[[_key]]'>[[clinic_name]]</a></div>" ):"")
               .($clinic_key ? $this->drawClinicForm($raClinics, $clinic_key) : "")
               ."</div>";
-        $s .= $this->manageUsers();
+        $s .= $this->manageUsers(true); //Bypass the command processing part since they were already processed above
         return($s);
     }
 
-    public function manageUsers(){
-        $this->processUserCommands();
+    public function manageUsers(bool $cmdProccessed = false){
+        if(!$cmdProccessed){
+            $this->processUserCommands();
+        }
         $s = "<table>
                 <tr><th style='text-align:center'>[[unassignedTitle]]</th><th style='text-align:center'>Action</th><th style='text-align:center'>Users in Clinic</th></tr>
                 <tr>
@@ -408,7 +414,6 @@ class Clinics {
                 ."If you believe this is a mistake please contact a system administrator.";
         }
         $clinic_key = SEEDInput_Int( 'clinic_key' );
-        $s = str_replace("[[clinic]]", $clinic_key, $s);
         if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
             $clinic_key = 0;
         }
@@ -416,6 +421,7 @@ class Clinics {
             $clinic_key = $this->GetCurrentClinic();
         }
         if($clinic_key > 0){
+            $s = str_replace("[[clinic]]", $clinic_key, $s);
             $attached_users = $this->getUsersInClinic($clinic_key);
             foreach ($attached_users as $ra){
                 if($ra['_key'] == $this->clinicsDB->GetClinic($clinic_key)->Value("fk_leader")){
@@ -570,7 +576,7 @@ class Clinics {
                 .$this->drawFormRow("Email", $this->getEmail($ra))
                 // The Developer account must be the leader of the core clinic
                 // Disable the selector so it cant be changed
-                .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
+                .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($clinic_key,$ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
             $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:200px' id='slogo'></iframe><br />"
@@ -656,7 +662,13 @@ Modal;
         return $s;
     }
 
-    private function getLeaderOptions($leader_key, $readonly){
+    private function getLeaderOptions(int $clinic, int $leader_key, bool $readonly){
+        $access = $this->checkAccess();
+        $raUsers = $this->getUsersInClinic($clinic);
+        if($access != self::FULL_ACCESS && count($raUsers) <= 1){
+            $readonly = true;
+        }
+        
         $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
         // Fetch all users that are not clients
@@ -666,6 +678,10 @@ Modal;
         foreach($accountsDB->GetUsersFromMetadata("clientId", "UM.uid is null") as $k => $ra){
             if($ra['eStatus'] != "ACTIVE"){
                 //Skip any account that is not in the active state
+                continue;
+            }
+            if($access != self::FULL_ACCESS && !in_array($k, array_column($raUsers,'_key'))){
+                //Skip any account that is not attached to the clinic unless the users has full access
                 continue;
             }
             if($k == $leader_key){
