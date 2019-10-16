@@ -196,11 +196,11 @@ class Clinics {
         $users1 = array();
         if(!$invert){
             foreach(array_column($users, "fk_SEEDSession_users") as $key){
-                array_push($users1,$this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE _key = ".$key.";"));
+                array_push($users1,$this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE _key = ".$key.";"));
             }
         }
         else{
-            $sql = "SELECT * FROM SEEDSession_users WHERE";
+            $sql = "SELECT * FROM SEEDSession_Users WHERE";
             foreach(array_column($users, "fk_SEEDSession_users") as $key){
                 if(str_word_count($sql,0,"_*") == 5){
                     $sql .= " _key != ".$key;
