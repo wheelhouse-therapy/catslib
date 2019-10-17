@@ -665,11 +665,16 @@ Modal;
     private function getLeaderOptions(int $clinic, int $leader_key, bool $readonly){
         $access = $this->checkAccess();
         $raUsers = $this->getUsersInClinic($clinic);
+        $tooltip = "";
+        if ($readonly){
+            $tooltip = "You don't have permission to change the leader of this clinic";
+        }
         if($access != self::FULL_ACCESS && count($raUsers) <= 1){
             $readonly = true;
+            $tooltip = "Add more users to the clinic to unlock";
         }
         
-        $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
+        $s = "<div ".($tooltip?'data-tooltip="'.$tooltip.'"':"")."><select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
         // Fetch all users that are not clients
         // Client credentials generated through therapist---credentials command
@@ -694,7 +699,7 @@ Modal;
                 $s .= " (me)";
             }
         }
-        $s .= "</select>";
+        $s .= "</select></div>";
         return($s);
     }
 
