@@ -121,6 +121,11 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
+    /** Array of people ids for use with data tags
+     * @var array
+     */
+    private $data = array();
+    
     /**
      * Assessments to include in files downloaded through this template filler
      * Since this is defined in the constructor any sections included will also have access to this.
@@ -140,10 +145,11 @@ class template_filler {
      */
     public const RESOURCE_SECTION = 2;
     
-    public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array() )
+    public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array(), array $data = array() )
     {
         $this->oApp = $oApp;
         $this->assessments = $assessments;
+        $this->data = $data;
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
@@ -404,7 +410,6 @@ class template_filler {
                 $s = $this->fill_resource($GLOBALS['directories']['sections']['directory'].$col[1],self::RESOURCE_SECTION);
             }
         }
-
         if(in_array($table, getAssessmentTypes())){
             if(array_key_exists($table, $this->assessments) && $this->assessments[$table] != AssessmentsCommon::DO_NOT_INCLUDE){
                 $assmt = (new AssessmentsCommon($this->oApp))->GetAsmtObject($this->assessments[$table]);
@@ -415,6 +420,63 @@ class template_filler {
                     $s = "";
                     error_log($e->getTraceAsString());
                 }
+            }
+        }
+        if(preg_match("/data\d+/", $table)){
+            $id = $this->data[int(str_replace("data", "", $table))-1];
+            if(substr($id, -1) === "p"){
+                $id = substr($id, 0,-1);
+                if(ClientList::parseID($id)[0] == ClientList::CLIENT && $col[0] == "name"){
+                    $col[0] = "parents_name";
+                }
+            }
+            list($type,$key) = ClientList::parseID($id);
+            $kfr = $this->oPeopleDB->GetKFR($type, $key);
+            if(!$kfr){
+                goto done;
+            }
+            if( ($s = $this->peopleCol( $col, $this->kfr )) ) {
+                goto done;
+            }
+            switch ($type){
+                case ClientList::CLIENT:
+                    switch( $col[0] ) {
+                        case 'age':
+                            $s = date_diff(date_create($kfr->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
+                            break;
+                        case 'code':
+                            if($kfr && $this->kfr->Value("P_first_name") && $kfr->Value("P_last_name")){
+                                $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($this->kClient);
+                            }
+                            else{
+                                $s = "";
+                            }
+                            break;
+                        default:
+                            $s = $this->kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+                    }
+                    break;
+                case ClientList::INTERNAL_PRO:
+                    switch( $col[0] ) {
+                        case 'role':
+                            $s = $this->kfr->Value( 'pro_role' );
+                            break;
+                        case 'credentials':
+                            if( ($raStaff = $this->oPeople->GetStaff( $id )) ) {
+                                $s = @$raStaff['P_extra_credentials'];
+                            }
+                            break;
+                        case 'regnumber':
+                            $ra = SEEDCore_ParmsURL2RA( $this->kfr->Value('P_extra') );
+                            $s = $ra['regnumber' ];
+                            break;
+                        default:
+                            $s = $this->kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+                    }
+                    break;
+                case ClientList::EXTERNAL_PRO:
+                    $s = $this->kfr->Value( $col[0] ) ?: "";
+                    break;
             }
         }
         

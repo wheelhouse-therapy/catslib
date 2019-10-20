@@ -196,14 +196,14 @@ class Clinics {
         $users1 = array();
         if(!$invert){
             foreach(array_column($users, "fk_SEEDSession_users") as $key){
-                array_push($users1,$this->oApp->kfdb->QueryRA("SELECT * FROM seedsession_users WHERE _key = ".$key.";"));
+                array_push($users1,$this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE _key = ".$key.";"));
             }
         }
         else{
-            $sql = "SELECT * FROM seedsession_users WHERE";
+            $sql = "SELECT * FROM SEEDSession_Users";
             foreach(array_column($users, "fk_SEEDSession_users") as $key){
-                if(str_word_count($sql,0,"_*") == 5){
-                    $sql .= " _key != ".$key;
+                if(str_word_count($sql,0,"_*") == 4){
+                    $sql .= " WHERE _key != ".$key;
                 }
                 else{
                     $sql .= " AND _key != ".$key;
@@ -354,7 +354,7 @@ class Clinics {
                 break;
             case "new_clinic":
                 if($accessType != self::FULL_ACCESS){
-                    $s .= "Cannot create new clinic. NO ACESS";
+                    $s .= "Cannot create new clinic. NO ACCESS";
                     break;
                 }
                 $name = SEEDInput_Str("new_clinic_name");
@@ -363,6 +363,10 @@ class Clinics {
                 $kfr->PutDBRow();
                 $clinic_key = $kfr->Key();
                 break;
+        }
+        if($clinic_key){
+            //Process user commands here so that changes can be reflected in the leader list
+            $this->processUserCommands();
         }
         $raClinics = $ClinicsDB->KFRel()->GetRecordSetRA($accessType == self::LEADER_ACCESS?"Clinics.fk_leader='".$this->oApp->sess->GetUID()."'":"");
         $s .= "<div class='container-fluid'><div class='row'>"
@@ -388,12 +392,14 @@ class Clinics {
         $s .= ($accessType == self::FULL_ACCESS ?SEEDCore_ArrayExpandRows( $raClinics, "<div style='padding:5px;'><a href='?clinic_key=[[_key]]'>[[clinic_name]]</a></div>" ):"")
               .($clinic_key ? $this->drawClinicForm($raClinics, $clinic_key) : "")
               ."</div>";
-        $s .= $this->manageUsers();
+        $s .= $this->manageUsers(true); //Bypass the command processing part since they were already processed above
         return($s);
     }
 
-    public function manageUsers(){
-        $this->processUserCommands();
+    public function manageUsers(bool $cmdProccessed = false){
+        if(!$cmdProccessed){
+            $this->processUserCommands();
+        }
         $s = "<table>
                 <tr><th style='text-align:center'>[[unassignedTitle]]</th><th style='text-align:center'>Action</th><th style='text-align:center'>Users in Clinic</th></tr>
                 <tr>
@@ -408,14 +414,24 @@ class Clinics {
                 ."If you believe this is a mistake please contact a system administrator.";
         }
         $clinic_key = SEEDInput_Int( 'clinic_key' );
-        $s = str_replace("[[clinic]]", $clinic_key, $s);
         if($accessType != self::FULL_ACCESS && !in_array($clinic_key, $this->getClinicsILead())){
             $clinic_key = 0;
         }
+        if($accessType == self::LEADER_ACCESS && in_array($this->GetCurrentClinic(), $this->getClinicsILead())){
+            $clinic_key = $this->GetCurrentClinic();
+        }
         if($clinic_key > 0){
+            $s = str_replace("[[clinic]]", $clinic_key, $s);
             $attached_users = $this->getUsersInClinic($clinic_key);
-            $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpandRows($attached_users, "<option value='[[_key]]'>[[realname]]</option>"), $s);
-            $non_attached_users = array();
+            foreach ($attached_users as $ra){
+                if($ra['_key'] == $this->clinicsDB->GetClinic($clinic_key)->Value("fk_leader")){
+                    $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpand($ra, "<option value='[[_key]]' disabled>[[realname]]</option>")."[[Assigned]]", $s);
+                }
+                else{
+                    $s = str_replace("[[Assigned]]", SEEDCore_ArrayExpand($ra, "<option value='[[_key]]'>[[realname]]</option>")."[[Assigned]]", $s);
+                }
+            }
+            $s = str_replace("[[Assigned]]","", $s);
             if($accessType == self::FULL_ACCESS){
                 $non_attached_users = $this->getUsersInClinic($clinic_key,true);
                 $s = str_replace("[[unassignedTitle]]", "Users not in Clinic", $s);
@@ -442,7 +458,7 @@ class Clinics {
                 $toAdd = $_REQUEST['toAdd'];
                 if(is_array($toAdd)){
                     foreach($toAdd as $user){
-                        $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE _key = $user;");
+                        $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE _key = $user;");
                         if(!$userData){
                             $this->oApp->oC->AddErrMsg("User $user Not Found<br />");
                         }
@@ -457,7 +473,7 @@ class Clinics {
                     }
                 }
                 else{
-                    $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_users WHERE email = '$toAdd' OR realname = '$toAdd';");
+                    $userData = $this->oApp->kfdb->QueryRA("SELECT * FROM SEEDSession_Users WHERE email = '$toAdd' OR realname = '$toAdd';");
                     if(!$userData){
                         $this->oApp->oC->AddErrMsg("User Not Found<br />");
                     }
@@ -475,8 +491,8 @@ class Clinics {
             case "remove_user":
                 $toRemove = $_REQUEST['toRemove'];
                 foreach($toRemove as $user){
-                    $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_users WHERE _key = $user;");
-                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_users = $user AND fk_clinics = $clinic_id;");
+                    $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_Users WHERE _key = $user;");
+                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_Users = $user AND fk_clinics = $clinic_id;");
                     if($this->oApp->kfdb->Execute("DELETE FROM `users_clinics` WHERE `users_clinics`.`_key` = $key;")){
                         $this->oApp->oC->AddUserMsg("Removed $userName from the clinic<br />");
                     }
@@ -560,7 +576,7 @@ class Clinics {
                 .$this->drawFormRow("Email", $this->getEmail($ra))
                 // The Developer account must be the leader of the core clinic
                 // Disable the selector so it cant be changed
-                .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($ra['fk_leader'],$ra['clinic_name'] == 'Core'))
+                .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($clinic_key,$ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
             $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:200px' id='slogo'></iframe><br />"
@@ -646,8 +662,19 @@ Modal;
         return $s;
     }
 
-    private function getLeaderOptions($leader_key, $readonly){
-        $s = "<select name='fk_leader'".($readonly?" disabled":"").">";
+    private function getLeaderOptions(int $clinic, int $leader_key, bool $readonly){
+        $access = $this->checkAccess();
+        $raUsers = $this->getUsersInClinic($clinic);
+        $tooltip = "";
+        if ($readonly){
+            $tooltip = "You don't have permission to change the leader of this clinic";
+        }
+        if($access != self::FULL_ACCESS && count($raUsers) <= 1){
+            $readonly = true;
+            $tooltip = "Add more users to the clinic to unlock";
+        }
+        
+        $s = "<div ".($tooltip?'data-tooltip="'.$tooltip.'"':"")."><select name='fk_leader'".($readonly?" disabled":"").">";
         $accountsDB = new SEEDSessionAccountDB($this->oApp->kfdb, 0);
         // Fetch all users that are not clients
         // Client credentials generated through therapist---credentials command
@@ -656,6 +683,10 @@ Modal;
         foreach($accountsDB->GetUsersFromMetadata("clientId", "UM.uid is null") as $k => $ra){
             if($ra['eStatus'] != "ACTIVE"){
                 //Skip any account that is not in the active state
+                continue;
+            }
+            if($access != self::FULL_ACCESS && !in_array($k, array_column($raUsers,'_key'))){
+                //Skip any account that is not attached to the clinic unless the users has full access
                 continue;
             }
             if($k == $leader_key){
@@ -668,7 +699,7 @@ Modal;
                 $s .= " (me)";
             }
         }
-        $s .= "</select>";
+        $s .= "</select></div>";
         return($s);
     }
 

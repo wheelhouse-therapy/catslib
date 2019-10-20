@@ -14,6 +14,6 @@ $mappings = array(
     "therapist-clientlist" => "therapist-clientlist",
     "home" => "home",
     "developer-clinics" => "clinics",
-    "leader-clinics" => "clinics",
+    "leader-clinic" => "clinics",
     "therapist-distributeReports" => "distributeReports",
 );

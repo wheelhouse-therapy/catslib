@@ -1,7 +1,7 @@
 <?php
 
 /**
- * CATS_DEBUG is a constant which allows code to only work on production machines.
+ * CATS_DEBUG is a constant which allows code to only work on development machines.
  * It is true when the host starts with localhost. This is important because serving on port 8080
  * breaks normal @$_SERVER['HTTP_HOST'] == 'localhost' checks.
  * This occures because HTTP_HOST is localhost:8080 when you serve on port 8080
