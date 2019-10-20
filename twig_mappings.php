@@ -15,4 +15,5 @@ $mappings = array(
     "home" => "home",
     "developer-clinics" => "clinics",
     "leader-clinic" => "clinics",
+    "therapist-distributeReports" => "distributeReports",
 );

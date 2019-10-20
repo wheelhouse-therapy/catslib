@@ -102,6 +102,103 @@ window.addEventListener("DOMContentLoaded", function(){
 %% tnrs
 <link rel='stylesheet' href='{{ CATSDIR_CSS }}tnrs.css'>
 
+%% distributeReports
+<script>
+function jxCall() {
+    $.ajax({
+        type: "POST",
+        data: {
+            idOut: document.getElementById("clientlist").value,
+            cmd: "therapist-distribute-reports-update-client"
+            },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+            document.getElementById("content").innerHTML = JSON.parse(data).sOut;
+        },
+        error: function(jqXHR, status, error) {
+            console.log(status + ": " + error);
+        }
+    });
+}
+function generateLabels() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("addressLabel"),
+            cmd: "therapist-generate-address-labels"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+        
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function generateFaxes() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("fax"),
+            cmd: "therapist-generate-faxes"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+        
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function generateEmails() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("email"),
+            cmd: "therapist-generate-emails"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+        
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function getSelected(type) {
+    var list = document.querySelectorAll("input." + type + ":checked");
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+        out.push(list[i].parentElement.parentElement.dataset.id);
+    }
+    return out;
+}
+</script>
+<style>
+td:not(.borderless),th:not(.borderless) {
+    border: 2px solid black;
+}
+table th,td {
+    padding: 5px;
+    min-width: 100px;
+}
+table tr {
+    vertical-align: top;
+}
+table {
+    margin-top: 10px;
+}
+#clientlist {
+    margin-top: 10px;
+}
+button.generate {
+    width: 100%;
+}
+</style>
+
 %% akaunting
 <!-- AdminLTE Skins -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/2.4.17/css/skins/skin-green.min.css" integrity="sha256-lQ1V4KFTTWz5sNliDzHYxCIIoiipHq5XYEQbdCEPllk=" crossorigin="anonymous" />
