@@ -435,7 +435,7 @@ class template_filler {
             if(!$kfr){
                 goto done;
             }
-            if( ($s = $this->peopleCol( $col, $this->kfr )) ) {
+            if( ($s = $this->peopleCol( $col, $kfr )) ) {
                 goto done;
             }
             switch ($type){
@@ -445,37 +445,45 @@ class template_filler {
                             $s = date_diff(date_create($kfr->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                             break;
                         case 'code':
-                            if($kfr && $this->kfr->Value("P_first_name") && $kfr->Value("P_last_name")){
-                                $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($this->kClient);
+                            if($kfr && $kfr->Value("P_first_name") && $kfr->Value("P_last_name")){
+                                $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($key);
                             }
                             else{
                                 $s = "";
                             }
                             break;
                         default:
-                            $s = $this->kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+                            $s = $kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
                     }
                     break;
                 case ClientList::INTERNAL_PRO:
                     switch( $col[0] ) {
                         case 'role':
-                            $s = $this->kfr->Value( 'pro_role' );
+                            $s = $kfr->Value( 'pro_role' );
                             break;
                         case 'credentials':
-                            if( ($raStaff = $this->oPeople->GetStaff( $id )) ) {
+                            if( ($raStaff = $this->oPeople->GetStaff( $key )) ) {
                                 $s = @$raStaff['P_extra_credentials'];
                             }
                             break;
                         case 'regnumber':
-                            $ra = SEEDCore_ParmsURL2RA( $this->kfr->Value('P_extra') );
+                            $ra = SEEDCore_ParmsURL2RA( $kfr->Value('P_extra') );
                             $s = $ra['regnumber' ];
                             break;
                         default:
-                            $s = $this->kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+                            $s = $kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
                     }
                     break;
                 case ClientList::EXTERNAL_PRO:
-                    $s = $this->kfr->Value( $col[0] ) ?: "";
+                    switch($col[0]){
+                        case 'spec_ed':
+                            if(strtolower($kfr->Value('role')) == 'school'){
+                                $s = "ATTN: Special Education Teachers";
+                                break;
+                            }
+                        default:
+                            $s = $kfr->Value( $col[0] ) ?: "";
+                    }
                     break;
             }
         }
