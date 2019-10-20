@@ -124,12 +124,12 @@ function generateLabels() {
     $.ajax({
         type: "POST",
         data: {
-            info: getSelected("addressLabel"),
+            info: getSelected("label"),
             cmd: "therapist-generate-address-labels"
         },
         url: "jx.php",
         success: function(data, textStatus, jqXHR) {
-        
+            
         },
         error: function(jqXHR, status, error) {
         
