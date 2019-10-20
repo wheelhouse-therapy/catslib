@@ -144,6 +144,12 @@ class template_filler {
      * The filled file should not be sent to the user as it is not complete
      */
     public const RESOURCE_SECTION = 2;
+    /**
+     * The resource being filled is part of a batch of resources.
+     * The filled file should not be sent to the user as there may be more to follow.
+     * It will be sent with the other files in a zip
+     */
+    public const RESOURCE_GROUP = 3;
     
     public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array(), array $data = array() )
     {
@@ -198,33 +204,6 @@ class template_filler {
             }
         }
 
-/* Aha, the trick for substitution is to just use $templateProcessor->save().
-   The reason is that the templateProcessor reads the xml in the docx, str_replaces the tags, and puts the xml back in a temp docx.
-   Then below phpword loads that temp docx and saves it again. This screws up complex documents that phpword doesn't know how to handle.
-   BUT, the temp docx is the original xml with just our tags replaced so it's exactly what we want anyway.
-
-        $ext = "";
-        switch(strtolower(substr($resourcename,strrpos($resourcename, ".")))){
-            case '.docx':
-                $ext = 'Word2007';
-                break;
-            case '.html':
-                $ext = 'HTML';
-                break;
-            case '.odt':
-                $ext = 'ODText';
-                break;
-            case '.rtf':
-                $ext = 'RTF';
-                break;
-            case '.doc':
-                $ext = 'MsDoc';
-                break;
-        }
-        $phpWord = \PhpOffice\PhpWord\IOFactory::load($templateProcessor->save(),$ext);
-        $phpWord->save(substr($resourcename,strrpos($resourcename, '/')+1),$ext,TRUE);
-*/
-
         switch($resourceType){
             case self::STANDALONE_RESOURCE:
                 // Manually fetch the client code using the built in code proccessing system.
@@ -253,6 +232,12 @@ class template_filler {
                 break;
             case self::RESOURCE_SECTION:
                 return $templateProcessor->getSection();
+            case self::RESOURCE_GROUP:
+                // Save the substituted template to a temp file and return the file name so it can be added to the zip
+                // PHP automatically deletes the temp file when the script ends.
+                $tempfile = $templateProcessor->save();
+                $this->handleImages($tempfile);
+                return $tempfile;
         }
     }
 
