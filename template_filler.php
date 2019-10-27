@@ -288,8 +288,9 @@ class template_filler {
                         break;
                 }
                 if($imagePath === FALSE){
-                    $im = imagecreatefromstring($img);
+                    $im = imagecreatefromstring($za->getFromName("word/media/".$img));
                     $data = imagecreate(imagesx($im), imagesy($im));
+                    imagefill($data, 0, 0, imagecolorallocate($data, 255, 255, 255));
                     imagedestroy($im);
                 }
                 switch(strtolower(pathinfo($img,PATHINFO_EXTENSION))){
@@ -297,6 +298,7 @@ class template_filler {
                         $imageType = IMAGETYPE_PNG;
                         break;
                     case "jpg":
+                    case "jpeg":
                         $imageType = IMAGETYPE_JPEG;
                         break;
                 }
