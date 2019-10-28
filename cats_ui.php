@@ -44,8 +44,9 @@ class CATS_UI
              .($this->oHistory->getScreen()=="home"?"<script> run(); </script>":"");
 
         $clinics = new Clinics($this->oApp);
+        $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
         $s = $this->oTmpl->ExpandTmpl( 'cats_page',
-            ['img_cats_logo'=>CATS_LOGO,
+            ['img_cats_logo'=>base64_encode(getImageData($imagePath, IMAGETYPE_PNG)),
                 'CATSDIR'=>CATSDIR,
                 'CATSDIR_CSS'=>CATSDIR_CSS,
                 'CATSDIR_JS'=>CATSDIR_JS,

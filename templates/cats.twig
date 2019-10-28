@@ -14,7 +14,7 @@
     {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home'><button>Home</button></a>" %}
 {% endif %}
 <div class='cats_header'>
-    <a href='?screen=home'><img src='{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
+    <a href='?screen=home'><img src='data:image/png;base64,{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
     <div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>{{clinics|raw}}</div>
     <div style='float:right;top: 5px;position: relative;'>
         Welcome {{user_name|raw}} <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
