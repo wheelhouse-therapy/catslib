@@ -1,0 +1,500 @@
+%% home
+{# Circles code #}
+<style>
+	:root {
+		--color1: #63cdfc;
+		--color2: #388ed4;
+		--textColor: black;
+	}
+	body {
+		margin: 0 8px;
+	}
+	.toCircle {
+		text-decoration: none;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		margin-bottom: 20px;
+		margin-left: 10px;
+		border-style: inset outset outset inset;
+		border-width: 3px;
+		border-radius: 50%;
+	}
+	@keyframes colorChange {
+		from {background-color: var(--color1); border-color: var(--color1);}
+		to {background-color: var(--color2); border-color: var(--color2);}
+	}
+	[class *= catsCircle] {
+		box-sizing: border-box;
+		height: 200px;
+		width: 200px;
+		color: var(--textColor) !important;
+	}
+	.catsCircle1 {
+		animation: colorChange 10s ease-in-out infinite alternate;
+	}
+	.catsCircle2 {
+		animation: colorChange 10s ease-in-out -5s infinite alternate;
+	}
+</style>
+<script>
+function createCircle(elements, styles) {
+	for (var x in elements) {
+		var diameter = styles[x][0], color = styles[x][1], textColor = styles[x][2];
+		elements[x].style.height = diameter;
+		elements[x].style.width = diameter;
+		elements[x].style.color = textColor;
+		elements[x].style.backgroundColor = color;
+		elements[x].style.borderColor = color;
+	}
+	return true;
+}
+function run() {
+    var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
+    var elements = [], styles = [];
+    for(var y = 0; y < x.length; y++) {
+		elements.push(x[y]);
+		styles.push(x[y].dataset.format.split(' '));
+	}
+	createCircle(elements, styles);
+
+	/* Unused Appointments code
+	$(document).ready( function () {
+
+		// Generic seedjx submission
+		
+		$('.seedjx-submit').click( function () { SEEDJX_Form1( 'jx.php', $(this) ); } );
+
+		// the Appointment Review button launches catsappt--reviewd
+		
+		$('.appt-newform').submit( function (e) {
+			e.preventDefault();
+			var gid = $(this).find('#appt-gid').val();
+			var cid = $(this).find('#appt-clientid').val();
+			var divSpecial = this.appt();
+
+			$.ajax({
+				type: 'POST',
+				data: { cmd: 'catsappt--review', google_cal_ev_id: gid, fk_clients: cid },
+				url: 'jx.php',
+				success: function(data, textStatus, jqXHR) {
+					var jsData = JSON.parse(data);
+					var sSpecial = jsData.bOk ? jsData.sOut : 'No, something is wrong';
+					divSpecial.outerHTML = sSpecial;
+				},
+				error: function(jqXHR, status, error) {
+					console.log(status + ": " + error);
+				}
+			});
+		});
+	}); */
+
+}
+window.addEventListener("DOMContentLoaded", function(){
+    $('body').backDetect(function(){
+	  window.location = '?screen=goBack';
+    });
+});
+</script>
+
+
+%% tnrs
+<link rel='stylesheet' href='{{ CATSDIR_CSS }}tnrs.css'>
+
+%% distributeReports
+<script>
+function jxCall() {
+    $.ajax({
+        type: "POST",
+        data: {
+            idOut: document.getElementById("clientlist").value,
+            cmd: "therapist-distribute-reports-update-client"
+            },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+            document.getElementById("content").innerHTML = JSON.parse(data).sOut;
+        },
+        error: function(jqXHR, status, error) {
+            console.log(status + ": " + error);
+        }
+    });
+}
+function generateLabels() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("label"),
+            cmd: "therapist-generate-address-labels"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+            
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function generateFaxes() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("fax"),
+            cmd: "therapist-generate-faxes"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+        
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function generateEmails() {
+    $.ajax({
+        type: "POST",
+        data: {
+            info: getSelected("email"),
+            cmd: "therapist-generate-emails"
+        },
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+        
+        },
+        error: function(jqXHR, status, error) {
+        
+        }
+    });
+}
+function getSelected(type) {
+    var list = document.querySelectorAll("input." + type + ":checked");
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+        out.push(list[i].parentElement.parentElement.dataset.id);
+    }
+    return out;
+}
+</script>
+<style>
+td:not(.borderless),th:not(.borderless) {
+    border: 2px solid black;
+}
+table th,td {
+    padding: 5px;
+    min-width: 100px;
+}
+table tr {
+    vertical-align: top;
+}
+table {
+    margin-top: 10px;
+}
+#clientlist {
+    margin-top: 10px;
+}
+button.generate {
+    width: 100%;
+}
+</style>
+
+%% akaunting
+<!-- AdminLTE Skins -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/2.4.17/css/skins/skin-green.min.css" integrity="sha256-lQ1V4KFTTWz5sNliDzHYxCIIoiipHq5XYEQbdCEPllk=" crossorigin="anonymous" />
+<!-- App style -->
+<link rel="stylesheet" href="{{ CATSDIR_AKAUNTING }}css/app.css?v=1.3.17">
+<link rel="stylesheet" href="{{ CATSDIR_AKAUNTING }}css/akaunting-green.css?v=1.3.17">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.css" integrity="sha256-AghQEDQh6JXTN1iI/BatwbIHpJRKQcg2lay7DE5U/RQ=" crossorigin="anonymous" />
+
+
+<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+<!--[if lt IE 9]>
+<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+<![endif]-->
+<!-- Select2 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js"></script>
+<!-- Mask Money -->
+<script src="{{ CATSDIR_AKAUNTING }}js/jquery/jquery.maskMoney.js"></script>
+
+<script src="{{ CATSDIR_AKAUNTING }}js/app.js?v=1.3.17"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.js" integrity="sha256-JIBDRWRB0n67sjMusTy4xZ9L09V8BINF0nd/UUUOi48=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    var item_row = '1';
+    function totalItem() {
+        $('.box-footer .btn-success').prop('disabled', true);
+        var ra = [];
+        document.querySelectorAll("input[id^=item-debit-]").forEach(a => ra.push($(a).maskMoney('unmasked')[0]));
+        var debit = ra.reduce((a,b) => Number(a)+Number(b));
+
+        var ra = [];
+        document.querySelectorAll("input[id^=item-credit-]").forEach(a => ra.push($(a).maskMoney('unmasked')[0]));
+        var credit = ra.reduce((a,b) => Number(a)+Number(b));
+        
+        $('#debit-sub-total').html(debit);
+        $('#credit-sub-total').html(credit);
+        $('#debit-grand-total').html(debit);
+    	$('#credit-grand-total').html(credit);
+        if (debit == credit) {
+            $('.box-footer .btn-success').prop('disabled', false);
+            $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
+            $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
+        } else if (debit > credit) {
+            $('#debit-grand-total').parent().css('background-color', '#d0e9c6');
+            $('#credit-grand-total').parent().css('background-color', '#f2dede');
+        } else if (debit < credit) {
+            $('#debit-grand-total').parent().css('background-color', '#f2dede');
+            $('#credit-grand-total').parent().css('background-color', '#d0e9c6');
+        }
+    }
+    $(document).on('click', '#button-add-item', function (e) {
+        			var clone = document.getElementById('tableRow').content.cloneNode(true);
+        			clone.querySelectorAll('[id="item-debit-"]')[0].id = "item-debit-" + item_row;
+        			clone.querySelectorAll('[id="item-credit-"]')[0].id = "item-credit-" + item_row;
+                    $('#items tbody #addItem').before(clone);
+
+                    $('[data-toggle="tooltip"]').tooltip('hide');
+debugger;
+                    $("#item-debit-" + item_row).maskMoney({
+                        thousands : ',',
+                        decimal : '.',
+                        precision : 2,
+                        allowZero : true,
+                        prefix : '$',
+                        suffix : ''
+                    });
+
+                    $("#item-debit-" + item_row).trigger('focusout');
+
+                    $("#item-credit-" + item_row).maskMoney({
+                    	thousands : ',',
+                        decimal : '.',
+                        precision : 2,
+                        allowZero : true,
+                        prefix : '$',
+                        suffix : ''
+                    });
+
+                    $("#item-credit-" + item_row).trigger('focusout');
+
+                    $(".input-account").select2({
+                        placeholder: {
+                            id: '-1', // the value of the option
+                            text: "- Select Account -"
+                        }
+                    });
+
+                    item_row++;
+    });
+
+    $(document).on('change', '.input-price', function(){
+        alert('onChange');
+        id = $(this).attr('id');
+debugger;
+        ids = id.split('-');
+
+        amount = $(this).maskMoney('unmasked')[0];
+
+        $(this).parent().removeClass('has-error');
+        $(this).parent().find('.help-block').remove();
+
+        if (ids[1] == 'debit') {
+            $('#item-credit-' + ids[2]).prop('disabled', true);
+
+            $('#item-credit-' + ids[2]).parent().removeClass('has-error');
+            $('#item-credit-' + ids[2]).parent().find('.help-block').remove();
+        } else {
+            $('#item-debit-' + ids[2]).prop('disabled', true);
+
+            $('#item-debit-' + ids[2]).parent().removeClass('has-error');
+            $('#item-debit-' + ids[2]).parent().find('.help-block').remove();
+        }
+
+        if (amount == 0) {
+            $('#item-debit-' + ids[2]).prop('disabled', false);
+            $('#item-credit-' + ids[2]).prop('disabled', false);
+        }
+    });
+
+    var focus = false;
+
+    $(document).on('focusin', '#items .input-price', function(){
+        focus = true;
+    });
+
+    $(document).on('blur', '#items .input-price', function(){
+        if (focus) {
+            totalItem();
+
+            focus = false;
+        }
+    });
+
+    $(document).ready(function(){
+        $('.box-footer .btn-success').prop('disabled', true);
+
+        
+        $(".input-price").maskMoney({
+            thousands : ',',
+            decimal : '.',
+            precision : 2,
+            allowZero : true,
+                        prefix : '$'
+                    });
+
+        $('.input-price').trigger('focusout');
+
+        $(".input-account").select2({
+            placeholder: {
+                id: '-1', // the value of the option
+                text: "- Select Account -"
+            }
+        });
+
+        //Date picker
+        $('#paid_at').datepicker({
+            format: 'yyyy-mm-dd',
+            todayBtn: 'linked',
+            autoclose: true,
+            language: 'en'
+        });
+
+        $("#debit_account_id").select2({
+            placeholder: "- Select Account -"
+        });
+
+        $("#credit_account_id").select2({
+            placeholder: "- Select Account -"
+        });
+    });
+</script>
+<!-- Ledger Report Styling -->
+<link rel='stylesheet' href='w/css/akLedgerReport.css'>
+
+<!-- Overlay Styling -->
+<style>
+.overlay {
+  position: absolute;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: not-allowed;
+}
+.overlayText{
+  position: absolute;
+  top: 400px;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+.loader {
+  position: absolute;
+  left: 50%;
+  top: 300px;
+  z-index: 1;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
+%% therapist-clientlist
+<link rel='stylesheet' href='{{ CATSDIR_CSS }}slider.css'>
+<script src='{{ CATSDIR_JS }}slider.js'></script>
+<script src='{{ CATSDIR_JS }}therapist-clientlist.js'></script>
+
+%% clinics
+<script>
+	function submitModal(e){
+		var formData = new FormData(e.currentTarget.form);
+		formData.append("action",e.currentTarget.value);
+        var formURL = $(e.currentTarget.form).attr("action");
+        $.ajax({
+            type: "POST",
+            data: formData,
+            cache       : false,
+            contentType : false,
+            processData : false,
+            url: formURL,
+            success: function(data, textStatus, jqXHR) {
+                var jsData = JSON.parse(data)
+                if(jsData.bOk){
+					document.getElementById('action_result').innerHTML = jsData.sOut;
+					var iframe = document.getElementById('image_ID').value;
+					document.getElementById(iframe).contentWindow.location.reload();
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+        e.preventDefault();
+	}
+
+	function showModal(id){
+		document.getElementById('action_result').innerHTML = "";
+		$('#imagePreview').attr('src', "#");
+		switch(id){
+		case 'slogo':
+			document.getElementById('imageName').innerHTML = "Square Logo";
+			break;
+		case 'wlogo':
+			document.getElementById('imageName').innerHTML = "Wide Logo";
+			break;
+		case 'footer':
+			document.getElementById('imageName').innerHTML = "Footer";
+			break;
+		}
+		document.getElementById('clinic_image_form').reset();
+		document.getElementById('image_ID').value=id;
+		var iframe = document.getElementById(id);
+		document.getElementById('imagePreview').style.maxWidth = iframe.style.width;
+		document.getElementById('imagePreview').style.maxHeight = iframe.style.height;
+		$('#clinic_image_dialog').modal('show');
+	}
+	
+	var reader = new FileReader();
+	reader.onload = function (e) {
+	    $('#imagePreview').attr('src', e.target.result);
+	}
+	
+   function readURL(input) {
+        if (input.files && input.files[0]) {
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+   window.addEventListener("DOMContentLoaded", function(){
+        $("#imageSelector").change(function(){
+            readURL(this);
+        });
+   });
+	
+</script>

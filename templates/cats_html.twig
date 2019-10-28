@@ -1,0 +1,63 @@
+{# Top-level CATS template that defines the <html> and <head> portions of the output #}
+
+%% cats_html
+ 
+{# All variations of html pages extend this (to provide the html_body block) #}
+<!DOCTYPE html>
+<html lang="en">
+<head>{% include 'html_head' %}</head>
+<body>{% block html_body %}{% endblock %}</body>
+<footer>{% block html_footer %}{% endblock %}</footer>
+</html>
+
+
+%% html_head
+{#
+ # All the header stuff goes here.
+ # If you have custom header content for a particular page, define a block here and provide it in the template for that page.
+ #}
+ <!-- Meta tag crap -->
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
+<meta http-equiv="X-UA-Compatible" content="IE=10; IE=9; IE=8; IE=7; IE=EDGE" />
+<!-- Appointments Code (unused) -->
+<!-- <script src='{{ CATSDIR_JS }}appointments.js'></script> -->
+<!-- JQuery -->
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+<!-- JQuery Plugins -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.1.2/jquery.floatThead.min.js"></script>
+<script src='{{ CATSDIR_JS }}jquery.backDetect.js'></script>
+<!-- Popper.js -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js' integrity='sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q' crossorigin='anonymous'></script>
+<!-- Bootstrap -->
+<script src='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js' integrity='sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl' crossorigin='anonymous'></script>
+<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css' integrity='sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm' crossorigin='anonymous'>
+<!-- Font Awesome -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/js/all.min.js'></script>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/css/all.min.css'>
+<!-- Tooltip -->
+<link rel='stylesheet' href='{{CATSDIR_CSS}}tooltip.css'>
+<!-- Seeds stuff -->
+<script src='{{ W_CORE_URL }}js/SEEDCore.js'></script>
+<link rel='stylesheet' href='{{ W_CORE_URL }}css/console02.css'>
+<!-- Favicon -->
+<link rel="icon" href="https://catherapyservices.ca/wp-content/uploads/2018/08/cropped-cats_icon-32x32.jpg" sizes="32x32">
+<!-- Header Styles -->
+<style>
+.selectedClinic {
+	font-size: 20pt;
+}
+div.cats_header {
+	overflow: visible;
+	position: sticky;
+	background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+	top: 0;
+	z-index: 99;
+	display: inline-block;
+	width: 100%;
+}
+body {
+   margin: 0 20px;
+}
+</style>
+{% include ExtensionTmpl ignore missing %}

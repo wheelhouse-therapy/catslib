@@ -73,6 +73,7 @@ function addRow() {
 function printImg() {
     let printImg = this.cloneNode(true);
     printImg.classList.add("printing");
+    printImg.classList.remove("thumbnail");
     if (landscapes.includes(printImg.alt)) {
         pageRule.innerHTML = 
         "@page {" +
@@ -86,9 +87,21 @@ function printImg() {
             "margin: 0;" +
         "}";
     }
-    document.body.appendChild(printImg);
-    print();
-    document.body.removeChild(printImg);
+    //document.body.appendChild(printImg);
+var w = window.open();
+w.document.write( "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">" );
+w.document.write( "<html>" );
+w.document.write( "<head>" );
+w.document.write( "<meta charset='utf-8'>" );
+w.document.write( "</head><body>" );
+w.document.write( "<style>html,body,img{width:100%;height:100%;object-fit: contain;}</style>" );
+w.document.write( document.getElementById('printStyle').outerHTML );
+w.document.write( pageRule.outerHTML );
+w.document.write( printImg.outerHTML );
+w.document.write('<script type="text/javascript">function closeme(){window.close();}setTimeout(closeme,50);window.print();<\/script></body></html>');
+w.document.close();
+    //print();
+    //document.body.removeChild(printImg);
 }
 function unsupported() {
     if ((!!window.chrome && !!window.chrome.webstore) ||
@@ -98,7 +111,7 @@ function unsupported() {
     return true; 
 }
 </script>
-<style>
+<style id='printStyle' >
 .thumbnail {
     display: block;
     margin: auto;
@@ -116,6 +129,7 @@ function unsupported() {
         display: none !important;
     }
     .printing {
+        display: block;
         position: absolute;
         top: 0;
         right: 5px;
@@ -130,10 +144,12 @@ function unsupported() {
     body {
         margin: 0;
         padding: 0;
+        width: 100%;
     }
     html {
         padding: 0px;
         margin: 0px;
+        width: 100%;
     }
 }
 #tip {

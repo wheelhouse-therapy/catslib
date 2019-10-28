@@ -1,0 +1,153 @@
+# Main CATS template file
+
+%% cats
+<p>{{name}} is a {% if animal=='cat' %} kitty {% else %} chicken.{% endif %}</p>
+<p>[[Var:name]] is a {% if animal=='cat' %} [[mailto:kitty@kitchen.ca]] {% else %} chicken.{% endif %}</p>
+
+
+%% cats_header
+############## 
+# This is the header that goes at the top of every page.
+
+# Make a link back to the home screen, if we aren't already there
+{% if screen_name != 'home' %}
+    {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home'><button>Home</button></a>" %}
+{% endif %}
+<div class='cats_header'>
+    <a href='?screen=home'><img src='{{img_cats_logo}}' style='max-width:300px;float:left;'/></a>
+    <div style='float:none;top: 5px;position: relative;display: inline-block;margin-left: 20%;margin-right: 10px;'>{{clinics|raw}}</div>
+    <div style='float:right;top: 5px;position: relative;'>
+        Welcome {{user_name|raw}} <button style="background: url({{CATSDIR_IMG}}/Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; top: 5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout'><button>Logout</button></a>
+    </div>
+</div>
+{% if ConsoleUserMsg %}
+    <div class='alert alert-success'>{{ConsoleUserMsg|raw}}</div>
+{% endif %}
+{% if ConsoleErrMsg %}
+    <div class='alert alert-danger'>{{ConsoleErrMsg|raw}}</div>
+{% endif %}
+{% include 'cats_support' %}
+
+
+%% cats_page
+############
+{% extends 'cats_html' %}
+{% block html_body %}
+{% include 'cats_header' %}
+{{ body|raw }}
+{% endblock %}
+{%  block html_footer %}
+<!-- Tooltip -->
+<script src='{{ CATSDIR_JS }}tooltip.js'></script>
+<!-- Link to icon source as required by license -->
+<!-- <a href="https://icons8.com/">Icons sourced from Icons8</a> -->
+{% endblock %}
+
+%% cats_support
+############## 
+# This is the Support Dialog and Button that goes in the header to provide easy access to the Dev Team
+<script>
+    /* must apply only after HTML has loaded */
+    $(document).ready(function () {
+        $("#support_dialog").on("hidden.bs.modal", function(){
+            document.getElementById("support_form").reset();
+            document.getElementById("supportDescBlock").style.display = "none";
+        });
+        $(".support-alert").hide();
+        hideAlerts();
+    });
+    function supportSubmit(e){
+    	var postData = $(e.currentTarget).serializeArray();
+        var formURL = $(e.currentTarget).attr("action");
+        $.ajax({
+            type: "POST",
+            data: postData,
+            url: formURL,
+            success: function(data, textStatus, jqXHR) {
+                $('#support_dialog').modal('hide');
+                var jsData = JSON.parse(data);
+                if(jsData.bOk){
+                    $('#supportRequested').slideDown(500);
+                }
+                else if(jsData.sErr){
+                    document.getElementById('supportFailed').innerHTML = jsData.sErr;
+                    $('#supportFailed').slideDown(500);
+                }
+                else{
+                    document.getElementById('supportFailed').innerHTML = "Could not request support";
+                    $('#supportFailed').slideDown(500);
+                }
+                hideAlerts();
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+        e.preventDefault();
+    }
+    function supportTypeChange(e){
+        var supportType = e.currentTarget;
+        var supportDescBlock = document.getElementById("supportDescBlock");
+        var supportDescLabel = document.getElementById("supportDescLabel");
+        var supportDescBox = document.getElementById("supportDesc");
+        if(!supportType.selectedOptions[0].value){
+            supportDescBlock.style.display = "none";
+            supportDescBox.value = "";
+        }
+        else{
+        	supportDescBlock.style.display = "block";
+        	if(supportType.selectedOptions[0].value === "Bug Report"){
+            	supportDescLabel.innerHTML = "Please describe the bug in as much detail as possible. Be sure to include actions to reproduce it.";
+            }
+        	else if(supportType.selectedOptions[0].value === "Feature Request"){
+        		supportDescLabel.innerHTML = "Please describe the feature you would like in as much detail as possible.";
+           	}
+        	else if(supportType.selectedOptions[0].value === "General Support"){
+            	supportDescLabel.innerHTML = "Please tell us what you need assistance with. Please be as specific as possible.";
+            }
+        }
+    }
+    function hideAlerts(){
+    	setTimeout(function() {
+    		$(".alert-dismissible").slideUp(500);
+        }, 5000);
+    }
+</script>
+
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="support_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Support</h4>
+            </div>
+            <div class="modal-body">
+                <form id='support_form' action='jx.php' onsubmit='supportSubmit(event)'>
+                	<input type='hidden' name='cmd' value='support'>
+                	<label for='supportType'>What Type of Support are you looking for?</label>
+                	<select id='supportType' name='supportType' required onchange='supportTypeChange(event)'>
+                		<option value="">-- Select One --</option>
+                		<option>Bug Report</option>
+                		<option>Feature Request</option>
+                		<option>General Support</option>
+                	</select>
+                	<div id='supportDescBlock' style='display:none'>
+                		<label for='supportDesc' id='supportDescLabel'></label>
+                		<textArea id='supportDesc' name='supportDesc' required></textArea>
+                	</div>
+                	
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <input type="submit" class="btn btn-default" form="support_form" value='Request Support' />
+            </div>
+        </div>
+    </div>
+</div>
+<div id='supportFailed' class="alert alert-danger alert-dismissible support-alert" style="display:none">
+Could not request support
+</div>
+<div id='supportRequested' class="alert alert-success alert-dismissible support-alert" style="display:none">
+Support Requested
+</div>

@@ -43,7 +43,7 @@ class Appointments
         $ra['time_format'] = date("G:i", mktime(0,$ra['total_minutes']) );
 
         $ra['payment'] = ($ra['total_minutes']/60)*$kfrAppt->Value('rate');
-        
+
         return( $ra );
     }
 
@@ -321,7 +321,7 @@ class Calendar
 
         /* Get a list of all the calendars that this user can see
          */
-        list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars();
+        list($raCalendars,$sCalendarIdPrimary) = $oGC->GetAllMyCalendars($this->oApp);
 
         /* This user cannot see the calendar we are currently looking at. Clear the Smart GPC
          * of the unavailable calendar so the code below will point to the primary calendar
@@ -335,6 +335,14 @@ class Calendar
         $calendarIdCurrent = $this->oApp->sess->SmartGPC( 'calendarIdCurrent', array($sCalendarIdPrimary) );
 
         $s .= $this->processCommands($oGC, $calendarIdCurrent);
+
+        // There are no calendars available for the clinic
+        // Show a message to the user that there are no calendars
+        // To avoid errors do not access the google api without a calendar id
+        if(count($raCalendars) == 0){
+            $s .= "<h5>No Calendars Available for this clinic</h5>";
+            return $s;
+        }
 
         /* Show the list of calendars so we can choose which one to look at
          * The current calendar will be selected in the list.
@@ -863,7 +871,7 @@ class CATS_GoogleCalendar
         }
     }
 
-    function GetAllMyCalendars()
+    function GetAllMyCalendars($oApp)
     {
         $raCalendars = array();
         $sCalendarIdPrimary = "";
@@ -874,6 +882,9 @@ class CATS_GoogleCalendar
         // calendars are paged; pageToken is not specified on the first time through, then nextPageToken is specified as long as it exists
         while( ($calendarList = $this->service->calendarList->listCalendarList( $opts )) ) {
             foreach ($calendarList->getItems() as $calendarListEntry) {
+                if(!(new Clinics($oApp))->isCoreClinic()){
+                    if($calendarListEntry["accessRole"] != 'owner' || !$this->checkAssociation($oApp, $calendarListEntry->getID())) continue; // Calendar is not associated with the current clinic
+                }
                 $raCalendars[$calendarListEntry->getSummary()] = $calendarListEntry->getId();
                 if( $calendarListEntry->getPrimary() ) {
                     $sCalendarIdPrimary = $calendarListEntry->getId();
@@ -885,6 +896,21 @@ class CATS_GoogleCalendar
         }
         done:
         return( array($raCalendars,$sCalendarIdPrimary) );
+    }
+
+    private function checkAssociation($oApp,$calID){
+        //Clinics
+        $clinics = new Clinics($oApp);
+        $clinicsDB = new ClinicsDB($oApp->kfdb);
+
+        $acl = $this->service->acl->listAcl($calID);
+        foreach ($acl->getItems() as $rule) {
+            $clinic = $clinicsDB->GetClinic($clinics->GetCurrentClinic())->Value('clinic_name');
+            if(strtolower($rule->getScope()->getValue()) == strtolower($clinic."@catherapyservices.ca")){
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     function GetEvents( $calendarId, $startdate, $enddate )
@@ -923,6 +949,5 @@ class CATS_GoogleCalendar
         $this->service->events->delete($calendarID,$id);
     }
 }
-
 
 ?>

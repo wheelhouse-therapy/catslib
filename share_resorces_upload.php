@@ -1,10 +1,7 @@
 <?php
-require_once '_start.php';
+require_once 'share_resources.php';
 
-if (!file_exists(CATSDIR_RESOURCES."pending")) {
-    @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
-    echo "Pending Resources Directiory Created<br />";
-}
+ensureDirectory("pending");
 
 $target_dir = CATSDIR_RESOURCES."pending/";
 $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
@@ -13,17 +10,17 @@ $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
 // Check if file already exists
 $s .= "<a href='".CATSDIR."?screen=therapist-submitresources'><button>Back</button></a><br />";
 if (file_exists($target_file)) {
-    $s .= "Sorry, file already exists.";
+    $s .= "Sorry, file already exists.<br />";
     $uploadOk = 0;
 }
 // Check file size
-if ($_FILES["fileToUpload"]["size"] > 500000) {
-    $s .= "Sorry, your file is too large.";
+if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
+    $s .= "Sorry, your file is too large.<br />";
     $uploadOk = 0;
 }
 // Allow certain file formats
-if($documentFileType != "pdf" && $documentFileType != "doc" && $documentFileType != "docx" && $documentFileType != "txt" && $documentFileType != "rtf" ) {
-    $s .= "Sorry, only PDF, doc, docx, rtf & txt files are allowed.";
+if(!in_array($documentFileType, getExtensions())) {
+    $s .= "Sorry, only ".implode(", ", array_unique(getExtensions()))." files are allowed.<br />";
     $uploadOk = 0;
 }
 // Check if $uploadOk is set to 0 by an error
@@ -40,4 +37,5 @@ if ($uploadOk == 0) {
         $s .= "Sorry, there was an error uploading your file.";
     }
 }
+
 ?>

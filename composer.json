@@ -1,0 +1,6 @@
+{
+    "require": {
+        "rmccue/requests": "^1.7",
+        "ddeboer/imap": "^1.6"
+    }
+}

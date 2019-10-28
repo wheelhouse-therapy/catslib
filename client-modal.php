@@ -1,46 +1,17 @@
 <?php
 
-function drawModal($ra, $oProsDB, $pro_roles_name){
-    $s = "<script>
-            /* must apply only after HTML has loaded */
-            $(document).ready(function () {
-                $(\"#contact_form\").on(\"submit\", function(e) {
-                    var postData = $(this).serializeArray();
-                    var formURL = $(this).attr(\"action\");
-                    $.ajax({
-                        type: \"POST\",
-                        data: postData,
-                        url: formURL,
-                        success: function(data, textStatus, jqXHR) {
-                            $('#contact_dialog').modal('hide');
-                        },
-                        error: function(jqXHR, status, error) {
-                            console.log(status + \": \" + error);
-                        }
-                    });
-                    e.preventDefault();
-                });
-                
-                $(\"#submitForm\").on('click', function() {
-                    $(\"#contact_form\").submit();
-                });
-                $(\"#contact_dialog\").on(\"hidden.bs.modal\", function(){
-                    location.reload();
-                });
-            });
-        </script>
-        
-        <button type=\"button\" data-toggle=\"modal\" data-target=\"#contact_dialog\">Connect Providers</button>
-        
+function drawModal($ra, $oPeopleDB, $pro_roles_name){
+    $s = "
         <!-- the div that represents the modal dialog -->
         <div class=\"modal fade\" id=\"contact_dialog\" role=\"dialog\">
             <div class=\"modal-dialog\">
                 <div class=\"modal-content\">
                     <div class=\"modal-header\">
-                        <h4 class=\"modal-title\">Connect Providers to ".$ra['client_first_name']." ".$ra['client_last_name']."</h4>
+                        <h4 class=\"modal-title\">Connect Providers to ".$ra['P_first_name']." ".$ra['P_last_name']."</h4>
                     </div>
                     <div class=\"modal-body\">
-                        <form id=\"contact_form\" action=\"modal-submit.php\" method=\"POST\">
+                        <form id=\"contact_form\" action=\"jx.php\" method=\"POST\">
+                            <input type='hidden' name='cmd' value='therapist--modal' />
                             <input type='hidden' name='client_key' value='{$ra['_key']}' />";
              $otherless = array_filter($pro_roles_name,function($var){
                 return($var != "Other");  
@@ -48,11 +19,11 @@ function drawModal($ra, $oProsDB, $pro_roles_name){
              foreach ($pro_roles_name as $k => $role){
                  if($k == "Other"){
                      $s .= "$role <select name='$k'><option selected value='0'>Select Provider"
-                     .SEEDCore_ArrayExpandRows($oProsDB->KFRel()->GetRecordSetRA("pro_role NOT IN (".SEEDCore_ArrayExpandSeries($otherless, ",'[[]]'",TRUE,array("sTemplateFirst"=>"'[[]]'")).")"), "<option value='[[_key]]' />[[pro_name]] ([[pro_role]])")
+                     .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel("PE")->GetRecordSetRA("pro_role NOT IN (".SEEDCore_ArrayExpandSeries($otherless, ",'[[]]'",TRUE,array("sTemplateFirst"=>"'[[]]'")).")"), "<option value='[[_key]]' />[[P_first_name]] [[P_last_name]] ([[pro_role]])")
                      ."</select><br />";
                  }else {
                      $s .= "$role <select name='$k'><option selected value='0'>Select Provider"
-                     .SEEDCore_ArrayExpandRows($oProsDB->KFRel()->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[pro_name]]")
+                     .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel("PE")->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[P_first_name]] [[P_last_name]]")
                      ."</select><br />";
                  }
               }
@@ -66,4 +37,11 @@ function drawModal($ra, $oProsDB, $pro_roles_name){
             </div>
         </div>";
     return($s);
+}
+
+function drawModalButton(int $key):String{
+    return <<<ModalButton
+<button onClick='connectButton(event,$key)'>Connect Providers</button>
+ModalButton;
+    
 }
