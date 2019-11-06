@@ -364,56 +364,56 @@ class template_filler {
                         $raTag = explode( '===', $raTag[1], 2 );
                         switch($raTag[0]){
                             case 'mode':
-                                $raTag[0] = $this->kClient?"replace":"no-replace";
-                                break;
-                            default:
-                                $raTag[0] = $this->expandTag($raTag[0]);
-                        }
-                        $this->skipTags = $raTag[0] == $raTag[1];
-                    }
-                    // Negative Case Sensative Check
-                    else if(strpos($raTag[1], "!==") !== False){
-                        $raTag = explode( '!==', $raTag[1], 2 );
-                        switch($raTag[0]){
-                            case 'mode':
-                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                $raTag[0] = $this->kClient?"replace":"blank";
                                 break;
                             default:
                                 $raTag[0] = $this->expandTag($raTag[0]);
                         }
                         $this->skipTags = $raTag[0] != $raTag[1];
                     }
+                    // Negative Case Sensative Check
+                    else if(strpos($raTag[1], "!==") !== False){
+                        $raTag = explode( '!==', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = $raTag[0] == $raTag[1];
+                    }
                     // Case InSensative Check
                     else if(strpos($raTag[1], "==") !== False){
                         $raTag = explode( '==', $raTag[1], 2 );
                         switch($raTag[0]){
                             case 'mode':
-                                $raTag[0] = $this->kClient?"replace":"no-replace";
-                                break;
-                            default:
-                                $raTag[0] = $this->expandTag($raTag[0]);
-                        }
-                        $this->skipTags = strtolower($raTag[0]) == strtolower($raTag[1]);
-                    }
-                    // Negative Case InSensative Check
-                    else if(strpos($raTag[1], "!=") !== False){
-                        $raTag = explode( '!=', $raTag[1], 2 );
-                        switch($raTag[0]){
-                            case 'mode':
-                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                $raTag[0] = $this->kClient?"replace":"blank";
                                 break;
                             default:
                                 $raTag[0] = $this->expandTag($raTag[0]);
                         }
                         $this->skipTags = strtolower($raTag[0]) != strtolower($raTag[1]);
                     }
+                    // Negative Case InSensative Check
+                    else if(strpos($raTag[1], "!=") !== False){
+                        $raTag = explode( '!=', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = strtolower($raTag[0]) == strtolower($raTag[1]);
+                    }
                     // Negative Empty Check, (PHP evaluates to false)
                     else if(substr($raTag[1], 0,1) == "!"){
-                        $this->skipTags = ($this->expandTag(substr($raTag[1],1))?False:True);
+                        $this->skipTags = ($this->expandTag(substr($raTag[1],1))?True:False);
                     }
                     // Empty Check, (PHP doesn't evaluates to false)
                     else{
-                        $this->skipTags = ($this->expandTag($raTag[1])?True:False);
+                        $this->skipTags = ($this->expandTag($raTag[1])?False:True);
                     }
                     if(!$this->skipTags){
                         $this->processingDepth++;
