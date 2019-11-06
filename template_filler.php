@@ -21,7 +21,6 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
             /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
             function ($match) {
                 $fix = strip_tags($match[0]);
-                
                 $isAssessment = False;
                 foreach (getAssessmentTypes() as $assmt){
                     $assmt = '${'.$assmt;
@@ -67,7 +66,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                 preg_match('/w:[^ >]+/', $ra[$i], $match);
                 $section = "</".$match[0].">".$section.$ra[$i];
             }
-            $this->setValue($tag, $section);
+            $this->setValue($tag, $section,1);
         }
     }
     
@@ -222,19 +221,23 @@ class template_filler {
         $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
-        foreach($templateProcessor->getVariables() as $tag){
+        $tags = $templateProcessor->getVariables();
+        while(count($tags) > 0){
+            $tag = $tags[0];
             $isConditional = $this->processConditionalTags($tag);
             if($isConditional || $this->skipTags){
-                $templateProcessor->setValue($tag, $this->encode(""));
-                continue;
+                $templateProcessor->setValue($tag, $this->encode(""),1);
+                goto next;
             }
             $v = $this->expandTag($tag);
             $v = $this->tnrs->resolveTag($tag, ($v?:""));
             if(substr($tag,0,7) == 'section'){
                 $templateProcessor->insertSection($tag, $v);
             }else{
-                $templateProcessor->setValue($tag, $this->encode($v));
+                $templateProcessor->setValue($tag, $this->encode($v),1);
             }
+            next:
+            $tags = $templateProcessor->getVariables();
         }
 
         switch($resourceType){
@@ -350,11 +353,13 @@ class template_filler {
         $raTag = explode( ':', $tag, 2 );
         if(strtolower($raTag[0]) == "if" || strtolower($raTag[0]) == "endif"){
             if(strtolower($raTag[0]) == "endif"){
-                if($this->processingDepth == $this->evalDepth){
-                    $this->processingDepth--;
+                $this->evalDepth--;
+                if($this->processingDepth == $this->evalDepth || $this->processingDepth == $this->evalDepth+1){
+                    if($this->processingDepth > 0){
+                        $this->processingDepth--;
+                    }
                     $this->skipTags = FALSE;
                 }
-                $this->evalDepth--;
             }
             else{
                 $this->evalDepth++;
