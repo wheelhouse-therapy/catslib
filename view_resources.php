@@ -360,7 +360,7 @@ function getModeOptions($resourcesMode, $downloadModes, $mode){
 function downloadPath($mode, $dir_name, $fileinfo){
     switch($mode){
         case 'replace':
-            return "href='javascript:void(0)' target='_blank' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
+            return "href='javascript:void(0)' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
         case 'no_replace':
             return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&resource-mode=no_replace'";
         case 'blank':

@@ -523,7 +523,7 @@ class template_filler {
             }
         }
         if(preg_match("/data\d+/", $table)){
-            $id = $this->data[int(str_replace("data", "", $table))-1];
+            $id = @$this->data[(intval(str_replace("data", "", $table))-1)]?:"C0";
             if(substr($id, -1) === "p"){
                 $id = substr($id, 0,-1);
                 if(ClientList::parseID($id)[0] == ClientList::CLIENT && $col[0] == "name"){
