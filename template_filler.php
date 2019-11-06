@@ -35,6 +35,9 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                     substr($fix,0,7) == '${staff' ||
                     substr($fix,0,8) == '${clinic' ||
                     substr($fix,0,9) == '${section' ||
+                    substr($fix,0,6) == '${data' ||
+                    substr($fix,0,4) == '${if' ||
+                    substr($fix,0,7) == '${endif' ||
                     $isAssessment)
                 {
                     return( $fix );
@@ -121,8 +124,8 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
-    /** Array of people ids for use with data tags
-     * @var array
+    /**
+     * Array of people ids for use with data tags
      */
     private $data = array();
     
@@ -132,6 +135,31 @@ class template_filler {
      * This means we can have sections which report on assessments and they will filled with the correct information
      */
     private $assessments;
+    
+    /**
+     * Boolean controling whether tags are "skiped".
+     * Used with if and endif tags.
+     * "skiped" tags are replaced with "".
+     * if and endif tags are always replaced with "".
+     * Only toggled if evalDepth == processingDepth.
+     */
+    private $skipTags = FALSE;
+    /**
+     * Depth at which processing is occuring at.
+     * This is used when processing endif tags.
+     * if tags which evaluate to true increase this when not skiping tags.
+     * endif tags decrease this when evalDepth == processingDepth.
+     * 0 is the global scope, ie outside all if blocks.
+     */
+    private $processingDepth = 0;
+    /**
+     * Depth at which evaluation is occuring at.
+     * This is used when processing if/endif tags.
+     * if tags which evaluate to true increase this.
+     * endif tags decrease this.
+     * 0 is the global scope, ie outside all if blocks.
+     */
+    private $evalDepth = 0;
     
     // Constants for dealing with different types of resources
     /**
@@ -195,6 +223,11 @@ class template_filler {
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         foreach($templateProcessor->getVariables() as $tag){
+            $isConditional = $this->processConditionalTags($tag);
+            if($isConditional || $this->skipTags){
+                $templateProcessor->setValue($tag, $this->encode(""));
+                continue;
+            }
             $v = $this->expandTag($tag);
             $v = $this->tnrs->resolveTag($tag, ($v?:""));
             if(substr($tag,0,7) == 'section'){
@@ -313,8 +346,88 @@ class template_filler {
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
     
+    private function processConditionalTags($tag){
+        $raTag = explode( ':', $tag, 2 );
+        if(strtolower($raTag[0]) == "if" || strtolower($raTag[0]) == "endif"){
+            if(strtolower($raTag[0]) == "endif"){
+                if($this->processingDepth == $this->evalDepth){
+                    $this->processingDepth--;
+                    $this->skipTags = FALSE;
+                }
+                $this->evalDepth--;
+            }
+            else{
+                $this->evalDepth++;
+                if(!$this->skipTags){
+                    // Case Sensative Check
+                    if(strpos($raTag[1], "===") !== False){
+                        $raTag = explode( '===', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = $raTag[0] == $raTag[1];
+                    }
+                    // Negative Case Sensative Check
+                    else if(strpos($raTag[1], "!==") !== False){
+                        $raTag = explode( '!==', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = $raTag[0] != $raTag[1];
+                    }
+                    // Case InSensative Check
+                    else if(strpos($raTag[1], "==") !== False){
+                        $raTag = explode( '==', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = strtolower($raTag[0]) == strtolower($raTag[1]);
+                    }
+                    // Negative Case InSensative Check
+                    else if(strpos($raTag[1], "!=") !== False){
+                        $raTag = explode( '!=', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"no-replace";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = strtolower($raTag[0]) != strtolower($raTag[1]);
+                    }
+                    // Negative Empty Check, (PHP evaluates to false)
+                    else if(substr($raTag[1], 0,1) == "!"){
+                        $this->skipTags = ($this->expandTag(substr($raTag[1],1))?False:True);
+                    }
+                    // Empty Check, (PHP doesn't evaluates to false)
+                    else{
+                        $this->skipTags = ($this->expandTag($raTag[1])?True:False);
+                    }
+                    if(!$this->skipTags){
+                        $this->processingDepth++;
+                    }
+                }
+            }
+            return TRUE;
+        }
+        return FALSE;
+    }
+    
     private function expandTag($tag)
     {
+        $tag = trim($tag);
         $raTag = explode( ':', $tag, 2 );
         switch( count($raTag) ) {
             case 2:  // [0] is a table, [1] is a col
