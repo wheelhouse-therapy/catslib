@@ -142,7 +142,8 @@ ResetPassword;
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
-        .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .$this->DrawDocumentation()
             ."</div>";
 
             // Unset the mode var for resource download
@@ -356,6 +357,21 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         return( $s );
     }
 
+    public function drawDocumentation(){
+        $s = "";
+        switch ($this->oHistory->getScreen()){
+            case "documentation":
+                
+                break;
+            default:
+                $raScreens = array(
+                array( 'documentation',     "View Documentation")
+                );
+                $s .= $this->drawCircles( $raScreens );
+        }
+        return( $s );
+    }
+    
     private function drawCircles( $raScreens )
     {
         $s = "";
