@@ -121,36 +121,43 @@ function jxCall() {
     });
 }
 function generateLabels() {
-    $.ajax({
-        type: "POST",
-        data: {
-            info: getSelected("label"),
-            cmd: "therapist-generate-address-labels"
-        },
-        url: "jx.php",
-        success: function(data, textStatus, jqXHR) {
-            
-        },
-        error: function(jqXHR, status, error) {
-        
-        }
-    });
+	var chunkData = arrayChunk(getSelected("label"), 5);
+	for (var i = 0; i < chunkData.length; i++) {
+		$.ajax({
+	        type: "POST",
+	        data: {
+	            info: chunkData[i],
+	            cmd: "therapist-generate-address-labels"
+	        },
+	        url: "jx.php",
+	        success: function(data, textStatus, jqXHR) {
+	            
+	        },
+	        error: function(jqXHR, status, error) {
+	        
+	        }
+	    });
+	}
 }
 function generateFaxes() {
-    $.ajax({
-        type: "POST",
-        data: {
-            info: getSelected("fax"),
-            cmd: "therapist-generate-faxes"
-        },
-        url: "jx.php",
-        success: function(data, textStatus, jqXHR) {
-        
-        },
-        error: function(jqXHR, status, error) {
-        
-        }
-    });
+	var sendData = getSelected("label");
+	for (var i = 0; i < chunkData.length; i++) {
+		$.ajax({
+	        type: "POST",
+	        data: {
+	            info: [ sendData[i] ], 
+	            //don't remove the spaces in the array or twig recognises double ] as something
+	            cmd: "therapist-generate-faxes"
+	        },
+	        url: "jx.php",
+	        success: function(data, textStatus, jqXHR) {
+	        
+	        },
+	        error: function(jqXHR, status, error) {
+	        
+	        }
+	    });	
+	}
 }
 function generateEmails() {
     $.ajax({
@@ -175,6 +182,18 @@ function getSelected(type) {
         out.push(list[i].parentElement.parentElement.dataset.id);
     }
     return out;
+}
+function arrayChunk(array, size) {
+	var out = [];
+	var chunks = Math.floor(array.length / size);
+	var leftover = array.length % size;
+	for (var i = 0; i < chunks; i++) {
+		out.push(array.splice(0, size));
+	}
+	if (leftover > 0) {
+		out.push(array);
+	}
+	return out;
 }
 </script>
 <style>
