@@ -120,59 +120,60 @@ function jxCall() {
         }
     });
 }
-function generateLabels() {
-    /* Instead of getting the docx with ajax and trying to figure out how to save it, 
-       open a window that refers to the same ajax command and let the browser do that work.
-       
-       Open a separate window (i.e. download a separate file) for every 5 labels because that's what fits in the template
-     */
-    let chunkData = arrayChunk(getSelected("label"), 5);
-    for (let i = 0; i < chunkData.length; i++) {
-        let u = "";
-        for(let j=0; j < chunkData[i].length; j++) {
-            u += "&info[]="+chunkData[i][j];
-        }
-	    window.open("jx.php?cmd=therapist-generate-address-labels"+u);
-	}
 
-/* 
-	for (var i = 0; i < chunkData.length; i++) {
-		$.ajax({
-	        type: "POST",
-	        data: {
-	            info: chunkData[i],
-	            cmd: "therapist-generate-address-labels"
-	        },
-	        url: "jx.php",
-	        success: function(data, textStatus, jqXHR) {
-	            
-	        },
-	        error: function(jqXHR, status, error) {
-	        
-	        }
-	    });
-	}
-*/
-}
-function generateFaxes() {
-	var sendData = getSelected("label");
-	for (var i = 0; i < chunkData.length; i++) {
-		$.ajax({
+class DistributeReports
+{
+    static generateLabels() 
+    {
+        /* Instead of getting the docx with ajax and trying to figure out how to save it, 
+           open a window that refers to the same ajax command and let the browser do that work.
+           
+           Open a separate window (i.e. download a separate file) for every 5 labels because that's what fits in the template
+         */
+        let chunkData = arrayChunk(getSelected("label"), 5);
+        for (let i = 0; i < chunkData.length; i++) {
+            let u = "";
+            for(let j=0; j < chunkData[i].length; j++) {
+                u += "&info[]="+chunkData[i][j];
+            }
+            window.open("jx.php?cmd=therapist-generate-address-labels"+u);
+        }
+
+    /* 
+        for (var i = 0; i < chunkData.length; i++) {
+            $.ajax({
+                type: "POST",
+                data: {
+                    info: chunkData[i],
+                    cmd: "therapist-generate-address-labels"
+                },
+                url: "jx.php",
+                success: function(data, textStatus, jqXHR) {},
+                error: function(jqXHR, status, error) {}
+            });
+        }
+    */
+    }
+
+    static generateFaxes() {
+        let faxes = getSelected("fax");
+        for (let i = 0; i < faxes.length; i++) {
+            window.open("jx.php?cmd=therapist-generate-fax-cover&info="+faxes[i]);
+        }
+/*        
+        $.ajax({
 	        type: "POST",
 	        data: {
 	            info: [ sendData[i] ], 
 	            //don't remove the spaces in the array or twig recognises double ] as something
-	            cmd: "therapist-generate-faxes"
+	            cmd: "therapist-generate-fax-cover"
 	        },
 	        url: "jx.php",
-	        success: function(data, textStatus, jqXHR) {
-	        
-	        },
-	        error: function(jqXHR, status, error) {
-	        
-	        }
-	    });	
-	}
+	        success: function(data, textStatus, jqXHR) {},
+	        error: function(jqXHR, status, error) {}
+	    });
+*/
+    }
 }
 function generateEmails() {
     $.ajax({

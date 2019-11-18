@@ -203,9 +203,9 @@ function drawForm($oApp, $clientId) {
 
     //add a row for the "generate ..." buttons
     $out .= "<tr><td class='borderless'></td>"
-    ."<td><button class='generate' onclick='generateLabels()'>Generate Address Labels</button></td>"
-    ."<td><button class='generate' onclick='generateFaxes()'>Generate Fax Cover Sheets</button></td>"
-    ."<td><button class='generate' onclick='generateEmails()'>Generate Emails</button></td>"
+    ."<td><button class='generate' onclick='DistributeReports.generateLabels();'>Generate Address Labels</button></td>"
+    ."<td><button class='generate' onclick='DistributeReports.generateFaxes();'>Generate Fax Cover Sheets</button></td>"
+    ."<td><button class='generate' onclick='generateEmails();'>Generate Emails</button></td>"
     ."</tr>";
 
     $out .= "</tbody></table>";
@@ -227,6 +227,15 @@ class DistributeReports
 
         $filler = new template_filler($this->oApp, array(), $info);
         $filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx");
+        exit;
+    }
+
+    function OutputFaxCover( string $info )
+    {
+        require_once CATSLIB."template_filler.php";
+
+        $filler = new template_filler($this->oApp, array(), [$info]);
+        $filler->fill_resource(CATSLIB . "ReportsTemplates/Fax Cover Sheet Template.docx");
         exit;
     }
 }
