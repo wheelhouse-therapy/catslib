@@ -174,23 +174,36 @@ class DistributeReports
 	    });
 */
     }
+    static generateEmails() {
+        window.open("mailto:" + getEmails() + "?subject=test&body=test");
+/*
+        $.ajax({
+            type: "POST",
+            data: {
+                info: getSelected("email"),
+                cmd: "therapist-generate-emails"
+            },
+            url: "jx.php",
+            success: function(data, textStatus, jqXHR) {
+            
+            },
+            error: function(jqXHR, status, error) {
+            
+            }
+        });
+*/
+    }
 }
-function generateEmails() {
-    $.ajax({
-        type: "POST",
-        data: {
-            info: getSelected("email"),
-            cmd: "therapist-generate-emails"
-        },
-        url: "jx.php",
-        success: function(data, textStatus, jqXHR) {
-        
-        },
-        error: function(jqXHR, status, error) {
-        
-        }
-    });
+
+function getEmails() {
+	var list = document.querySelectorAll("input.email:checked ~ span");
+	var out = [];
+    for (var i = 0; i < list.length; i++) {
+    	out.push(list[i].innerHTML);
+    }
+    return out.join(";");
 }
+
 function getSelected(type) {
     var list = document.querySelectorAll("input." + type + ":checked");
     var out = [];

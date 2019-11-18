@@ -205,7 +205,7 @@ function drawForm($oApp, $clientId) {
     $out .= "<tr><td class='borderless'></td>"
     ."<td><button class='generate' onclick='DistributeReports.generateLabels();'>Generate Address Labels</button></td>"
     ."<td><button class='generate' onclick='DistributeReports.generateFaxes();'>Generate Fax Cover Sheets</button></td>"
-    ."<td><button class='generate' onclick='generateEmails();'>Generate Emails</button></td>"
+    ."<td><button class='generate' onclick='DistributeReports.generateEmails();'>Generate Emails</button></td>"
     ."</tr>";
 
     $out .= "</tbody></table>";
