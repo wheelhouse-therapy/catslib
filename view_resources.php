@@ -12,9 +12,9 @@ require_once 'share_resources.php';
  * The 'code' entry in the array defines the code used when changing mode via HTTP.
  * The 'title' entry in the array defines the button label displayed over HTTP
  */
-$MODES = array('s' => array("code" => "replace"   , "title" => "Substitution"    ),
-               'n' => array("code" => "no_replace", "title" => "No Substitution" ),
-               'b' => array("code" => "blank"     , "title" => "Blank"           )
+$MODES = array('s' => array("code" => "replace"   , "title" => "Substitution Mode"    ),
+               'n' => array("code" => "no_replace", "title" => "Taqgged Version" ),
+               'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
     
 );
 
@@ -146,7 +146,7 @@ DownloadMode;
                 break;
             case $MODES['n']['code']:
                 $tooltip = "Download files with the substitution tags";
-                $resourceMode = str_replace("[mode]", "No Substitution", $resourceMode);
+                $resourceMode = str_replace("[mode]", $MODES['n']['title'], $resourceMode);
                 $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
                 break;
             case $MODES['b']['code']:
@@ -345,10 +345,10 @@ function getModeOptions($resourcesMode, $downloadModes, $mode){
     switch(strlen($downloadModes)){
         case 3:
             $resourcesMode = str_replace("[[button2]]","<a id='mode2' href='?resource-mode=".($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['code']:$MODES[$lastMode]['code'])."'><button>"
-            .($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['title']:$MODES[$lastMode]['title'])." Mode</button></a>",$resourcesMode);
+            .($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['title']:$MODES[$lastMode]['title'])."</button></a>",$resourcesMode);
         case 2:
             $resourcesMode = str_replace("[[button1]]","<a id='mode1' href='?resource-mode=".($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['code']:$MODES[$firstMode]['code'])."'><button>"
-            .($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['title']:$MODES[$firstMode]['title'])." Mode</button></a>",$resourcesMode);
+            .($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['title']:$MODES[$firstMode]['title'])."</button></a>",$resourcesMode);
             break;
     }
     
