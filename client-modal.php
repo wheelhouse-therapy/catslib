@@ -40,12 +40,7 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
 }
 
 function drawModalButton(int $key):String{
-    if(CATS_DEBUG){
-        return <<<ModalButton
+  return <<<ModalButton
 <button onClick='connectButton(event,$key)'>Connect Providers</button>
 ModalButton;
-    }
-    else{
-        return "Contact Developer to link providers";
-    }
 }
