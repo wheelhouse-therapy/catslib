@@ -11,6 +11,9 @@ class ClientList
     public const INTERNAL_PRO = "PI";
     public const EXTERNAL_PRO = "PE";
     
+    // Signal that a form should be reloaded/refreshed instead of loading a new form
+    public const RELOAD = -1;
+    
     private $oApp;
     public $kfdb;
 
@@ -147,8 +150,8 @@ class ClientList
             $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
         }
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-        $raPros = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
+        $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+        $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
         switch($type){
             case self::CLIENT:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
@@ -363,9 +366,7 @@ ExistsWarning;
                 $kfr->SetValue("fk_pros_internal", SEEDInput_Int("add_internal_key"));
                 $kfr->PutDBRow();
                 
-                $type = ($this->client_key?"C":($this->therapist_key?"PI":($this->pro_key?"PE":"")));
-                $key = ($this->client_key?:($this->therapist_key?:$this->pro_key));
-                $id = self::createID($type, $key);
+                $id = self::RELOAD;
                 
                 break;
             case 'uploadxls':
@@ -417,21 +418,24 @@ ExistsWarning;
                             <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                             <button onclick='filterClients(event);'>Filter</button>
                         </form>"
-                      .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>");
+                      .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>")
+                      .$this->client_key;
                 $id = "clients";
                 break;
             case self::INTERNAL_PRO:
                 $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>CATS Staff</h3>"
                       ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
-                      .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" );
+                      .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+                      .$this->therapist_key;
                 $id = "therapists";
                 break;
             case self::EXTERNAL_PRO:
                 $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>External Providers</h3>"
                       ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
-                      .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" );
+                      .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]<div class='slider'><div class='text'>View/edit</div></div></div>" )
+                      .$this->pro_key;
                 $id = "pros";
                 break;
         }
@@ -638,20 +642,15 @@ ExistsWarning;
         if($sClients == "<div style='padding:10px;border:1px solid #888'>Clients:<br/>"){
             $sClients .= "No Clients Connected";
         }
-        if (CATS_DEBUG){
-            $sClients .=
-                     "</div>"
-                    ."<form onSubmit='event.preventDefault()'>"
-                    ."<input type='hidden' name='cmd' value='link'/>"
-                    ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
-                    .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
-                    .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
-                    ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
-        }
-        else{
-            $sClients .= "</div><br />Contact Developer to link clients";
-        }
-
+        $sClients .=
+                 "</div>"
+                ."<form onSubmit='event.preventDefault()'>"
+                ."<input type='hidden' name='cmd' value='link'/>"
+                ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".$oForm->GetKey()."'/>"
+                .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
+                .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
+                ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
+            
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
         $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
