@@ -638,14 +638,19 @@ ExistsWarning;
         if($sClients == "<div style='padding:10px;border:1px solid #888'>Clients:<br/>"){
             $sClients .= "No Clients Connected";
         }
-        $sClients .=
-                 "</div>"
-                ."<form onSubmit='event.preventDefault()'>"
-                ."<input type='hidden' name='cmd' value='link'/>"
-                ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
-                .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
-                .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
-                ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
+        if (CATS_DEBUG){
+            $sClients .=
+                     "</div>"
+                    ."<form onSubmit='event.preventDefault()'>"
+                    ."<input type='hidden' name='cmd' value='link'/>"
+                    ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
+                    .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
+                    .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
+                    ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
+        }
+        else{
+            $sClients .= "</div><br />Contact Developer to link clients";
+        }
 
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
