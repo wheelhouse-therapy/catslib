@@ -11,9 +11,6 @@ class ClientList
     public const INTERNAL_PRO = "PI";
     public const EXTERNAL_PRO = "PE";
     
-    // Signal that a form should be reloaded/refreshed instead of loading a new form
-    public const RELOAD = -1;
-    
     private $oApp;
     public $kfdb;
 
@@ -366,7 +363,7 @@ ExistsWarning;
                 $kfr->SetValue("fk_pros_internal", SEEDInput_Int("add_internal_key"));
                 $kfr->PutDBRow();
                 
-                $id = self::RELOAD;
+                $id = SEEDInput_Str("id");
                 
                 break;
             case 'uploadxls':
@@ -642,6 +639,7 @@ ExistsWarning;
         $sClients .=
                  "</div>"
                 ."<form onSubmit='event.preventDefault()'>"
+                ."<input type='hidden' name='id' value='".self::createID(($bTherapist?self::INTERNAL_PRO:self::EXTERNAL_PRO), $oForm->GetKey())."'/>"
                 ."<input type='hidden' name='cmd' value='link'/>"
                 ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".$oForm->GetKey()."'/>"
                 .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
