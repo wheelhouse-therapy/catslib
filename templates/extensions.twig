@@ -130,7 +130,7 @@ class DistributeReports
            
            Open a separate window (i.e. download a separate file) for every 5 labels because that's what fits in the template
          */
-        let chunkData = arrayChunk(getSelected("label"), 5);
+        let chunkData = this.arrayChunk(this.getSelected("label"), 5);
         for (let i = 0; i < chunkData.length; i++) {
             let u = "";
             for(let j=0; j < chunkData[i].length; j++) {
@@ -156,7 +156,7 @@ class DistributeReports
     }
 
     static generateFaxes() {
-        let faxes = getSelected("fax");
+        let faxes = this.getSelected("fax");
         for (let i = 0; i < faxes.length; i++) {
             window.open("jx.php?cmd=therapist-generate-fax-cover&info="+faxes[i]);
         }
@@ -175,54 +175,39 @@ class DistributeReports
 */
     }
     static generateEmails() {
-        window.open("mailto:" + getEmails() + "?subject=test&body=test");
-/*
-        $.ajax({
-            type: "POST",
-            data: {
-                info: getSelected("email"),
-                cmd: "therapist-generate-emails"
-            },
-            url: "jx.php",
-            success: function(data, textStatus, jqXHR) {
-            
-            },
-            error: function(jqXHR, status, error) {
-            
-            }
-        });
-*/
+        window.open("mailto:" + this.getEmails() + "?subject=test&body=test");
     }
-}
+    static getEmails() {
+        let list = document.querySelectorAll("input.email:checked ~ span");
+        let out = [];
+        for (let i = 0; i < list.length; i++) {
+            out.push(list[i].innerHTML);
+        }
+        return out.join(";");
+    }
 
-function getEmails() {
-	var list = document.querySelectorAll("input.email:checked ~ span");
-	var out = [];
-    for (var i = 0; i < list.length; i++) {
-    	out.push(list[i].innerHTML);
+    static getSelected(type) 
+    {
+        let list = document.querySelectorAll("input." + type + ":checked");
+        let out = [];
+        for (let i = 0; i < list.length; i++) {
+            out.push(list[i].parentElement.parentElement.dataset.id);
+        }
+        return out;
     }
-    return out.join(";");
-}
-
-function getSelected(type) {
-    var list = document.querySelectorAll("input." + type + ":checked");
-    var out = [];
-    for (var i = 0; i < list.length; i++) {
-        out.push(list[i].parentElement.parentElement.dataset.id);
+    static arrayChunk(array, size) 
+    {
+        let out = [];
+        let chunks = Math.floor(array.length / size);
+        let leftover = array.length % size;
+        for (let i = 0; i < chunks; i++) {
+            out.push(array.splice(0, size));
+        }
+        if (leftover > 0) {
+            out.push(array);
+        }
+        return out;
     }
-    return out;
-}
-function arrayChunk(array, size) {
-	var out = [];
-	var chunks = Math.floor(array.length / size);
-	var leftover = array.length % size;
-	for (var i = 0; i < chunks; i++) {
-		out.push(array.splice(0, size));
-	}
-	if (leftover > 0) {
-		out.push(array);
-	}
-	return out;
 }
 </script>
 <style>

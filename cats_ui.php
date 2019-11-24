@@ -127,7 +127,11 @@ class CATS_MainUI extends CATS_UI
          <input type='submit' value='Change Password' style='border-style: inset outset outset inset; font-family: \"Lato\", sans-serif; font-weight: 400; border-radius:5px; display:block; margin:auto;' />
          </form>"
 ResetPassword;
-        }else {
+        }
+        else if($screen == "documentation" && CATS_DEBUG){
+            $s .= $this->drawDocumentation();
+        }
+        else {
             $s .= $this->DrawHome();
         };
 
@@ -142,7 +146,8 @@ ResetPassword;
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
-        .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(CATS_DEBUG?$this->DrawDocumentation():"")
             ."</div>";
 
             // Unset the mode var for resource download
@@ -356,6 +361,23 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         return( $s );
     }
 
+    public function drawDocumentation(){
+        $s = "";
+        switch ($this->oHistory->getScreen()){
+            case "documentation":
+                require_once 'Documentation.php';
+                $documentation = new Documentation();
+                $s .= $documentation->handleDocs();
+                break;
+            default:
+                $raScreens = array(
+                array( 'documentation',     "View Documentation")
+                );
+                $s .= $this->drawCircles( $raScreens );
+        }
+        return( $s );
+    }
+    
     private function drawCircles( $raScreens )
     {
         $s = "";
