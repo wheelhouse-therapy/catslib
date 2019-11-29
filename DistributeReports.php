@@ -137,10 +137,14 @@ function drawForm($oApp, $clientId) {
     //get array of all the providers for the current client
     $prosList = ($clientId?$oPeopleDB->GetList('CX', "fk_clients2='{$clientId}'"):array());
     foreach($prosList as $pro) {
+        $type = null;
+        $kfr = null;
         $pro['fk_pros_internal'] && ($kfr = $oPeopleDB->GetKFR( 'PI', $pro['fk_pros_internal'] ));
         $pro['fk_pros_internal'] && $type = ClientList::INTERNAL_PRO;
         $pro['fk_pros_external'] && ($kfr = $oPeopleDB->GetKFR( 'PE', $pro['fk_pros_external'] ));
         $pro['fk_pros_external'] && $type = ClientList::EXTERNAL_PRO;
+
+        if( !$type || !$kfr ) continue;
 
         $cell = $kfr->Expand(
             "<div><span>Provider: [[P_first_name]] [[P_last_name]]</span><br/>
