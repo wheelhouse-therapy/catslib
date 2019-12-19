@@ -132,9 +132,11 @@ class AssessmentData_SPM extends AssessmentData
             case "planning":
                 $score = $this->ComputeScore($item."_total");
                 $percentile = floatval($this->raPercentiles[$score][$item]);
+                break;
             case 'total':
                 $score = $this->ComputeScore("total") - $this->ComputeScore("balance_total") - $this->ComputeScore("social_total");
                 $percentile = floatval($this->raTotals[$score]);
+                break;
         }
 
         return( $percentile );
