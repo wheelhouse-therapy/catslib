@@ -491,7 +491,7 @@ class Assessment_MABC extends Assessments
 
     function GetProblemItems( string $section ) : string
     {}
-    function GetPercentile( string $section ) : string
+    function GetPercentile( string $section ) : float
     {}
 
     public function checkEligibility(int $kClient, $date = ""):bool{

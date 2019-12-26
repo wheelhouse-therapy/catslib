@@ -147,8 +147,8 @@ class ClientList
             $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
         }
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-        $raPros = $this->oPeopleDB->GetList('PE', $condClinic, $this->queryParams);
+        $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+        $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
         switch($type){
             case self::CLIENT:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
@@ -363,9 +363,7 @@ ExistsWarning;
                 $kfr->SetValue("fk_pros_internal", SEEDInput_Int("add_internal_key"));
                 $kfr->PutDBRow();
                 
-                $type = ($this->client_key?"C":($this->therapist_key?"PI":($this->pro_key?"PE":"")));
-                $key = ($this->client_key?:($this->therapist_key?:$this->pro_key));
-                $id = self::createID($type, $key);
+                $id = SEEDInput_Str("id");
                 
                 break;
             case 'uploadxls':
@@ -638,20 +636,16 @@ ExistsWarning;
         if($sClients == "<div style='padding:10px;border:1px solid #888'>Clients:<br/>"){
             $sClients .= "No Clients Connected";
         }
-        if (CATS_DEBUG){
-            $sClients .=
-                     "</div>"
-                    ."<form onSubmit='event.preventDefault()'>"
-                    ."<input type='hidden' name='cmd' value='link'/>"
-                    ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".($bTherapist?$this->therapist_key:$this->pro_key)."'/>"
-                    .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
-                    .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
-                    ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
-        }
-        else{
-            $sClients .= "</div><br />Contact Developer to link clients";
-        }
-
+        $sClients .=
+                 "</div>"
+                ."<form onSubmit='event.preventDefault()'>"
+                ."<input type='hidden' name='id' value='".self::createID(($bTherapist?self::INTERNAL_PRO:self::EXTERNAL_PRO), $oForm->GetKey())."'/>"
+                ."<input type='hidden' name='cmd' value='link'/>"
+                ."<input type='hidden' name='".($bTherapist?"add_internal_key":"add_external_key")."' value='".$oForm->GetKey()."'/>"
+                .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
+                .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
+                ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
+            
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
         $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";

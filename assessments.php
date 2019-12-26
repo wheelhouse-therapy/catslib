@@ -734,7 +734,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     /**
      * Return the percentile score for the given section
      */
-    abstract function GetPercentile( string $section ) : string;
+    abstract function GetPercentile( string $section ) : float;
     
     public final function GetData():AssessmentData{
         return $this->oData;
@@ -851,7 +851,7 @@ class Assessment_SPM extends Assessments
                     }
                     break;
                 case "percent":
-                    $s = (1 - (floatval($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]))/100))*100 ."%";
+                    $s = (1 - ($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0])/100))*100 ."%";
                     break;
                 case "item":
                     $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
@@ -946,7 +946,7 @@ class Assessment_SPM extends Assessments
         return( $s );
     }
 
-    function GetPercentile( string $section ) : string
+    function GetPercentile( string $section ) : float
     {
         return( $this->oData->ComputePercentile($section) );
     }
@@ -1051,7 +1051,7 @@ class Assessment_AASP extends Assessments
 
     function GetProblemItems( string $section ) : string
     {}
-    function GetPercentile( string $section ) : string
+    function GetPercentile( string $section ) : float
     {}
 
     protected $raColumnRanges = array(
