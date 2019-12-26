@@ -13,7 +13,7 @@ require_once 'share_resources.php';
  * The 'title' entry in the array defines the button label displayed over HTTP
  */
 $MODES = array('s' => array("code" => "replace"   , "title" => "Substitution Mode"    ),
-               'n' => array("code" => "no_replace", "title" => "Taqgged Version" ),
+               'n' => array("code" => "no_replace", "title" => "Tagged Version" ),
                'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
     
 );
