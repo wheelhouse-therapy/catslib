@@ -175,11 +175,54 @@ class DistributeReports
 */
     }
     static generateEmails() {
-        window.open("mailto:" + this.getEmails() + "?subject=test&body=test");
+        const emails = this.getEmails();
+        if (emails == "") {
+            // maybe need a more user-friendly alert?
+            alert("Please select at least one email.")
+            return;
+        }
+        const messageSubject = "OT Report";
+        const messageBody = `Hi  ,
+
+Attached is your OT report from Collaborative Approach Therapy Services 
+at Dr. Scott's office.
+
+The password is based on your address.  Numbers, no space, capital on 
+the first name of the your street.
+
+eg.  456 Sussex Dr -- password would be:  456Sussex
+
+     123 Happy Bay Road -- password would be: 123Happy
+
+Please let me know if you have any difficulty opening it.
+
+Also please let me know if I have made errors in the report.  You have 
+indicated that I have your permission to share information with:   .  I 
+will wait for a few days to hear from you, in case there are any 
+errors/corrections, before sending the report on to them.  You can 
+always withdraw your consent, so please let me know if for any reason 
+you do not wish for me to share this report with them.  Thank you!
+
+Sue.
+
+
+-- 
+Sue Wahl,
+Occupational Therapist
+CATS- Brant
+Collaborative Approach Therapy Services
+158 Brant St
+St. George, Ontario
+N0E 1N0
+226 748 3607
+`;
+        window.open("mailto:" + this.getEmails() + 
+                "?subject=" + encodeURI(messageSubject) + 
+                "&body=" + encodeURI(messageBody));
     }
     static getEmails() {
-        let list = document.querySelectorAll("input.email:checked ~ span");
-        let out = [];
+        var list = document.querySelectorAll("input.email:checked ~ span");
+        var out = [];
         for (let i = 0; i < list.length; i++) {
             out.push(list[i].innerHTML);
         }
