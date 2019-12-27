@@ -1236,7 +1236,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<form action='{$_SERVER['PHP_SELF']}' method='post' onSubmit='onAssementCreate(event)'>"
+                  "<form action='{$_SERVER['PHP_SELF']}' method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType' required>"
@@ -1244,8 +1244,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</select>"
                  ."<input type='date' name='date' max='".date("Y-m-d")."' value='".date("Y-m-d")."' required>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
-                 ."<br/><input type='submit' value='New'/>"
-                 ."</form>";
+                 ."</form>"
+                 ."<button onclick='onAssementCreate()'>New</button>";
             $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
             if($sRight){
                 if(CATS_DEBUG){
@@ -1403,8 +1403,9 @@ function eligibilityScript(){
                             Results may not be correct.
                             <div style='display:inline' id='assmtMessage'></div>
                             <form id='confirm_form''>
-                                <input type='hidden' id='sAsmtType' name='sAsmtType' value='' readonly />
-                                <input type='hidden' name='fk_clients2' id='fk_clients2' value='' />
+                                <input type='hidden' name='sAsmtType' value='' id='sAsmtType' />
+                                <input type='hidden' name='sAsmtAction' value='edit' />
+                                <input type='hidden' name='fk_clients2' value='' id='confirmClient' />
                                 <input type='hidden' name='date' id='date' value='' />
                             </form>
                         </div>
@@ -1416,37 +1417,39 @@ function eligibilityScript(){
                 </div>
             </div>
             <script>
-                function onAssementCreate(e) {
-                    var target  = $(e.currentTarget);
+                function onAssementCreate() {
+                    var target  = $('#assmtForm');
                     var postData = target.serializeArray();
                     postData.push({name: 'cmd', value: 'therapist-assessment-check'});
-                    var preventDefault = true;
                     $.ajax({
                         type: "POST",
                         data: postData,
-                        async: false,
                         url: 'jx.php',
                         success: function(data, textStatus, jqXHR) {
                             var jsData = JSON.parse(data);
-                            preventDefault = jsData.bOk;
-                            if(jsData.bOk){
+                            if(!jsData.bOk){
                                 document.getElementById('assmtMessage').innerHTML = jsData.sOut;
+                                for(var x = 0;x<postData.length;x++){
+                                    if(!document.getElementById(postData[x].name)){
+                                        continue;
+                                    }
+                                    if(postData[x].name == "fk_clients2"){
+                                        document.getElementById('confirmClient').value = postData[x].value;
+                                    }
+                                    else{
+                                        document.getElementById(postData[x].name).value = postData[x].value;
+                                    }
+                                }
+                                $('#confirm_dialog').modal('show');
+                            }
+                            else{
+                                document.getElementById('assmtForm').submit();
                             }
                         },
                         error: function(jqXHR, status, error) {
                             console.log(status + ": " + error);
                         }
                     });
-                    if(preventDefault){
-                        e.preventDefault();
-                        for(var x = 0;x<postData.length;x++){
-                            if(!document.getElementById(postData[x].name)){
-                                continue;
-                            }
-                            document.getElementById(postData[x].name).value = postData[x].value;
-                        }
-                        $('#confirm_dialog').modal('show');
-                    }
                 }
             </script>
 eligibilityScript;
