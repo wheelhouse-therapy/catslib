@@ -1402,15 +1402,9 @@ function eligibilityScript(){
                             The Selected client is not eligible for this assessment.<br />
                             Results may not be correct.
                             <div style='display:inline' id='assmtMessage'></div>
-                            <form id='confirm_form''>
-                                <input type='hidden' name='sAsmtType' value='' id='sAsmtType' />
-                                <input type='hidden' name='sAsmtAction' value='edit' />
-                                <input type='hidden' name='fk_clients2' value='' id='confirmClient' />
-                                <input type='hidden' name='date' id='date' value='' />
-                            </form>
                         </div>
                         <div class='modal-footer'>
-                            <input type='submit' value='Yes' form='confirm_form' />
+                            <button onClick="document.getElementById('assmtForm').submit();">Yes</button>
                             <button onClick="$('#confirm_dialog').modal('hide');">No</button>
                         </div>
                     </div>
@@ -1429,17 +1423,6 @@ function eligibilityScript(){
                             var jsData = JSON.parse(data);
                             if(!jsData.bOk){
                                 document.getElementById('assmtMessage').innerHTML = jsData.sOut;
-                                for(var x = 0;x<postData.length;x++){
-                                    if(!document.getElementById(postData[x].name)){
-                                        continue;
-                                    }
-                                    if(postData[x].name == "fk_clients2"){
-                                        document.getElementById('confirmClient').value = postData[x].value;
-                                    }
-                                    else{
-                                        document.getElementById(postData[x].name).value = postData[x].value;
-                                    }
-                                }
                                 $('#confirm_dialog').modal('show');
                             }
                             else{
