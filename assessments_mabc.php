@@ -554,6 +554,10 @@ class Assessment_MABC_Scores
 
         $age = intval( $age );
 
+        if($age > 16){
+            $age = 16;
+        }
+        
         return( @self::$scores["age{$age}:0-{$age}:11"] );
     }
 
