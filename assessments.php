@@ -361,6 +361,16 @@ class AssessmentsCommon
         return( $o );
     }
 
+    /**
+     * Get the date when the assessment was recorded, falling back on the record creation date if necesary.
+     * All new assessments should record the date they were recorded upon creation but in case its missing for some reason we fall back on the when the record was created.
+     * @param array $ra - array containing assessment data
+     * @return string - Date when the assessment was recorded.
+     */
+    static function GetAssessmentDate(array $ra):string{
+        return $ra['date']?:"Entered: ".substr( $ra['_created'], 0, 10 );
+    }
+    
     function GetSummaryTable( $kAsmtCurr )
     /*************************************
         Draw a table of assessments, highlight the given one
@@ -371,7 +381,7 @@ class AssessmentsCommon
         $raA = $this->oAsmtDB->GetList( "AxCxP", "" );
         $s .= "<table style='border:none'>";
         foreach( $raA as $ra ) {
-            $date = substr( $ra['_created'], 0, 10 );
+            $date = self::GetAssessmentDate($ra);
             $sStyle = $kAsmtCurr == $ra['_key'] ? "font-weight:bold;color:green" : "";
             $s .= "<tr><td>$date</td>"
                      ."<td><a style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
@@ -411,7 +421,7 @@ class AssessmentsCommon
                 $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."'>Do Not Include</option>";
                 $bFirst = true;
                 foreach ($raA as $ra){
-                    $date = $ra['date']?:substr( $ra['_created'], 0, 10 );
+                    $date = self::GetAssessmentDate($ra);
                     $raOut['body'] .= "<option value='".$ra['_key']."' ".($bFirst?"selected":"").">".$date."</option>";
                     $bFirst = false;
                 }
