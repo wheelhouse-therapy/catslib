@@ -578,6 +578,7 @@ ExistsWarning;
                  ."<br /><br />"
                  .($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
+                 ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                  ."</div>"
              ."</div>"
