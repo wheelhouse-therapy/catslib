@@ -114,6 +114,7 @@ function jxCall() {
         url: "jx.php",
         success: function(data, textStatus, jqXHR) {
             document.getElementById("content").innerHTML = JSON.parse(data).sOut;
+            initPage();
         },
         error: function(jqXHR, status, error) {
             console.log(status + ": " + error);
@@ -153,6 +154,13 @@ class DistributeReports
             });
         }
     */
+    }
+
+    static generateCoverLetter()
+    {
+        let covers = this.getSelected("cover-letter");
+        // need some code here to sub info into the cover letter template
+        alert(covers.toString()); //remove this after testing
     }
 
     static generateFaxes() {
@@ -231,10 +239,15 @@ N0E 1N0
 
     static getSelected(type) 
     {
-        let list = document.querySelectorAll("input." + type + ":checked");
-        let out = [];
+        var list = document.querySelectorAll("input." + type + ":checked:not(.no-select)");
+        var out = [];
         for (let i = 0; i < list.length; i++) {
-            out.push(list[i].parentElement.parentElement.dataset.id);
+            var ref = list[i].parentElement.parentElement;
+            if (type == "cover-letter") {
+            	//cover letter inputs are in an extra div, so we do one more parentElement to compensate
+				ref = ref.parentElement;
+            }
+            out.push(ref.dataset.id);
         }
         return out;
     }
@@ -252,6 +265,41 @@ N0E 1N0
         return out;
     }
 }
+function updateCoverLetterVisibility() {
+	// shows/hides the checkbox for cover letters when the address labels checkbox is changed
+	// this -> the address labels checkbox that was changed
+	// we assume the cover letter container div is 2 elements after the address labels checkbox
+	// (there's a br in between)
+	var coverLetterCont = this.nextElementSibling;
+	while (coverLetterCont.nextElementSibling) {
+		// loop through siblings until we find .cover-letter-container
+		if (coverLetterCont.classList.contains("cover-letter-container")) {
+			break;
+		}
+		coverLetterCont = coverLetterCont.nextElementSibling;
+	}
+	// we also assume that the checkbox is the second-last element in the container
+	var coverLetterCheck = coverLetterCont.firstElementChild;
+	while (coverLetterCheck.nextElementSibling) {
+		// loop through siblings until we find .cover-letter
+		if (coverLetterCheck.classList.contains("cover-letter")) {
+			break;
+		}
+		coverLetterCheck = coverLetterCheck.nextElementSibling;
+	}
+	coverLetterCont.classList.toggle("show"); // this tells css not to hide the div
+	coverLetterCheck.classList.toggle("no-select"); 
+	//this tells getSelected to ignore this checkbox
+	// css does the rest
+}
+function initPage() {
+	// add event listeners to each address label checkbox
+	var addressLabelBoxes = document.getElementsByClassName("ext-pro-label");
+	for (var i = 0; i < addressLabelBoxes.length; i++) {
+		addressLabelBoxes[i].addEventListener("change", updateCoverLetterVisibility);
+	}
+}
+window.addEventListener("DOMContentLoaded", initPage);
 </script>
 <style>
 td:not(.borderless),th:not(.borderless) {
@@ -272,6 +320,12 @@ table {
 }
 button.generate {
     width: 100%;
+}
+.cover-letter-container {
+	display: inline-block;
+}
+.cover-letter-container:not(.show) {
+	display: none;
 }
 </style>
 
