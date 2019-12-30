@@ -272,4 +272,13 @@ class DistributeReports
         $filler->fill_resource(CATSLIB . "ReportsTemplates/Fax Cover Sheet Template.docx");
         exit;
     }
+    
+    function OutputCoverLetter( string $info )
+    {
+        require_once CATSLIB."template_filler.php";
+        
+        $filler = new template_filler($this->oApp, array(), [$info]);
+        $filler->fill_resource(CATSLIB . "ReportsTemplates/Template Doctor Letter Ax only-Sue.docx");
+        exit;
+    }
 }

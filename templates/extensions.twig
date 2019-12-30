@@ -131,10 +131,14 @@ class DistributeReports
            
            Open a separate window (i.e. download a separate file) for every 5 labels because that's what fits in the template
          */
-        let chunkData = this.arrayChunk(this.getSelected("label"), 5);
-        for (let i = 0; i < chunkData.length; i++) {
-            let u = "";
-            for(let j=0; j < chunkData[i].length; j++) {
+        var chunkData = this.arrayChunk(this.getSelected("label"), 5);
+        if (chunkData.length == 0) {
+			alert("Please select at least one address.")
+			return;
+        }
+        for (var i = 0; i < chunkData.length; i++) {
+            var u = "";
+            for(var j = 0; j < chunkData[i].length; j++) {
                 u += "&info[]="+chunkData[i][j];
             }
             window.open("jx.php?cmd=therapist-generate-address-labels"+u);
@@ -158,14 +162,25 @@ class DistributeReports
 
     static generateCoverLetter()
     {
-        let covers = this.getSelected("cover-letter");
+        var covers = this.getSelected("cover-letter");
+        if (covers.length == 0) {
+			alert("Please select at least one provider for the cover letter.")
+			return;
+        }
         // need some code here to sub info into the cover letter template
-        alert(covers.toString()); //remove this after testing
+        for (var i = 0; i < covers.length; i++) {
+			window.open("jx.php?cmd=therapist-generate-cover-letters&info=" + covers[i] + 
+					"&client=" + document.getElementById("clientlist").value);
+        }
     }
 
     static generateFaxes() {
-        let faxes = this.getSelected("fax");
-        for (let i = 0; i < faxes.length; i++) {
+        var faxes = this.getSelected("fax");
+        if (faxes.length == 0) {
+			alert("Please select at least one fax recipient.")
+			return;
+        }
+        for (var i = 0; i < faxes.length; i++) {
             window.open("jx.php?cmd=therapist-generate-fax-cover&info="+faxes[i]);
         }
 /*        
@@ -268,8 +283,7 @@ N0E 1N0
 function updateCoverLetterVisibility() {
 	// shows/hides the checkbox for cover letters when the address labels checkbox is changed
 	// this -> the address labels checkbox that was changed
-	// we assume the cover letter container div is 2 elements after the address labels checkbox
-	// (there's a br in between)
+	// we search through the siblings so that we don't make assumptions about the DOM
 	var coverLetterCont = this.nextElementSibling;
 	while (coverLetterCont.nextElementSibling) {
 		// loop through siblings until we find .cover-letter-container
@@ -278,7 +292,7 @@ function updateCoverLetterVisibility() {
 		}
 		coverLetterCont = coverLetterCont.nextElementSibling;
 	}
-	// we also assume that the checkbox is the second-last element in the container
+	// same deal, we're looping through children this time
 	var coverLetterCheck = coverLetterCont.firstElementChild;
 	while (coverLetterCheck.nextElementSibling) {
 		// loop through siblings until we find .cover-letter
