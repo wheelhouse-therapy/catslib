@@ -812,7 +812,7 @@ FilterJS;
                      ."<select name='newAccount' id='newAccount' class='noAccount' onChange='updateAccountStyle()'>"
                      ."<option value='0'>No Account</option>";
              //TODO Improve system
-             $users = $this->kfdb->QueryRowsRA("SELECT * from seedsession_users WHERE _key != {$this->oApp->sess->GetUID()} AND eStatus = 'ACTIVE'",KEYFRAMEDB_RESULT_ASSOC);
+             $users = $this->kfdb->QueryRowsRA("SELECT * from SEEDSession_Users WHERE _key != {$this->oApp->sess->GetUID()} AND eStatus = 'ACTIVE'",KEYFRAMEDB_RESULT_ASSOC);
              $sUser .= SEEDCore_ArrayExpandRows($users, "<option value='[[_key]]'>[[realname]]</option>")
                      ."</select>"
                      ."<br /><input type='submit' value='Link' onclick='submitForm(event)' />";
