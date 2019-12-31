@@ -114,6 +114,7 @@ function jxCall() {
         url: "jx.php",
         success: function(data, textStatus, jqXHR) {
             document.getElementById("content").innerHTML = JSON.parse(data).sOut;
+            initPage();
         },
         error: function(jqXHR, status, error) {
             console.log(status + ": " + error);
@@ -130,10 +131,14 @@ class DistributeReports
            
            Open a separate window (i.e. download a separate file) for every 5 labels because that's what fits in the template
          */
-        let chunkData = this.arrayChunk(this.getSelected("label"), 5);
-        for (let i = 0; i < chunkData.length; i++) {
-            let u = "";
-            for(let j=0; j < chunkData[i].length; j++) {
+        var chunkData = this.arrayChunk(this.getSelected("label"), 5);
+        if (chunkData.length == 0) {
+			alert("Please select at least one address.")
+			return;
+        }
+        for (var i = 0; i < chunkData.length; i++) {
+            var u = "";
+            for(var j = 0; j < chunkData[i].length; j++) {
                 u += "&info[]="+chunkData[i][j];
             }
             window.open("jx.php?cmd=therapist-generate-address-labels"+u);
@@ -155,9 +160,27 @@ class DistributeReports
     */
     }
 
+    static generateCoverLetter()
+    {
+        var covers = this.getSelected("cover-letter");
+        if (covers.length == 0) {
+			alert("Please select at least one provider for the cover letter.")
+			return;
+        }
+        // need some code here to sub info into the cover letter template
+        for (var i = 0; i < covers.length; i++) {
+			window.open("jx.php?cmd=therapist-generate-cover-letters&info=" + covers[i] + 
+					"&client=" + document.getElementById("clientlist").value);
+        }
+    }
+
     static generateFaxes() {
-        let faxes = this.getSelected("fax");
-        for (let i = 0; i < faxes.length; i++) {
+        var faxes = this.getSelected("fax");
+        if (faxes.length == 0) {
+			alert("Please select at least one fax recipient.")
+			return;
+        }
+        for (var i = 0; i < faxes.length; i++) {
             window.open("jx.php?cmd=therapist-generate-fax-cover&info="+faxes[i]);
         }
 /*        
@@ -231,10 +254,15 @@ N0E 1N0
 
     static getSelected(type) 
     {
-        let list = document.querySelectorAll("input." + type + ":checked");
-        let out = [];
+        var list = document.querySelectorAll("input." + type + ":checked:not(.no-select)");
+        var out = [];
         for (let i = 0; i < list.length; i++) {
-            out.push(list[i].parentElement.parentElement.dataset.id);
+            var ref = list[i].parentElement.parentElement;
+            if (type == "cover-letter") {
+            	//cover letter inputs are in an extra div, so we do one more parentElement to compensate
+				ref = ref.parentElement;
+            }
+            out.push(ref.dataset.id);
         }
         return out;
     }
@@ -252,6 +280,40 @@ N0E 1N0
         return out;
     }
 }
+function updateCoverLetterVisibility() {
+	// shows/hides the checkbox for cover letters when the address labels checkbox is changed
+	// this -> the address labels checkbox that was changed
+	// we search through the siblings so that we don't make assumptions about the DOM
+	var coverLetterCont = this.nextElementSibling;
+	while (coverLetterCont.nextElementSibling) {
+		// loop through siblings until we find .cover-letter-container
+		if (coverLetterCont.classList.contains("cover-letter-container")) {
+			break;
+		}
+		coverLetterCont = coverLetterCont.nextElementSibling;
+	}
+	// same deal, we're looping through children this time
+	var coverLetterCheck = coverLetterCont.firstElementChild;
+	while (coverLetterCheck.nextElementSibling) {
+		// loop through siblings until we find .cover-letter
+		if (coverLetterCheck.classList.contains("cover-letter")) {
+			break;
+		}
+		coverLetterCheck = coverLetterCheck.nextElementSibling;
+	}
+	coverLetterCont.classList.toggle("show"); // this tells css not to hide the div
+	coverLetterCheck.classList.toggle("no-select"); 
+	//this tells getSelected to ignore this checkbox
+	// css does the rest
+}
+function initPage() {
+	// add event listeners to each address label checkbox
+	var addressLabelBoxes = document.getElementsByClassName("ext-pro-label");
+	for (var i = 0; i < addressLabelBoxes.length; i++) {
+		addressLabelBoxes[i].addEventListener("change", updateCoverLetterVisibility);
+	}
+}
+window.addEventListener("DOMContentLoaded", initPage);
 </script>
 <style>
 td:not(.borderless),th:not(.borderless) {
@@ -272,6 +334,12 @@ table {
 }
 button.generate {
     width: 100%;
+}
+.cover-letter-container {
+	display: inline-block;
+}
+.cover-letter-container:not(.show) {
+	display: none;
 }
 </style>
 
