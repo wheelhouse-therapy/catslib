@@ -369,10 +369,17 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $documentation = new Documentation();
                 $s .= $documentation->handleDocs();
                 break;
+            case "placeholders":
+                require_once 'Documentation.php';
+                
             default:
                 $raScreens = array(
-                array( 'documentation',     "View Documentation")
+                array( 'documentation',     "View Documentation"),
+                array( 'placeholders' ,     "Download Placeholder Images")
                 );
+                if(!CATS_DEBUG){
+                    unset($raScreens['documentation']);
+                }
                 $s .= $this->drawCircles( $raScreens );
         }
         return( $s );

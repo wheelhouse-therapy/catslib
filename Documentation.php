@@ -14,7 +14,7 @@ class Documentation {
         
         if($id == self::FRAME_ID){
             if($file && file_exists(self::DIR.$file)){
-                echo "<div><a href='/?id=frame'>Back to Documentation</a></div>";
+                echo "<div><a href='?id=frame'>Back to Documentation</a></div>";
                 readfile(self::DIR.$file);
             }
             else{
@@ -46,6 +46,18 @@ class Documentation {
                 ."<iframe src='?id=frame[[file]]' style='border:none;width:100%;height:100%'></iframe>";
             return str_replace("[[file]]", ($file?"&file=".$file:""), $s);
         }
+    }
+    
+}
+
+class Placeholders{
+    
+    private const DIR = CATSDIR_IMG."placeholders";
+    
+    public function drawPlaceholderList(){
+        
+        array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
+        
     }
     
 }
