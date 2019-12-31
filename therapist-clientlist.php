@@ -185,6 +185,11 @@ class ClientList
         $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
         $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
         
+        //Handle Signature Upload
+        if(@$_FILES['image']['new_signature']){
+            $oFormTherapist->SetValue("signature", addslashes(file_get_contents($_FILES['image']['new_signature'])));
+        }
+        
         $overrideCheck = FALSE;
         if(isset($_SESSION["cmdData"])){
             $type = SEEDInput_Str("type");
@@ -702,6 +707,10 @@ ExistsWarning;
                 $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
              }
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
+             if($bTherapist){
+                 $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");
+                 $this->drawPartialFormRow("", "<input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+             }
              $this->endRowDraw();
              $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
