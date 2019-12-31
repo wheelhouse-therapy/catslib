@@ -185,11 +185,6 @@ class ClientList
         $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
         $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
         
-        //Handle Signature Upload
-        if(@$_FILES['image']['new_signature']){
-            $oFormTherapist->SetValue("signature", addslashes(file_get_contents($_FILES['image']['new_signature'])));
-        }
-        
         $overrideCheck = FALSE;
         if(isset($_SESSION["cmdData"])){
             $type = SEEDInput_Str("type");
@@ -230,12 +225,14 @@ class ClientList
                             break;
                         case "therapist":
                             $oFormTherapist->SetKFR($kfr);
+                            $_FILES = $_SESSION['fileData'];
                             break;
                         case "pro":
                             $oFormPro->SetKFR($kfr);
                             break;
                     }
                     unset($_SESSION["cmdData"]);
+                    unset($_SESSION['fileData']);
                     break;
                 case "overwrite":
                     $overrideCheck = TRUE;
@@ -250,16 +247,19 @@ class ClientList
                             break;
                         case "therapist":
                             $oFormTherapist->SetKFR($kfr);
+                            $_FILES = $_SESSION['fileData'];
                             break;
                         case "pro":
                             $oFormPro->SetKFR($kfr);
                             break;
                     }
                     unset($_SESSION["cmdData"]);
+                    unset($_SESSION['fileData']);
                     break;
                 case "keep":
                 default:
                     unset($_SESSION["cmdData"]);
+                    unset($_SESSION['fileData']);
                     break;
             }
         }
@@ -335,6 +335,7 @@ ExistsWarning;
                 $exists = $this->checkExists($oFormTherapist, self::INTERNAL_PRO);
                 if($exists && !$overrideCheck){
                     $_SESSION["cmdData"] = $oFormTherapist->GetKFR()->ValuesRA();
+                    $_SESSION['fileData'] = $_FILES;
                     $options = "";
                     $ra = $this->oPeopleDB->GetList(self::INTERNAL_PRO, "P.first_name='".$oFormTherapist->Value("P_first_name")."' AND P.last_name='".$oFormTherapist->Value("P_last_name")."' AND clinic=".$oFormTherapist->Value("clinic"),$this->queryParams);
                     foreach ($ra as $option){
@@ -346,6 +347,10 @@ ExistsWarning;
                     $oFormTherapist->Update();
                     $this->updatePeople( $oFormTherapist );
                     $this->therapist_key = $oFormTherapist->GetKey();
+                    //Handle Signature Upload
+                    if(@$_FILES["new_signature"]["tmp_name"]){
+                        $this->oApp->kfdb->Execute("UPDATE `pros_internal` SET `signature` = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE `pros_internal`.`_key` = ".$this->therapist_key);
+                    }
                 }
                 $id = self::createID(self::INTERNAL_PRO, $this->therapist_key);
                 break;
