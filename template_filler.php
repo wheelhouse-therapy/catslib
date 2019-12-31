@@ -312,6 +312,7 @@ class template_filler {
             if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
                 $clinics = new Clinics($this->oApp);
                 $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
+                $rawData = FALSE;
                 switch(substr($str,0,strrpos($str, "_"))){
                     case "Footer":
                         $imagePath = $clinics->getImage(Clinics::FOOTER);
@@ -322,12 +323,21 @@ class template_filler {
                     case "Wide_logo":
                         $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
                         break;
+                    case "Signature":
+                        $imagePath = FALSE;
+                        if($kfrStaff){
+                            $rawData = $this->kfrStaff->Value("signature");
+                        }
+                        break;
                 }
-                if($imagePath === FALSE){
+                if($imagePath === FALSE && $rawData == FALSE){
                     $im = imagecreatefromstring($za->getFromName("word/media/".$img));
                     $data = imagecreate(imagesx($im), imagesy($im));
                     imagefill($data, 0, 0, imagecolorallocate($data, 255, 255, 255));
                     imagedestroy($im);
+                }
+                else if($imagePath === FALSE){
+                    $data = imagecreatefromstring($rawData);
                 }
                 switch(strtolower(pathinfo($img,PATHINFO_EXTENSION))){
                     case "png":

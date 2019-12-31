@@ -197,7 +197,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 4;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 5;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -236,6 +236,12 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(2);
         $kfdb->Execute( "ALTER TABLE assessments_scores ADD date VARCHAR(200) NOT NULL DEFAULT ''" );
         $kfdb->Execute( "ALTER TABLE assessments_scores ADD respondent VARCHAR(200) NOT NULL DEFAULT ''" );
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 5){
+        // Add signature to staff table
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE pros_internal ADD signature longblob NOT NULL");
         $kfdb->SetDebug(0);
     }
 
