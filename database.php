@@ -241,7 +241,7 @@ function createTables( KeyframeDatabase $kfdb )
     if( $currDBVersion < 5){
         // Add signature to staff table
         $kfdb->SetDebug(2);
-        $kfdb->Execute("ALTER TABLE pros_internal ADD signature longblob NOT NULL");
+        $kfdb->Execute("ALTER TABLE pros_internal ADD signature longtext NULL DEFAULT NULL");
         $kfdb->SetDebug(0);
     }
 
