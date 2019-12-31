@@ -1,7 +1,5 @@
 <?php
 
-use PhpOffice\PhpSpreadsheet\Worksheet\Row;
-
 function distributeReports($oApp) {
     $oPeopleDB = new PeopleDB( $oApp );
     $clinics = new Clinics($oApp);
