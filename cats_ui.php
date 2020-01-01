@@ -131,6 +131,9 @@ ResetPassword;
         else if($screen == "documentation" && CATS_DEBUG){
             $s .= $this->drawDocumentation();
         }
+        else if($screen == "placeholders"){
+            $s .= $this->drawDocumentation();
+        }
         else {
             $s .= $this->DrawHome();
         };
@@ -371,7 +374,9 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 break;
             case "placeholders":
                 require_once 'Documentation.php';
-                
+                $placeholders = new Placeholders();
+                $s .= $placeholders->drawPlaceholderList();
+                break;
             default:
                 $raScreens = array(
                 array( 'documentation',     "View Documentation"),

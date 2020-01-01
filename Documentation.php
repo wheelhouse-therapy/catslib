@@ -52,11 +52,70 @@ class Documentation {
 
 class Placeholders{
     
-    private const DIR = CATSDIR_IMG."placeholders";
+    private const DIR = CATSDIR_IMG."placeholders/";
     
     public function drawPlaceholderList(){
+        $this->handleCommands();
+        $s = "<h3>Get Placeholder Images</h3>";
+        $dir = new DirectoryIterator(self::DIR);
+        if(iterator_count($dir) == 2){
+            $s .= "<h2> No files in directory</h2>";
+            return $s;
+        }
         
-        array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
+        $s .= "<form onsubmit=\"return $('div.checkbox-group.required :checkbox:checked').length > 0\">"
+             ."<input type='hidden' name='cmd' value='download' />";
+        
+        foreach ($dir as $fileinfo) {
+            
+            if( $fileinfo->isDot() ) continue;
+            
+            if( strripos($fileinfo->getFilename(),"-old") !== false) continue;
+            
+            $s .= "<div class='checkbox-group required'>";
+            $s .= "<label><input type='checkbox' name='placeholder[]' value='".$fileinfo->getFilename()."' />".$fileinfo->getFilename()."</label>";
+            $s .= "</div>";
+        }
+        
+        $s .= "<input type='submit' value='Download'>"
+             ."</form>";
+        
+        return $s;
+        
+    }
+    
+    private function handleCommands(){
+        $cmd = SEEDInput_Str("cmd");
+        if(file_exists(self::DIR."placeholders.zip")){
+            unlink(self::DIR."placeholders.zip");
+        }
+        switch($cmd){
+            case "download":
+                $file = "";
+                $placeholders = $_REQUEST['placeholder'];
+                if(count($placeholders) > 1){
+                    $file = self::DIR."placeholders.zip";
+                    $zip = new ZipArchive();
+                    $zip->open($file, ZipArchive::CREATE);
+                    foreach ($placeholders as $placeholder){
+                        $zip->addFile(self::DIR.$placeholder,$placeholder);
+                    }
+                    $zip->close();
+                }
+                else{
+                    $file = self::DIR.$placeholders[0];
+                }
+                header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+                header('Content-Description: File Transfer');
+                header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+                header('Content-Transfer-Encoding: binary');
+                if( ($fp = fopen( $file, "rb" )) ) {
+                    fpassthru( $fp );
+                    fclose( $fp );
+                }
+                exit;
+                break;
+        }
         
     }
     
