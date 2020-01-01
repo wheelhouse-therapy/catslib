@@ -113,6 +113,9 @@ class Placeholders{
                     fpassthru( $fp );
                     fclose( $fp );
                 }
+                if(file_exists(self::DIR."placeholders.zip")){
+                    unlink(self::DIR."placeholders.zip");
+                }
                 exit;
                 break;
         }
