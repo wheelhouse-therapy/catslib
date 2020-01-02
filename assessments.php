@@ -169,10 +169,11 @@ class AssessmentUIColumns extends AssessmentUI
         $s = "<h2>".@$this->oAsmt->raAssessments[$this->oA->GetAsmtCode()]['title']."</h2>";
 
         $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-
+        
         $s .= "<form method='post'>"
              .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] )
-             .$oForm->Hidden('date', ['value'=>$this->oData->getDate()]);
+             .$oForm->Hidden('date', ['value'=>$this->oData->getDate()])
+             .$oForm->Hidden('kA',['value'=>$this->oData->GetAsmtKey()]);
 
         if( @$raParms['hiddenParms'] ) {
             foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
@@ -288,7 +289,7 @@ class AssessmentUIColumns extends AssessmentUI
     {
         if( $bEditable ) {
             $score = "";
-            $s = $oForm->Text("i$itemKey","",array('attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
+            $s = $oForm->Text("i$itemKey","",array('value'=>$this->oData->GetRaw($itemKey),'attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
         } else {
             list($v,$score) = $this->itemVal( $oForm, $itemKey );
             $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
@@ -384,7 +385,7 @@ class AssessmentsCommon
             $date = self::GetAssessmentDate($ra);
             $sStyle = $kAsmtCurr == $ra['_key'] ? "font-weight:bold;color:green" : "";
             $s .= "<tr><td>$date</td>"
-                     ."<td><a style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
+                     ."<td><a style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
                      ."<td>{$ra['testType']}</td></tr>";
         }
         $s .= "</table>";
@@ -590,11 +591,11 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         /* Draw the list of assessments
          */
-        $sList = "<form action='{$_SERVER['PHP_SELF']}' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
+        $sList = "<form action='".CATSDIR."' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
         $raA = $oAssessmentsDB->GetList( "AxCxP", "" );
         foreach( $raA as $ra ) {
             $sStyle = $kAsmt == $ra['_key'] ? "font-weight:bold;color:green" : "";
-            $sList .= "<div class='assessment-link'><a  style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
+            $sList .= "<div class='assessment-link'><a  style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
         }
 
 
@@ -1214,9 +1215,13 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              * The form is smart enough to do Edit or New depending on whether it was created with a kAsmt.
              * Don't show the summary list because it takes too much space.
              */
-            if( ($kClient = SEEDInput_Int('fk_clients2')) ) {
+            if($p_kAsmt && (!SEEDInput_Int('fk_clients2') || SEEDInput_Int('fk_clients2') == $oAsmt->GetData()->GetValue("fk_clients2"))){
+                $s .= $oAsmt->DrawAsmtForm($oAsmt->GetData()->GetValue("fk_clients2"));
+            }
+            else if( !$p_kAsmt && ($kClient = SEEDInput_Int('fk_clients2')) ) {
                 $s .= $oAsmt->DrawAsmtForm( $kClient );
             } else {
+                $s .= "<div class='alert alert-danger'>Could not load assessment edit form</div>";
                 goto do_default;
             }
             break;
@@ -1246,7 +1251,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<form action='{$_SERVER['PHP_SELF']}' method='post' id='assmtForm'>"
+                  "<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType' required>"
