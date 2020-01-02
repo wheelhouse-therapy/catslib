@@ -150,7 +150,7 @@ ResetPassword;
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
             .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
-            .(CATS_DEBUG?$this->DrawDocumentation():"")
+            .$this->DrawDocumentation()
             ."</div>";
 
             // Unset the mode var for resource download
