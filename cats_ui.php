@@ -383,7 +383,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 array( 'placeholders' ,     "Download Placeholder Images")
                 );
                 if(!CATS_DEBUG){
-                    unset($raScreens['documentation']);
+                    unset($raScreens[0]);
                 }
                 $s .= $this->drawCircles( $raScreens );
         }
