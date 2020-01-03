@@ -1287,7 +1287,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                     ."<div style='padding-left:5%;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
                     ."</div>"
-                    ."<div style='padding-left:2%;display:inline'>"
+                    ."<div style='padding-left:5px;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."invoice.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Edit Assessment' onclick='window.location=\"".CATSDIR."?sAsmtAction=edit&kA=$p_kAsmt\"'></button>"
                     ."</div>";
             }
