@@ -70,11 +70,11 @@ class AssessmentData
     public final function setDate(String $date){
         $this->date = $date;
     }
-    
+
     public final function getDate():String{
         return $this->date;
     }
-    
+
     public function LoadAsmt( int $kAsmt )
     {
         $this->kfrAsmt = $kAsmt ? $this->oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt)
@@ -87,9 +87,9 @@ class AssessmentData
         foreach( $this->raRaws as $item => $raw ) {
             $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
         }
-        
+
         $this->date = $this->kfrAsmt->Value('date');
-        
+
     }
 
     public function GetAsmtKey() : int                      { return( $this->kfrAsmt->Key() ); }
@@ -168,12 +168,20 @@ class AssessmentUIColumns extends AssessmentUI
     {
         $s = "<h2>".@$this->oAsmt->raAssessments[$this->oA->GetAsmtCode()]['title']."</h2>";
 
-        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
-        
+        //$oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+        // oData already has the form you are looking for, with the kfr already loaded.
+        $oForm = $this->oData->GetForm();
+        if( !$oForm->GetKey() ) {
+            // this is a new form with empty data so fill the basics before drawing it
+            $oForm->SetValue('fk_clients2', $kClient);
+            $oForm->SetValue('date', $this->oData->getDate());
+        }
+//var_dump($oForm->GetValuesRA());
+
         $s .= "<form method='post'>"
-             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] )
-             .$oForm->Hidden('date', ['value'=>$this->oData->getDate()])
-             .$oForm->Hidden('kA',['value'=>$this->oData->GetAsmtKey()]);
+             .$oForm->Hidden( 'fk_clients2' )
+             .$oForm->Hidden('date')
+             .$oForm->HiddenKey();
 
         if( @$raParms['hiddenParms'] ) {
             foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
@@ -188,7 +196,6 @@ class AssessmentUIColumns extends AssessmentUI
 
         $s .= "<input hidden name='sAsmtAction' value='save'/>"
              ."<input hidden name='sAsmtType' value='".$this->oA->GetAsmtCode()."'/>"
-             .$oForm->HiddenKey()
              ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
              ."<span id='total'></span>";
 
@@ -371,7 +378,7 @@ class AssessmentsCommon
     static function GetAssessmentDate(array $ra):string{
         return $ra['date']?:"Entered: ".substr( $ra['_created'], 0, 10 );
     }
-    
+
     function GetSummaryTable( $kAsmtCurr )
     /*************************************
         Draw a table of assessments, highlight the given one
@@ -506,11 +513,11 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
             }
             $s .= "var chars = ".json_encode($this->Inputs("script")).";";
         }
-        
+
         if(substr($s, 0,8) === "<script>"){
             $s .= "</script>";
         }
-        
+
         return( $s );
     }
 
@@ -681,7 +688,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     public function getGlobalTags():array{
         return array("date", "respondent", "date_entered");
     }
-    
+
     private final function getGlobalTagField(String $tag):String{
         $s = "";
         switch($tag){
@@ -700,7 +707,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         }
         return $s;
     }
-    
+
     /**
      * Get a list of tags availible for this assesment type
      * Tags in the returned array should return a value when passed to getTagValue()
@@ -746,31 +753,31 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
      * Return the percentile score for the given section
      */
     abstract function GetPercentile( string $section ) : float;
-    
+
     public final function GetData():AssessmentData{
         return $this->oData;
     }
-    
+
     /** Check if a client is eligable for this assessment
      * or if we have the scores needed to properly handle an assessment of this client.
-     * 
+     *
      * If this message returns false a message will be shown to the user presenting them with the option to continue anyway.
-     * 
+     *
      * Assesments should override to add restrictions to the clients that can be assesed.
-     * 
+     *
      * Usefull for alerting users if they try to create a MABC for a client > 16 or <3 years of age
-     * 
+     *
      * @param int $kClient client to check eligability of
      * @return bool true if client is eligable and should procced with out notice, false otherwise
      */
     public function checkEligibility(int $kClient, $date = ""):bool{
         return true;
     }
-    
+
     public function getIneligibleMessage():String{
         return "Would you like to proceed?";
     }
-    
+
 }
 
 class Assessment_SPM extends Assessments
@@ -999,7 +1006,7 @@ class Assessment_AASP extends Assessments
         // Override to provide custom input options
         return array("Almost Never"=>"1","Seldom"=>"2","Occasionally"=>"3","Frequently"=>"4","Almost Always"=>"5");
     }
-    
+
     protected function GetScore( $n, $v ):int
     {
         return( 0 );
@@ -1075,14 +1082,14 @@ class Assessment_AASP extends Assessments
     );
 
     protected $raPercentiles = array();
-    
+
     private $raSectionBounds = array(
         "Q1" => array(18,26,40,51,75),
         "Q2" => array(27,41,58,65,75),
         "Q3" => array(19,25,40,48,75),
         "Q4" => array(18,25,40,48,75)
     );
-    
+
 }
 
 
