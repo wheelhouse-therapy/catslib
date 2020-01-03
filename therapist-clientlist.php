@@ -51,18 +51,8 @@ class ClientList
 
     function DrawClientList()
     {
-        $s = "<style>
-                .client-normal{
-                    display:".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"block":"none").";
-                }
-                .client-discharged{
-                    display:".(@$this->oApp->sess->VarGet("clientlist-discharged")?"block":"none").";
-                    color: #0000008a;
-                }
-              </style>
-             ";
 
-        $s .= "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
+        $s = "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
                  ."<a href='jx.php?cmd=therapist-clientlistxls'><button>Download</button></a>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
                  ."<img src='".W_CORE_URL."img/icons/xls.png' height='30'/>"
@@ -119,12 +109,7 @@ class ClientList
              ."<div id='pros' class='col-md-4'>"
                  .$this->drawList(self::EXTERNAL_PRO,$condClinic)[0]
              ."</div>"
-             ."</div></div>"
-//              ."<style>"
-//                  ."#client-{$this->client_key}, #therapist-{$this->therapist_key}, #pro-{$this->pro_key} "
-//                      ." { font-weight:bold;color:green;background-color:#dfd; }"
-//              ."</style>"
-             .$this->filterJS();
+             ."</div></div>";
 
              $s .= "<div id='sidebar'></div>";
              $s .= "<script>$( document ).ready(function() {";
@@ -423,8 +408,8 @@ ExistsWarning;
                 $s = "<h3>Clients</h3>"
                       ."<button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
                       ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
-                            <input type='checkbox' name='clientlist-normal' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
-                            <input type='checkbox' name='clientlist-discharged' value='checked' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
+                            <input type='checkbox' name='clientlist-normal' id='normal-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
+                            <input type='checkbox' name='clientlist-discharged' id='discharged-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
                             <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                             <button onclick='filterClients(event);'>Filter</button>
                         </form>"
@@ -444,7 +429,7 @@ ExistsWarning;
                 $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>External Providers</h3>"
                       ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
-                      .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
+                      .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "pros";
                 break;
         }
@@ -544,8 +529,9 @@ ExistsWarning;
              ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                  .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$oForm->Value('_key')}</p>":""):"<p>New Client</p>")
              ."<table class='container-fluid table table-striped table-sm'>";
-             $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
-             $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+             $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus onchange='checkNameExists()'") ) );
+             $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name' onchange='checkNameExists()'") ) );
+             $this->drawPartialFormRow( "", "<span id='name-exists'>A client with this name already exists.</span>" );
              $this->drawFormRow( "Pronouns", $this->getPronounList($oForm));
              $this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) );
              $this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') );
@@ -695,7 +681,8 @@ ExistsWarning;
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>";
              $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
-             $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+             $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+             $this->drawPartialFormRow( "", "<span id='name-exists'>A provider with this name already exists.</span>" );
              $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
              $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
              $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
@@ -747,43 +734,6 @@ ExistsWarning;
         return $s;
     }
 
-    private function filterJS(){
-        return <<<FilterJS
-               <script>
-                function filterClients(e){
-                    var filterForm = document.getElementById('filterForm');
-                    var postData = $(filterForm).serializeArray();
-                    var formURL = $(filterForm).attr("action");
-                    $.ajax({
-                        type: "POST",
-                        data: postData,
-                        url: formURL,
-                        success: function(data, textStatus, jqXHR) {
-                            doFilterUpdate();
-                        },
-                        error: function(jqXHR, status, error) {
-                            console.log(status + ": " + error);
-                        }
-                    });
-                    e.preventDefault();
-                }
-                function doFilterUpdate(){
-                    var normal = document.getElementById('filterForm')[0];
-                    var discharged = document.getElementById('filterForm')[1];
-                    var normalClients = document.getElementsByClassName('client-normal');
-                    var dischargedClients = document.getElementsByClassName('client-discharged');
-                    var i;
-                    for(i=0;i<normalClients.length;i++){
-                        normalClients[i].style.display = normal.checked?"block":"none";
-                    }
-                    for(i=0;i<dischargedClients.length;i++){
-                        dischargedClients[i].style.display = discharged.checked?"block":"none";
-                    }
-                }
-               </script>
-FilterJS;
-    }
-
     private function getPronounList(KeyframeForm $oForm){
 
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
@@ -816,13 +766,7 @@ FilterJS;
                      ."</select>"
                      ."<br /><input type='submit' value='Link' onclick='submitForm(event)' />";
         }
-        $sUser .= "</div>"
-                 ."<style>
-                 .noAccount {
-                    text-align: center;
-                    text-align-last: center;
-                 }
-                 </style>";
+        $sUser .= "</div>";
         
         $account = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]['realname'];
         
