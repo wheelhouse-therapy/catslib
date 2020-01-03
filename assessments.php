@@ -1249,8 +1249,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             do_default:
             /* Show the landing page or a particular assessment.
              */
-            $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
-            $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
+            $sList = $oAC->GetSummaryTable( $p_kAsmt );
+            $sResult = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
 // uncomment to see the problem items in the vision column of an spm test
 //$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
 
@@ -1258,7 +1258,9 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<form method='post' id='assmtForm'>"
+                  "<style>.asmt_controlform { width:97%; margin:20px; padding:5% 0px 5% 5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
+                 ."<div class='asmt_controlform'>"
+                 ."<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType' required>"
@@ -1267,25 +1269,29 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."<input type='date' name='date' max='".date("Y-m-d")."' value='".date("Y-m-d")."' required>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
                  ."</form>"
-                 ."<button onclick='onAssementCreate()'>New</button>";
-            $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
-            if($sRight){
+                 ."<button onclick='onAssementCreate()'>New</button>"
+                 ."</div>";
+
+            if($sResult){
                 if(CATS_DEBUG){
-                    $sRight .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button><div id='tags'b style='display:none'>";
+                    $sResult .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button>"
+                               ."<div id='tags'b style='display:none'>";
                     foreach($oAsmt->getTags() as $tag){
-                        $sRight .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
+                        $sResult .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
                     }
-                    $sRight .= "</div>";
+                    $sResult .= "</div>";
                 }
-                $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
-                $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
+                $sResult = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>"
+                          .$sResult;
+                $sControl .= "<script src='w/js/printme/jquery-printme.js'></script>"
                     ."<div style='padding:5%;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
                     ."</div>";
             }
-            $s .= "</div><div class='container-fluid'><div class='row'>"
-                     ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                     ."<div id='assessment' class='col-md-9' style='border-right:1px solid #bbb'>$sRight</div>"
+            $s .= "</div>"
+                 ."<div class='container-fluid'><div class='row'>"
+                     ."<div id='assessment' class='col-md-8' style='border-right:1px solid #bbb'>$sResult</div>"
+                     ."<div class='col-md-4'><div>$sControl</div><div>$sList</div></div>"
                  ."</div>";
             $s .= eligibilityScript();
     }
