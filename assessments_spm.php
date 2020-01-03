@@ -131,11 +131,11 @@ class AssessmentData_SPM extends AssessmentData
             case "balance":
             case "planning":
                 $score = $this->ComputeScore($item."_total");
-                $percentile = floatval($this->raPercentiles[$score][$item]);
+                $percentile = floatval(@$this->raPercentiles[$score][$item]);
                 break;
             case 'total':
                 $score = $this->ComputeScore("total") - $this->ComputeScore("balance_total") - $this->ComputeScore("social_total");
-                $percentile = floatval($this->raTotals[$score]);
+                $percentile = floatval(@$this->raTotals[$score]);
                 break;
         }
 
@@ -185,7 +185,7 @@ class AssessmentUI_SPM extends AssessmentUIColumns
 
     function DrawScoreResults() : string
     {
-        
+
         $s = "";
 
         $oForm = $this->oData->GetForm();
