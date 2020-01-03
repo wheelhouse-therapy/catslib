@@ -222,15 +222,14 @@ class AssessmentUIColumns extends AssessmentUI
 
     function DrawColFormTable( SEEDCoreForm $oForm, $raColumnDef, $bEditable )
     {
-        $colwidth = (100/count($raColumnDef))."%";
 
-        $s = "<table width='100%'><tr>";
+        $s = "<table style='width:100%;table-layout:fixed'><tr>";
         foreach( $raColumnDef as $ra ) {
-            $s .= "<th valign='top' style='width:$colwidth'>{$ra['label']}<br/><br/></th>";
+            $s .= "<th style='vertical-align:top'>{$ra['label']}<br/><br/></th>";
         }
         $s .= "</tr><tr>";
         foreach( $raColumnDef as $ra ) {
-            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding:0px 5px'>";
+            $s .= "<td style='vertical-align:top; border-right:1px solid #ccc;padding:0px 5px'>";
             if( isset($ra['cols']) ) {
                 // columns are explicitly defined
                 $s .= $this->column( $oForm, $ra['cols'], $bEditable );
@@ -249,7 +248,7 @@ class AssessmentUIColumns extends AssessmentUI
             $s .= "</tr><tr>";
             foreach( $raColumnDef as $ra ) {
                 if( isset($ra['colRange']) ) {
-                    $s .= "<td valign='top' width='$colwidth' style='text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
+                    $s .= "<td style='vertical-align:top;text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
                 }
             }
         }
