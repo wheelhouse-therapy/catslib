@@ -1284,8 +1284,11 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                 $sResult = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>"
                           .$sResult;
                 $sControl .= "<script src='w/js/printme/jquery-printme.js'></script>"
-                    ."<div style='padding:5%;display:inline'>"
-                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
+                    ."<div style='padding-left:5%;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
+                    ."</div>"
+                    ."<div style='padding-left:2%;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."invoice.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Edit Assessment' onclick='window.location=\"".CATSDIR."?sAsmtAction=edit&kA=$p_kAsmt\"'></button>"
                     ."</div>";
             }
             $s .= "</div>"
