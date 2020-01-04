@@ -93,7 +93,9 @@ class CATS_MainUI extends CATS_UI
 
         $s = $this->Header();
         $clinics = new Clinics($this->oApp);
-        if($clinics->GetCurrentClinic() == NULL){
+        if( $screen == "logout" ) {     // put this one first so you can logout if you have no clinics defined (so you get stuck in the next case)
+            $s .= $this->DrawLogout();
+        } else if($clinics->GetCurrentClinic() == NULL){
             $s .= "<div style='margin:auto; width:33%; padding: 10px; padding-top: 0px; margin-top:10em;'><h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics(true)
                  ."</div>";
@@ -106,8 +108,6 @@ class CATS_MainUI extends CATS_UI
             $s .= $this->DrawTherapist();
         } else if( substr($screen, 0, 6 ) == "leader" ){
             $s .= $this->DrawLeader();
-        } else if( $screen == "logout" ) {
-            $s .= $this->DrawLogout();
         } else if( $screen == "clinicImage"){
             //Revert the screen to the actual screen.
             //If we dont users will be stuck on this screen and have to know the screen name to escape.
@@ -389,7 +389,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         }
         return( $s );
     }
-    
+
     private function drawCircles( $raScreens )
     {
         $s = "";
