@@ -155,6 +155,8 @@ ResetPassword;
 
             // Unset the mode var for resource download
             $this->oApp->sess->VarSet('resource-mode', 'replace');
+            // Unset the assessement filter
+            $this->oApp->sess->VarSet("client_key", 0);
 
         return( $s );
     }

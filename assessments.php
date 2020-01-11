@@ -1257,7 +1257,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             do_default:
             /* Show the landing page or a particular assessment.
              */
-            $sList = $oAC->GetSummaryTable( $p_kAsmt,SEEDInput_Int('fk_clients2') );
+            $sList = $oAC->GetSummaryTable( $p_kAsmt,$oApp->sess->smartGPC('client_key') );
             $sResult = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
 // uncomment to see the problem items in the vision column of an spm test
 //$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
