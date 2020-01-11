@@ -177,6 +177,7 @@ ResetPassword;
             //array( 'therapist-calendar',        "Calendar" ),
             array( 'therapist-clinicresources', "Print Clinic Resources"),
             array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
+            array( 'therapist-viewVideos',      "CATS University" ),
             array( 'therapist-akaunting',       "Akaunting" ),
             array( 'therapist-distributeReports', "Distribute Reports" )
         );
@@ -245,6 +246,9 @@ ResetPassword;
                 break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
+                break;
+            case "therapist-viewVideos":
+                $s .= viewVideos($this->oApp);
                 break;
             case "therapist-akaunting":
                 require_once CATSLIB."AkauntingReports.php";
