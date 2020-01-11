@@ -23,15 +23,15 @@ class Clinics {
         return $this->GetCurrentClinic() == 1;
     }
 
+    /**
+     * Returns the current clinic the user is looking at
+     * A result of NULL means a clinic has not been specefied
+     * A list of accessable clinics should be presented at this point
+     *
+     * A user with access to the core clinic will never return NULL through this call.
+     * Clinic leaders default to the first clinic they lead.
+     */
     function GetCurrentClinic($user = NULL){
-        /*
-         * Returns the current clinic the user is looking at
-         * A result of NULL means a clinic has not been specefied
-         * A list of accessable clinics should be presented at this point
-         *
-         * A user with access to the core clinic will never return NULL through this call.
-         * Clinic leaders default to the first clinic they lead.
-         */
 
         if(!$user){
             $user = $this->oApp->sess->GetUID();
@@ -59,18 +59,31 @@ class Clinics {
         return $k;
     }
 
+    /**
+     * Returns a list of clinics that the user is part of (accessable)
+     *
+     * A clinic is considerd accessable to the user by CATS if they are part of that clinic
+     * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
+     */
     function GetUserClinics($user = NULL){
-        /*
-         * Returns a list of clinics that the user is part of (accessable)
-         *
-         * A clinic is considerd accessable to the user by CATS if they are part of that clinic
-         * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
-         */
 
         if(!$user){
             $user = $this->oApp->sess->GetUID();
         }
 
+        if($user == 1){
+            // We are working with the developer account. Grant access to all clinics.
+            $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("");
+            foreach($clinics as $k => $ra){
+                $clinics1 = array();
+                foreach($ra as $k1 => $v){
+                    $clinics1["Clinics_".$k1] = $v;
+                }
+                $clinics[$k] = $clinics1;
+            }
+            return $clinics;
+        }
+        
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
         $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
         $leading = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
