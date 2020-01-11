@@ -378,20 +378,29 @@ class AssessmentsCommon
         return $ra['date']?:"Entered: ".substr( $ra['_created'], 0, 10 );
     }
 
-    function GetSummaryTable( $kAsmtCurr )
+    function GetSummaryTable( $kAsmtCurr, $client_key=0 )
     /*************************************
         Draw a table of assessments, highlight the given one
      */
     {
         $s = "";
 
-        $raA = $this->oAsmtDB->GetList( "AxCxP", "" );
+        $clinics = new Clinics($this->oApp);
+        $cond = $clinics->isCoreClinic() ? "" : ("C.clinic = ".$clinics->GetCurrentClinic());;
+        if($client_key){
+            if($cond){
+                $cond .= " AND ";
+            }
+            $cond .= "fk_clients2=".$client_key;
+        }
+        
+        $raA = $this->oAsmtDB->GetList( "AxCxP", $cond );
         $s .= "<table style='border:none'>";
         foreach( $raA as $ra ) {
             $date = self::GetAssessmentDate($ra);
             $sStyle = $kAsmtCurr == $ra['_key'] ? "font-weight:bold;color:green" : "";
             $s .= "<tr><td>$date</td>"
-                     ."<td><a style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
+                     ."<td><a style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['C__key']).")</a></td>"
                      ."<td>{$ra['testType']}</td></tr>";
         }
         $s .= "</table>";
@@ -450,7 +459,7 @@ class AssessmentsCommon
         $raClients = $oPeopleDB->GetList( ClientList::CLIENT, $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'"),array("sSortCol" => "P.first_name,_key") );
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
-            $opts["{$ra['P_first_name']} {$ra['P_last_name']}".($clinics->isCoreClinic() || $this->oApp->sess->GetUID() == 1?" ({$ra['_key']})":"")] = $ra['_key'];
+            $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || $this->oApp->sess->GetUID() == 1?" ({$ra['_key']})":"")] = $ra['_key'];
         }
 
         return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
@@ -1248,7 +1257,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             do_default:
             /* Show the landing page or a particular assessment.
              */
-            $sList = $oAC->GetSummaryTable( $p_kAsmt );
+            $sList = $oAC->GetSummaryTable( $p_kAsmt,SEEDInput_Int('fk_clients2') );
             $sResult = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
 // uncomment to see the problem items in the vision column of an spm test
 //$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
