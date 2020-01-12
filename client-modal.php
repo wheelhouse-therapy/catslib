@@ -11,7 +11,7 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
                     </div>
                     <div class=\"modal-body\">
                         <form id=\"contact_form\" action=\"jx.php\" method=\"POST\">
-                            <input type='hidden' name='cmd' value='therapist--modal' />
+                            <input type='hidden' name='cmd' value='therapist--modal' id='cmd' />
                             <input type='hidden' name='client_key' value='{$ra['_key']}' />";
              $otherless = array_filter($pro_roles_name,function($var){
                 return($var != "Other");  
@@ -28,6 +28,11 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
                  }
               }
               $s .= "</form>
+                     <form onsubmit='event.preventDefault()'>
+                        <input type='hidden' name='cmd' value='linkNew' />
+                        <input type='hidden' name='client_key' value='{$ra['_key']}' />
+                        <input type='submit' value='New Provider' onclick='$(\"#contact_dialog\").modal(\"hide\");submitForm(event)' />
+                     </form>
                     </div>
                     <div class=\"modal-footer\">
                         <button type=\"button\" class=\"btn btn-default\" data-dismiss=\"modal\">Cancel</button>

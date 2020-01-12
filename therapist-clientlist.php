@@ -125,6 +125,9 @@ class ClientList
              $s .= "});</script>";
 
              $s .= "<div id='modalBox'></div>";
+             if(isset($_SESSION['newLinks'])){
+                 unset($_SESSION['newLinks']);
+             }
         return( $s );
     }
 
@@ -156,6 +159,9 @@ class ClientList
                 $myClients = ($pid?$this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'"):array());
                 $s = $this->drawProForm($oForm, $myClients, $raClients, false);
                 break;
+        }
+        if(isset($_SESSION['newLinks'])){
+            unset($_SESSION['newLinks']);
         }
         return $s;
     }
@@ -333,6 +339,12 @@ ExistsWarning;
                     if(@$_FILES["new_signature"]["tmp_name"]){
                         $this->oApp->kfdb->Execute("UPDATE `pros_internal` SET `signature` = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE `pros_internal`.`_key` = ".$this->therapist_key);
                     }
+                    if(SEEDInput_Int('linkClient')){
+                        $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
+                        $kfr->SetValue("fk_clients2", SEEDInput_Int("linkClient"));
+                        $kfr->SetValue("fk_pros_internal", SEEDInput_Int($this->therapist_key));
+                        $kfr->PutDBRow();
+                    }
                 }
                 $id = self::createID(self::INTERNAL_PRO, $this->therapist_key);
                 break;
@@ -351,6 +363,12 @@ ExistsWarning;
                     $oFormPro->Update();
                     $this->updatePeople( $oFormPro );
                     $this->pro_key = $oFormPro->GetKey();
+                    if(SEEDInput_Int('linkClient')){
+                        $kfr = $this->oPeopleDB->KFRel("CX")->CreateRecord();
+                        $kfr->SetValue("fk_clients2", SEEDInput_Int("linkClient"));
+                        $kfr->SetValue("fk_pros_external", SEEDInput_Int($this->pro_key));
+                        $kfr->PutDBRow();
+                    }
                 }
                 $id = $id = self::createID(self::EXTERNAL_PRO, $this->pro_key);
                 break;
@@ -385,6 +403,10 @@ ExistsWarning;
                         break;
                 }
                 $id = $key;
+                break;
+            case 'linkNew':
+                $_SESSION['newLinks']['client_key'] = SEEDInput_Int('client_key');
+                $id = self::createID(self::EXTERNAL_PRO, 0);
                 break;
         }
         $list = $this->drawList((@$this->parseID($id)[0]?:""));
@@ -631,9 +653,9 @@ ExistsWarning;
 
         $sClients = "<div style='padding:10px;border:1px solid #888'>Clients:<br/>";
         foreach( $myClients as $ra ) {
-            if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( 'C', $ra['fk_clients2'] )) ) {
+            if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $ra['fk_clients2'] )) ) {
                 $sClients .= $kfr->Expand( "[[P_first_name]] [[P_last_name]]<br />" );
-            }
+            }   
         }
         if($sClients == "<div style='padding:10px;border:1px solid #888'>Clients:<br/>"){
             $sClients .= "No Clients Connected";
@@ -679,6 +701,7 @@ ExistsWarning;
                                  .($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Provider # {$oForm->Value('_key')}</p>":""):"New Professional")
                            ))
              .$oForm->HiddenKey()
+             .(isset($_SESSION['newLinks']['client_key'])?"<input type='hidden' name='linkClient' value='{$_SESSION['newLinks']['client_key']}' />":"")
              ."<table class='container-fluid table table-striped table-sm'>";
              $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
              $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
@@ -715,9 +738,22 @@ ExistsWarning;
              ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
              ."<div class='row'>"
              ."<div class='col-md-8'>".$this->sForm."</div>"
-             ."<div class='col-md-4'>".$sClients.$this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key))."</div>"
+             ."<div class='col-md-4'>[[Sidebar]]</div>"
              ."</div>"
              ."</div>";
+         if(isset($_SESSION['newLinks']['client_key']) && $kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $_SESSION['newLinks']['client_key'] )){
+             
+             $sSidebar = "<div style='padding:10px;border:1px solid #888'>Clients that will be connected:<br/>"
+                            .$kfr->Expand( "<span>[[P_first_name]] [[P_last_name]]</span><br />" )
+                        ."</div>";
+             $s = str_replace("[[Sidebar]]", $sSidebar, $s);
+         }
+         if($oForm->Value("_key")){
+             $s = str_replace("[[Sidebar]]", $sClients.$this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key)), $s);
+         }
+         
+         //Replace the sidebar if it hasn't been already. This ensures the placeholder text is never sent to the browser
+         $s = str_replace("[[Sidebar]]", "", $s);
          return( $s );
     }
 
