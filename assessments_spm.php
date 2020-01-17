@@ -9,7 +9,7 @@
 class AssessmentData_SPM extends AssessmentData
 {
    //FIXME Finish implementing the new system
-    private $raRange = array(
+    public $raRange = array(
         'social'   => "1-10",
         'vision'   => "11-21",
         'hearing'  => "22-29",

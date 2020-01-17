@@ -1109,6 +1109,7 @@ class Assessment_SPM_Classroom extends Assessment_SPM
 
         //TODO Rework the data system to get rid of this dirty work arround
         $this->oData->raPercentiles = $this->raPercentiles;
+        $this->oData->raRange = $this->raColumnRanges;
     }
 
     protected function GetScore( $n, $v ):int
