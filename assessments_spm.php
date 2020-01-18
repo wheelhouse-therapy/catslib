@@ -185,7 +185,6 @@ class AssessmentUI_SPM extends AssessmentUIColumns
 
     function DrawScoreResults() : string
     {
-
         $s = "";
 
         $oForm = $this->oData->GetForm();
@@ -220,7 +219,8 @@ class AssessmentUI_SPM extends AssessmentUIColumns
         }*/
 
         $s .= SPMChart();
-        $s .= $this->DrawColFormTable( $oForm, $this->raColumnDef, false );
+
+        $s .= $this->DrawColFormTable( $oForm, false );
 
         // Put the results in a js array for processing on the client
         $s .= "<script>
@@ -230,18 +230,4 @@ class AssessmentUI_SPM extends AssessmentUIColumns
 
         return( $s );
     }
-
-    public function GetColumnDef() { return( $this->raColumnDef ); }
-
-    protected $raColumnDef = array(
-            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
-            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
-            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
-            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
-            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
-            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
-            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
-            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
-        );
 }
-

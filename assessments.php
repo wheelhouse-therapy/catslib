@@ -150,13 +150,15 @@ class AssessmentUIColumns extends AssessmentUI
     If an assessment UI uses columns of items, extend it from this one instead of from AssessmentUI.
  */
 {
-    protected $raColumnsDef;
+    private $raColumnsDef;
 
     protected function __construct( AssessmentData $oData, $raColumnsDef )
     {
         parent::__construct( $oData );
         $this->SetColumnsDef( $raColumnsDef );
     }
+
+    public function GetColumnDef() { return( $this->raColumnsDef ); }
 
     function SetColumnsDef( $raColumnsDef ) { $this->raColumnsDef = $raColumnsDef; }
 
@@ -187,7 +189,7 @@ class AssessmentUIColumns extends AssessmentUI
             foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
         }
 
-        $s .= $this->DrawColFormTable( $oForm, $this->raColumnsDef, true );
+        $s .= $this->DrawColFormTable( $oForm, true );
 
         if( $this->oA->bUseDataList ) {
             $s .= $this->getDataList( $oForm, $this->oA->Inputs("datalist") )
@@ -220,15 +222,14 @@ class AssessmentUIColumns extends AssessmentUI
         return $s;
     }
 
-    function DrawColFormTable( SEEDCoreForm $oForm, $raColumnDef, $bEditable )
+    function DrawColFormTable( SEEDCoreForm $oForm, $bEditable )
     {
-
         $s = "<table style='width:100%;table-layout:fixed'><tr>";
-        foreach( $raColumnDef as $ra ) {
+        foreach( $this->raColumnsDef as $ra ) {
             $s .= "<th style='vertical-align:top'>{$ra['label']}<br/><br/></th>";
         }
         $s .= "</tr><tr>";
-        foreach( $raColumnDef as $ra ) {
+        foreach( $this->raColumnsDef as $ra ) {
             $s .= "<td style='vertical-align:top; border-right:1px solid #ccc;padding:0px 5px'>";
             if( isset($ra['cols']) ) {
                 // columns are explicitly defined
@@ -246,7 +247,7 @@ class AssessmentUIColumns extends AssessmentUI
         }
         if( !$bEditable ) {
             $s .= "</tr><tr>";
-            foreach( $raColumnDef as $ra ) {
+            foreach( $this->raColumnsDef as $ra ) {
                 if( isset($ra['colRange']) ) {
                     $s .= "<td style='vertical-align:top;text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
                 }
@@ -393,7 +394,7 @@ class AssessmentsCommon
             }
             $cond .= "fk_clients2=".$client_key;
         }
-        
+
         $raA = $this->oAsmtDB->GetList( "AxCxP", $cond );
         $s .= "<table style='border:none'>";
         foreach( $raA as $ra ) {
@@ -1110,7 +1111,20 @@ class Assessment_SPM_Classroom extends Assessment_SPM
         //TODO Rework the data system to get rid of this dirty work arround
         $this->oData->raPercentiles = $this->raPercentiles;
         $this->oData->raRange = $this->raColumnRanges;
-        $this->oUI->SetColumnsDef($this->raColumnRanges);
+        $this->oUI->SetColumnsDef($this->initColumnsDef());
+
+    // actually this array has to have these keys, not sure whether the array below is redundant
+    $this->oData->raRange = array(
+        'social'   => "1-10",
+        'vision'   => "11-17",
+        'hearing'  => "18-24",
+        'touch'    => "25-32",
+        'taste'    => "33-36",
+        'body'     => "37-43",
+        'balance'  => "44-52",
+        'planning' => "53-62"
+    );
+
     }
 
     protected function GetScore( $n, $v ):int
@@ -1138,6 +1152,23 @@ class Assessment_SPM_Classroom extends Assessment_SPM
         "Balance<br/>and Motion"   => "44-52",
         "Planning<br/>and Ideas"   => "53-62"
     );
+
+    // move this to AssessmentUI_SPMC when it is created
+    private function initColumnsDef()
+    {
+        $def = array(
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-17" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"18-24" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"25-32" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"33-36" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"37-43" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"44-52" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"53-62" ]
+        );
+        return( $def );
+    }
+
 
     /* The percentiles that apply to each score, per column
      */
@@ -1224,7 +1255,6 @@ function AssessmentsScore( SEEDAppConsole $oApp )
 
     // Output <style> and <script> for the current assessment if any
     $s .= $oAsmt ? $oAsmt->StyleScript() : "";
-
 
     switch( $p_action ) {
         case 'edit':

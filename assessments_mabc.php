@@ -430,8 +430,6 @@ class Assessment_MABC extends Assessments
 
 // eliminate raColumnRanges
         $this->raColumnRanges = $cr;
-// deprecate this->raColumnDef and just use the one in oUI
-        $this->raColumnDef = $colDef;
 // SetAgeBand could just do everything that's in this method
         $this->oUI->SetColumnsDef( $colDef );
         $this->oData->SetAgeBand( $age, $ageBand );
@@ -483,7 +481,7 @@ class Assessment_MABC extends Assessments
             case "total_percentile":
                 $item = strtok($tag, "_");
                 return $this->oData->ComputePercentile($item."_pct");
-   
+
             case "zone":
                 return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2];
         }
@@ -497,7 +495,7 @@ class Assessment_MABC extends Assessments
     public function checkEligibility(int $kClient, $date = ""):bool{
         return $this->getClientAge($kClient, $date) >= 3 && $this->getClientAge($kClient, $date) < 17;
     }
-    
+
     protected $raColumnRanges = array();    // point this to one of the below
     // 3-6 years
     private $raColumnRanges_ageBand1 = array(
@@ -518,8 +516,8 @@ class Assessment_MABC extends Assessments
         "Bal" => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'],
     );
 
-
-    protected $raColumnDef = array();   // point this to one of the below
+    /* One of these is put in SetColumnsDef()
+     */
     // 3-6 years
     private $raColumnDef_ageBand1 = array(
         'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
@@ -557,7 +555,7 @@ class Assessment_MABC_Scores
         if($age > 16){
             $age = 16;
         }
-        
+
         return( @self::$scores["age{$age}:0-{$age}:11"] );
     }
 
