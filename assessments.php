@@ -1248,7 +1248,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</div>";
 
             if($sResult){
-                if(CATS_DEBUG){
+                if((CATS_DEBUG)||$oApp->sess->GetUID()==1){
                     $sResult .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button>"
                                ."<div id='tags'b style='display:none'>";
                     foreach($oAsmt->getTags() as $tag){
