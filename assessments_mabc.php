@@ -436,6 +436,10 @@ class Assessment_MABC extends Assessments
     }
 
     function DrawAsmtResult()
+    /************************
+        Overrides the common DrawAsmtResult because it is necessary to
+        set the column ranges first, based on client's age, before calling the draw method
+     */
     {
         $s = "";
 //$this->oData->DebugDumpKfr();
@@ -446,7 +450,7 @@ class Assessment_MABC extends Assessments
         }
         $this->setColumnRangesByAge( $age );
 
-        $s .= $this->drawResult();
+        $s .= parent::DrawAsmtResult();
 
         done:
         return( $s );

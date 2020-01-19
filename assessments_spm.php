@@ -18,12 +18,6 @@ class Assessment_SPM extends Assessments
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
 
-    function DrawAsmtResult()
-    {
-        return( $this->drawResult() );
-    }
-
-
     function DrawAsmtForm( int $kClient )
     {
         return( $this->oUI->DrawColumnForm( $kClient ) );

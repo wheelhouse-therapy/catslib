@@ -532,7 +532,25 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     }
 
     abstract function DrawAsmtForm( int $kClient );
-    abstract function DrawAsmtResult();
+    public function DrawAsmtResult()
+    {
+        $s = "";
+
+        if( !$this->oData->GetAsmtKey() )  goto done;
+
+        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $oForm = $this->oData->GetForm();
+        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
+        $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
+                    <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
+                    <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
+                    <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
+        $s .= $this->oUI->DrawScoreResults();
+
+        done:
+        return( $s );
+    }
+
 
     public function UpdateAsmt()
     {
@@ -642,25 +660,6 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
                  ."<div id='assessment' class='col-md-10'>$sAsmt</div>"
              ."</div>";
 
-        return( $s );
-    }
-
-    function drawResult()
-    {
-        $s = "";
-
-        if( !$this->oData->GetAsmtKey() )  goto done;
-
-        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
-        $oForm = $this->oData->GetForm();
-        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
-        $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
-                    <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
-                    <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
-                    <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
-        $s .= $this->oUI->DrawScoreResults();
-
-        done:
         return( $s );
     }
 
@@ -805,11 +804,6 @@ class Assessment_AASP extends Assessments
     function DrawAsmtForm( int $kClient )
     {
         return( $this->oUI->DrawColumnForm( $kClient ) );
-    }
-
-    function DrawAsmtResult()
-    {
-        return( $this->drawResult() );
     }
 
     protected function InputOptions(){
