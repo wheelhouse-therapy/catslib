@@ -55,16 +55,6 @@ class AssessmentData_SPMC extends AssessmentData
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
-    public $raRange = array(
-        'social'   => "1-10",
-        'vision'   => "11-17",
-        'hearing'  => "18-24",
-        'touch'    => "25-32",
-        'taste'    => "33-36",
-        'body'     => "37-43",
-        'balance'  => "44-52",
-        'planning' => "53-62"
-    );
 
     /* The percentiles that apply to each score, per column
      */

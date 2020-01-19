@@ -120,6 +120,14 @@ class AssessmentData
         return( method_exists($this, 'columnsDef') ? array_keys($this->columnsDef()) : [] );
     }
 
+    public function GetRangeOfColumn( $col )
+    /***************************************
+        Return the colRange of the given column
+     */
+    {
+        return( method_exists($this, 'columnsDef') ? @$this->columnsDef()[$col]['colRange'] : "" );
+    }
+
     public function ComputeScore( string $item ) : int        { return(0); }
     public function ComputePercentile( string $item ) : float { return(0.0); }
 
@@ -1101,7 +1109,7 @@ abstract class Assessment_SPMShared extends Assessments
             case "body_total":
             case "balance_total":
             case "planning_total":
-                $range = SEEDCore_ParseRangeStrToRA( $this->oData->raRange[explode("_", $item)[0]] );
+                $range = SEEDCore_ParseRangeStrToRA( $this->oData->GetRangeOfColumn(explode("_", $item)[0]) );
                 $score = array_sum(array_intersect_key($raScores, array_flip($range)));
                 break;
             case "total":
