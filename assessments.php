@@ -1137,7 +1137,7 @@ abstract class Assessment_SPMShared extends Assessments
             case "balance":
             case "planning":
                 $score = $this->ComputeScore($item."_total");
-                $percentile = floatval(@$this->raPercentiles[$score][$item]);
+                $percentile = floatval(@$this->oData->raPercentiles[$score][$item]);
                 break;
             case 'total':
                 $score = $this->ComputeScore("total") - $this->ComputeScore("balance_total") - $this->ComputeScore("social_total");
