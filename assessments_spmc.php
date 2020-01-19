@@ -5,46 +5,27 @@
  * Similar to SPM but different assessment items.
  */
 
-
-class Assessment_SPM_Classroom extends Assessment_SPM
+class Assessment_SPM_Classroom extends Assessment_SPMShared
 {
     function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        parent::__construct( $oAsmt, $kAsmt, 'c' );
+        $oData = new AssessmentData_SPMC( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_SPMC( $oData );
 
+        parent::__construct( $oAsmt, 'spmc', $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
-
-// for now use the oData and oUI from SPM and overwrite raPercentiles, raRange, and raColumnsDef
-//        // parent constructor does the right thing except it creates _SPM versions of these. So replace them.
-//        $this->oData = new AssessmentData_SPMC( $this, $oAsmt, $kAsmt );
-//        $this->oUI = new AssessmentUI_SPMC( $this->oData );
-
-
-        //TODO Rework the data system to get rid of this dirty work arround
-        $this->oData->raPercentiles = $this->raPercentiles;
-        $this->oData->raRange = $this->raColumnRanges;
-        $this->oUI->SetColumnsDef($this->initColumnsDef());
-
-    // actually this array has to have these keys, not sure whether the array below is redundant
-    $this->oData->raRange = array(
-        'social'   => "1-10",
-        'vision'   => "11-17",
-        'hearing'  => "18-24",
-        'touch'    => "25-32",
-        'taste'    => "33-36",
-        'body'     => "37-43",
-        'balance'  => "44-52",
-        'planning' => "53-62"
-    );
-
     }
 
     protected function GetScore( $n, $v ):int
     /************************************
-     Return the score for item n when it has the value v
+        Return the score for item n when it has the value v
      */
     {
         $score = "0";
+
+        if(!$v){
+            return 0;
+        }
 
         if( $n >= 1 && $n <= 10 ) {
             $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
@@ -55,35 +36,39 @@ class Assessment_SPM_Classroom extends Assessment_SPM
     }
 
     protected $raColumnRanges = array(
-        "Social<br/>participation" => "1-10",
-        "Vision"                   => "11-17",
-        "Hearing"                  => "18-24",
-        "Touch"                    => "25-32",
-        "Taste /<br/>Smell"        => "33-36",
-        "Body<br/>Awareness"       => "37-43",
-        "Balance<br/>and Motion"   => "44-52",
-        "Planning<br/>and Ideas"   => "53-62"
+            "Social<br/>participation" => "1-10",
+            "Vision"                   => "11-17",
+            "Hearing"                  => "18-24",
+            "Touch"                    => "25-32",
+            "Taste /<br/>Smell"        => "33-36",
+            "Body<br/>Awareness"       => "37-43",
+            "Balance<br/>and Motion"   => "44-52",
+            "Planning<br/>and Ideas"   => "53-62"
     );
+}
 
-    private function initColumnsDef()
+
+class AssessmentData_SPMC extends AssessmentData
+{
+    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
-        $def = array(
-            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
-            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-17" ],
-            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"18-24" ],
-            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"25-32" ],
-            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"33-36" ],
-            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"37-43" ],
-            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"44-52" ],
-            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"53-62" ]
-        );
-        return( $def );
+        parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
+    public $raRange = array(
+        'social'   => "1-10",
+        'vision'   => "11-17",
+        'hearing'  => "18-24",
+        'touch'    => "25-32",
+        'taste'    => "33-36",
+        'body'     => "37-43",
+        'balance'  => "44-52",
+        'planning' => "53-62"
+    );
 
     /* The percentiles that apply to each score, per column
      */
-    protected $raPercentiles =
+    public $raPercentiles =
     array(
         '7'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'24',   'touch'=>'',     'body'=>'21',   'balance'=>'',     'planning'=>''     ),
         '8'  => array( 'social'=>'',     'vision'=>'42',   'hearing'=>'58',   'touch'=>'27',   'body'=>'54',   'balance'=>'',     'planning'=>''     ),
@@ -121,15 +106,6 @@ class Assessment_SPM_Classroom extends Assessment_SPM
         '40' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' )
     );
 
-}
-
-
-class AssessmentData_SPMC extends AssessmentData
-{
-    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
-    {
-        parent::__construct( $oA, $oAsmt, $kAsmt );
-    }
 
     protected function columnsDef()
     {
@@ -146,7 +122,11 @@ class AssessmentData_SPMC extends AssessmentData
         ] );
     }
 
-
+    // these are the same in spm and spmc so they are in Assessments_SPMShared
+    function GetTotals()  { return( $this->oA->GetTotals() ); }
+    function ComputeScore( string $item ) : int { return( $this->oA->ComputeScore($item) ); }
+    function ComputePercentile( string $item ) : float { return( $this->oA->ComputePercentile( $item ) ); }
+    function MapRaw2Score( string $item, string $raw ) : int { return( $this->oA->MapRaw2Score( $item, $raw ) ); }
 }
 
 
@@ -172,4 +152,5 @@ class AssessmentUI_SPMC extends AssessmentUIColumns
         return( $def );
     }
 
+    function DrawScoreResults() : string { return( $this->oData->oA->DrawScoreResults() ); }
 }
