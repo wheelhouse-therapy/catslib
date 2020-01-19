@@ -65,7 +65,6 @@ class Assessment_SPM_Classroom extends Assessment_SPM
         "Planning<br/>and Ideas"   => "53-62"
     );
 
-    // move this to AssessmentUI_SPMC when it is created
     private function initColumnsDef()
     {
         $def = array(
@@ -130,6 +129,21 @@ class AssessmentData_SPMC extends AssessmentData
     function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oA, $oAsmt, $kAsmt );
+    }
+
+    protected function columnsDef()
+    {
+        // these have slightly different colRanges than SPM
+        return( [
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-17" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"18-24" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"25-32" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"33-36" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"37-43" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"44-52" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"53-62" ]
+        ] );
     }
 
 

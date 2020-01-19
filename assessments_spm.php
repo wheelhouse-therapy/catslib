@@ -23,12 +23,6 @@ class Assessment_SPM extends Assessments
         return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
-
-    protected function Columns()
-    {
-        return( array_keys($this->oData->raPercentiles[8]) );
-    }
-
     protected function InputOptions(){
         return array("never","occasionally","frequently","always");
     }
@@ -203,7 +197,12 @@ class Assessment_SPM extends Assessments
 
 class AssessmentData_SPM extends AssessmentData
 {
-   //FIXME Finish implementing the new system
+    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        parent::__construct( $oA, $oAsmt, $kAsmt );
+    }
+
+    //FIXME Finish implementing the new system
     public $raRange = array(
         'social'   => "1-10",
         'vision'   => "11-21",
@@ -270,10 +269,21 @@ class AssessmentData_SPM extends AssessmentData
         "160"=>"99.5","161"=>"99.5","162"=>"99.5","163"=>"99.5","164"=>"99.5","165"=>"99.5","166"=>"99.5","167"=>"99.5","168"=>"99.5","169"=>"99.5",
         "170"=>"99.5","171"=>"99.5");
 
-    function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
+
+    protected function columnsDef()
     {
-        parent::__construct( $oA, $oAsmt, $kAsmt );
+        return( [
+            'social'   => [ 'label'=>"Social<br/>participation", 'colRange'=>"1-10" ],
+            'vision'   => [ 'label'=>"Vision",                   'colRange'=>"11-21" ],
+            'hearing'  => [ 'label'=>"Hearing",                  'colRange'=>"22-29" ],
+            'touch'    => [ 'label'=>"Touch",                    'colRange'=>"30-40" ],
+            'taste'    => [ 'label'=>"Taste /<br/>Smell",        'colRange'=>"41-45" ],
+            'body'     => [ 'label'=>"Body<br/>Awareness",       'colRange'=>"46-55" ],
+            'balance'  => [ 'label'=>"Balance<br/>and Motion",   'colRange'=>"56-66" ],
+            'planning' => [ 'label'=>"Planning<br/>and Ideas",   'colRange'=>"67-75" ]
+        ] );
     }
+
 
     public function ComputeScore( string $item ) : int
     {

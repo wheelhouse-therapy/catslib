@@ -108,6 +108,14 @@ class AssessmentData
         return( $oForm );
     }
 
+    public function Columns()
+    /************************
+        Return the column names as an array.
+        SPM and SPMC support columnsDef().
+     */
+    {
+        return( method_exists($this, 'columnsDef') ? array_keys($this->columnsDef()) : [] );
+    }
 
     public function ComputeScore( string $item ) : int        { return(0); }
     public function ComputePercentile( string $item ) : float { return(0.0); }
@@ -512,7 +520,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         if( $this->asmtCode == 'spm' || $this->asmtCode == 'spmc' ) {
             $s = "<script>
                   var raPercentilesSPM = ".json_encode($this->oData->raPercentiles).";
-                  var cols = ".json_encode($this->Columns()).";
+                  var cols = ".json_encode($this->oData->Columns()).";
                   var chars = ".json_encode($this->Inputs("script")).";
                   var raTotalsSPM = ".json_encode($this->oData->raTotals).";";
         }
@@ -661,12 +669,6 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
              ."</div>";
 
         return( $s );
-    }
-
-    protected function Columns()
-    {
-        // Override to provide the column names
-        return( array() );
     }
 
     function Inputs($type){
