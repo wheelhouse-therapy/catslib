@@ -181,7 +181,8 @@ ResetPassword;
             array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
             array( 'therapist-viewVideos',      "CATS University" ),
             array( 'therapist-akaunting',       "Akaunting" ),
-            array( 'therapist-distributeReports', "Distribute Reports" )
+            array( 'therapist-distributeReports', "Distribute Reports" ),
+            array( 'link:https://www.catherapyservices.ca/webmail', "Manage Email" )
         );
 
         $s = "";
@@ -403,7 +404,15 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             $circle = "catsCircle".($this->i % 2 + 1);
 
             if( $this->i % 4 == 0 ) $s .= "<div class='row'>";
-            $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
+            $href = "";
+            $target = "";
+            if (SEEDCore_StartsWith($ra[0], "link:")) {
+                $href = substr($ra[0], 5);
+                $target = "target='_blank'";
+            } else {
+                $href = "?screen=".$ra[0];
+            }
+            $s .= "<div class='col-md-3'><a href='{$href}' {$target} class='toCircle $circle'>{$ra[1]}</a></div>";
             if( $this->i % 4 == 3 ) $s .= "</div>";   // row
             ++$this->i;
         }
