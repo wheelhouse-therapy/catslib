@@ -715,16 +715,13 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         $s = "";
         switch($tag){
             case "date":
-                $s = $this->oData->GetValue("date");
-                if($s = ""){
-                    $s = $this->oData->GetValue("_created");
-                }
+                $s = AssessmentsCommon::GetAssessmentDate($this->oData->GetForm()->GetValuesRA());
                 break;
             case "respondent":
                 $s = $this->oData->GetValue("respondent");
                 break;
-                case "date_entered":
-                    $s = $this->oData->GetValue("_created");
+            case "date_entered":
+                $s = substr( $this->oData->GetValue("_created"), 0, 10 );
                 break;
         }
         return $s;
@@ -836,7 +833,7 @@ class Assessment_AASP extends Assessments
             "tactile_items", "tactile_items_never",
             "vestibular_items", "vestibular_items_never",
             "taste_items", "taste_items_never",
-            "low_registration", "sensory_seeking", "sensory_sensativity", "sensory_avoiding",
+            "low_registration", "sensory_seeking", "sensory_sensativity", "sensory_sensitivity", "sensory_avoiding",
             "q1_interpretation", "q2_interpretation", "q3_interpretation", "q4_interpretation"
         );
     }
@@ -858,8 +855,9 @@ class Assessment_AASP extends Assessments
             case "low_registration":
             case "sensory_seeking":
             case "sensory_sensativity":
+            case "sensory_sensitivity":
             case"sensory_avoiding":
-                $tag = array("low_registration" => "q1", "sensory_seeking" => "q2", "sensory_sensativity" => "q3", "sensory_avoiding" => "q4")[$tag];
+                $tag = array("low_registration" => "q1", "sensory_seeking" => "q2", "sensory_sensativity" => "q3", "sensory_sensitivity" => "q3", "sensory_avoiding" => "q4")[$tag];
             case "q1_interpretation":
             case "q2_interpretation":
             case "q3_interpretation":
@@ -1251,7 +1249,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                 if((CATS_DEBUG)||$oApp->sess->GetUID()==1){
                     $sResult .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button>"
                                ."<div id='tags'b style='display:none'>";
-                    foreach($oAsmt->getTags() as $tag){
+                    foreach(array_merge($oAsmt->getTags(),$oAsmt->getGlobalTags()) as $tag){
                         $sResult .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
                     }
                     $sResult .= "</div>";
