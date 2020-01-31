@@ -83,6 +83,7 @@ class TutorialManager {
         $s = <<<TutorialScript
 <script>
     var tour = new Tour({
+        backdrop:true,
         steps: [
             [[steps]]
         ],
@@ -120,11 +121,11 @@ TutorialScript;
             if($steps){
                 $steps .= ",";
             }
-            $orphanOrElement = 'orphan:true';
+            $orphanOrElement = 'orphan:true,';
             if(array_key_exists(Tutorial::ELEMENT_KEY, $step)){
-                $orphanOrElement = "element:'{$step[Tutorial::ELEMENT_KEY]}'";
+                $orphanOrElement = "element:'{$step[Tutorial::ELEMENT_KEY]}',";
             }
-            $steps .= "{title:'".addslashes($step[Tutorial::TITLE_KEY])."',content:'".addslashes($step[Tutorial::CONTENT_KEY])."',$orphanOrElement}";
+            $steps .= "{title:'".addslashes($step[Tutorial::TITLE_KEY])."',content:'".addslashes($step[Tutorial::CONTENT_KEY])."',$orphanOrElement placement:'".(@$step[Tutorial::PLACEMENT_KEY]?:Placement::RIGHT)."'}";
         }
         
         return str_replace(array('[[steps]]','[[screen]]'), array($steps,$screen), $s);
@@ -272,6 +273,7 @@ abstract class Tutorial{
     public const CONTENT_KEY = 'content';
     public const VERSION_KEY = 'version';
     public const ELEMENT_KEY = 'element';
+    public const PLACEMENT_KEY = 'placement';
     
     /**
      * All steps must include these keys in order to be considered as a step and retured by getNewSteps
@@ -320,5 +322,15 @@ abstract class Tutorial{
         }
         return $version;
     }
+    
+}
+
+class Placement{
+    
+    const AUTO = 'auto';
+    const BOTTOM = 'bottom';
+    const LEFT = 'left';
+    const RIGHT = 'right';
+    const TOP = 'top';
     
 }
