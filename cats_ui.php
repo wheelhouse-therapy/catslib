@@ -528,14 +528,22 @@ class ScreenManager{
 
 }
 
+/**
+ * Class representing the home screen tutorial
+ * @author Eric
+ * @version 1.0
+ */
 class HomeTutorial extends Tutorial {
     
     protected final function getSteps(): array{
-        return array();
-    }
-    
-    public final function getVersion(): int{
-        return 1;
+        return array(
+            [self::TITLE_KEY => 'Welcome!',self::CONTENT_KEY => 'Welcome to the CATS "backend". Lets show you arround'],
+            [self::TITLE_KEY => 'Bubbles', self::CONTENT_KEY => 'These bubble will take you the different screens you have access to.', self::ELEMENT_KEY => '.container-fluid',self::PLACEMENT_KEY => Placement::TOP],
+            [self::TITLE_KEY => 'Clinics', self::CONTENT_KEY => 'The current clinic you are viewing will be shown here. If you have access to multiple clinics you will also be able to switch between them here, by clicking on the clinic\'s name', self::ELEMENT_KEY => '#clinics',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'Back Button', self::CONTENT_KEY => 'Your browser back button is not garenteed to take you back to the previous screen. Please use this back button instead. In most cases the previous screen will be the home screen, however we track your screen history from the moment you log in and you can use the back button to backtrack through it.<br /><br />NOTE: the screen history is only avalible for as long as you are logged in we don\'t store it permantently',self::ELEMENT_KEY => '#backButton',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
+        );
     }
 
     public final function getScreen(): string{
