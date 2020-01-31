@@ -138,6 +138,12 @@ TutorialScript;
             $user = $oApp->sess->GetUID();
         }
         
+        if(!self::hasTutorial($screen)){
+            return;
+        }
+        
+        $version = self::$raTutorials[strtolower($screen)]->getVersion();
+        
         $accountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
         $metadata = @$accountDB->GetUserMetadata($user)[self::METADATA_KEY]?:"";
         $ra = self::parseMetadata($metadata);
@@ -158,7 +164,7 @@ TutorialScript;
         if(!$stored){
             $s .= TutorialComplete::createNew($screen, $version)->write();
         }
-        
+        var_dump($s);
         $accountDB->SetUserMetadata($user, self::METADATA_KEY, $s);
         
     }
