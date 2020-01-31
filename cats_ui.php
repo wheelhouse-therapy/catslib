@@ -5,6 +5,7 @@ include_once('share_resources.php');
 include_once('Clinics.php');
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 include_once( SEEDLIB."SEEDUGP.php" );
+include_once 'tutorial.php';
 
 /* Classes to help draw the user interface
  */
@@ -38,6 +39,8 @@ class CATS_UI
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
         }
+        
+        $body .= TutorialManager::runTutorial($this->oApp, $this->oHistory->getScreen());
 
         $body .=
             "<script> SEEDCore_CleanBrowserAddress(); </script>"
@@ -523,4 +526,24 @@ class ScreenManager{
         $_SESSION['screenHistory'] = $this->screens;
     }
 
+}
+
+class HomeTutorial extends Tutorial {
+    
+    protected final function getSteps(): array{
+        return array();
+    }
+    
+    public final function getVersion(): int{
+        return 1;
+    }
+
+    public final function getScreen(): string{
+        return 'home';
+    }
+    public function __construct(){
+        // No need to initiate anything
+    }
+
+    
 }
