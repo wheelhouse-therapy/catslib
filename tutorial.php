@@ -1,4 +1,5 @@
 <?php
+// THERE SHOULD BE NO REASON TO EDIT THIS FILE DIRECTLY TO IMPLEMENT A TUTORIAL
 /**
  * Class responsible for handling showing users a tutorial if they havent already sceen it.
  * @author Eric
@@ -205,7 +206,7 @@ TutorialScript;
             $reflect = new ReflectionClass($klass);
             if($reflect->isSubclassOf("Tutorial")){
                 $inst = $reflect->newInstance();
-                self::$raTutorials[$inst->getScreen()] = $inst;
+                self::$raTutorials[strtolower($inst->getScreen())] = $inst;
             }
         }
         self::$initialized = true;
@@ -213,6 +214,12 @@ TutorialScript;
     
 }
 
+/**
+ * Class representing a completed / viewed tutorial.
+ * Also handles parsing and from and creating the metadata strings
+ * @author Eric
+ * @version 1.0
+ */
 class TutorialComplete {
     
     private const VERSION_SEPARATOR = '|';
@@ -220,12 +227,12 @@ class TutorialComplete {
     private $screen;
     private $version;
     
-    public static function createFromMetadata(String $metadata):TutorialComplete{
+    public static final function createFromMetadata(String $metadata):TutorialComplete{
         $ra = explode(self::VERSION_SEPARATOR, $metadata);
         return new TutorialComplete($ra[0], $ra[1]);
     }
     
-    public static function createNew(String $screen,int $version):TutorialComplete{
+    public static final function createNew(String $screen,int $version):TutorialComplete{
         return new TutorialComplete(strtolower($screen), $version);
     }
     
@@ -234,22 +241,23 @@ class TutorialComplete {
         $this->version = $version;
     }
     
-    public function GetScreen():String{
+    public final function GetScreen():String{
         return $this->screen;
     }
     
-    public function GetVersion():int{
+    public final function GetVersion():int{
         return $this->version;
     }
     
-    public function write():String{
+    public final function write():String{
         return $this->screen.self::VERSION_SEPARATOR.$this->version;
     }
     
 }
 
 /**
- * All Screen Tutorials Extend this class
+ * All Screen Tutorials Extend this class.
+ * This is automatically intitialized when the TutorialManager is initialized
  * @author Eric
  *
  */
@@ -268,7 +276,6 @@ abstract class Tutorial{
     private static $REQUIRED_PARAMS = array(self::TITLE_KEY,self::CONTENT_KEY);
     
     protected abstract function getSteps():array;
-    public abstract function getVersion():int;
     public abstract function getScreen():string;
     // Abstract constructor to simulate an interface with defalut methods
     public abstract function __construct();
@@ -289,4 +296,20 @@ abstract class Tutorial{
         }
         return $steps;
     }
+    
+    public final function getVersion():int{
+        $version = 1;
+        foreach ($this->getSteps() as $step){
+            if(array_intersect_key($step, self::$REQUIRED_PARAMS)){
+                if($version < @$step[self::VERSION_KEY]?:0){
+                    $version = $step[self::VERSION_KEY];
+                }
+            }
+        }
+        if($version < 1){
+            $version = 1;
+        }
+        return $version;
+    }
+    
 }
