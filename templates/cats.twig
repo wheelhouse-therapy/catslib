@@ -13,7 +13,7 @@
 {% if screen_name != 'home' %}
     {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home'><button>Home</button></a>" %}
 {% endif %}
-{% set buttonback = "<a href='" ~ CATSDIR ~ "?screen=goBack'><i style='color:grey; width: 20px; height: 20px' class='fas fa-arrow-left'></i></a>" %}
+{% set buttonback = "<a id='backButton' href='" ~ CATSDIR ~ "?screen=goBack'><i style='color:grey; width: 20px; height: 20px' class='fas fa-arrow-left'></i></a>" %}
 <div class='cats_header'>
 	<div style='float:left; position:relative;'>
 	    <div style='position: absolute; top: 30%; margin-right: 20px; float:left'>{{ buttonback|raw }}</div>
