@@ -117,13 +117,17 @@ TutorialScript;
         }
         
         foreach (self::$raTutorials[$screen]->getNewSteps($last) as $step){
-            $orphanOrElement = 'orphan:true,';
+            if($steps){
+                $steps .= ",";
+            }
+            $orphanOrElement = 'orphan:true';
             if(array_key_exists(Tutorial::ELEMENT_KEY, $step)){
                 $orphanOrElement = "element:'{$step[Tutorial::ELEMENT_KEY]}'";
             }
+            $steps .= "{title:'".addslashes($step[Tutorial::TITLE_KEY])."',content:'".addslashes($step[Tutorial::CONTENT_KEY])."',$orphanOrElement}";
         }
         
-        return str_replace(array('steps','screen'), array($steps,$screen), $s);
+        return str_replace(array('[[steps]]','[[screen]]'), array($steps,$screen), $s);
         
     }
     
@@ -288,8 +292,8 @@ abstract class Tutorial{
     public final function getNewSteps(int $last_version = -1): array{
         $steps = array();
         foreach ($this->getSteps() as $step){
-            if(array_intersect_key($step, self::$REQUIRED_PARAMS)){
-                if($last_version < @$step[self::VERSION_KEY]?:0){
+            if(array_intersect_key($step, array_flip(self::$REQUIRED_PARAMS))){
+                if($last_version < (@$step[self::VERSION_KEY]?:0)){
                     $steps[] = $step;
                 }
             }
@@ -297,11 +301,16 @@ abstract class Tutorial{
         return $steps;
     }
     
+    /**
+     * The tutorial is calculated from the versions in the steps
+     * version can't be less then 1
+     * @return int - curent tutorial version
+     */
     public final function getVersion():int{
         $version = 1;
         foreach ($this->getSteps() as $step){
-            if(array_intersect_key($step, self::$REQUIRED_PARAMS)){
-                if($version < @$step[self::VERSION_KEY]?:0){
+            if(array_intersect_key($step, array_flip(self::$REQUIRED_PARAMS))){
+                if($version < (@$step[self::VERSION_KEY]?:0)){
                     $version = $step[self::VERSION_KEY];
                 }
             }
