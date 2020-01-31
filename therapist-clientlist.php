@@ -438,7 +438,7 @@ ExistsWarning;
                       .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-%[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>");
                 $id = "clients";
                 //fix up status classes
-                $s = str_replace(array("%0","%2"), array("normal","discharged"), $s);
+                $s = str_replace(array("-%0","-%2"), array("-normal","-discharged"), $s);
                 break;
             case self::INTERNAL_PRO:
                 $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
