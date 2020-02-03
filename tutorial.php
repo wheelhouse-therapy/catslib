@@ -2,8 +2,10 @@
 // THERE SHOULD BE NO REASON TO EDIT THIS FILE DIRECTLY TO IMPLEMENT A TUTORIAL
 /**
  * Class responsible for handling showing users a tutorial if they havent already sceen it.
- * @author Eric
+ * @author Eric Wildfong
  * @version 1.0
+ * @copyright Eric Wildfong 2020
+ * 
  */
 class TutorialManager {
     
@@ -228,8 +230,9 @@ TutorialScript;
 /**
  * Class representing a completed / viewed tutorial.
  * Also handles parsing and from and creating the metadata strings
- * @author Eric
+ * @author Eric Wildfong
  * @version 1.0
+ * @copyright Eric Wildfong 2020
  */
 class TutorialComplete {
     
@@ -269,8 +272,8 @@ class TutorialComplete {
 /**
  * All Screen Tutorials Extend this class.
  * This is automatically intitialized when the TutorialManager is initialized
- * @author Eric
- *
+ * @author Eric Wildfong
+ * @copyright Eric Wildfong 2020
  */
 abstract class Tutorial{
     
@@ -331,6 +334,11 @@ abstract class Tutorial{
     
 }
 
+/**
+ * Placement position Constants
+ * @author Eric Wildfong
+ *@copyright Eric Wildfong 2020
+ */
 class Placement{
     
     const AUTO = 'auto';
