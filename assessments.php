@@ -4,6 +4,7 @@ include( "assessments_mabc.php" );
 include( "assessments_spm.php"  );
 include( "assessments_aasp.php" );
 include( "assessments_spmc.php" );
+include( "assessments_sp2.php"  );
 
 
 $raGlobalAssessments = array(
@@ -11,6 +12,7 @@ $raGlobalAssessments = array(
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)"),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
+    (CATS_DEBUG?'sp2':"")  => array( 'code'=>'sp2',  'title'=>"Sensory Profile 2 (SP2)" ),
 );
 
 //Remove the null key if present
@@ -384,6 +386,7 @@ class AssessmentsCommon
             case 'aasp': $o = new Assessment_AASP( $this, $kA ); break;
             case 'mabc': $o = new Assessment_MABC( $this, $kA ); break;
             case 'spmc': $o = new Assessment_SPM_Classroom($this, $kA); break;
+            case 'sp2':  $o = new Assessment_SP2($this, $kA); break;
             default:     break;
         }
         return( $o );
@@ -1143,7 +1146,51 @@ abstract class Assessment_SPMShared extends Assessments
 
 }
 
+class Assessment_SP2 extends Assessments {
+    
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        $oData = new AssessmentData_SP2( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_SP2( $oData );
+        
+        parent::__construct( $oAsmt, 'sp2', $oData, $oUI );
+        $this->bUseDataList = true;     // the data entry form uses <datalist>
+    }
+    
+    protected function GetScore($item, $value): int
+    {
+        return 0;
+    }
 
+    public function GetProblemItems(string $section): string
+    {
+        return "";
+    }
+
+    public function DrawAsmtForm( int $kClient )
+    {
+        return( $this->oUI->DrawColumnForm( $kClient ) );
+    }
+
+    public function getTags(): array
+    {
+        return array();
+    }
+
+    protected function getTagField(String $tag): String
+    {
+        return "";
+    }
+
+    public function GetPercentile(string $section): float
+    {
+        return 0.0;
+    }
+
+    protected function InputOptions(){
+        return array("Almost Always"=>5,"Frequently"=>4,"Half the Time"=>3,"Occasionally"=>2,"Almost Never"=>1,"Does Not Apply"=>0);
+    }
+}
 
 function AssessmentsScore( SEEDAppConsole $oApp )
 {
