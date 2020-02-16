@@ -337,7 +337,7 @@ abstract class Tutorial{
 /**
  * Placement position Constants
  * @author Eric Wildfong
- *@copyright Eric Wildfong 2020
+ * @copyright Eric Wildfong 2020
  */
 class Placement{
     
