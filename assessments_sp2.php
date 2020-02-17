@@ -147,20 +147,20 @@ class AssessmentUI_SP2 extends AssessmentUIColumns {
     
     function DrawScoreResults():string{
         $s = <<<Output
-<table>
-		<tr><th colspan=3>Quadrants</th></tr>
+<table id='results'>
+		<tr><th>Quadrants</th><th>Raw Score</th><th>Interpretation</th></tr>
 		<tr><td>Seeking / Seeker</td><td>#SK</td><td>SK_interpretation</td></tr>
 		<tr><td>Avoider</td><td>#AV</td><td>AV_interpretation</td></tr>
 		<tr><td>Sensitivity</td><td>#SN</td><td>SN_interpretation</td></tr>
 		<tr><td>Low Registration</td><td>#RG</td><td>RG_interpretation</td></tr>
-		<tr><th colspan=3>Sensory Processing</th></tr>
+		<tr><th style='border-top:2px solid black;'>Sensory Processing</th><th style='border-top:2px solid black;'>Raw Score</th><th style='border-top:2px solid black;'>Interpretation</th></tr>
 		<tr><td>Auditory Processing</td><td>#auditory</td><td>auditory_interpretation</td></tr>
 		<tr><td>Visual Processing</td><td>#visual</td><td>visual_interpretation</td></tr>
 		<tr><td>Touch Processing</td><td>#touch</td><td>touch_interpretation</td></tr>
 		<tr><td>Movement Processing</td><td>#movement</td><td>movement_interpretation</td></tr>
 		<tr><td>Body Position Processing</td><td>#body</td><td>body_interpretation</td></tr>
 		<tr><td>Oral Sensory Processing</td><td>#oral</td><td>oral_interpretation</td></tr>
-		<tr><th colspan=3>Behavioural Sections</th></tr>
+		<tr><th style='border-top:2px solid black;'>Behavioural Sections</th><th style='border-top:2px solid black;'>Raw Score</th><th style='border-top:2px solid black;'>Interpretation</th></tr>
 		<tr><td>Conduct</td><td>#conduct</td><td>conduct_interpretation</td></tr>
 		<tr><td>Social Emotional</td><td>#social</td><td>social_interpretation</td></tr>
 		<tr><td>Attentional</td><td>#attentional</td><td>attentional_interpretation</td></tr>
