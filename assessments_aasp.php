@@ -126,7 +126,7 @@ class AssessmentData_AASP extends AssessmentData
     /**
      * Get the items that match the specified score
      * @param string $section - section to fetch items back
-     * @param int $score - the score to match against. item must match score to be inclueded in return
+     * @param int $score - the score to match against. item must match score to be included in return
      * @param int ...$scores - aditional score to match against.
      * @return string[][]|number[][] - array of items that match the scores
      */
