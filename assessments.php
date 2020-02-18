@@ -1309,6 +1309,9 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                     ."</div>"
                     ."<div style='padding-left:5px;display:inline'>"
                         ."<button style='background: url(".CATSDIR_IMG."invoice.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Edit Assessment' onclick='window.location=\"".CATSDIR."?sAsmtAction=edit&kA=$p_kAsmt\"'></button>"
+                    ."</div>"
+                    ."<div style='padding-left:5px;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."tags.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='View Assessment Tags' onclick=\"$('#tags_dialog').modal('show')\"></button>"
                     ."</div>";
             }
             $s .= "</div>"
@@ -1317,6 +1320,9 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                      ."<div class='col-md-4'><div>$sControl</div><div>$sList</div></div>"
                  ."</div>";
             $s .= eligibilityScript();
+            if($sResult){
+                $s .= getAssessmentTags($oAsmt);
+            }
     }
 
     done:
@@ -1487,4 +1493,50 @@ function eligibilityScript(){
                 }
             </script>
 eligibilityScript;
+}
+
+function getAssessmentTags(Assessments $oAsmt){
+    $s = <<<TEMPLATE
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="tags_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Avalible Tags for [[type]] Assessments</h4>
+            </div>
+            <div class="modal-body">
+                <strong>Assessment Specific Tags:</strong><br />
+                [[tags]]
+                <div>
+                    <strong>General Assessment Tags:</strong><br />
+                    [[global]]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+TEMPLATE;
+    
+    $tags = "";
+    foreach ($oAsmt->getTags() as $tag){
+        if($tags){
+            $tags .= "<br />";
+        }
+        $tags .= "\${{$oAsmt->GetAsmtCode()}:$tag}";
+    }
+    if(!$tags){
+        $tags = "No Tags Avalible for this Assessment Type";
+    }
+    
+    $global = "";
+    foreach ($oAsmt->getGlobalTags() as $tag){
+        if($global){
+            $global .= "<br />";
+        }
+        $global .= "\${{$oAsmt->GetAsmtCode()}:$tag}";
+    }
+    
+    $s = str_replace(array("[[type]]","[[tags]]","[[global]]"), array(strtoupper($oAsmt->GetAsmtCode()),$tags,$global), $s);
+    
+    return $s;
 }
