@@ -12,7 +12,7 @@ $raGlobalAssessments = array(
     'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)"),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
-    (CATS_DEBUG?'sp2':"")  => array( 'code'=>'sp2',  'title'=>"Sensory Profile 2 (SP2)" ),
+    'sp2'  => array( 'code'=>'sp2',  'title'=>"Sensory Profile 2 (SP2)" ),
 );
 
 //Remove the null key if present
