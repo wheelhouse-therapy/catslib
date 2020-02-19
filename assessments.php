@@ -110,6 +110,12 @@ class AssessmentData
         $oForm = new KeyFrameForm( $this->kfrAsmt->KFRel(), "A" );
         $oForm->SetKFR( $this->kfrAsmt );
 
+        // Load the values into i$k for result form
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        
         return( $oForm );
     }
 

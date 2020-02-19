@@ -198,7 +198,7 @@ colorTable('results');
         $s = preg_replace_callback("/{{(.*?)}}/", function ($match){
             return $this->oData->ComputeScore($match[1]);
         }, $s);
-            $s .= $this->DrawColFormTable( $this->oData->GetForm(), false );
+        $s .= $this->DrawColFormTable( $this->oData->GetForm(), false );
         return( $s );
     }
 }
