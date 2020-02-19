@@ -1,5 +1,7 @@
 <?php
 // THERE SHOULD BE NO REASON TO EDIT THIS FILE DIRECTLY TO IMPLEMENT A TUTORIAL
+
+//Code in this file is Property of Eric Wildfong and Licensenced to the CATS Backend software.
 /**
  * Class responsible for handling showing users a tutorial if they havent already sceen it.
  * @author Eric Wildfong
