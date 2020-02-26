@@ -90,4 +90,10 @@ if( CATS_DEBUG ) {
     $oApp->kfdb->SetDebug(1);
 }
 
+/**
+ * CATS_ADMIN is true IF AND ONLY IF the user can read the administrator permission.
+ * Users with this permission are to be considered system administratiors (eg. dev) and get access to extra features.
+ */
+define("CATS_ADMIN", $oApp->sess->CanRead('administrator'));
+
 ?>
