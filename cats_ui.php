@@ -150,9 +150,9 @@ ResetPassword;
         $s = "<div class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
-            .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
+            .(CATS_ADMIN                                  ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
-            .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(!CATS_ADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
             .$this->DrawDocumentation()
             ."</div>";
 
@@ -377,20 +377,20 @@ $oApp->kfdb->Execute("drop table $db.professionals");
     public function drawDocumentation(){
         $s = "";
         switch ($this->oHistory->getScreen()){
-            case "documentation":
+            case "system-documentation":
                 require_once 'Documentation.php';
                 $documentation = new Documentation();
                 $s .= $documentation->handleDocs();
                 break;
-            case "placeholders":
+            case "system-placeholders":
                 require_once 'Documentation.php';
                 $placeholders = new Placeholders();
                 $s .= $placeholders->drawPlaceholderList();
                 break;
             default:
                 $raScreens = array(
-                array( 'documentation',     "View Documentation"),
-                array( 'placeholders' ,     "Download Placeholder Images")
+                array( 'system-documentation',     "View Documentation"),
+                array( 'system-placeholders' ,     "Download Placeholder Images")
                 );
                 if(!CATS_DEBUG){
                     unset($raScreens[0]);

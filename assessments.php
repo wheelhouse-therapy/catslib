@@ -489,7 +489,7 @@ class AssessmentsCommon
         $raClients = $oPeopleDB->GetList( ClientList::CLIENT, $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'"),array("sSortCol" => "P.first_name,_key") );
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
-            $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || $this->oApp->sess->GetUID() == 1?" ({$ra['_key']})":"")] = $ra['_key'];
+            $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || CATS_ADMIN?" ({$ra['_key']})":"")] = $ra['_key'];
         }
 
         return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
@@ -1299,7 +1299,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</div>";
 
             if($sResult){
-                if((CATS_DEBUG)||$oApp->sess->GetUID()==1){
+                if((CATS_DEBUG)||CATS_ADMIN){
                     $sResult .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button>"
                                ."<div id='tags'b style='display:none'>";
                     foreach(array_merge($oAsmt->getTags(),$oAsmt->getGlobalTags()) as $tag){
