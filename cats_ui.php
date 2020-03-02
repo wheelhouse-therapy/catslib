@@ -103,6 +103,9 @@ class CATS_MainUI extends CATS_UI
                  .$clinics->displayUserClinics(true)
                  ."</div>";
         }
+        else if( substr($screen, 0,6) == "system"){
+            $s .= $this->drawSystem();
+        }
         else if( substr($screen,0,9) == "developer" ) {
             $s .= $this->DrawDeveloper();
         }else if( substr( $screen, 0, 5 ) == 'admin' ) {
@@ -131,12 +134,6 @@ class CATS_MainUI extends CATS_UI
          </form>"
 ResetPassword;
         }
-        else if($screen == "documentation" && CATS_DEBUG){
-            $s .= $this->drawDocumentation();
-        }
-        else if($screen == "placeholders"){
-            $s .= $this->drawDocumentation();
-        }
         else {
             $s .= $this->DrawHome();
         };
@@ -153,7 +150,7 @@ ResetPassword;
             .(CATS_ADMIN                                  ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
             .(!CATS_ADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
-            .$this->DrawDocumentation()
+            .$this->DrawSystem()
             ."</div>";
 
             // Unset the mode var for resource download
@@ -374,7 +371,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
         return( $s );
     }
 
-    public function drawDocumentation(){
+    public function drawSystem(){
         $s = "";
         switch ($this->oHistory->getScreen()){
             case "system-documentation":
@@ -387,15 +384,23 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $placeholders = new Placeholders();
                 $s .= $placeholders->drawPlaceholderList();
                 break;
-            default:
+            case "system":
                 $raScreens = array(
                 array( 'system-documentation',     "View Documentation"),
-                array( 'system-placeholders' ,     "Download Placeholder Images")
+                array( 'system-placeholders' ,     "Download Placeholder Images"),
+                array( 'system-footergenerator',   "Generate Clinic Footer")
                 );
                 if(!CATS_DEBUG){
                     unset($raScreens[0]);
+                    unset($raScreens[2]);
                 }
-                $s .= $this->drawCircles( $raScreens );
+                $s .= "<h2>System Resources</h2>";
+                foreach($raScreens as $ra){
+                    $s .= "<div><a href='?screen={$ra[0]}'>{$ra[1]}</a></div>";
+                }
+                break;
+            default:
+                $s .= $this->drawCircles(array(array('system',"Access System Resources")));
         }
         return( $s );
     }
@@ -531,7 +536,7 @@ class ScreenManager{
 /**
  * Class representing the home screen tutorial
  * @author Eric
- * @version 1.0
+ * @version 2.0
  */
 class HomeTutorial extends Tutorial {
     
@@ -542,6 +547,7 @@ class HomeTutorial extends Tutorial {
             [self::TITLE_KEY => 'Clinics', self::CONTENT_KEY => 'The current clinic you are viewing will be shown here. If you have access to multiple clinics you will also be able to switch between them here, by clicking on the clinic\'s name', self::ELEMENT_KEY => '#clinics',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'Back Button', self::CONTENT_KEY => 'Your browser back button is not garenteed to take you back to the previous screen. Please use this back button instead. In most cases the previous screen will be the home screen, however we track your screen history from the moment you log in and you can use the back button to backtrack through it.<br /><br />NOTE: the screen history is only avalible for as long as you are logged in we don\'t store it permantently',self::ELEMENT_KEY => '#backButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 2],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }

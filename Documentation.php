@@ -41,7 +41,7 @@ class Documentation {
             exit;
         }
         else{
-            $s = "<h3>Documentation</h3>"
+            $s = "<h3>System Documentation</h3>"
                 ."<style>html,body{height:100%}</style>"
                 ."<iframe src='?id=frame[[file]]' style='border:none;width:100%;height:100%'></iframe>";
             return str_replace("[[file]]", ($file?"&file=".$file:""), $s);
@@ -56,7 +56,7 @@ class Placeholders{
     
     public function drawPlaceholderList(){
         $this->handleCommands();
-        $s = "<h3>Get Placeholder Images</h3>";
+        $s = "<h3>System Placeholder Images</h3>";
         $dir = new DirectoryIterator(self::DIR);
         if(iterator_count($dir) == 2){
             $s .= "<h2> No files in directory</h2>";
