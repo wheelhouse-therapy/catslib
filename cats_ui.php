@@ -400,7 +400,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 break;
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
-                $gen->generateFooter(3);
+                $gen->generateFooter((new Clinics($this->oApp))->GetCurrentClinic());
                 exit;//TODO Remove
                 break;
             default:
