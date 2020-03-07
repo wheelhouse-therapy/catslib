@@ -399,6 +399,11 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     $s .= "<div><a href='?screen={$ra[0]}'>{$ra[1]}</a></div>";
                 }
                 break;
+            case "system-footergenerator":
+                $gen = new ImageGenerator($this->oApp);
+                $gen->generateFooter(3);
+                exit;//TODO Remove
+                break;
             default:
                 $s .= $this->drawCircles(array(array('system',"Access System Resources")));
         }

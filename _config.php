@@ -56,6 +56,7 @@ if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
 if( !defined("CATSDIR_RESOURCES") ) { define( "CATSDIR_RESOURCES", CATSDIR."resources/" ); }
 if( !defined("CATSDIR_DOCUMENTATION")){ define( "CATSDIR_DOCUMENTATION", CATSDIR."w/documentation/");}
 if( !defined("CATSDIR_AKAUNTING")){ define( "CATSDIR_AKAUNTING", CATSDIR."w/akaunting/");}
+if( !defined("CATSDIR_FONTS")){ define( "CATSDIR_FONTS", CATSDIR."w/fonts/");}
 
 $dirImg = CATSDIR_IMG;
 //Directory to the logo used on the CATS server

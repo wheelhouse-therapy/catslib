@@ -1,5 +1,4 @@
 <?php
-
 require_once 'handle_images.php';
 
 class Clinics {
@@ -725,6 +724,51 @@ Modal;
             }
         }
         return $filename;
+    }
+    
+}
+
+class ImageGenerator {
+    
+    private const TEMPLATE = CATSDIR_IMG."footer/footer_template.jpg";
+    private const DOT = CATSDIR_IMG."footer/dot.gif";
+    private const ROW1 = 43;
+    private const ROW1_DOT = 37;
+    private const ROW2 = 70;
+    private const ROW2_DOT = 64;
+    private const FONT = 8.5;
+    private const FONTFILE = CATSDIR_FONTS."arialbd.ttf";
+    
+    private $oApp;
+    
+    public function __construct(SEEDAppConsole $oApp){
+        $this->oApp = $oApp;
+    }
+    
+    public function generateFooter(int $clinicId){
+        $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
+        $kfr = $ClinicsDB->GetClinic( $clinicId );
+        $im = imagecreatefromjpeg(self::TEMPLATE);
+        $dot = imagecreatefromgif(self::DOT);
+        $color = imagecolorallocate($im, 117, 117, 117);
+        $ra = imagettftext($im, self::FONT, 0, 208, self::ROW1, $color, realpath(self::FONTFILE), "Collaborative Approach Therapy Services");
+        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value('address'));
+        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value("city").", ON");
+        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value('postal_code'));
+        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
+        $ra = imagettftext($im, self::FONT, 0, 249, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value("phone_number"));
+        imagecopy($im, $dot, $ra[2]+5, self::ROW2_DOT, 0, 0, 5, 5);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('email'));
+        imagecopy($im, $dot, $ra[2]+5, self::ROW2_DOT, 0, 0, 5, 5);
+        imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), "www.catherapyservices.ca");
+        
+        header('Content-type:image/jpeg');
+        imagejpeg($im);
+        imagedestroy($im);
+        imagedestroy($dot);
     }
     
 }
