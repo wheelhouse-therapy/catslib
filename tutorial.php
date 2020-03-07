@@ -101,6 +101,7 @@ class TutorialManager {
 
     // Start the tour
     tour.start();
+    tour.restart();
 </script>
 TutorialScript;
         
@@ -110,7 +111,6 @@ TutorialScript;
         
         $sceenStatus = $data[self::STATUS_KEY];
         $last = $data[self::VERSION_KEY];
-        
         if(!self::hasTutorial($screen) || $sceenStatus == self::SEEN){
             return "";
         }
@@ -120,7 +120,6 @@ TutorialScript;
         if($sceenStatus == self::SEEN_PREVIOUS){
             $steps .= "{orphan:true,title:'Welcome back!',content:'We made some changes while you were gone.'}";
         }
-        
         foreach (self::$raTutorials[$screen]->getNewSteps($last) as $step){
             if($steps){
                 $steps .= ",";
