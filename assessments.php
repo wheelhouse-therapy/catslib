@@ -140,7 +140,7 @@ class AssessmentData
     public function ComputePercentile( string $item ) : float { return(0.0); }
 
 
-    protected function MapRaw2Score( string $item, string $raw ) : int { return(0); }
+    public function MapRaw2Score( string $item, string $raw ) : int { return(0); }
 
     public function DebugDumpKfr()
     {

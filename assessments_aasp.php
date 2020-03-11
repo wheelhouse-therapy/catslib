@@ -81,7 +81,7 @@ class AssessmentData_AASP extends AssessmentData
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
 
-    function MapRaw2Score( string $item, string $raw ) : int
+    public function MapRaw2Score( string $item, string $raw ) : int
     /*************************************************
      Map raw -> score for basic items
      */

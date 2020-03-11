@@ -43,7 +43,7 @@ class AssessmentData_SP2 extends AssessmentData {
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
     
-    protected function MapRaw2Score( string $item, string $raw ) : int
+    public function MapRaw2Score( string $item, string $raw ) : int
     /*************************************************
      Map raw -> score for basic items
      */
@@ -169,6 +169,7 @@ Output;
         foreach($this->oData->getSections() as $section){
             $s = str_replace(array("#".$section,$section."_interpretation"), array($this->oData->ComputeScore($section),$this->oData->GetInterpretation($section)), $s);
         }
+        $s .= $this->DrawColFormTable( $this->oData->GetForm(), false );
         return $s;
     }
     
