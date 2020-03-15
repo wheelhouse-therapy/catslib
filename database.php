@@ -197,7 +197,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 6;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 7;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -248,6 +248,15 @@ function createTables( KeyframeDatabase $kfdb )
         // Add code to clients table
         $kfdb->SetDebug(2);
         $kfdb->Execute("ALTER TABLE clients2 ADD code VARCHAR(20) NOT NULL DEFAULT ''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 7){
+        //Add system perms
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
+            ."VALUES (NULL, NOW(), NOW(), 'system', 'RW', NULL, 4)");
+        $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
+            ."VALUES (NULL, NOW(), NOW(), 'system', 'A', NULL, 1)");
         $kfdb->SetDebug(0);
     }
 
@@ -443,9 +452,9 @@ function createTables( KeyframeDatabase $kfdb )
                                            ."VALUES (NULL, NOW(), NOW(), '{$ra[0]}', '{$ra[1]}')");
         }
                           //  perm              modes   uid     gid
-        foreach( array( array('SEEDSessionUGP', 'RWA',       1,  'NULL'),
-                        array('SEEDPerms',      'RWA',       1,  'NULL'),
-                        array('DocRepMgr',      'A',         1,  'NULL'),
+        foreach( array( array('SEEDSessionUGP', 'RWA',  'NULL',       1),
+                        array('SEEDPerms',      'RWA',  'NULL',       1),
+                        array('DocRepMgr',      'A',    'NULL',       1),
                         array('DocRepMgr',      'W',    'NULL',       2),
                         array('DocRepMgr',      'R',    'NULL',       3),
                         array('admin',          'RWA',  'NULL',       1),
@@ -453,10 +462,12 @@ function createTables( KeyframeDatabase $kfdb )
                         array('leader',         'RWA',  'NULL',       3),
                         array('therapist',      'RWA',  'NULL',       4),
                         array('client',         'RWA',  'NULL',       5),
-                        array('administrator',  'RWA',       1,  'NULL'),
+                        array('administrator',  'RWA',  'NULL',       1),
                         array('catsappt',       'RW',   'NULL',       4),
                         array('Calendar',       'RW',   'NULL',       5),
                         array('Calendar',       'A',    'NULL',       4),
+                        array('system',         'RW',   'NULL',       4),
+                        array('system',         'A',    'NULL',       1),
                       ) as $ra )
         {
             $bRet = $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
