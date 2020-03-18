@@ -39,7 +39,7 @@ foreach ($dir as $fileinfo) {
         $s .= "<a href='".$fileinfo->getPath()."/".$fileinfo->getFilename()."'>".$fileinfo->getFilename()."</a>
         <form id='form".$i."' style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
-        <input type='hidden' name='file' value='".$fileinfo->getFilename()."' />";
+        <input type='hidden' name='file' value=\"".$fileinfo->getFilename()."\" />";
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
         foreach($GLOBALS['directories'] as $k => $v){
