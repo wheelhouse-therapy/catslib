@@ -48,6 +48,7 @@ require_once "cats_ui.php";
 require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
+require_once 'share_resources.php';
 
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
@@ -86,10 +87,11 @@ $oApp = new SEEDAppConsole(
                            )
 );
 
-
 if( CATS_DEBUG ) {
     $oApp->kfdb->SetDebug(1);
 }
+
+checkFileSystem($oApp);
 
 /**
  * CATS_ADMIN is true IF AND ONLY IF the user can read the administrator permission.
