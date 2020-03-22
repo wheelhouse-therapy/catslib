@@ -4,19 +4,37 @@ require_once 'template_filler.php';
 require_once 'share_resources.php';
 
 /**Array of valid Download Modes
- * 
+ *
  * This array contains information for the various download modes, indexed by their respective internal access code
  * The internal access code is one letter long and is use in $download_modes for ResourcesDownload().
  * Each letter in that string is parsed to determine the modes which are applicable for the current folder.
- * 
+ *
  * The 'code' entry in the array defines the code used when changing mode via HTTP.
  * The 'title' entry in the array defines the button label displayed over HTTP
  */
 $MODES = array('s' => array("code" => "replace"   , "title" => "Substitution Mode"    ),
                'n' => array("code" => "no_replace", "title" => "Tagged Version" ),
                'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
-    
+
 );
+
+function FilingCabinet( SEEDAppConsole $oApp )
+{
+    $s = "";
+
+    global $directories;
+
+    if( ($dir = SEEDInput_Str('dir')) && (@$directories[$dir]) ) {
+        $s .= ResourcesDownload( $oApp, $directories[$dir]['directory'] );
+    } else {
+        $s .= "<h3>Filing Cabinet</h3>";
+        foreach( $directories as $k => $ra ) {
+            $s .= "<p><a href='?dir={$k}'>{$ra['name']}</a></p>";
+        }
+    }
+    return( $s );
+}
+
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
 /************************************************************
@@ -252,7 +270,7 @@ DownloadMode;
         $class = "";
         $link = NULL;
         if( $fileinfo->isDot() ) continue;
-        
+
         if( $sFilter ) {
             if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
             $dbFilename = addslashes($fileinfo->getFilename());
@@ -261,7 +279,7 @@ DownloadMode;
                                     ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
             continue;
         }
-        
+
         if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
             $s = str_replace("[display]", "display:inline-block;", $s);
             $class = "class='btn disabled'";
@@ -272,7 +290,7 @@ DownloadMode;
                 $link = "";
             }
         }
-        
+
         found:
         $oApp->kfdb->SetDebug(0);
 
@@ -282,10 +300,10 @@ DownloadMode;
          $s .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
     }
     $s .= "</table>";
-    
+
     //Replace the display if it has not already been replaced
     $s = str_replace("[display]", "display:none;", $s);
-    
+
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
             function select_client(file){
@@ -320,7 +338,7 @@ DownloadMode;
                         }
                         else{
                             $('#file_dialog').modal('hide');
-                            preventDefault = false;  
+                            preventDefault = false;
                         }
                     },
                     error: function(jqXHR, status, error) {
@@ -351,9 +369,9 @@ function getModeOptions($resourcesMode, $downloadModes, $mode){
             .($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['title']:$MODES[$firstMode]['title'])."</button></a>",$resourcesMode);
             break;
     }
-    
+
     $resourcesMode = str_replace("[[button2]]", "", $resourcesMode);
-    
+
     return $resourcesMode;
 }
 
@@ -394,21 +412,21 @@ viewSOP;
         $listSOPs .= "<h2> No files in directory</h2>";
         goto brains;
     }
-        
+
     $sFilter = SEEDInput_Str('resource-filter');
-    
+
     $listSOPs .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
                ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
                ."</form></div>";
-        
+
     $listSOPs .= "<table border='0'>";
     foreach ($dir as $fileinfo) {
         if( $fileinfo->isDot() ) continue;
-        
+
         if( $sFilter ) {
             if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
         }
-        
+
         $listSOPs .= "<tr>"
             ."<td valign='top'>"
                 ."<a style='white-space: nowrap' href='?SOP_view=item&SOP_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
@@ -418,12 +436,12 @@ viewSOP;
             ."</tr>";
     }
     $listSOPs .= "</table>";
-    
+
     //Brains of operations
     brains:
     $view = $oApp->sess->SmartGPC("SOP_view",array("list","item"));
     $item = $oApp->sess->SmartGPC("SOP_item", array(""));
-    
+
     switch ($view){
         case "item":
             //Complicated method to ensure the file is in the directory
@@ -437,7 +455,7 @@ viewSOP;
         case "list":
             return $listSOPs;
     }
-    
+
 }
 
 function viewVideos(SEEDAppConsole $oApp){
@@ -469,21 +487,21 @@ viewVideo;
         $listVideos .= "<h2> No files in directory</h2>";
         goto brains;
     }
-    
+
     $sFilter = SEEDInput_Str('resource-filter');
-    
+
     $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
         ."</form></div>";
-        
+
         $listVideos .= "<table border='0'>";
         foreach ($dir as $fileinfo) {
             if( $fileinfo->isDot() ) continue;
-            
+
             if( $sFilter ) {
                 if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
             }
-            
+
             $listVideos .= "<tr>"
                 ."<td valign='top'>"
                     ."<a style='white-space: nowrap' href='?video_view=item&video_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
@@ -493,12 +511,12 @@ viewVideo;
                                 ."</tr>";
         }
         $listVideos .= "</table>";
-        
+
         //Brains of operations
         brains:
         $view = $oApp->sess->SmartGPC("video_view",array("list","item"));
         $item = $oApp->sess->SmartGPC("video_item", array(""));
-        
+
         switch ($view){
             case "item":
                 //Complicated method to ensure the file is in the directory
@@ -512,7 +530,7 @@ viewVideo;
             case "list":
                 return $listVideos;
         }
-        
+
 }
 
 class ResourcesFiles

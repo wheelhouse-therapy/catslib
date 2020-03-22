@@ -356,13 +356,13 @@ class ResourceManager{
             $cmdResult = "";
         }
         $this->openTrees = $this->oApp->sess->SmartGPC("open", array(array()));
-        
+
         foreach ($this->openTrees as $file){
             if(!file_exists(CATSDIR_RESOURCES.$file)){
                 unset($this->openTrees[array_search($file, $this->openTrees)]);
             }
         }
-        
+
         $script = "<script>displayed = Object.values(JSON.parse('".json_encode($this->openTrees)."'));</script>";
         return $script.$cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
@@ -484,12 +484,15 @@ class ResourceManager{
             }
         }
         $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
-        foreach (@$GLOBALS['directories'][$dir_key]['extensions'] as $k=>$v){
-            if(explode(".",$this->getPartPath($file_path,-1))[1] == $v){
-                $rename .= "<option selected>".$v."</option>";
-            }
-            else{
-                $rename .= "<option>".$v."</option>";
+
+        if( ($exts = @$GLOBALS['directories'][$dir_key]['extensions']) ) {
+            foreach ($exts as $k=>$v){
+                if(explode(".",$this->getPartPath($file_path,-1))[1] == $v){
+                    $rename .= "<option selected>".$v."</option>";
+                }
+                else{
+                    $rename .= "<option>".$v."</option>";
+                }
             }
         }
         $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"
@@ -507,12 +510,12 @@ class ResourceManager{
         $pathArray = explode(DIRECTORY_SEPARATOR, trim($path, DIRECTORY_SEPARATOR));
         if($depth < 0)
             $depth = count($pathArray)+$depth;
-            
+
             if(!isset($pathArray[$depth]))
                 return false;
                 return $pathArray[$depth];
     }
-    
+
     private function getPathRelativeTo($path, $relativeTo = ""){
         $output = "";
         if($relativeTo = realpath($relativeTo)){
@@ -527,7 +530,7 @@ class ResourceManager{
         }
         return ($output?:false);
     }
-    
+
 }
 
 ?>

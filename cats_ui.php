@@ -39,7 +39,7 @@ class CATS_UI
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
         }
-        
+
         $body .= TutorialManager::runTutorial($this->oApp, $this->oHistory->getScreen());
 
         $body .=
@@ -166,6 +166,7 @@ ResetPassword;
         //Unimplemented Bubbles have been commented out to clean up display
         $raTherapistScreens = array(
             array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
+            array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
             array( 'therapist-formscharts',     "Print Forms for Charts" ),
             array( 'therapist-handouts',        "Print Handouts" ),
@@ -190,6 +191,10 @@ ResetPassword;
             case "therapist":
             default:
                 $s .= $this->drawCircles( $raTherapistScreens );
+                break;
+
+            case 'therapist-filing-cabinet':
+                $s .= FilingCabinet( $this->oApp );
                 break;
 
             case "therapist-handouts":
@@ -543,7 +548,7 @@ class ScreenManager{
  * @version 2.0
  */
 class HomeTutorial extends Tutorial {
-    
+
     protected final function getSteps(): array{
         return array(
             [self::TITLE_KEY => 'Welcome!',self::CONTENT_KEY => 'Welcome to the CATS "backend". Lets show you arround'],
@@ -563,5 +568,5 @@ class HomeTutorial extends Tutorial {
         // No need to initiate anything
     }
 
-    
+
 }
