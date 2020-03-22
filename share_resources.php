@@ -10,15 +10,35 @@
 // DO NOT include the dot in the file extension
 global $directories;
 $directories= array("papers"          => array("directory" => "papers/",    "name" => "Papers",                        "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "handouts"        => array("directory" => "handouts/",  "name" => "Handouts",                      "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "selfReg"         => array("directory" => "reg/",       "name" => "Self Regulation",               "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "reports"         => array("directory" => "reports/",   "name" => "Client Reports",                "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "forms"           => array("directory" => "forms/",     "name" => "Forms",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "marketing"       => array("directory" => "marketing/", "name" => "Marketing Materials",           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "clinicResources" => array("directory" => "clinic/",    "name" => "Clinic Resources",              "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "vMotor"          => array("directory" => "visual/",    "name" => "Visual Motor",                  "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "oMotor"          => array("directory" => "other/",     "name" => "Other Motor",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "clinicForms"     => array("directory" => "clinic/",    "name" => "Clinic Forms",                  "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "anxiety"         => array('directory' => "anxiety/",   "name" => "Anxiety",                       "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "cognitive"       => array('directory' => "cog/",       "name" => "Cognitive",                     "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "adl"             => array('directory' => "adl/",       "name" => "ADL's",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "assmt"           => array('directory' => "assmt/",     "name" => "Assessments",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "old"             => array('directory' => "old/",       "name" => "Back Drawer",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
                     "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              ),
                     "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             ),
                     "videos"          => array("directory" => "videos/",    "name" => "Videos",                        "extensions" => array("mp4")                              )
 );
+
+function checkFileSystem(SEEDAppConsole $oApp){
+    $FileSystemVersion = 2;
+    $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
+    $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
+    if( $currFileSystemVersion != $FileSystemVersion ) {
+        $oBucket->PutStr( 'cats', 'FileSystemVersion', $FileSystemVersion );
+    }
+    if ($currFileSystemVersion < 2) {
+        ensureDirectory('old');
+        foreach(array('handouts/','forms/','marketing/','clinic/') as $folder){
+            rename(CATSDIR_RESOURCES.$folder, CATSDIR_RESOURCES.$GLOBALS['directories']['old']['directory'].$folder);
+        }
+    }
+}
 
 function ensureDirectory($dirs, $silent = FALSE){
     // Live server should be running with suexec so php will have the same permissions as the user account.
