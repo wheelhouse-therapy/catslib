@@ -49,6 +49,16 @@ function checkFileSystem(SEEDAppConsole $oApp){
 }
 
 function ensureDirectory($dirs, $silent = FALSE){
+    // Live server should be running with suexec so php will have the same permissions as the user account.
+    // Dev servers aren't necessarily set up this way so they need full permissions.
+    // This secures the live server from having world-writable/readable directories (only apache and cpanel can see them).
+    if( SEED_isLocal ) {
+        umask(0);
+        $perm = 0777;
+    } else {
+        $perm = 0700;
+    }
+
     if($dirs == "*"){
         foreach(array_keys($GLOBALS['directories']) as $k){
             ensureDirectory($k,$silent);
@@ -63,17 +73,17 @@ function ensureDirectory($dirs, $silent = FALSE){
     }
     else if($dirs == "pending"){
         if (!file_exists(CATSDIR_RESOURCES."pending")) {
-            @mkdir(CATSDIR_RESOURCES."pending", 0777, true);
+            $r = @mkdir(CATSDIR_RESOURCES."pending", $perm, true);
             if(!$silent){
-                echo "Pending Resources Directiory Created<br />";
+                echo "Pending Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
             }
         }
     }
     else{
         if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
-            @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], 0777, true);
+            $r = @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], $perm, true);
             if(!$silent){
-                echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory Created<br />";
+                echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
             }
         }
     }
@@ -99,7 +109,7 @@ function share_resources(){
 
 function return_bytes($val) {
     $val = trim($val);
-    
+
     $last = strtolower(substr($val, -1));
     $val = substr($val, 0,-1);
     switch($last)

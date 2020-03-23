@@ -217,7 +217,7 @@ function drawForm($oApp, $clientId) {
     }
 
     //add a row for the "generate ..." buttons
-    $out .= <<<Generate
+    $out .= <<<GenButtons
 <tr>
     <td class='borderless'></td>
     <td>
@@ -239,7 +239,7 @@ function drawForm($oApp, $clientId) {
         </button>
     </td>
 </tr>
-Generate;
+GenButtons;
     $out .= "</tbody></table>";
     return $out;
 }
@@ -270,11 +270,11 @@ class DistributeReports
         $filler->fill_resource(CATSLIB . "ReportsTemplates/Fax Cover Sheet Template.docx");
         exit;
     }
-    
+
     function OutputCoverLetter( string $info )
     {
         require_once CATSLIB."template_filler.php";
-        
+
         $filler = new template_filler($this->oApp, array(), [$info]);
         $filler->fill_resource(CATSLIB . "ReportsTemplates/Template Doctor Letter Ax only-Sue.docx");
         exit;
