@@ -764,11 +764,112 @@ class ImageGenerator {
         $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('email'));
         imagecopy($im, $dot, $ra[2]+5, self::ROW2_DOT, 0, 0, 5, 5);
         imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), "www.catherapyservices.ca");
-        
-        header('Content-type:image/jpeg');
-        imagejpeg($im);
-        imagedestroy($im);
         imagedestroy($dot);
+        
+        return $im;
+        
+    }
+    
+    public function processCMDs(string $cmd,int $clinic_id = 0){
+        if(substr($_SERVER['PHP_SELF'],strrpos($_SERVER['PHP_SELF'], '/')+1) != 'jx.php'){
+            die("Calling of ImageGenerator->processCMDs() through the the main CATS Software is forbidden");
+        }
+        if($clinic_id <= 0 || $clinic_id > intval($this->oApp->kfdb->Query1("SELECT MAX(`_key`) FROM `clinics`"))){
+           $clinic_id = (new Clinics($this->oApp))->GetCurrentClinic(); 
+        }
+        switch(strtolower($cmd)){
+            case 'view':
+                $im = $this->generateFooter($clinic_id);
+                ob_start();
+                imagejpeg($im);
+                $data = ob_get_clean();
+                imagedestroy($im);
+                return "<img src='data:image/jpeg;base64," . base64_encode( $data )."'>";
+            case 'download':
+                $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
+                $kfr = $ClinicsDB->GetClinic( $clinic_id );
+                header("Content-Transfer-Encoding: binary");
+                header('Content-Description: File Transfer');
+                header('Content-Type: image/jpeg');
+                header('Content-Disposition: attachment; filename="' . $kfr->Value('clinic_name').' footer.jpg"');
+                $im = $this->generateFooter($clinic_id);
+                imagejpeg($im);
+                imagedestroy($im);
+                exit;
+            case 'save':
+                $filepath = CATSDIR_FILES."clinic Images/".$clinic_id."/";
+                $filename = "Footer";
+                $continue = true;
+                $saved = true;
+                if(file_exists($filepath)){
+                    foreach (scandir($filepath) as $file){
+                        if(substr($file, 0,strlen($filename)) == $filename){
+                            $filename = $file;
+                        }
+                    }
+                }
+                if(strpos($filename, ".") !== false && file_exists($filepath.$filename)){
+                    $continue = rename($filepath.$filename, $filepath.str_replace(".", " old.", $filename));
+                }
+                if($continue){
+                    $im = $this->generateFooter($clinic_id);
+                    $saved = imagejpeg($im,$filepath.'Footer.jpg');
+                    imagedestroy($im);
+                }
+                if($continue && $saved){
+                    $s = "<div class='alert alert-success'><strong>Success!</strong> Footer Saved to clinic</div>";
+                }
+                else if($continue){
+                    $s = "<div class='alert alert-danger'><strong>Error!</strong> An Error Occured while saving the footer. A backup of the previous footer was saved. <strong>The footer Was NOT Saved</strong></div>";
+                }
+                else{
+                    $s = "<div class='alert alert-danger'><strong>Error!</strong> An Error Occured while backing up the previous footer. <strong>The footer Was NOT Saved</strong></div>";
+                }
+                return $s;
+            default:
+                return '';
+        }
+    }
+    
+    public function footerOptions(){
+        return <<<FooterOptions
+<script>
+    function sendCMD(act){
+        $.ajax({
+            type: "POST",
+            data: {cmd:'system-footergenerator',action:act},
+            url: 'jx.php',
+            success: function(data, textStatus, jqXHR) {
+                var jsData = JSON.parse(data);
+                if(jsData.bOk){
+                    document.getElementById('system_body').innerHTML = jsData.sOut;
+                    $('#system_dialog').modal('handleUpdate');
+                    $('#system_dialog').modal('show');
+                }
+                else{
+                    console.log(jsData.sErr);
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+    }
+</script>
+<div class="modal fade" id="system_dialog" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-body" id="system_body" style='800px'>
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+    <button onclick='sendCMD("view")'>View</button>
+    <button onclick='window.open("jx.php?cmd=system-footergenerator&action=download")'>Download</button>
+    <button onclick='sendCMD("save")'>Save</button>
+</div>
+FooterOptions;
     }
     
 }

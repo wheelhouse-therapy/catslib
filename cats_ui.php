@@ -400,8 +400,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 break;
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
-                $gen->generateFooter((new Clinics($this->oApp))->GetCurrentClinic());
-                exit;//TODO Remove
+                $s .= $gen->footerOptions();
                 break;
             default:
                 $s .= $this->drawCircles(array(array('system',"Access System Resources")));
