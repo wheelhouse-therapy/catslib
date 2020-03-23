@@ -35,7 +35,15 @@ function checkFileSystem(SEEDAppConsole $oApp){
     if ($currFileSystemVersion < 2) {
         ensureDirectory('old');
         foreach(array('handouts/','forms/','marketing/','clinic/') as $folder){
-            rename(CATSDIR_RESOURCES.$folder, CATSDIR_RESOURCES.$GLOBALS['directories']['old']['directory'].$folder);
+            $directory_iterator = new DirectoryIterator(CATSDIR_RESOURCES.$folder);
+            foreach ($directory_iterator as $fileinfo){
+                if($fileinfo->isDot()){
+                    continue;
+                }
+                rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.$GLOBALS['directories']['old']['directory'].$fileinfo->getFilename());
+                $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim($GLOBALS['directories']['old']['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
+            }
+            rmdir(realpath(CATSDIR_RESOURCES.$folder));
         }
     }
 }
