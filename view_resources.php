@@ -209,6 +209,8 @@ DownloadMode;
 
     $folder = str_replace( '/', '', $dir_name );        // resources, handouts, etc, for looking up the related tags
 
+    // make sure dir_name is the full path
+    $dir_short = trim($dir_name,'/');
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
         $dir_name = CATSDIR_RESOURCES.$dir_name;
     }
@@ -238,6 +240,7 @@ DownloadMode;
                         <div class='modal-body'>
                             <form id='client_form' onsubmit='modalSubmit(event)'>
                                 <input type='hidden' name='cmd' value='download' />
+                                <input type='hidden' name='dir' id='dir' value='$dir_short' />
                                 <input type='hidden' name='file' id='file' value='' />
                                 <select name='client' required>
                                     <option selected value=''>Select a Client</option>"
