@@ -301,7 +301,7 @@ DownloadMode;
         found:
         $oApp->kfdb->SetDebug(0);
 
-         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name,$fileinfo));
+         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
          $filename = SEEDCore_HSC($fileinfo->getFilename());
          $tags = $oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() );
          $s .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
@@ -387,14 +387,14 @@ function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
     return $resourcesMode;
 }
 
-function downloadPath($mode, $dir_name, $fileinfo){
+function downloadPath($mode, $dir_name, $fileinfo, $dir_short){
     switch($mode){
         case 'replace':
             return "href='javascript:void(0)' onclick=\"select_client('".$dir_name.$fileinfo->getFilename()."')\"";
         case 'no_replace':
-            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&resource-mode=no_replace'";
+            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&resource-mode=no_replace&dir=$dir_short'";
         case 'blank':
-            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0'";
+            return "href='?cmd=download&file=".$dir_name.$fileinfo->getFilename()."&client=0&dir=$dir_short'";
     }
 }
 
