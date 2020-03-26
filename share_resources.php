@@ -9,20 +9,21 @@
 // The extensions value of the second array is an array of all files extensions that are excepted in the directory
 // DO NOT include the dot in the file extension
 global $directories;
-$directories= array("papers"          => array("directory" => "papers/",    "name" => "Papers",                        "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "selfReg"         => array("directory" => "reg/",       "name" => "Self Regulation",               "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "reports"         => array("directory" => "reports/",   "name" => "Client Reports",                "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "vMotor"          => array("directory" => "visual/",    "name" => "Visual Motor",                  "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "oMotor"          => array("directory" => "other/",     "name" => "Other Motor",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "clinicForms"     => array("directory" => "clinic/",    "name" => "Clinic Forms",                  "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "anxiety"         => array('directory' => "anxiety/",   "name" => "Anxiety",                       "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "cognitive"       => array('directory' => "cog/",       "name" => "Cognitive",                     "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "adl"             => array('directory' => "adl/",       "name" => "ADL's",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "assmt"           => array('directory' => "assmt/",     "name" => "Assessments",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "old"             => array('directory' => "old/",       "name" => "Back Drawer",                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures", "extensions" => array("pdf")                              ),
-                    "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",             "extensions" => array("docx")                             ),
-                    "videos"          => array("directory" => "videos/",    "name" => "Videos",                        "extensions" => array("mp4")                              )
+$directories= array(
+                    "clinicForms"     => array("directory" => "clinic/",    "name" => "Clinic Forms",                            "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "papers"          => array("directory" => "papers/",    "name" => "Paper Designs",                           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "selfReg"         => array("directory" => "reg/",       "name" => "Self Regulation",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#06962d" ),
+                    "vMotor"          => array("directory" => "visual/",    "name" => "Visual Motor",                            "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ff0000" ),
+                    "oMotor"          => array("directory" => "other/",     "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ff8400" ),
+                    "anxiety"         => array('directory' => "anxiety/",   "name" => "Anxiety",                                 "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "cognitive"       => array('directory' => "cog/",       "name" => "Cognitive",                               "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#000000" ),
+                    "adl"             => array('directory' => "adl/",       "name" => "ADL's",                                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ebcf00" ),
+                    "assmt"           => array('directory' => "assmt/",     "name" => "Assessments",                             "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#0000ff" ),
+                    "old"             => array('directory' => "old/",       "name" => "Back Drawer",                             "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "reports"         => array("directory" => "reports/",   "name" => "Client Reports",                          "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
+                    "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures",           "extensions" => array("pdf")                              ),
+                    "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",                       "extensions" => array("docx")                             ),
+                    "videos"          => array("directory" => "videos/",    "name" => "Videos",                                  "extensions" => array("mp4")                              )
 );
 
 function checkFileSystem(SEEDAppConsole $oApp){

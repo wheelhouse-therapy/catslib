@@ -29,7 +29,11 @@ function FilingCabinet( SEEDAppConsole $oApp )
     } else {
         $s .= "<h3>Filing Cabinet</h3>";
         foreach( $directories as $k => $ra ) {
-            $s .= "<p><a href='?dir={$k}'>{$ra['name']}</a></p>";
+            $bgcolor = "background-color: grey;";
+            if (array_key_exists("color", $ra)) {
+                $bgcolor = "background-color: {$ra['color']};";
+            }
+            $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'><a style='font-size: 18pt; color: #fff' href='?dir={$k}'>{$ra['name']}</a></div></p>";
         }
     }
     return( $s );
