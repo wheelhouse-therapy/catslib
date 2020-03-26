@@ -173,7 +173,7 @@ DownloadMode;
                 $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
                 break;
         }
-        $s .= getModeOptions($resourceMode, $download_modes, $mode);
+        $s .= getModeOptions($resourceMode, $download_modes, $mode, $dir_name);
     }
     else if(strlen($download_modes) == 1){
         $mode = $MODES[$download_modes]['code'];
@@ -259,7 +259,7 @@ DownloadMode;
 
     $s .= "<table border='0'>";
     $sTemplate = "<tr [[CLASS]]>
-                    <td valing='top'>
+                    <td valign='top'>
                         <a style='white-space: nowrap' [[LINK]] >
                             [[FILENAME]]
                         </a>
@@ -357,18 +357,23 @@ DownloadMode;
     return( $s );
 }
 
-function getModeOptions($resourcesMode, $downloadModes, $mode){
+function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
     global $MODES;
     $raModes = str_split($downloadModes);
     $firstMode = current($raModes);
     $midMode = next($raModes);
     $lastMode = end($raModes);
+    $dir = trim($dir,'/');
     switch(strlen($downloadModes)){
         case 3:
-            $resourcesMode = str_replace("[[button2]]","<a id='mode2' href='?resource-mode=".($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['code']:$MODES[$lastMode]['code'])."'><button>"
+            $resmode = ($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['code']:$MODES[$lastMode]['code']);
+            $resourcesMode = str_replace("[[button2]]","<a id='mode2' href='?resource-mode=$resmode&dir=$dir'><button>"
             .($mode==$MODES[$lastMode]['code']?$MODES[$midMode]['title']:$MODES[$lastMode]['title'])."</button></a>",$resourcesMode);
+            // also do case 2
+
         case 2:
-            $resourcesMode = str_replace("[[button1]]","<a id='mode1' href='?resource-mode=".($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['code']:$MODES[$firstMode]['code'])."'><button>"
+            $resmode = ($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['code']:$MODES[$firstMode]['code']);
+            $resourcesMode = str_replace("[[button1]]","<a id='mode1' href='?resource-mode=$resmode&dir=$dir'><button>"
             .($mode==$MODES[$firstMode]['code']?$MODES[$midMode]['title']:$MODES[$firstMode]['title'])."</button></a>",$resourcesMode);
             break;
     }
