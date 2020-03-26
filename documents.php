@@ -476,7 +476,7 @@ class ResourceManager{
                   ."<input type='hidden' name='cmd' value='rename' />"
                   ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
                   ."<input type='text' class='cats_form' name='name' required value='".explode(".",$this->getPartPath($file_path,-1))[0]."' />.";
-        $dir_key = "";
+        $dir_key = "old";
         foreach ($GLOBALS['directories'] as $k=>$v){
             if($v['directory'] == $this->getPartPath($file_path,-2)."/"){
                 $dir_key = $k;
