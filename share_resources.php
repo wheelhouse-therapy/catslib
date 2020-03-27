@@ -26,7 +26,9 @@ class FilingCabinet
             $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
         } else {
             $s .= "<h3>Filing Cabinet</h3>";
-            foreach( self::$raDirectories as $k => $ra ) {
+            // Some of the directories in the array are not part of the filing cabinet. Remove them here.
+            $ras = array_intersect(self::$raDirectories, array('reports','SOP','sections','videos'));
+            foreach( $ras as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {
                     $bgcolor = "background-color: {$ra['color']};";
