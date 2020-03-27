@@ -27,7 +27,7 @@ class FilingCabinet
         } else {
             $s .= "<h3>Filing Cabinet</h3>";
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = array_intersect(self::$raDirectories, array('reports','SOP','sections','videos'));
+            $ras = array_diff_key(self::$raDirectories, array_flip(array('reports','SOP','sections','videos')));
             foreach( $ras as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {
