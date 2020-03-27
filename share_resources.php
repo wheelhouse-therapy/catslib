@@ -17,6 +17,27 @@ class FilingCabinet
         $this->oApp = $oApp;
     }
 
+    function DrawFilingCabinet()
+    {
+        $s = "";
+
+        if( ($dir = SEEDInput_Str('dir')) && (@$GLOBALS['directories'][$dir]) ) {
+            $s .= ResourcesDownload( $this->oApp, $GLOBALS['directories'][$dir]['directory'] );
+        } else {
+            $s .= "<h3>Filing Cabinet</h3>";
+            foreach( $GLOBALS['directories'] as $k => $ra ) {
+                $bgcolor = "background-color: grey;";
+                if (array_key_exists("color", $ra)) {
+                    $bgcolor = "background-color: {$ra['color']};";
+                }
+                $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'>"
+                        ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}'>{$ra['name']}</a>"
+                     ."</div></p>";
+            }
+        }
+        return( $s );
+    }
+
     function UploadToPending()
     /*************************
         Following a _FILES upload, put the file in the "pending" folder.

@@ -18,28 +18,6 @@ $MODES = array('s' => array("code" => "replace"   , "title" => "Substitution Mod
 
 );
 
-function FilingCabinet( SEEDAppConsole $oApp )
-{
-    $s = "";
-
-    global $directories;
-
-    if( ($dir = SEEDInput_Str('dir')) && (@$directories[$dir]) ) {
-        $s .= ResourcesDownload( $oApp, $directories[$dir]['directory'] );
-    } else {
-        $s .= "<h3>Filing Cabinet</h3>";
-        foreach( $directories as $k => $ra ) {
-            $bgcolor = "background-color: grey;";
-            if (array_key_exists("color", $ra)) {
-                $bgcolor = "background-color: {$ra['color']};";
-            }
-            $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'><a style='font-size: 18pt; color: #fff' href='?dir={$k}'>{$ra['name']}</a></div></p>";
-        }
-    }
-    return( $s );
-}
-
-
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
