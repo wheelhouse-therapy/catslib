@@ -368,7 +368,7 @@ class ResourceManager{
     }
 
     private function listResources($dir){
-        ensureDirectory("*");
+        FilingCabinet::EnsureDirectory("*");
         $s = "";
         $directory_iterator = new DirectoryIterator($dir);
 
@@ -486,13 +486,9 @@ class ResourceManager{
         $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
 
         if( ($exts = @$GLOBALS['directories'][$dir_key]['extensions']) ) {
+            $file_ext = pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION);
             foreach ($exts as $k=>$v){
-                if(explode(".",$this->getPartPath($file_path,-1))[1] == $v){
-                    $rename .= "<option selected>".$v."</option>";
-                }
-                else{
-                    $rename .= "<option>".$v."</option>";
-                }
+                $rename .= "<option ".($file_ext == $v ? "selected":"").">$v</option>";
             }
         }
         $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"

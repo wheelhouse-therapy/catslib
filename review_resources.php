@@ -2,7 +2,7 @@
 
 require_once 'share_resources.php';
 
-ensureDirectory("*");
+FilingCabinet::EnsureDirectory("*");
 
 $dir_name = CATSDIR_RESOURCES."pending/";
 $cmd = SEEDInput_Str( 'cmd' );

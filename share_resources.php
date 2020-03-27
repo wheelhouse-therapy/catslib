@@ -1,5 +1,120 @@
 <?php
 
+/* share_resources
+ *
+ * Copyright (c) 2018-2020 Collaborative Approach Therapy Services
+ *
+ * Upload and manage files
+ */
+
+
+class FilingCabinet
+{
+    private $oApp;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function UploadToPending()
+    /*************************
+        Following a _FILES upload, put the file in the "pending" folder.
+     */
+    {
+        $s = "";
+
+        self::EnsureDirectory("pending");
+
+        if( !isset($_FILES["fileToUpload"]["name"]) ) {
+            $s .= "Sorry, nothing was uploaded.<br/>";
+            goto done;
+        }
+
+        $target_dir = CATSDIR_RESOURCES."pending/";
+        $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
+        $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+
+        // Check if file already exists
+        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
+        if (file_exists($target_file)) {
+            $s .= "Sorry, file already exists.<br />";
+            goto done;
+        }
+        // Check file size
+        if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
+            $s .= "Sorry, your file is too large.<br />";
+            goto done;
+        }
+        // Allow certain file formats
+        if(!in_array($documentFileType, getExtensions())) {
+            $s .= "Sorry, only ".implode(", ", array_unique(getExtensions()))." files are allowed.<br />";
+            goto done;
+        }
+
+        if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
+            $s .= "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded and is awaiting review.";
+            if($this->oApp->sess->CanWrite("admin")){
+                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
+            }
+        } else {
+            $s .= "Sorry, there was an error uploading your file.";
+        }
+
+        done:
+        return( $s );
+    }
+
+    static function EnsureDirectory($dirs, $silent = FALSE)
+    {
+        /* Live server should be running with suexec so php will have the same permissions as the user account.
+         * Dev servers aren't necessarily set up this way so they need full permissions.
+         * This secures the live server from having world-writable/readable directories (only apache and cpanel can see them).
+         */
+        if( SEED_isLocal ) {
+            umask(0);
+            $perm = 0777;
+        } else {
+            $perm = 0700;
+        }
+
+        if($dirs == "*"){
+            // ensure that all directories are created
+            foreach(array_keys($GLOBALS['directories']) as $k){
+                self::EnsureDirectory($k,$silent);
+            }
+            self::EnsureDirectory("pending",$silent);
+        }
+        else if(is_array($dirs)){
+            // ensure the given array of directories are created
+            self:EnsureDirectory("pending");
+            foreach ($dirs as $dir){
+                self::EnsureDirectory($dir);
+            }
+        }
+        else if($dirs == "pending"){
+            // ensure the pending directory is created
+            if(!file_exists(CATSDIR_RESOURCES."pending")) {
+                $r = @mkdir(CATSDIR_RESOURCES."pending", $perm, true);
+                if(!$silent){
+                    echo "Pending Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
+                }
+            }
+        }
+        else {
+            // ensure the single directory in $dirs is created
+            if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
+                $r = @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], $perm, true);
+                if(!$silent){
+                    echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
+                }
+            }
+        }
+    }
+}
+
+
+
 // Array of arrays containing directory information of resource folders
 // The key of the first array defines the intermal key for the directory
 // The directory value of the second array defines the path to the directory
@@ -13,20 +128,20 @@ $directories= array(
     // keys used to be different from dir names, but when dir names are propagated it's hard to match them with the key again
     // so I just made the keys the same. If we want them different for some reason we'll have to figure out all the places where
     // we look up an item here from a propagated dir NAME and map it back to the KEY.
-                  /*"clinicForms"*/ "clinic"          => array("directory" => "clinic/",    "name" => "Clinic Forms",                            "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                  /*"papers"     */ "papers"          => array("directory" => "papers/",    "name" => "Paper Designs",                           "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                  /*"selfReg"    */ "reg"             => array("directory" => "reg/",       "name" => "Self Regulation",                         "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#06962d" ),
-                  /*"vMotor"     */ "visual"          => array("directory" => "visual/",    "name" => "Visual Motor",                            "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ff0000" ),
-                  /*"oMotor"     */ "other"           => array("directory" => "other/",     "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ff8400" ),
-                  /*"anxiety"    */ "anxiety"         => array('directory' => "anxiety/",   "name" => "Anxiety",                                 "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                  /*"cognitive"  */ "cog"             => array('directory' => "cog/",       "name" => "Cognitive",                               "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#000000" ),
-                  /*"adl"        */ "adl"             => array('directory' => "adl/",       "name" => "ADL's",                                   "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#ebcf00" ),
-                  /*"assmt"      */ "assmt"           => array('directory' => "assmt/",     "name" => "Assessments",                             "extensions" => array("docx", "pdf", "txt", "rtf", "doc"), "color" => "#0000ff" ),
-                  /*"old"        */ "old"             => array('directory' => "old/",       "name" => "Back Drawer",                             "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                  /*"reports"    */ "reports"         => array("directory" => "reports/",   "name" => "Client Reports",                          "extensions" => array("docx", "pdf", "txt", "rtf", "doc") ),
-                  /*"SOP"        */ "SOP"             => array("directory" => "SOP/",       "name" => "Standard Operating Procedures",           "extensions" => array("pdf")                              ),
-                  /*"sections"   */ "sections"        => array("directory" => "sections/",  "name" => "Resource Sections",                       "extensions" => array("docx")                             ),
-                  /*"videos"     */ "videos"          => array("directory" => "videos/",    "name" => "Videos",                                  "extensions" => array("mp4")                              )
+    "clinic"   /*"clinicForms"*/ => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "reg"      /*"selfReg"    */ => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "visual"   /*"vMotor"     */ => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "other"    /*"oMotor"     */ => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "cog"      /*"cognitive"  */ => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "reports"                    => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+    "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
+    "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
+    "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
 );
 
 function checkFileSystem(SEEDAppConsole $oApp){
@@ -37,7 +152,7 @@ function checkFileSystem(SEEDAppConsole $oApp){
         $oBucket->PutStr( 'cats', 'FileSystemVersion', $FileSystemVersion );
     }
     if ($currFileSystemVersion < 2) {
-        ensureDirectory('old');
+        FilingCabinet::EnsureDirectory('old');
         foreach(array('handouts/','forms/','marketing/','clinic/') as $folder){
             $directory_iterator = new DirectoryIterator(CATSDIR_RESOURCES.$folder);
             foreach ($directory_iterator as $fileinfo){
@@ -52,46 +167,6 @@ function checkFileSystem(SEEDAppConsole $oApp){
     }
 }
 
-function ensureDirectory($dirs, $silent = FALSE){
-    // Live server should be running with suexec so php will have the same permissions as the user account.
-    // Dev servers aren't necessarily set up this way so they need full permissions.
-    // This secures the live server from having world-writable/readable directories (only apache and cpanel can see them).
-    if( SEED_isLocal ) {
-        umask(0);
-        $perm = 0777;
-    } else {
-        $perm = 0700;
-    }
-
-    if($dirs == "*"){
-        foreach(array_keys($GLOBALS['directories']) as $k){
-            ensureDirectory($k,$silent);
-        }
-        ensureDirectory("pending",$silent);
-    }
-    else if(is_array($dirs)){
-        ensureDirectory("pending");
-        foreach ($dirs as $dir){
-            ensureDirectory($dir);
-        }
-    }
-    else if($dirs == "pending"){
-        if (!file_exists(CATSDIR_RESOURCES."pending")) {
-            $r = @mkdir(CATSDIR_RESOURCES."pending", $perm, true);
-            if(!$silent){
-                echo "Pending Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
-            }
-        }
-    }
-    else{
-        if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
-            $r = @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], $perm, true);
-            if(!$silent){
-                echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
-            }
-        }
-    }
-}
 
 function getExtensions(){
     $exts = array();

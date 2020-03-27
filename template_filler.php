@@ -28,7 +28,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                         $isAssessment = True;
                     }
                 }
-                
+
                 if( substr($fix,0,6) == '${date' ||
                     substr($fix,0,8) == '${client' ||
                     substr($fix,0,7) == '${staff' ||
@@ -49,7 +49,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
         return $fixedDocumentPart;
     }
-    
+
     public function insertSection($tag, $section){
         $regex1 = '/<(w:[^ >]+)[^>\/]*?>(?=.*?<\/\1>)/';
         $regex2 = '/<(w:[^ >]+)[^>\/]*?>/';
@@ -69,7 +69,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
             $this->setValue($tag, $section,1);
         }
     }
-    
+
     private function arrayExclude($array1, $array2) {
         $output = array();
         foreach($array1 as $match) {
@@ -90,11 +90,11 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         }
         return $output;
     }
-    
+
     /**
      * Get the xml between the body tags. for injection into another document.
      * Use in conjunction with insertSection($tag,$section) for proper injection into document.
-     * 
+     *
      * @return String containing the xml which lies between the body tags of the document
      */
     public function getSection(){
@@ -104,14 +104,14 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         }
         return "";
     }
-    
+
 }
 
 class template_filler {
 
     //Variable to cache constants
     private static $constants = NULL;
-    
+
     private $oApp;
     private $oPeopleDB;
     private $tnrs;
@@ -127,14 +127,14 @@ class template_filler {
      * Array of people ids for use with data tags
      */
     private $data = array();
-    
+
     /**
      * Assessments to include in files downloaded through this template filler
      * Since this is defined in the constructor any sections included will also have access to this.
      * This means we can have sections which report on assessments and they will filled with the correct information
      */
     private $assessments;
-    
+
     /**
      * Boolean controling whether tags are "skiped".
      * Used with if and endif tags.
@@ -159,7 +159,7 @@ class template_filler {
      * 0 is the global scope, ie outside all if blocks.
      */
     private $evalDepth = 0;
-    
+
     // Constants for dealing with different types of resources
     /**
      * Default resource type
@@ -177,7 +177,7 @@ class template_filler {
      * It will be sent with the other files in a zip
      */
     public const RESOURCE_GROUP = 3;
-    
+
     public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array(), array $data = array() )
     {
         $this->oApp = $oApp;
@@ -186,31 +186,31 @@ class template_filler {
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
-        
+
         if(self::$constants == NULL){
             $refl = new ReflectionClass(template_filler::class);
             self::$constants = $refl->getConstants();
         }
-        
+
     }
 
     private function isResourceTypeValid($resourceType):bool{
         return in_array($resourceType, self::$constants);
     }
-    
+
     /** Replace tags in a resource with their corresponding data values
      * @param String $resourcename - Path of resource to replace tags in
      * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file handling
      */
     public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
     {
-        
+
         if(!$this->isResourceTypeValid($resourceType)){
             return;
         }
-        
-        ensureDirectory("*",TRUE);
-        
+
+        FilingCabinet::EnsureDirectory("*",TRUE);
+
         $this->kClient = SEEDInput_Int('client');
         $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
@@ -354,11 +354,11 @@ class template_filler {
         cleanup:
         $za->close();
     }
-    
+
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
-    
+
     private function processConditionalTags($tag){
         $raTag = explode( ':', $tag, 2 );
         if(strtolower($raTag[0]) == "if" || strtolower($raTag[0]) == "endif"){
@@ -439,7 +439,7 @@ class template_filler {
         }
         return FALSE;
     }
-    
+
     private function expandTag($tag)
     {
         $tag = trim($tag);
@@ -602,7 +602,7 @@ class template_filler {
                     break;
             }
         }
-        
+
         done:
         return( $s );
     }

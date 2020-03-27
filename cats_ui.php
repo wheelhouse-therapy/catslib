@@ -212,12 +212,13 @@ ResetPassword;
                 $s .= "MEET THE TEAM";
                 break;
             case "therapist-submitresources":
-                $s .= "SUBMIT RESOURCES";
+                $s .= "<h3>Submit Resources</h3>";
                 $s .= share_resources();
                 break;
             case 'therapist-resources':
                 $this->oHistory->removeFromHistory(-1);
-                include('share_resorces_upload.php');
+                $oFC = new FilingCabinet( $this->oApp );
+                $s .= $oFC->UploadToPending();
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
