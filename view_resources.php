@@ -48,6 +48,15 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
     global $MODES;
     $s = "";
 
+    if( !$dir_name ) {
+        $s .= "Directory not specified";
+        goto done;
+    }
+
+    $dir_short = trim($dir_name,'/');
+
+    $s .= "<h3>Filing Cabinet : ".$GLOBALS['directories'][$dir_short]['name']."</h3>";
+
     $s .= <<<ResourcesTagStyle
         <style>
             /* Every resources tag and control
@@ -182,10 +191,6 @@ DownloadMode;
     else if(strlen($download_modes) == 1){
         $mode = $MODES[$download_modes]['code'];
     }
-    if(!$dir_name){
-        $s .= "Directory not specified";
-        return;
-    }
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         if($mode!="no_replace"){
             $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
@@ -210,7 +215,6 @@ DownloadMode;
     $folder = str_replace( '/', '', $dir_name );        // resources, handouts, etc, for looking up the related tags
 
     // make sure dir_name is the full path
-    $dir_short = trim($dir_name,'/');
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
         $dir_name = CATSDIR_RESOURCES.$dir_name;
     }
@@ -358,6 +362,7 @@ DownloadMode;
             }
            </script>";
 
+    done:
     return( $s );
 }
 
