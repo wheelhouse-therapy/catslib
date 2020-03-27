@@ -21,11 +21,12 @@ class FilingCabinet
     {
         $s = "";
 
-        if( ($dir = SEEDInput_Str('dir')) && (@$GLOBALS['directories'][$dir]) ) {
-            $s .= ResourcesDownload( $this->oApp, $GLOBALS['directories'][$dir]['directory'] );
+        self::EnsureDirectory("*");
+        if( ($dir = SEEDInput_Str('dir')) && ($raDirInfo = self::GetDirInfo($dir)) ) {
+            $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
         } else {
             $s .= "<h3>Filing Cabinet</h3>";
-            foreach( $GLOBALS['directories'] as $k => $ra ) {
+            foreach( self::$raDirectories as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {
                     $bgcolor = "background-color: {$ra['color']};";
@@ -101,7 +102,7 @@ class FilingCabinet
 
         if($dirs == "*"){
             // ensure that all directories are created
-            foreach(array_keys($GLOBALS['directories']) as $k){
+            foreach( self::$raDirectories as $k=>$v ) {
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
@@ -123,15 +124,41 @@ class FilingCabinet
             }
         }
         else {
-            // ensure the single directory in $dirs is created
-            if (!file_exists(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"])) {
-                $r = @mkdir(CATSDIR_RESOURCES.$GLOBALS["directories"][$dirs]["directory"], $perm, true);
+            // ensure the specified single directory is created
+            if( ($dirinfo = self::GetDirInfo($dirs)) &&
+                ($dir_name = CATSDIR_RESOURCES.$dirinfo["directory"]) &&  // of course this always works but this is a nice place to put it
+                !file_exists($dir_name))
+            {
+                $r = @mkdir($dir_name, $perm, true);
                 if(!$silent){
-                    echo $GLOBALS["directories"][$dirs]["name"]." Resources Directiory ".($r ? "" : "Could Not Be")." Created<br />";
+                    echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
                 }
             }
         }
     }
+
+    static function GetDirectories() { return( self::$raDirectories ); }
+    static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
+
+    static private $raDirectories = [
+        // keys used to be different from dir names, but when dir names are propagated it's hard to match them with the key again
+        // so I just made the keys the same. If we want them different for some reason we'll have to figure out all the places where
+        // we look up an item here from a propagated dir NAME and map it back to the KEY.
+        "clinic"   /*"clinicForms"*/ => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reg"      /*"selfReg"    */ => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "visual"   /*"vMotor"     */ => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "other"    /*"oMotor"     */ => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "cog"      /*"cognitive"  */ => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reports"                    => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
+        "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
+        "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
+    ];
 }
 
 
@@ -145,25 +172,7 @@ class FilingCabinet
 // The extensions value of the second array is an array of all files extensions that are excepted in the directory
 // DO NOT include the dot in the file extension
 global $directories;
-$directories= array(
-    // keys used to be different from dir names, but when dir names are propagated it's hard to match them with the key again
-    // so I just made the keys the same. If we want them different for some reason we'll have to figure out all the places where
-    // we look up an item here from a propagated dir NAME and map it back to the KEY.
-    "clinic"   /*"clinicForms"*/ => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "reg"      /*"selfReg"    */ => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "visual"   /*"vMotor"     */ => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "other"    /*"oMotor"     */ => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "cog"      /*"cognitive"  */ => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "reports"                    => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-    "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
-    "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
-    "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
-);
+$directories = FilingCabinet::GetDirectories(); // deprecate this global and use the FilingCabinet method directly
 
 function checkFileSystem(SEEDAppConsole $oApp){
     $FileSystemVersion = 2;
