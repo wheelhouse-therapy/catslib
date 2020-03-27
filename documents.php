@@ -383,7 +383,11 @@ class ResourceManager{
             if($this->selected_File && $this->selected_File == $this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)){
                 $this->processCommands($fileinfo);
             }
-            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."\")'>".$fileinfo->getFilename()."</a><br />";
+            $filename = $fileinfo->getFilename();
+            if(FilingCabinet::GetDirInfo($filename)){
+                $filename = FilingCabinet::GetDirInfo($filename)['name'];
+            }
+            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."\")'>".$filename."</a><br />";
             $s .= "<div class='[style]' id='".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."' style='".(in_array($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES), $this->openTrees)?"":"display:none;")." width: [width];'>";
             if($fileinfo->isDir()){
                 $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
@@ -464,7 +468,7 @@ class ResourceManager{
                   <input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />
                   <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
-            if($v['directory'] != $directory."/"){
+            if($v['directory'] != $directory."/" && in_array(pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION),$v['extensions'])){
                $move .="<option value='".$v['directory']."'>".$v['name']."</option>";
             }
         }
