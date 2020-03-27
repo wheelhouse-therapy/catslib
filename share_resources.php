@@ -141,16 +141,21 @@ class FilingCabinet
     static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
 
     static private $raDirectories = [
-        // keys used to be different from dir names, but when dir names are propagated it's hard to match them with the key again
-        // so I just made the keys the same. If we want them different for some reason we'll have to figure out all the places where
-        // we look up an item here from a propagated dir NAME and map it back to the KEY.
-        "clinic"   /*"clinicForms"*/ => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        // Array of arrays containing directory information of resource folders
+        // The key of the first array defines the intermal key for the directory
+        // The directory value of the second array defines the path to the directory
+        // ALL directories are stored in the resources folder
+        // The name value of the second array is the name displayed in the select element
+        // It should be a discriptive name indicating what goes in the folder
+        // The extensions value of the second array is an array of all files extensions that are excepted in the directory
+        // DO NOT include the dot in the file extension
+        "clinic"                     => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
         "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "reg"      /*"selfReg"    */ => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "visual"   /*"vMotor"     */ => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "other"    /*"oMotor"     */ => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reg"                        => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "visual"                     => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "other"                      => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
         "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "cog"      /*"cognitive"  */ => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "cog"                        => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
         "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
         "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
         "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
@@ -160,19 +165,6 @@ class FilingCabinet
         "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
     ];
 }
-
-
-
-// Array of arrays containing directory information of resource folders
-// The key of the first array defines the intermal key for the directory
-// The directory value of the second array defines the path to the directory
-// ALL directories are stored in the resources folder
-// The name value of the second array is the name displayed in the select element
-// It should be a discriptive name indicating what goes in the folder
-// The extensions value of the second array is an array of all files extensions that are excepted in the directory
-// DO NOT include the dot in the file extension
-global $directories;
-$directories = FilingCabinet::GetDirectories(); // deprecate this global and use the FilingCabinet method directly
 
 function checkFileSystem(SEEDAppConsole $oApp){
     $FileSystemVersion = 2;
@@ -189,8 +181,8 @@ function checkFileSystem(SEEDAppConsole $oApp){
                 if($fileinfo->isDot()){
                     continue;
                 }
-                rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.$GLOBALS['directories']['old']['directory'].$fileinfo->getFilename());
-                $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim($GLOBALS['directories']['old']['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
+                rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('old')['directory'].$fileinfo->getFilename());
+                $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(FilingCabinet::GetDirInfo('old')['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
             }
             rmdir(realpath(CATSDIR_RESOURCES.$folder));
         }
@@ -200,7 +192,7 @@ function checkFileSystem(SEEDAppConsole $oApp){
 
 function getExtensions(){
     $exts = array();
-    foreach($GLOBALS['directories'] as $k => $v){
+    foreach(FilingCabinet::GetDirectories() as $k => $v){
         foreach ($v['extensions'] as $ext){
             array_push($exts, trim($ext, ". \t\n\r\0\x0B"));
         }

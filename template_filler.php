@@ -521,8 +521,8 @@ class template_filler {
                     $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1),self::RESOURCE_SECTION);
                 }
             }
-            else if(file_exists($GLOBALS['directories']['sections']['directory'].$col[1])){
-                $s = $this->fill_resource($GLOBALS['directories']['sections']['directory'].$col[1],self::RESOURCE_SECTION);
+            else if(file_exists(FilingCabinet::GetDirInfo('sections')['directory'].$col[1])){
+                $s = $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$col[1],self::RESOURCE_SECTION);
             }
         }
         if(in_array($table, getAssessmentTypes())){

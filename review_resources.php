@@ -10,7 +10,7 @@ if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
     $dir = SEEDInput_Str( 'dir' );
     $file = str_replace("+", " ", $file);
-    if(rename($dir_name.$file, CATSDIR_RESOURCES.$GLOBALS['directories'][$dir]['directory'].$file)){
+    if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
     }
     else{
@@ -42,7 +42,7 @@ foreach ($dir as $fileinfo) {
         <input type='hidden' name='file' value=\"".$fileinfo->getFilename()."\" />";
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
-        foreach($GLOBALS['directories'] as $k => $v){
+        foreach(FilingCabinet::GetDirectories() as $k => $v){
             if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
                 array_push($excluded, $k);
             }

@@ -33,7 +33,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
 
     $dir_short = trim($dir_name,'/');
 
-    $s .= "<h3>Filing Cabinet : ".$GLOBALS['directories'][$dir_short]['name']."</h3>"
+    $s .= "<h3>Filing Cabinet : ".FilingCabinet::GetDirInfo($dir_short)['name']."</h3>"
          ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
 
     $s .= <<<ResourcesTagStyle
@@ -232,7 +232,7 @@ DownloadMode;
                             </form>
                         </div>
                         <div class='modal-footer'>
-                            <input type='submit' id='submitVal' value='".(CATSDIR_RESOURCES.$GLOBALS['directories']['reports']['directory'] == $dir_name?"Next":"Download")."' form='client_form' />
+                            <input type='submit' id='submitVal' value='".(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('reports')['directory'] == $dir_name?"Next":"Download")."' form='client_form' />
                         </div>
                     </div>
                 </div>
@@ -403,7 +403,7 @@ function viewSOPs(SEEDAppConsole $oApp){
 viewSOP;
     FilingCabinet::EnsureDirectory("SOP");
     $listSOPs = "<h3>View Standard Operating Procedures</h3>";
-    $dir = new DirectoryIterator(CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory']);
+    $dir = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('SOP')['directory']);
     if(iterator_count($dir) == 2){
         $listSOPs .= "<h2> No files in directory</h2>";
         goto brains;
@@ -441,10 +441,10 @@ viewSOP;
     switch ($view){
         case "item":
             //Complicated method to ensure the file is in the directory
-            foreach (array_diff(scandir(CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory']), array('..', '.')) as $file){
+            foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('SOP')['directory']), array('..', '.')) as $file){
                 if(pathinfo($file,PATHINFO_FILENAME) == $item){
                     // show file
-                    return str_replace("[[SOP]]", CATSDIR_RESOURCES.$GLOBALS['directories']['SOP']['directory'].$file, $viewSOP);
+                    return str_replace("[[SOP]]", CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('SOP')['directory'].$file, $viewSOP);
                 }
             }
             $oApp->sess->VarUnSet("SOP_item");
@@ -478,7 +478,7 @@ function viewVideos(SEEDAppConsole $oApp){
 viewVideo;
     FilingCabinet::EnsureDirectory("videos");
     $listVideos = "<h3>View Uploaded Videos</h3>";
-    $dir = new DirectoryIterator(CATSDIR_RESOURCES.$GLOBALS['directories']['videos']['directory']);
+    $dir = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
     if(iterator_count($dir) == 2){
         $listVideos .= "<h2> No files in directory</h2>";
         goto brains;
@@ -516,10 +516,10 @@ viewVideo;
         switch ($view){
             case "item":
                 //Complicated method to ensure the file is in the directory
-                foreach (array_diff(scandir(CATSDIR_RESOURCES.$GLOBALS['directories']['videos']['directory']), array('..', '.')) as $file){
+                foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
                     if(pathinfo($file,PATHINFO_FILENAME) == $item){
                         // show file
-                        return str_replace("[[video]]", CATSDIR_RESOURCES.$GLOBALS['directories']['videos']['directory'].$file, $viewVideo);
+                        return str_replace("[[video]]", CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
                     }
                 }
                 $oApp->sess->VarUnSet("video_item");

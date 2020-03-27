@@ -463,7 +463,7 @@ class ResourceManager{
                   <input type='hidden' name='cmd' value='move' />
                   <input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />
                   <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
-        foreach ($GLOBALS['directories'] as $k=>$v){
+        foreach (FilingCabinet::GetDirectories() as $k=>$v){
             if($v['directory'] != $directory."/"){
                $move .="<option value='".$v['directory']."'>".$v['name']."</option>";
             }
@@ -477,7 +477,7 @@ class ResourceManager{
                   ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
                   ."<input type='text' class='cats_form' name='name' required value='".explode(".",$this->getPartPath($file_path,-1))[0]."' />.";
         $dir_key = "old";
-        foreach ($GLOBALS['directories'] as $k=>$v){
+        foreach (FilingCabinet::GetDirectories() as $k=>$v){
             if($v['directory'] == $this->getPartPath($file_path,-2)."/"){
                 $dir_key = $k;
                 break;
@@ -485,7 +485,7 @@ class ResourceManager{
         }
         $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
 
-        if( ($exts = @$GLOBALS['directories'][$dir_key]['extensions']) ) {
+        if( ($exts = @FilingCabinet::GetDirInfo($dir_key)['extensions']) ) {
             $file_ext = pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION);
             foreach ($exts as $k=>$v){
                 $rename .= "<option ".($file_ext == $v ? "selected":"").">$v</option>";
