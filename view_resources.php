@@ -3,27 +3,12 @@
 require_once 'template_filler.php';
 require_once 'share_resources.php';
 
-/**Array of valid Download Modes
- *
- * This array contains information for the various download modes, indexed by their respective internal access code
- * The internal access code is one letter long and is use in $download_modes for ResourcesDownload().
- * Each letter in that string is parsed to determine the modes which are applicable for the current folder.
- *
- * The 'code' entry in the array defines the code used when changing mode via HTTP.
- * The 'title' entry in the array defines the button label displayed over HTTP
- */
-$MODES = array('s' => array("code" => "replace"   , "title" => "Substitution Mode"    ),
-               'n' => array("code" => "no_replace", "title" => "Tagged Version" ),
-               'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
-
-);
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
 {
-    global $MODES;
     $s = "";
 
     if( !$dir_name ) {
@@ -136,42 +121,16 @@ ResourcesTagStyle;
         </script>
 ResourcesTagScript;
 
-    $resourceMode = <<<DownloadMode
-        <div id='break'>
-        <div class='alert alert-info' style='[display] flex-basis: 75%; min-height: 50px;'>Some files cannot be downloaded in the current mode. <a class='alert-link' href='?resource-mode=no_replace'>Click Here to view all files</a></div>
-        <div id='ResourceMode'>
-            <div id='modeText'><div data-tooltip='[tooltip]'><nobr>Current Mode:</nobr> [mode]</div></div>
-            [[button1]]
-            [[button2]]
-        </div>
-        </div>
-DownloadMode;
-    if( count($MODES) >= strlen($download_modes) && strlen($download_modes) > 1){
-        $mode = $oApp->sess->SmartGPC("resource-mode");
-        switch ($mode){
-            case $MODES['s']['code']:
-                $tooltip = "Program replaces tags with data";
-                $resourceMode = str_replace("[mode]", "Substitution", $resourceMode);
-                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-                break;
-            case $MODES['n']['code']:
-                $tooltip = "Download files with the substitution tags";
-                $resourceMode = str_replace("[mode]", $MODES['n']['title'], $resourceMode);
-                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-                break;
-            case $MODES['b']['code']:
-                $tooltip = "No tags or data.<br />Use this if you are stocking your paper filing cabinet with a handout";
-                $resourceMode = str_replace("[mode]", "Blank", $resourceMode);
-                $resourceMode = str_replace("[tooltip]", $tooltip, $resourceMode);
-                break;
-        }
-        $s .= getModeOptions($resourceMode, $download_modes, $mode, $dir_name);
-    }
-    else if(strlen($download_modes) == 1){
-        $mode = $MODES[$download_modes]['code'];
-    }
+    $oFCD = new FilingCabinetDownload( $oApp );
+    list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
+    $s .= $s1;
+
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         if($mode!="no_replace"){
+            if( $mode == 'blank' ) {
+                // kluge: template_filler uses http parm to get the client, and implements blank mode with client=0
+                $_REQUEST['client'] = $_POST['client'] = $_GET['client'] = 0;
+            }
             $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
             $filler->fill_resource($file);
         }
@@ -222,13 +181,21 @@ DownloadMode;
                         </div>
                         <div class='modal-body'>
                             <form id='client_form' onsubmit='modalSubmit(event)'>
+                            <div class='row'><div class='col-sm-6'>
                                 <input type='hidden' name='cmd' value='download' />
                                 <input type='hidden' name='dir' id='dir' value='$dir_short' />
                                 <input type='hidden' name='file' id='file' value='' />
-                                <select name='client' required>
+                                <select name='client' id='fcd_clientSelector' required>
                                     <option selected value=''>Select a Client</option>"
                                 .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                                 ."</select>
+                            </div><div class='col-sm-6'>
+                                <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked />Substitute client details into document</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'/>Save file with no substitution</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'/>Fill document tags with blanks</p>
+                                </div>
+                            </div></div>
                             </form>
                         </div>
                         <div class='modal-footer'>
@@ -274,7 +241,7 @@ DownloadMode;
             $s = str_replace("[display]", "display:inline-block;", $s);
             $class = "class='btn disabled'";
             if(stripos($download_modes, 'n') !== false){
-                $link = "href='?resource-mode=".$MODES['n']['code']."'";
+                $link = "href='?resource-mode=no_replace'";  //.$MODES['n']['code']."'";
             }
             else{
                 $link = "";
@@ -341,12 +308,28 @@ DownloadMode;
             }
            </script>";
 
+    $s .= <<<fcdScript
+<script>
+function fcd_clientselect_enable( bEnable )
+{
+    $('#fcd_clientSelector').prop("disabled", !bEnable);
+}
+</script>
+fcdScript;
+
+
     done:
     return( $s );
 }
 
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
-    global $MODES;
+
+    $MODES = array('s' => array("code" => "replace"   , "title" => "Substitute Tags"    ),
+                   'n' => array("code" => "no_replace", "title" => "Original Version" ),
+                   'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
+
+    );
+
     $raModes = str_split($downloadModes);
     $firstMode = current($raModes);
     $midMode = next($raModes);
