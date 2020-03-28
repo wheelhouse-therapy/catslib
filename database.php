@@ -324,8 +324,8 @@ function createTables( KeyframeDatabase $kfdb )
             fax_number VARCHAR(200) NOT NULL DEFAULT '',
             rate INTEGER NOT NULL DEFAULT 110,
             associated_business VARCHAR(200) NOT NULL DEFAULT '',
-            fk_leader INTEGER NOT NULL DEFAULT 1
-            akaunting_company INTEGER NOT NULL DEFAULT 0 " );
+            fk_leader INTEGER NOT NULL DEFAULT 1,
+            akaunting_company INTEGER NOT NULL DEFAULT 0)" );
 
         $kfdb->Execute( "INSERT INTO ".DBNAME.".clinics (_key,clinic_name,rate,associated_business) values (null,'Core',110,'CATS')" );
         $kfdb->SetDebug(0);
