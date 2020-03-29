@@ -122,13 +122,16 @@ ResourcesTagStyle;
 ResourcesTagScript;
 
     $oFCD = new FilingCabinetDownload( $oApp );
-    list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
-    $s .= $s1;
+    //list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
+    //$s .= $s1;
+    $mode = 'replace';  // deprecate this variable
 
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
-        if($mode!="no_replace"){
+        $resmode = SEEDInput_Str('resource-mode');
+
+        if($resmode!="no_replace"){
             // mode blank is implemented by telling template_filler that client=0
-            $kClient = ($mode == 'blank' ) ? 0 : SEEDInput_Int('client');
+            $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
             $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
             $filler->fill_resource($file, ['client'=>$kClient]);
         }
