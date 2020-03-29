@@ -127,12 +127,10 @@ ResourcesTagScript;
 
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         if($mode!="no_replace"){
-            if( $mode == 'blank' ) {
-                // kluge: template_filler uses http parm to get the client, and implements blank mode with client=0
-                $_REQUEST['client'] = $_POST['client'] = $_GET['client'] = 0;
-            }
+            // mode blank is implemented by telling template_filler that client=0
+            $kClient = ($mode == 'blank' ) ? 0 : SEEDInput_Int('client');
             $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
-            $filler->fill_resource($file);
+            $filler->fill_resource($file, ['client'=>$kClient]);
         }
         else{
              header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
