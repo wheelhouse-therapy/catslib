@@ -471,7 +471,7 @@ ExistsWarning;
         $id = "";
         switch($type){
             case self::CLIENT:
-                $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+                $raClients = $this->getMyClients(-1);
                 $s = "<h3 style='display:inline-block'>Clients</h3>"
                       .($this->QueryAccess()> self::LIMITED_ACCESS?"<input type='checkbox' style='margin-left:10px' ".(@$_SESSION['clientListView']?"checked ":"")."onchange='toggleView(event)' />Therapist View":"")
                       ."<br /><button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
@@ -480,12 +480,8 @@ ExistsWarning;
                             <input type='checkbox' name='clientlist-discharged' id='discharged-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
                             <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                             <button onclick='filterClients(event);'>Filter</button>
-                        </form>";
-                foreach ($raClients as $ra){
-                    if($this->getAccess() > self::LIMITED_ACCESS || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
-                        $s .= SEEDCore_ArrayExpand( $ra, "<div id='client-[[_key]]' class='client client-%[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>");
-                    }
-                }
+                        </form>"
+                        .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-%[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>");
                 $id = "clients";
                 //fix up status classes
                 $s = str_replace(array("-%0","-%2"), array("-normal","-discharged"), $s);
@@ -909,6 +905,18 @@ ExistsWarning;
         if( $sErr ) $s = "<div style='clear:both' class='alert alert-danger'>$sErr</div>";
 
         return( $s );
+    }
+    
+    public function getMyClients(int $status = 0):array{
+        $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+        $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => $status)));
+        $raOut = array();
+        foreach ($raClients as $ra){
+            if($this->getAccess() > self::LIMITED_ACCESS || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
+                array_push($raOut, $ra);
+            }
+        }
+        return $raOut;
     }
     
     /**
