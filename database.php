@@ -4,6 +4,10 @@ require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
 define( "DBNAME", $config_KFDB['cats']['kfdbDatabase'] );
 
+//TODO Deprecate old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class ClientsDB
 {
     private $kfrel;
@@ -28,6 +32,10 @@ class ClientsDB
 
 }
 
+//TODO depricate old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class ProsDB
 {
     private $kfrel;
@@ -51,6 +59,10 @@ class ProsDB
     }
 }
 
+//TODO Depricate Old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class Clients_ProsDB
 /*******************
     The connections between clients and professionals
