@@ -46,6 +46,6 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
 
 function drawModalButton(int $key):String{
   return <<<ModalButton
-<button onClick='connectButton(event,$key)'>Connect Providers</button>
+<button style='margin-top:10px' onClick='connectButton(event,$key)'>Connect Providers</button>
 ModalButton;
 }
