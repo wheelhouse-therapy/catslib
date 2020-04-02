@@ -5,6 +5,7 @@ class Clinics {
     private $oApp;
     private $clinicsDB;
 
+    //Access Rights
     private const NO_ACCESS     = 0;
     private const LEADER_ACCESS = 1;
     private const FULL_ACCESS   = 2;

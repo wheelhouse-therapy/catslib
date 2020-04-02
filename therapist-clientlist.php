@@ -7,6 +7,12 @@ require_once 'client_code_generator.php';
 class ClientList
 {
     
+    //Access Rights
+    public const QUERY_ACCESS = -1; // System will determine users access rights
+    public const LIMITED_ACCESS = 0; // User can only see their connected clients
+    public const LEADER_ACCESS = 1; // User can see all clients in the clinic
+    public const FULL_ACCESS = 2; // User has access to core and therfore can see all clients
+    
     public const CLIENT = "C";
     public const INTERNAL_PRO = "PI";
     public const EXTERNAL_PRO = "PE";
@@ -31,6 +37,8 @@ class ClientList
     //Variable used to store the form while its being generated.
     private $sForm = "";
 
+    private $access = null;
+    
     function __construct( SEEDAppSessionAccount $oApp )
     {
         $this->oApp = $oApp;
@@ -49,9 +57,46 @@ class ClientList
         $this->oCCG = new ClientCodeGenerator($this->oApp);
     }
 
+    /**
+     * Get a users access rights
+     * @param bool $force - force the system to revalidate access rights for a user. default false
+     * @param int $access - when force is true force the access rights of the user to this value
+     * @return int - access rights constant dictating the users access
+     */
+    public function getAccess(bool $force = false, int $access = self::QUERY_ACCESS):int{
+        if (($this->access === null && $access == self::QUERY_ACCESS) || ($force && $access == self::QUERY_ACCESS)){
+            $this->access = $this->QueryAccess();
+        }
+        else if ($force && in_array($access, [self::LIMITED_ACCESS,self::LEADER_ACCESS,self::FULL_ACCESS])){
+            $this->access = $access;
+        }
+        else if($force){
+            // Force was true but $access was not valid
+            $this->access = self::LIMITED_ACCESS;
+        }
+        return $this->access;
+    }
+    
+    private function QueryAccess(){
+        $access = self::LIMITED_ACCESS;
+        if(in_array(1, array_column($this->clinics->GetUserClinics(),'Clinics__key'))){
+            $access = self::FULL_ACCESS;
+        }
+        else if (in_array($this->clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
+            $access = self::LEADER_ACCESS;
+        }
+        return $access;
+    }
+    
     function DrawClientList()
     {
-
+        if(@$_SESSION['clientListView']){
+            $this->getAccess(true,self::LIMITED_ACCESS);
+        }
+        else{
+            $this->getAccess(true,self::QUERY_ACCESS);
+        }
+        
         $s = "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
                  ."<a href='jx.php?cmd=therapist-clientlistxls'><button>Download</button></a>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -418,7 +463,7 @@ ExistsWarning;
         return array("message"=>$s,"id"=>$id, "list"=>$list[0],"listId" => $list[1]);
     }
     
-    private function drawList(String $type, String $condClinic = ""):array{
+    public function drawList(String $type, String $condClinic = ""):array{
         if(!$condClinic){
             $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
         }
@@ -426,16 +471,21 @@ ExistsWarning;
         $id = "";
         switch($type){
             case self::CLIENT:
-                $raClients    = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
-                $s = "<h3>Clients</h3>"
-                      ."<button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
+                $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => -1)));
+                $s = "<h3 style='display:inline-block'>Clients</h3>"
+                      .($this->QueryAccess()> self::LIMITED_ACCESS?"<input type='checkbox' style='margin-left:10px' ".(@$_SESSION['clientListView']?"checked ":"")."onchange='toggleView(event)' />Therapist View":"")
+                      ."<br /><button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
                       ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
                             <input type='checkbox' name='clientlist-normal' id='normal-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
                             <input type='checkbox' name='clientlist-discharged' id='discharged-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-discharged")?"checked":"").">Discharged</input>
                             <input type='hidden' name='cmd' value='therapist-clientList-sort' />
                             <button onclick='filterClients(event);'>Filter</button>
-                        </form>"
-                      .SEEDCore_ArrayExpandRows( $raClients, "<div id='client-[[_key]]' class='client client-%[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>");
+                        </form>";
+                foreach ($raClients as $ra){
+                    if($this->getAccess() > self::LIMITED_ACCESS || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
+                        $s .= SEEDCore_ArrayExpand( $ra, "<div id='client-[[_key]]' class='client client-%[[_status]]' style='padding:5px;' data-id='".self::CLIENT."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>");
+                    }
+                }
                 $id = "clients";
                 //fix up status classes
                 $s = str_replace(array("-%0","-%2"), array("-normal","-discharged"), $s);
