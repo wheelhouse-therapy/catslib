@@ -200,18 +200,25 @@ class template_filler {
 
     /** Replace tags in a resource with their corresponding data values
      * @param String $resourcename - Path of resource to replace tags in
+     * @param array  $raParms - parameters that can override default values
      * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file handling
      */
-    public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
+    public function fill_resource($resourcename, array $raParms = [], $resourceType = self::STANDALONE_RESOURCE)
     {
 
         if(!$this->isResourceTypeValid($resourceType)){
             return;
         }
 
+        /* Values are generally obtained from _REQUEST and _SESSION because this method is frequently called indirectly
+         * via ajax. Optional parameters can override those.
+         */
+        $this->kClient = isset($raParms['client']) ? $raParms['client'] : SEEDInput_Int('client');  // use isset to test because the value can be 0 (which means no client)
+        // add other raParms here e.g. clinic, kStaff
+
+
         FilingCabinet::EnsureDirectory("*",TRUE);
 
-        $this->kClient = SEEDInput_Int('client');
         $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
 
         $clinics = new Clinics($this->oApp);
@@ -518,11 +525,16 @@ class template_filler {
         if($table == 'section'){
             if(strpos($col[1], "/") == 0){
                 if (file_exists(CATSDIR_RESOURCES.substr($col[1], 1)) && pathinfo(CATSDIR_RESOURCES.substr($col[1], 1),PATHINFO_EXTENSION) == "docx"){
-                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1),self::RESOURCE_SECTION);
+// $parms['client'] is necessary because if it is not specified fill_resource() will get it from _REQUEST but it could have been
+// overridden by the original caller. Given that fill_resource is recursive there should be a cleaner way to pass original arguments to it.
+// i.e. always explicitly pass the client id to fill_resource() unless it is a recursing call like this.
+                    $parms = ['client'=>$this->kClient];
+                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1), $parms, self::RESOURCE_SECTION);
                 }
             }
             else if(file_exists(FilingCabinet::GetDirInfo('sections')['directory'].$col[1])){
-                $s = $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$col[1],self::RESOURCE_SECTION);
+                $parms = ['client'=>$this->kClient];
+                $s = $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$col[1], $parms, self::RESOURCE_SECTION);
             }
         }
         if(in_array($table, getAssessmentTypes())){
