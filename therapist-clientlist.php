@@ -10,8 +10,9 @@ class ClientList
     //Access Rights
     public const QUERY_ACCESS = -1; // System will determine users access rights
     public const LIMITED_ACCESS = 0; // User can only see their connected clients
-    public const LEADER_ACCESS = 1; // User can see all clients in the clinic
-    public const FULL_ACCESS = 2; // User has access to core and therfore can see all clients
+    public const OFFICE_ACCESS = 1; // User is an office staff and can see all clients in the clinic
+    public const LEADER_ACCESS = 2; // User is the clinic leader and can see all clients in the clinic
+    public const FULL_ACCESS = 3; // User has access to core and therfore can see all clients
     
     public const CLIENT = "C";
     public const INTERNAL_PRO = "PI";
@@ -21,10 +22,12 @@ class ClientList
     public $kfdb;
 
     public $oPeopleDB, $oClinicsDB;
-
-    private $pro_fields    = array("P_first_name","P_last_name","pro_role","P_address","P_city","P_postal_code","P_phone_number","fax_number","P_email");
+    
     //map of computer keys to human readable text
+    //Used to generate the connect modal and role select
     public $pro_roles_name = array("GP"=>"GP","Paediatrician"=>"Paediatrician", "Psychologist"=>"Psychologist", "SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Specialist_Dr"=>"Specialist Dr", "Resource_Teacher"=>"Resource Teacher", "Teacher_Tutor"=>"Teacher/Tutor", "Other"=>"Other");
+    
+    public $staff_roles_name = array("Office_Staff"=>"Office Staff");
 
     private $client_key;
     private $therapist_key;
@@ -82,8 +85,11 @@ class ClientList
         if(in_array(1, array_column($this->clinics->GetUserClinics(),'Clinics__key'))){
             $access = self::FULL_ACCESS;
         }
-        else if (in_array($this->clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
+        else if(in_array($this->clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
             $access = self::LEADER_ACCESS;
+        }
+        else if($this->oPeopleDB->GetKFRC(self::INTERNAL_PRO,"P.uid = ".$this->oApp->sess->GetUID())->Value('pro_role') == $this->staff_roles_name['Office_Staff']){
+            $access = self::OFFICE_ACCESS;
         }
         return $access;
     }
@@ -328,6 +334,10 @@ ExistsWarning;
                     $s .= str_replace(array("[[type]]","[[options]]"), array("client",$options), $existsWarning);
                 }
                 else{
+                    // Check if the client is a new client
+                    $oFormClient->Update(array("bNoStore" => TRUE));
+                    $new = $oFormClient->GetKey() == 0;
+                    // Perform regular update
                     $oFormClient->Update();
                     $this->updatePeople( $oFormClient );
                     $this->client_key = $oFormClient->GetKey();
@@ -335,6 +345,16 @@ ExistsWarning;
                         // Only create client code once first and last name are set
                         $this->oCCG->getClientCode($this->client_key);
                     }
+                    
+                    if($new){
+                        // A new client was entered connect them with the staff that entered them.
+                        $kfr = $this->oPeopleDB->GetKfrel("CX")->CreateRecord();
+                        $kfr->SetValue('fk_clients2', $this->client_key);
+                        $staff = $this->oApp->kfdb->Query1("SELECT S._key FROM pros_internal as S, people as P WHERE S.fk_people = P._key AND P.uid = {$this->oApp->sess->GetUID()}");
+                        $kfr->SetValue('fk_pros_internal', $staff);
+                        $kfr->PutDBRow();
+                    }
+                    
                     $id = self::createID(self::CLIENT, $this->client_key);
                 }
                 break;
@@ -715,11 +735,15 @@ ExistsWarning;
                 .($oForm->Value('_key')?"<select name='add_client_key'><option value='0'> Choose a client</option>"
                 .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                 ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
-            
+        
+        $roles = $this->pro_roles_name;
+        if($bTherapist){
+            $roles = array_merge($roles,$this->staff_roles_name);
+        }
         $myRole = $oForm->Value('pro_role');
-        $myRoleIsNormal = in_array($myRole, $this->pro_roles_name);
+        $myRoleIsNormal = in_array($myRole, $roles);
         $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
-        foreach ($this->pro_roles_name as $role) {
+        foreach ($roles as $role) {
             if( $role == $myRole || ($role == "Other" && !$myRoleIsNormal)) {
                 $selRoles .= "<option selected />".$role;
             } else{
