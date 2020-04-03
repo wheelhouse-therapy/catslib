@@ -694,7 +694,7 @@ ExistsWarning;
                 .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                 ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
         
-        $roles = self::pro_roles_name;
+        $roles = self::$pro_roles_name;
         if($bTherapist){
             $roles = array_merge($roles,self::staff_roles_name);
         }
