@@ -20,7 +20,7 @@ class ClientList
     //Used to generate the connect modal and role select
     public static $pro_roles_name = array("GP"=>"GP","Paediatrician"=>"Paediatrician", "Psychologist"=>"Psychologist", "SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Specialist_Dr"=>"Specialist Dr", "Resource_Teacher"=>"Resource Teacher", "Teacher_Tutor"=>"Teacher/Tutor", "Other"=>"Other");
     
-    public static $staff_roles_name = array("Office_Staff"=>"Office Staff");
+    public static $staff_roles_name = array("SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Office_Staff"=>"Office Staff", "Other"=>"Other");
 
     private $client_key;
     private $therapist_key;
@@ -696,7 +696,7 @@ ExistsWarning;
         
         $roles = self::$pro_roles_name;
         if($bTherapist){
-            $roles = array_merge($roles,self::$staff_roles_name);
+            $roles = self::$staff_roles_name;
         }
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $roles);
