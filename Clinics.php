@@ -858,9 +858,9 @@ class ImageGenerator {
     }
 </script>
 <div class="modal fade" id="system_dialog" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-body" id="system_body" style='800px'>
+    <div class="modal-dialog modal-lg" style='max-width:900px'>
+        <div class="modal-content" style='max-width:900px'>
+            <div class="modal-body" id="system_body" style='max-width:900px'>
             </div>
         </div>
     </div>
