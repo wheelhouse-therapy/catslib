@@ -75,7 +75,8 @@ class ClientList
 */
              ."</div>";
 
-        
+        //TODO Remove
+        $s .= "<div class='alert alert-warning'><strong>NOTICE:</strong> Due to due to database modifications it may appear as if your clients have disapeared. We are working to resolve the issue. Please do not readd your clients at this time. -Develoment Team</div>";
 
         // Put this before the GetClients call so the changes are shown in the list
         $cmd = SEEDInput_Str('cmd');
