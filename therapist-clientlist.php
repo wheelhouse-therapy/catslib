@@ -449,7 +449,7 @@ ExistsWarning;
         $id = "";
         switch($type){
             case self::CLIENT:
-                $raClients = $this->getMyClients(-1);
+                $raClients = $this->getMyClientsInternal(-1);
                 $s = "<h3 style='display:inline-block'>Clients</h3>"
                       .(ClientsAccess::QueryAccess()>= ClientsAccess::LEADER?"<input type='checkbox' style='margin-left:10px' ".(@$_SESSION['clientListView']?"checked ":"")."onchange='toggleView(event)' />Therapist View":"")
                       ."<br /><button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
@@ -891,10 +891,11 @@ ExistsWarning;
     
     /**
      * Get array of clients that the user has access to see
+     * This method works internally and enforces Office Access Rights
      * @param int $status - status of the clients
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
-    public function getMyClients(int $status = 0,array $raParms = array()):array{
+    private function getMyClientsInternal(int $status = 0,array $raParms = array()):array{
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
         $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array_merge(array("iStatus" => $status),$this->queryParams,$raParms)));
         $raOut = array();
@@ -904,6 +905,24 @@ ExistsWarning;
             }
         }
         return $raOut;
+    }
+    
+    /**
+     * Get array of clients that the user has access to see
+     * @param int $status - status of the clients
+     * @return array containing client data (Similar to oPeopleDB->GetList())
+     */
+    public function getMyClients(int $status = 0,array $raParms = array()):array{
+        $access = ClientsAccess::getAccess();
+        if(ClientsAccess::QueryAccess() == ClientsAccess::OFFICE){
+            ClientsAccess::getAccess(true,ClientsAccess::LIMITED);
+        }
+        else {
+            ClientsAccess::getAccess(true);
+        }
+        $ra = $this->getMyClientsInternal($status,$raParms);
+        ClientsAccess::getAccess(true,$access);
+        return $ra;
     }
     
     /**
