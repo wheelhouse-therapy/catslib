@@ -893,9 +893,9 @@ ExistsWarning;
      * @param int $status - status of the clients
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
-    public function getMyClients(int $status = 0):array{
+    public function getMyClients(int $status = 0,array $raParms = array()):array{
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
-        $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => $status)));
+        $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array_merge(array("iStatus" => $status),$this->queryParams,$raParms)));
         $raOut = array();
         foreach ($raClients as $ra){
             if(ClientsAccess::getAccess() > ClientsAccess::LIMITED || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
@@ -983,6 +983,7 @@ class ClientsAccess {
     
     public static function QueryAccess(){
         global $oApp;
+        self::init();
         $clinics = new Clinics($oApp);
         $oPeopleDB = new PeopleDB($oApp);
         $access = self::LIMITED;
@@ -1005,6 +1006,7 @@ class ClientsAccess {
      * @return int - access rights constant dictating the users access
      */
     public static function getAccess(bool $force = false, int $access = self::QUERY):int{
+        self::init();
         if ((self::$access === null && $access == self::QUERY) || ($force && $access == self::QUERY)){
             self::$access = self::QueryAccess();
         }
@@ -1018,7 +1020,11 @@ class ClientsAccess {
         return self::$access;
     }
     
-    public function __autoload(){
+    /**
+     * Initialize the $constants variable for convienent checking if $access is valid in getAccess()
+     * only initialized once regardless of number of times called
+     */
+    private static function init(){
         if(self::$constants == NULL){
             $refl = new ReflectionClass(ClientsAccess::class);
             self::$constants = $refl->getConstants();

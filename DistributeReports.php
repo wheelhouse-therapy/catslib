@@ -30,7 +30,7 @@ function distributeReports($oApp) {
 
 Form;
     $clientId = $oApp->sess->SmartGPC("idOut");
-    $raClients = $oPeopleDB->GetList(Clientlist::CLIENT, $condClinic, array("iStatus" => -1));
+    $raClients = (new ClientList($oApp))->getMyClients(-1);
     $s = str_replace("[[_key]]", $clientId, $s);
     $s = str_replace("[[content]]", drawForm($oApp, $clientId), $s);
     $s = str_replace("[[options]]", SEEDCore_ArrayExpandRows($raClients,

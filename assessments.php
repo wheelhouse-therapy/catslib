@@ -485,8 +485,8 @@ class AssessmentsCommon
     {
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
-        $oPeopleDB = new PeopleDB( $this->oApp );
-        $raClients = $oPeopleDB->GetList( ClientList::CLIENT, $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'"),array("sSortCol" => "P.first_name,_key") );
+        $clientlist = new ClientList($this->oApp);
+        $raClients = $clientlist->getMyClients();
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || CATS_ADMIN?" ({$ra['_key']})":"")] = $ra['_key'];
@@ -618,7 +618,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
-        $oPeopleDB = new PeopleDB( $this->oApp );
+        $clientlist = new ClientList( $this->oApp );
         $oAssessmentsDB = new AssessmentsDB( $this->oApp );
         $oForm = new KeyFrameForm( $oAssessmentsDB->Kfrel('A'), "A" );
 
@@ -648,7 +648,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $raColumns = $this->raColumnRanges;
 
-        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
+        $raClients = $clientlist->getMyClients();
 
         $sAsmt = $sList = "";
 
