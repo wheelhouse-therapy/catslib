@@ -7,13 +7,6 @@ require_once 'client_code_generator.php';
 class ClientList
 {
     
-    //Access Rights
-    public const QUERY_ACCESS = -1; // System will determine users access rights
-    public const LIMITED_ACCESS = 0; // User can only see their connected clients
-    public const OFFICE_ACCESS = 1; // User is an office staff and can see all clients in the clinic
-    public const LEADER_ACCESS = 2; // User is the clinic leader and can see all clients in the clinic
-    public const FULL_ACCESS = 3; // User has access to core and therfore can see all clients
-    
     public const CLIENT = "C";
     public const INTERNAL_PRO = "PI";
     public const EXTERNAL_PRO = "PE";
@@ -25,9 +18,9 @@ class ClientList
     
     //map of computer keys to human readable text
     //Used to generate the connect modal and role select
-    public $pro_roles_name = array("GP"=>"GP","Paediatrician"=>"Paediatrician", "Psychologist"=>"Psychologist", "SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Specialist_Dr"=>"Specialist Dr", "Resource_Teacher"=>"Resource Teacher", "Teacher_Tutor"=>"Teacher/Tutor", "Other"=>"Other");
+    public static $pro_roles_name = array("GP"=>"GP","Paediatrician"=>"Paediatrician", "Psychologist"=>"Psychologist", "SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Specialist_Dr"=>"Specialist Dr", "Resource_Teacher"=>"Resource Teacher", "Teacher_Tutor"=>"Teacher/Tutor", "Other"=>"Other");
     
-    public $staff_roles_name = array("Office_Staff"=>"Office Staff");
+    public static $staff_roles_name = array("Office_Staff"=>"Office Staff");
 
     private $client_key;
     private $therapist_key;
@@ -39,8 +32,6 @@ class ClientList
     
     //Variable used to store the form while its being generated.
     private $sForm = "";
-
-    private $access = null;
     
     function __construct( SEEDAppSessionAccount $oApp )
     {
@@ -59,48 +50,14 @@ class ClientList
         $this->clinics = new Clinics($oApp);
         $this->oCCG = new ClientCodeGenerator($this->oApp);
     }
-
-    /**
-     * Get a users access rights
-     * @param bool $force - force the system to revalidate access rights for a user. default false
-     * @param int $access - when force is true force the access rights of the user to this value
-     * @return int - access rights constant dictating the users access
-     */
-    public function getAccess(bool $force = false, int $access = self::QUERY_ACCESS):int{
-        if (($this->access === null && $access == self::QUERY_ACCESS) || ($force && $access == self::QUERY_ACCESS)){
-            $this->access = $this->QueryAccess();
-        }
-        else if ($force && in_array($access, [self::LIMITED_ACCESS,self::LEADER_ACCESS,self::FULL_ACCESS])){
-            $this->access = $access;
-        }
-        else if($force){
-            // Force was true but $access was not valid
-            $this->access = self::LIMITED_ACCESS;
-        }
-        return $this->access;
-    }
-    
-    private function QueryAccess(){
-        $access = self::LIMITED_ACCESS;
-        if(in_array(1, array_column($this->clinics->GetUserClinics(),'Clinics__key'))){
-            $access = self::FULL_ACCESS;
-        }
-        else if(in_array($this->clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
-            $access = self::LEADER_ACCESS;
-        }
-        else if($this->oPeopleDB->GetKFRC(self::INTERNAL_PRO,"P.uid = ".$this->oApp->sess->GetUID())->Value('pro_role') == $this->staff_roles_name['Office_Staff']){
-            $access = self::OFFICE_ACCESS;
-        }
-        return $access;
-    }
     
     function DrawClientList()
     {
         if(@$_SESSION['clientListView']){
-            $this->getAccess(true,self::LIMITED_ACCESS);
+            ClientsAccess::getAccess(true,ClientsAccess::LIMITED);
         }
         else{
-            $this->getAccess(true,self::QUERY_ACCESS);
+            ClientsAccess::getAccess(true,ClientsAccess::QUERY);
         }
         
         $s = "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
@@ -493,7 +450,7 @@ ExistsWarning;
             case self::CLIENT:
                 $raClients = $this->getMyClients(-1);
                 $s = "<h3 style='display:inline-block'>Clients</h3>"
-                      .($this->QueryAccess()> self::LIMITED_ACCESS?"<input type='checkbox' style='margin-left:10px' ".(@$_SESSION['clientListView']?"checked ":"")."onchange='toggleView(event)' />Therapist View":"")
+                      .(ClientsAccess::QueryAccess()>= ClientsAccess::LEADER?"<input type='checkbox' style='margin-left:10px' ".(@$_SESSION['clientListView']?"checked ":"")."onchange='toggleView(event)' />Therapist View":"")
                       ."<br /><button onclick=\"getForm('".self::createID(self::CLIENT, 0)."');\">Add Client</button><br />"
                       ."<form id='filterForm' action='".CATSDIR."jx.php' style='display:inline'>
                             <input type='checkbox' name='clientlist-normal' id='normal-checkbox' ".(@$this->oApp->sess->VarGet("clientlist-normal") || @$this->oApp->sess->VarGet("clientlist-normal") === NULL?"checked":"").">Normal</input>
@@ -736,9 +693,9 @@ ExistsWarning;
                 .SEEDCore_ArrayExpandRows( $raClients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                 ."</select><input type='submit' value='add' onclick='submitForm(event)'></form>":"");
         
-        $roles = $this->pro_roles_name;
+        $roles = self::pro_roles_name;
         if($bTherapist){
-            $roles = array_merge($roles,$this->staff_roles_name);
+            $roles = array_merge($roles,self::staff_roles_name);
         }
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $roles);
@@ -931,12 +888,17 @@ ExistsWarning;
         return( $s );
     }
     
+    /**
+     * Get array of clients that the user has access to see
+     * @param int $status - status of the clients
+     * @return array containing client data (Similar to oPeopleDB->GetList())
+     */
     public function getMyClients(int $status = 0):array{
         $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
         $raClients = $this->oPeopleDB->GetList(self::CLIENT, $condClinic, array_merge($this->queryParams,array("iStatus" => $status)));
         $raOut = array();
         foreach ($raClients as $ra){
-            if($this->getAccess() > self::LIMITED_ACCESS || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
+            if(ClientsAccess::getAccess() > ClientsAccess::LIMITED || $this->oApp->kfdb->Query1("SELECT C._key FROM clientsxpros as C, pros_internal as S, people as P WHERE C._status = 0 and C.fk_clients2 = {$ra['_key']} and C.fk_pros_internal = S._key and S.fk_people = P._key and P.uid = {$this->oApp->sess->GetUID()}")){
                 array_push($raOut, $ra);
             }
         }
@@ -966,6 +928,101 @@ ExistsWarning;
             return $type.$key;
         }
         return "";
+    }
+    
+}
+
+/**
+ * This class handles users access with respect to clients
+ * @author Eric
+ *
+ */
+class ClientsAccess {
+    
+    //Variable to cache constants
+    private static $constants = NULL;
+    
+    /* The numaric value of each access level is key for inheritance. eg. Full access inherits functions from leader access
+     * permissions can be checked by useing >= X to check if a user has at least X access
+     * See client case in drawList for an example of this.
+     */
+    
+    /**
+     * System will determine users access rights
+     */
+    public const QUERY = -1;
+    
+    /**
+     * User can only see their connected clients.
+     * Note: This is the default level for a user
+     * Note 2: Attmpting to force a users access level to an improper level will revert their access to this level
+     */
+    public const LIMITED = 0;
+    
+    /**
+     * User is an office staff and can see all clients in the clinic.
+     * Note: users with this access level have Limited access when viewing clients outside of the therapist-clientlist screen
+     */
+    public const OFFICE = 1;
+    
+    /**
+     * User is the clinic leader and can see all clients in the clinic
+     * Note: Users who lead a clinic are granted this level for the clinics they lead. Otherwise they revert to Limited access
+     * Note 2: This level unlockes the toggle for the therapist view.
+     */
+    public const LEADER = 2;
+    
+    /**
+     * User has access to core and therfore can see all clients
+     * Note: This level takes effect everywhere.
+     * Note 2: This level inherits features from Leader access
+     */
+    public const FULL = 3;
+    
+    private static $access = null;
+    
+    public static function QueryAccess(){
+        global $oApp;
+        $clinics = new Clinics($oApp);
+        $oPeopleDB = new PeopleDB($oApp);
+        $access = self::LIMITED;
+        if(in_array(1, array_column($clinics->GetUserClinics(),'Clinics__key'))){
+            $access = self::FULL;
+        }
+        else if(in_array($clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
+            $access = self::LEADER;
+        }
+        else if($oPeopleDB->GetKFRC(ClientList::INTERNAL_PRO,"P.uid = ".$oApp->sess->GetUID())->Value('pro_role') == ClientList::staff_roles_name['Office_Staff']){
+            $access = self::OFFICE;
+        }
+        return $access;
+    }
+    
+    /**
+     * Get a users access rights
+     * @param bool $force - force the system to revalidate access rights for a user. default false
+     * @param int $access - when force is true force the access rights of the user to this value
+     * @return int - access rights constant dictating the users access
+     */
+    public static function getAccess(bool $force = false, int $access = self::QUERY):int{
+        if ((self::$access === null && $access == self::QUERY) || ($force && $access == self::QUERY)){
+            self::$access = self::QueryAccess();
+        }
+        else if ($force && in_array($access, self::$constants)){
+            self::$access = $access;
+        }
+        else if($force){
+            // Force was true but $access was not valid
+            self::$access = self::LIMITED;
+        }
+        return self::$access;
+    }
+    
+    public function __autoload(){
+        if(self::$constants == NULL){
+            $refl = new ReflectionClass(ClientsAccess::class);
+            self::$constants = $refl->getConstants();
+        }
     }
     
 }
