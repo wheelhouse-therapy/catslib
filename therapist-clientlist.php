@@ -696,7 +696,7 @@ ExistsWarning;
         
         $roles = self::$pro_roles_name;
         if($bTherapist){
-            $roles = array_merge($roles,self::staff_roles_name);
+            $roles = array_merge($roles,self::$staff_roles_name);
         }
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $roles);
