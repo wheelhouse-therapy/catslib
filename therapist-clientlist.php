@@ -465,7 +465,11 @@ ExistsWarning;
                 $s = str_replace(array("-%0","-%2"), array("-normal","-discharged"), $s);
                 break;
             case self::INTERNAL_PRO:
-                $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condClinic, $this->queryParams);
+                $condStaff = "P.uid in (SELECT fk_SEEDSession_users FROM users_clinics WHERE fk_clinics = {$this->clinics->GetCurrentClinic()})";
+                if($this->clinics->isCoreClinic()){
+                    $condStaff = "";
+                }
+                $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condStaff, $this->queryParams);
                 $s = "<h3>CATS Staff</h3>"
                       ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
                       .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
