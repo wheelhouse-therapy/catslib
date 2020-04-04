@@ -471,7 +471,7 @@ ExistsWarning;
                 }
                 $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condStaff, $this->queryParams);
                 $s = "<h3>CATS Staff</h3>"
-                      ."<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>"
+                      .(CATS_ADMIN?"<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>":"")
                       .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "therapists";
                 break;
@@ -1014,7 +1014,7 @@ class ClientsAccess {
         if(in_array(1, array_column($clinics->GetUserClinics(),'Clinics__key'))){
             $access = self::FULL;
         }
-        else if(in_array($clinics->GetCurrentClinic(), $this->clinics->getClinicsILead())){
+        else if(in_array($clinics->GetCurrentClinic(), $clinics->getClinicsILead())){
             $access = self::LEADER;
         }
         else if($oPeopleDB->GetKFRC(ClientList::INTERNAL_PRO,"P.uid = ".$oApp->sess->GetUID())->Value('pro_role') == ClientList::staff_roles_name['Office_Staff']){
