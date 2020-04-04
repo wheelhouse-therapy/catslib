@@ -271,7 +271,6 @@ ResetPassword;
                 $s .= $tnrs->listResolution();
                 break;
             default:
-                //Unimplemented Bubbles have been commented out to clean up display
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
