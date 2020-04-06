@@ -1017,7 +1017,7 @@ class ClientsAccess {
         else if(in_array($clinics->GetCurrentClinic(), $clinics->getClinicsILead())){
             $access = self::LEADER;
         }
-        else if($oPeopleDB->GetKFRC(ClientList::INTERNAL_PRO,"P.uid = ".$oApp->sess->GetUID())->Value('pro_role') == ClientList::staff_roles_name['Office_Staff']){
+        else if($oPeopleDB->GetKFRC(ClientList::INTERNAL_PRO,"P.uid = ".$oApp->sess->GetUID())->Value('pro_role') == ClientList::$staff_roles_name['Office_Staff']){
             $access = self::OFFICE;
         }
         return $access;
