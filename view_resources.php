@@ -166,10 +166,10 @@ ResourcesTagScript;
         $s .= "<h2> No files in directory</h2>";
         return $s;
     }
-    if( !($oClinics = new Clinics($oApp)) || !($iClinic = $oClinics->GetCurrentClinic()) ) {
+    if( !($oClinics = new Clinics($oApp)) || !($oClinics->GetCurrentClinic()) ) {
         return;
     }
-    $clients = (new PeopleDB($oApp))->GetList( 'C', $oClinics->IsCoreClinic() ? "" : "clinic='$iClinic'", array("sSortCol" => "P_first_name,_key"));
+    $clients = (new ClientList($oApp))->getMyClients();
     $s .= " <!-- the div that represents the modal dialog -->
             <div class='modal fade' id='file_dialog' role='dialog'>
                 <div class='modal-dialog'>
