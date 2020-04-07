@@ -32,7 +32,14 @@ class FilingCabinet
 
         self::EnsureDirectory("*");
         if( ($dir = SEEDInput_Str('dir')) && ($raDirInfo = self::GetDirInfo($dir)) ) {
-            $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
+            $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
+                ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
+            if($dir == 'papers'){
+                include(CATSLIB."papers.php");
+            }
+            else{
+                $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
+            }
         } else {
             $s .= "<h3>Filing Cabinet</h3>";
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
@@ -151,10 +158,11 @@ class FilingCabinet
 
     static function GetDirectories() { return( self::$raDirectories ); }
     static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
+    static function GetSubFolders($dir){ return( @self::$raSubFolders[$dir] ?: []); }
 
-    static private $raDirectories = [
+    private static $raDirectories = [
         // Array of arrays containing directory information of resource folders
-        // The key of the first array defines the intermal key for the directory
+        // The key of the first array defines the internal key for the directory
         // The directory value of the second array defines the path to the directory
         // ALL directories are stored in the resources folder
         // The name value of the second array is the name displayed in the select element
@@ -175,5 +183,18 @@ class FilingCabinet
         "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
         "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
         "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
+    ];
+    
+    private static $raSubFolders = [
+        // Array of arrays containing the "subfolders" for a directory
+        // The key of the first array must match the directory key above to link the "subfolders" with the directory
+        // The second array defines the "subfolders" wich will be stored in the database
+        'reg'     => ["Psycho Education","Strategies","Social Skills","Zones","Social Thinking"],
+        'visual'  => ["Pencil Control","Cutting","Upper case","Lower case","Reversals","Print Correction"],
+        'other'   => ["Hand skills","Gross Motor","Occulomotor"],
+        'anxiety' => ["Dragon","Monster","Behaviour/Exposure"],
+        'cog'     => ["literacy","writing","problem-solving","organization"],
+        'adl'     => ["Feeding","Toiletting?","Lifeskills"],
+        'assmt'   => ["MOTOR","PERCEPTION","VISUAL/SCANNING","SENSORY","FUNCTIONAL","BEHAV/COMMUNICATION/EMOTIONAL","GENERAL DEVELOPMENTAL"]
     ];
 }

@@ -18,9 +18,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
 
     $dir_short = trim($dir_name,'/');
 
-    $s .= "<h3>Filing Cabinet : ".FilingCabinet::GetDirInfo($dir_short)['name']."</h3>"
-         ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
-
     $s .= <<<ResourcesTagStyle
         <style>
             /* Every resources tag and control
