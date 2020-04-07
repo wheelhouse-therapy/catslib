@@ -1,4 +1,4 @@
-<?php
+  <?php
 
 require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
@@ -209,7 +209,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 7;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 8;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -269,6 +269,12 @@ function createTables( KeyframeDatabase $kfdb )
             ."VALUES (NULL, NOW(), NOW(), 'system', 'RW', NULL, 4)");
         $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
             ."VALUES (NULL, NOW(), NOW(), 'system', 'A', NULL, 1)");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 8){
+        // Add subfolder column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE resources_files ADD subfolder VARCHAR(200) NOT NULL DEFAULT ''");
         $kfdb->SetDebug(0);
     }
 
