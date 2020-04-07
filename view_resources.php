@@ -209,7 +209,6 @@ ResourcesTagScript;
          ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
          ."</form></div>";
 
-    $s .= "<table border='0'>";
     $sTemplate = "<tr [[CLASS]]>
                     <td valign='top'>
                         <a style='white-space: nowrap' [[LINK]] >
@@ -221,14 +220,20 @@ ResourcesTagScript;
                     </td>
                   </tr>
                  ";
+    
+    $raOut = [];
+    foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
+        $raOut += [$folder=>""];
+    }
+    $raOut += [''=>""];
     foreach ($dir as $fileinfo) {
         $class = "";
         $link = NULL;
         if( $fileinfo->isDot() ) continue;
 
+        $dbFilename = addslashes($fileinfo->getFilename());
         if( $sFilter ) {
             if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
-            $dbFilename = addslashes($fileinfo->getFilename());
             $dbFilter = addslashes($sFilter);
             if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
                                     ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
@@ -239,7 +244,7 @@ ResourcesTagScript;
             $s = str_replace("[display]", "display:inline-block;", $s);
             $class = "class='btn disabled'";
             if(stripos($download_modes, 'n') !== false){
-                $link = "href='?resource-mode=no_replace'";  //.$MODES['n']['code']."'";
+                $link = "href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
             }
             else{
                 $link = "";
@@ -252,7 +257,25 @@ ResourcesTagScript;
          $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
          $filename = SEEDCore_HSC($fileinfo->getFilename());
          $tags = $oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() );
-         $s .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
+         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$folder' AND filename='$dbFilename'"))){
+             $subfolder = "";
+         }
+         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
+    }
+    $s .= "<table border='0'>";
+    foreach($raOut as $k=>$v){
+        if($k){
+            $s.= "<tr><th>$k</th></tr>";
+        }
+        else if(count($raOut) > 1){
+            $s.= "<tr><th>Other</th></tr>";
+        }
+        if($v){
+            $s.= $v;
+        }
+        else{
+            $s .= "<tr><td>No Files</td></tr>";
+        }
     }
     $s .= "</table>";
 
