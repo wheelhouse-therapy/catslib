@@ -168,7 +168,6 @@ ResetPassword;
             array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
             array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
             array( 'therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-assessments',     "Score Assessments"),
             //array( 'therapist-documents',       "Documents" ),
@@ -195,9 +194,6 @@ ResetPassword;
             case 'therapist-reports':
                 $s .= "<h3>Reports</h3>"
                      .ResourcesDownload( $this->oApp, "reports/" );
-                break;
-            case "therapist-linedpapers":
-                include("papers.php");
                 break;
             case "therapist-assessments":
                 $s .= "<h3>Assessments</h3>"
@@ -537,6 +533,7 @@ class HomeTutorial extends Tutorial {
             [self::TITLE_KEY => 'Back Button', self::CONTENT_KEY => 'Your browser back button is not garenteed to take you back to the previous screen. Please use this back button instead. In most cases the previous screen will be the home screen, however we track your screen history from the moment you log in and you can use the back button to backtrack through it.<br /><br />NOTE: the screen history is only avalible for as long as you are logged in we don\'t store it permantently',self::ELEMENT_KEY => '#backButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 2],
+            [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 3],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }
