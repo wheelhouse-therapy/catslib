@@ -4,14 +4,25 @@ require_once 'share_resources.php';
 
 FilingCabinet::EnsureDirectory("*");
 
+//TODO Remove to send page live
+if(!CATS_DEBUG){
+    $s .= "<h1>This page is temporarily down for filesystem maintenance. We apologieze for the inconvienence. -Development Team</h1>";
+    return;
+}
+
 $dir_name = CATSDIR_RESOURCES."pending/";
 $cmd = SEEDInput_Str( 'cmd' );
+
 if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
-    $dir = SEEDInput_Str( 'dir' );
-    $file = str_replace("+", " ", $file);
+    $ra = explode("/",SEEDInput_Str( 'dir' ));
+    $dir = $ra[0];
+    $subdir = (@$ra[1]?:"");
     if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
+        if($subdir){
+            
+        }
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
@@ -43,13 +54,24 @@ foreach ($dir as $fileinfo) {
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
         foreach(FilingCabinet::GetDirectories() as $k => $v){
-            if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-                array_push($excluded, $k);
-            }
-            else if(!in_array($fileinfo->getExtension(), $v['extensions'])){
+            $exclude = file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()));
+            if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
             }
-            $options .= "<option value='".$k."'>".$v['name']."</option>";
+            if(FilingCabinet::GetSubFolders($k)){
+                foreach(FilingCabinet::GetSubFolders($k) as $folder){
+                    if($exclude){
+                        array_push($excluded, $k."/".$folder);
+                    }
+                    $options .= "<option value='".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
+                }
+            }
+            else{
+                if($exclude){
+                    array_push($excluded, $k);
+                }
+                $options .= "<option value='".$k."'>".$v['name']."</option>";
+            }
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
         <button type='submit' form='form".$i."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
