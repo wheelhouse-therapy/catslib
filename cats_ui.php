@@ -108,19 +108,24 @@ class CATS_MainUI extends CATS_UI
         }
         else if( substr($screen,0,9) == "developer" ) {
             $s .= $this->DrawDeveloper();
-        }else if( substr( $screen, 0, 5 ) == 'admin' ) {
+        }
+        else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s .= $this->DrawAdmin();
-        } else if( substr( $screen, 0, 9 ) == "therapist" ) {
+        }
+        else if( substr( $screen, 0, 9 ) == "therapist" ) {
             $s .= $this->DrawTherapist();
-        } else if( substr($screen, 0, 6 ) == "leader" ){
+        }
+        else if( substr($screen, 0, 6 ) == "leader" ){
             $s .= $this->DrawLeader();
-        } else if( $screen == "clinicImage"){
+        }
+        else if( $screen == "clinicImage"){
             //Revert the screen to the actual screen.
             //If we dont users will be stuck on this screen and have to know the screen name to escape.
             //This will be a problem since our screen names aren't exactly straightforward.
             $this->oHistory->restoreScreen();
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
-        }else if($this->pswdIsTemporary()){
+        }
+        else if($this->pswdIsTemporary()){
             $s .= <<<ResetPassword
 <form style='margin:auto;border:1px solid gray; width:33%; padding: 10px; padding-top: 0px; border-radius:10px; margin-top:10em;' method='post'>
          You used a temporary password to login.<br />Please enter a new password to continue.
@@ -254,13 +259,17 @@ ResetPassword;
         $oApp = $this->oApp;
         switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
-                if(CATS_DEBUG){
-                    require_once 'manage_users.php';
-                    $manageUsers = new ManageUsers($this->oApp);
-                    $manageUsers->manageUser(2);
-                    break;
+                require_once 'manage_users.php';
+                $manageUsers = new ManageUsers($this->oApp);
+                if(CATS_ADMIN){
+                    $s .= "<div style='float:right'><a href='".CATSDIR."?screen=admin-users-advanced'>advanced mode ></a></div>";
                 }
+                $s .= $manageUsers->drawList();
+                break;
             case 'admin-users-advanced':
+                if(CATS_ADMIN){
+                    $s .= "<div><a href='".CATSDIR."?screen=admin-users'>< basic mode</a></div><br />";
+                }
                 $s .= $this->drawAdminUsers();
                 break;
             case 'admin-resources':
