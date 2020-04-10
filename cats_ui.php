@@ -209,12 +209,12 @@ ResetPassword;
                 $s .= "MEET THE TEAM";
                 break;
             case "therapist-submitresources":
-                $s .= "<h3>Submit Resources</h3>";
-                $s .= share_resources();
+                $s .= "<h3>Submit Resources</h3>"
+                     .FilingCabinetUpload::DrawUploadForm();
                 break;
             case 'therapist-resources':
                 $this->oHistory->removeFromHistory(-1);
-                $oFC = new FilingCabinet( $this->oApp );
+                $oFC = new FilingCabinetUpload( $this->oApp );
                 $s .= $oFC->UploadToPending();
                 break;
             case "therapist-clientlist":

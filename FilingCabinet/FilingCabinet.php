@@ -57,55 +57,6 @@ class FilingCabinet
         return( $s );
     }
 
-//move this to FilingCabinetUpload
-    function UploadToPending()
-    /*************************
-        Following a _FILES upload, put the file in the "pending" folder.
-     */
-    {
-        $s = "";
-
-        self::EnsureDirectory("pending");
-
-        if( !isset($_FILES["fileToUpload"]["name"]) ) {
-            $s .= "Sorry, nothing was uploaded.<br/>";
-            goto done;
-        }
-
-        $target_dir = CATSDIR_RESOURCES."pending/";
-        $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-        $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-
-        // Check if file already exists
-        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
-        if (file_exists($target_file)) {
-            $s .= "Sorry, file already exists.<br />";
-            goto done;
-        }
-        // Check file size
-        if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
-            $s .= "Sorry, your file is too large.<br />";
-            goto done;
-        }
-        // Allow certain file formats
-        if(!in_array($documentFileType, getExtensions())) {
-            $s .= "Sorry, only ".implode(", ", array_unique(getExtensions()))." files are allowed.<br />";
-            goto done;
-        }
-
-        if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
-            $s .= "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded and is awaiting review.";
-            if($this->oApp->sess->CanWrite("admin")){
-                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
-            }
-        } else {
-            $s .= "Sorry, there was an error uploading your file.";
-        }
-
-        done:
-        return( $s );
-    }
-
     static function EnsureDirectory($dirs, $silent = FALSE)
     {
         /* Live server should be running with suexec so php will have the same permissions as the user account.
@@ -143,14 +94,24 @@ class FilingCabinet
             }
         }
         else {
-            // ensure the specified single directory is created
-            if( ($dirinfo = self::GetDirInfo($dirs)) &&
-                ($dir_name = CATSDIR_RESOURCES.$dirinfo["directory"]) &&  // of course this always works but this is a nice place to put it
-                !file_exists($dir_name))
-            {
-                $r = @mkdir($dir_name, $perm, true);
-                if(!$silent){
-                    echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
+            // ensure the specified single directory is created, and its subdirectories
+            if( ($dirinfo = self::GetDirInfo($dirs)) ) {
+                $dir_name = CATSDIR_RESOURCES.$dirinfo["directory"];
+
+                if( !file_exists($dir_name) ) {
+                    $r = @mkdir($dir_name, $perm, true);
+                    if(!$silent){
+                        echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
+                    }
+                }
+                foreach( self::GetSubFolders($dirs) as $d ) {
+                    $subdirname = $dir_name.$d;
+                    if( !file_exists($subdirname) ) {
+                        $r = @mkdir($subdirname, $perm, true);
+                        if(!$silent){
+                            echo "$subdirname directory ".($r ? "" : "Could Not Be")." Created<br />";
+                        }
+                    }
                 }
             }
         }
@@ -159,6 +120,19 @@ class FilingCabinet
     static function GetDirectories() { return( self::$raDirectories ); }
     static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
     static function GetSubFolders($dir){ return( @self::$raSubFolders[$dir] ?: []); }
+
+    static function GetSupportedExtensions()
+    /***************************************
+        Array of all the extensions supported by the Filing Cabinet
+     */
+    {
+        $exts = [];
+        foreach(self::GetDirectories() as $ra) {
+            $exts = array_merge($exts,$ra['extensions']);
+        }
+        return( array_unique($exts) );
+    }
+
 
     private static $raDirectories = [
         // Array of arrays containing directory information of resource folders
@@ -169,22 +143,22 @@ class FilingCabinet
         // It should be a discriptive name indicating what goes in the folder
         // The extensions value of the second array is an array of all files extensions that are excepted in the directory
         // DO NOT include the dot in the file extension
-        "clinic"                     => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "reg"                        => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "visual"                     => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "other"                      => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "cog"                        => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "reports"                    => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
-        "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
-        "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
+        "clinic"   => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "papers"   => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reg"      => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "visual"   => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "other"    => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "anxiety"  => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "cog"      => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "adl"      => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "assmt"    => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "old"      => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reports"  => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "SOP"      => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
+        "sections" => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
+        "videos"   => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
     ];
-    
+
     private static $raSubFolders = [
         // Array of arrays containing the "subfolders" for a directory
         // The key of the first array must match the directory key above to link the "subfolders" with the directory

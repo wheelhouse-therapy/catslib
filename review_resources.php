@@ -17,12 +17,9 @@ if($cmd == "accept"){
     $file = SEEDInput_Str( 'file' );
     $ra = explode("/",SEEDInput_Str( 'dir' ));
     $dir = $ra[0];
-    $subdir = (@$ra[1]?:"");
-    if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$file)){
+    $subdir = @$ra[1]? "{$ra[1]}/" : "";
+    if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
-        if($subdir){
-            
-        }
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
@@ -30,7 +27,7 @@ if($cmd == "accept"){
 }
 elseif ($cmd == "reject"){
     $file = SEEDInput_Str( 'file' );
-    if(unlink($dir_name."/".$file)){
+    if(unlink($dir_name.$file)){
         $s .= "<div class='alert alert-danger'> File ".$file." has been rejected as a resource. This CANNOT be undone</div>";
     }
     else{

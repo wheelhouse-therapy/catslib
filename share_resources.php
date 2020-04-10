@@ -30,25 +30,6 @@ function checkFileSystem(SEEDAppConsole $oApp){
     }
 }
 
-
-function getExtensions(){
-    $exts = array();
-    foreach(FilingCabinet::GetDirectories() as $k => $v){
-        foreach ($v['extensions'] as $ext){
-            array_push($exts, trim($ext, ". \t\n\r\0\x0B"));
-        }
-    }
-    return $exts;
-}
-
-function share_resources(){
-    return "<form action=\"?screen=therapist-resources\" method=\"post\" enctype=\"multipart/form-data\">
-                    Select resource to upload:
-                    <input type=\"file\" name=\"fileToUpload\" id=\"fileToUpload\" accept='".SEEDCore_ArrayExpandSeries(array_unique(getExtensions()), ".[[]],",true,array("sTemplateLast"=>".[[]]"))."'> Max File size:".ini_get('upload_max_filesize')."b"."
-                    <br /><input type=\"submit\" value=\"Upload File\" name=\"submit\">
-                    </form>";
-}
-
 function return_bytes($val) {
     $val = trim($val);
 
