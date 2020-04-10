@@ -214,7 +214,7 @@ ResetPassword;
                 break;
             case 'therapist-resources':
                 $this->oHistory->removeFromHistory(-1);
-                $oFC = new FilingCabinet( $this->oApp );
+                $oFC = new FilingCabinetUpload( $this->oApp );
                 $s .= $oFC->UploadToPending();
                 break;
             case "therapist-clientlist":

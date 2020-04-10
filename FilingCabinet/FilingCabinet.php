@@ -57,57 +57,6 @@ class FilingCabinet
         return( $s );
     }
 
-//move this to FilingCabinetUpload
-    function UploadToPending()
-    /*************************
-        Following a _FILES upload, put the file in the "pending" folder.
-     */
-    {
-        $s = "";
-
-        self::EnsureDirectory("pending");
-
-        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
-
-        // check if a file was uploaded
-        if( !$_FILES["fileToUpload"]["name"] || !$_FILES["fileToUpload"]['size'] ) {
-            $s .= "Sorry, nothing was uploaded.<br/>";
-            goto done;
-        }
-
-        $target_dir = CATSDIR_RESOURCES."pending/";
-        $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-        $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-
-        // Check if file already exists
-        if (file_exists($target_file)) {
-            $s .= "Sorry, file already exists.<br />";
-            goto done;
-        }
-        // Check file size
-        if ($_FILES["fileToUpload"]["size"] > max_file_upload_in_bytes()) {
-            $s .= "Sorry, your file is too large.<br />";
-            goto done;
-        }
-        // Allow certain file formats
-        if(!in_array($documentFileType, FilingCabinet::GetSupportedExtensions())) {
-            $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed.<br />";
-            goto done;
-        }
-
-        if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
-            $s .= "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded and is awaiting review.";
-            if($this->oApp->sess->CanWrite("admin")){
-                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
-            }
-        } else {
-            $s .= "Sorry, there was an error uploading your file.";
-        }
-
-        done:
-        return( $s );
-    }
-
     static function EnsureDirectory($dirs, $silent = FALSE)
     {
         /* Live server should be running with suexec so php will have the same permissions as the user account.
