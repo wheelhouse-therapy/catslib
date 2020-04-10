@@ -67,7 +67,10 @@ class FilingCabinet
 
         self::EnsureDirectory("pending");
 
-        if( !isset($_FILES["fileToUpload"]["name"]) ) {
+        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
+
+        // check if a file was uploaded
+        if( !$_FILES["fileToUpload"]["name"] || !$_FILES["fileToUpload"]['size'] ) {
             $s .= "Sorry, nothing was uploaded.<br/>";
             goto done;
         }
@@ -77,7 +80,6 @@ class FilingCabinet
         $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
 
         // Check if file already exists
-        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
         if (file_exists($target_file)) {
             $s .= "Sorry, file already exists.<br />";
             goto done;
