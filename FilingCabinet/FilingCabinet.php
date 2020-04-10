@@ -88,8 +88,8 @@ class FilingCabinet
             goto done;
         }
         // Allow certain file formats
-        if(!in_array($documentFileType, getExtensions())) {
-            $s .= "Sorry, only ".implode(", ", array_unique(getExtensions()))." files are allowed.<br />";
+        if(!in_array($documentFileType, FilingCabinet::GetSupportedExtensions())) {
+            $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed.<br />";
             goto done;
         }
 
@@ -160,6 +160,19 @@ class FilingCabinet
     static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
     static function GetSubFolders($dir){ return( @self::$raSubFolders[$dir] ?: []); }
 
+    static function GetSupportedExtensions()
+    /***************************************
+        Array of all the extensions supported by the Filing Cabinet
+     */
+    {
+        $exts = [];
+        foreach(self::GetDirectories() as $ra) {
+            $exts = array_merge($exts,$ra['extensions']);
+        }
+        return( array_unique($exts) );
+    }
+
+
     private static $raDirectories = [
         // Array of arrays containing directory information of resource folders
         // The key of the first array defines the internal key for the directory
@@ -169,22 +182,22 @@ class FilingCabinet
         // It should be a discriptive name indicating what goes in the folder
         // The extensions value of the second array is an array of all files extensions that are excepted in the directory
         // DO NOT include the dot in the file extension
-        "clinic"                     => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "papers"                     => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "reg"                        => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "visual"                     => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "other"                      => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "anxiety"                    => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "cog"                        => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "adl"                        => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "assmt"                      => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "old"                        => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "reports"                    => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
-        "SOP"                        => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
-        "sections"                   => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
-        "videos"                     => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
+        "clinic"   => ["directory" => "clinic/",                        "name" => "Clinic Forms",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "papers"   => ["directory" => "papers/",                        "name" => "Paper Designs",                           "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reg"      => ["directory" => "reg/",     "color" => "#06962d", "name" => "Self Regulation",                         "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "visual"   => ["directory" => "visual/",  "color" => "#ff0000", "name" => "Visual Motor",                            "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "other"    => ["directory" => "other/",   "color" => "#ff8400", "name" => "Other Motor (fine, gross, oral, ocular)", "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "anxiety"  => ['directory' => "anxiety/",                       "name" => "Anxiety",                                 "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "cog"      => ['directory' => "cog/",     "color" => "#000000", "name" => "Cognitive",                               "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "adl"      => ['directory' => "adl/",     "color" => "#ebcf00", "name" => "ADL's",                                   "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "assmt"    => ['directory' => "assmt/",   "color" => "#0000ff", "name" => "Assessments",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "old"      => ['directory' => "old/",                           "name" => "Back Drawer",                             "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "reports"  => ["directory" => "reports/",                       "name" => "Client Reports",                          "extensions" => ["docx", "pdf", "txt", "rtf", "doc"]],
+        "SOP"      => ["directory" => "SOP/",                           "name" => "Standard Operating Procedures",           "extensions" => ["pdf"]                             ],
+        "sections" => ["directory" => "sections/",                      "name" => "Resource Sections",                       "extensions" => ["docx"]                            ],
+        "videos"   => ["directory" => "videos/",                        "name" => "Videos",                                  "extensions" => ["mp4"]                             ]
     ];
-    
+
     private static $raSubFolders = [
         // Array of arrays containing the "subfolders" for a directory
         // The key of the first array must match the directory key above to link the "subfolders" with the directory
