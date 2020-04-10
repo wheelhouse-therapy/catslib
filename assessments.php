@@ -413,6 +413,9 @@ class AssessmentsCommon
         Draw a table of assessments, highlight the given one
      */
     {
+        if(!$client_key && !CATS_ADMIN){
+            return "";
+        }
         $s = "";
 
         $clinics = new Clinics($this->oApp);
