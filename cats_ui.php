@@ -254,6 +254,13 @@ ResetPassword;
         $oApp = $this->oApp;
         switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
+                if(CATS_DEBUG){
+                    require_once 'manage_users.php';
+                    $manageUsers = new ManageUsers($this->oApp);
+                    $manageUsers->manageUser(2);
+                    break;
+                }
+            case 'admin-users-advanced':
                 $s .= $this->drawAdminUsers();
                 break;
             case 'admin-resources':
