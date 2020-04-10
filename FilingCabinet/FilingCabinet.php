@@ -94,14 +94,24 @@ class FilingCabinet
             }
         }
         else {
-            // ensure the specified single directory is created
-            if( ($dirinfo = self::GetDirInfo($dirs)) &&
-                ($dir_name = CATSDIR_RESOURCES.$dirinfo["directory"]) &&  // of course this always works but this is a nice place to put it
-                !file_exists($dir_name))
-            {
-                $r = @mkdir($dir_name, $perm, true);
-                if(!$silent){
-                    echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
+            // ensure the specified single directory is created, and its subdirectories
+            if( ($dirinfo = self::GetDirInfo($dirs)) ) {
+                $dir_name = CATSDIR_RESOURCES.$dirinfo["directory"];
+
+                if( !file_exists($dir_name) ) {
+                    $r = @mkdir($dir_name, $perm, true);
+                    if(!$silent){
+                        echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
+                    }
+                }
+                foreach( self::GetSubFolders($dirs) as $d ) {
+                    $subdirname = $dir_name.$d;
+                    if( !file_exists($subdirname) ) {
+                        $r = @mkdir($subdirname, $perm, true);
+                        if(!$silent){
+                            echo "$subdirname directory ".($r ? "" : "Could Not Be")." Created<br />";
+                        }
+                    }
                 }
             }
         }
