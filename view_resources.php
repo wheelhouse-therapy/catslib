@@ -125,7 +125,7 @@ ResourcesTagScript;
 
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         $resmode = SEEDInput_Str('resource-mode');
-
+var_dump($file,$resmode);
         if($resmode!="no_replace"){
             // mode blank is implemented by telling template_filler that client=0
             $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
@@ -220,47 +220,20 @@ ResourcesTagScript;
                     </td>
                   </tr>
                  ";
-    
+
     $raOut = [];
     foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
     foreach ($dir as $fileinfo) {
-        $class = "";
-        $link = NULL;
-        if( $fileinfo->isDot() ) continue;
-
-        $dbFilename = addslashes($fileinfo->getFilename());
-        if( $sFilter ) {
-            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
-            $dbFilter = addslashes($sFilter);
-            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
-                                    ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
-            continue;
+        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles );
+    }
+    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+        $subdir = new DirectoryIterator($dir_name.$subfolder);
+        foreach( $subdir as $fileinfo ) {
+            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oResourcesFiles );
         }
-
-        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
-            $s = str_replace("[display]", "display:inline-block;", $s);
-            $class = "class='btn disabled'";
-            if(stripos($download_modes, 'n') !== false){
-                $link = "href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
-            }
-            else{
-                $link = "";
-            }
-        }
-
-        found:
-        $oApp->kfdb->SetDebug(0);
-
-         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
-         $filename = SEEDCore_HSC($fileinfo->getFilename());
-         $tags = $oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() );
-         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$folder' AND filename='$dbFilename'"))){
-             $subfolder = "";
-         }
-         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
     }
     $s .= "<table border='0'>";
     foreach($raOut as $k=>$v){
@@ -341,6 +314,49 @@ fcdScript;
 
     done:
     return( $s );
+}
+
+function addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles )
+{
+        $class = "";
+        $link = NULL;
+        if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
+
+        $dbFilename = addslashes($fileinfo->getFilename());
+        $dbDirName = addslashes($dir_short);
+
+        if( $sFilter ) {
+            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
+            $dbFilter = addslashes($sFilter);
+            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
+                                    ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
+            goto done;
+        }
+
+        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
+            $s = str_replace("[display]", "display:inline-block;", $s);
+            $class = "class='btn disabled'";
+            if(stripos($download_modes, 'n') !== false){
+                $link = downloadPath("no_replace", "", $fileinfo, $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
+            }
+            else{
+                $link = "";
+            }
+        }
+
+        found:
+        $oApp->kfdb->SetDebug(0);
+
+         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
+         $filename = SEEDCore_HSC($fileinfo->getFilename());
+         $tags = $oResourcesFiles->DrawTags( $dir_short, $fileinfo->getFilename() );
+         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
+             $subfolder = "";
+         }
+         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
+
+         done:
+         return( [$s,$raOut] );
 }
 
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){

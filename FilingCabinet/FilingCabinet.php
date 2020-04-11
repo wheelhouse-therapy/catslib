@@ -31,7 +31,7 @@ class FilingCabinet
         $s = "";
 
         self::EnsureDirectory("*");
-        if( ($dir = SEEDInput_Str('dir')) && ($raDirInfo = self::GetDirInfo($dir)) ) {
+        if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = self::GetDirInfo($dirbase)) ) {
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
                 ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
             if($dir == 'papers'){
