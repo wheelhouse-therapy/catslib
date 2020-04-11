@@ -125,7 +125,7 @@ ResourcesTagScript;
 
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         $resmode = SEEDInput_Str('resource-mode');
-var_dump($file,$resmode);
+
         if($resmode!="no_replace"){
             // mode blank is implemented by telling template_filler that client=0
             $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
