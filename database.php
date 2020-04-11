@@ -1,4 +1,4 @@
-  <?php
+<?php
 
 require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
