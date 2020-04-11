@@ -226,9 +226,9 @@ ResetPassword;
                 $o = new Calendar( $this->oApp );
                 $s .= $o->DrawCalendar();
                 break;
-            case "therapist-clinicresources":
-                $s .= "<h3>Clinic Resources</h3>"
-                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
+//            case "therapist-clinicresources":
+//                $s .= "<h3>Clinic Resources</h3>"
+//                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
                 break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
