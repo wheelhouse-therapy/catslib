@@ -118,11 +118,16 @@ ResourcesTagStyle;
         </script>
 ResourcesTagScript;
 
-    $oFCD = new FilingCabinetDownload( $oApp );
+    if( SEEDInput_Str('cmd') == 'download' ) {
+        $oFCD = new FilingCabinetDownload( $oApp );
+        $oFCD->DownloadFile();
+        exit;
+    }
     //list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
     //$s .= $s1;
     $mode = 'replace';  // deprecate this variable
 
+/*
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         $resmode = SEEDInput_Str('resource-mode');
 
@@ -145,6 +150,7 @@ ResourcesTagScript;
         }
         exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
     }
+*/
 
     $oResourcesFiles = new ResourcesFiles( $oApp );
 
@@ -394,7 +400,7 @@ function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
 function downloadPath($mode, $dir_name, $fileinfo, $dir_short){
     switch($mode){
         case 'replace':
-            return "href='javascript:void(0)' onclick=\"select_client('".addslashes($dir_name.$fileinfo->getFilename())."')\"";
+            return "href='javascript:void(0)' onclick=\"select_client('".addslashes(/*$dir_name.*/$fileinfo->getFilename())."')\"";
         case 'no_replace':
             return "href='?cmd=download&file=".addslashes($dir_name.$fileinfo->getFilename())."&resource-mode=no_replace&dir=$dir_short'";
         case 'blank':
