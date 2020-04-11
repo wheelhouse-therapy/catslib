@@ -20,24 +20,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
 
     $s .= <<<ResourcesTagStyle
         <style>
-            /* Every resources tag and control
-             */
-            .resources-tag {
-                    display:inline-block;
-                    font-size:9pt; background-color:#def; margin:0px 2px; padding:0px 3px;
-                    border:1px solid #aaa; border-radius:2px;
-                  }
-            /* [+] new tag button
-             */
-            .resources-tag-new {
-                  }
-            /* New tag input control and containing form
-             */
-            .resources-tag-new-form {
-                     display:inline-block;
-                  }
-            .resources-tag-new-input {
-                  }
             #break {
                 display: flex;
                 justify-content: space-around;
@@ -71,50 +53,11 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
             }
             #mode2 {
             }
-
         </style>
 ResourcesTagStyle;
 
     $s .= <<<ResourcesTagScript
         <script>
-        $(document).ready(function() {
-            $('.resources-tag-new').click( function() {
-                /* If someone clicks on the new tag button while adding another tag
-                 * The Old behavior caused the old tag to not be submitted.
-                 * This method prevents that from hapening
-                 */
-                $('.resources-tag-new-form').each(function(){
-                    $(this).submit();
-                });
-                /* The [+] new-tag button opens an input control where the user can type a new tag
-                 */
-                var tagNew = $("<form class='resources-tag-new-form'>"
-                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag' />"
-                              +"</form>" );
-
-                /* Put the new-tag form after the [+] button and put focus on its input.
-                 * Apparently after() returns the unmodified jQuery i.e. $(this) so we have to use parent().
-                 */
-                $(this).after( tagNew );
-                $(this).parent().find('.resources-tag-new-input').focus();
-                /* When the user types something and hits Enter, send their text to the server and draw the new tag
-                 * (it will be drawn by the server when the page is refreshed).
-                 */
-                $(this).parent().find('.resources-tag-new-form').submit(
-                    function(e) {
-                        e.preventDefault();
-                        var tag = $(this).find('input').val();
-                        var folder = $(this).parent().data('folder');
-                        var filename = $(this).parent().data('filename');
-                        SEEDJXAsync( "jx.php", {cmd:"resourcestag--newtag",folder:folder,filename:filename,tag:tag}, function(){}, function(){} );
-/* Todo: this puts the tag in place, and it should look the same when the server draws it on the next page refresh.
-         But, this is putting the tag into the <form> which isn't there after the page refresh so the spacing is just a little off.
-         Replace the <form> with the div.resources-tag, not just its innerhtml.
-*/
-                        $(this).html("<div class='resources-tag'>"+tag+"</div>");
-                    });
-            });
-        });
         </script>
 ResourcesTagScript;
 
@@ -574,7 +517,7 @@ class ResourcesFiles
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
-            $s .= "<div class='resources-tag'>$tag</div> ";
+            $s .= "<div class='resources-tag resources-tag-filled'>$tag</div> ";
         }
         return( $s );
     }
