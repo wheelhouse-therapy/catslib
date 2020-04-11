@@ -18,6 +18,34 @@ class FilingCabinetDownload
         $this->oFC = new FilingCabinet( $oApp );
     }
 
+    function DownloadFile()
+    {
+        if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) && ($dir = SEEDInput_Str('dir')) ) {
+            $file = CATSDIR_RESOURCES.$dir.'/'.$file;
+
+            $resmode = SEEDInput_Str('resource-mode');
+
+            if( $resmode!="no_replace" ) {
+                // mode blank is implemented by telling template_filler that client=0
+                $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
+                $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
+                $filler->fill_resource($file, ['client'=>$kClient]);
+            }
+            else{
+                 header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+                 header('Content-Description: File Transfer');
+                 header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+                 header('Content-Transfer-Encoding: binary');
+                 if( ($fp = fopen( $file, "rb" )) ) {
+                     fpassthru( $fp );
+                     fclose( $fp );
+                 }
+                die();
+            }
+            exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
+        }
+    }
+
     function GetDownloadMode( $download_modes, $dir_name )
     {
         $s = "";
@@ -74,5 +102,7 @@ DownloadMode;
                    'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
 
     );
+
+
 
 }

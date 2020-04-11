@@ -25,13 +25,17 @@ class FilingCabinet
         $this->oApp = $oApp;
     }
 
-//move this to FilingCabinetDownload
     function DrawFilingCabinet()
     {
         $s = "";
 
         self::EnsureDirectory("*");
+
+        // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
+        $this->handleCmd();
+
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = self::GetDirInfo($dirbase)) ) {
+            // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
                 ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
             if($dir == 'papers'){
@@ -41,7 +45,9 @@ class FilingCabinet
                 $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
             }
         } else {
+            // Show the "closed drawers" of the filing cabinet
             $s .= "<h3>Filing Cabinet</h3>";
+
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
             $ras = array_diff_key(self::$raDirectories, array_flip(array('reports','SOP','sections','videos')));
             foreach( $ras as $k => $ra ) {
@@ -55,6 +61,18 @@ class FilingCabinet
             }
         }
         return( $s );
+    }
+
+    private function handleCmd()
+    {
+        switch( ($cmd = SEEDInput_Str('cmd')) ) {
+            case 'download':
+                $oFCD = new FilingCabinetDownload( $this->oApp );
+                $oFCD->DownloadFile();
+                exit;       // download doesn't return here, but this is just a good reminder of that
+            default:
+                break;
+        }
     }
 
     static function EnsureDirectory($dirs, $silent = FALSE)
