@@ -20,24 +20,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
 
     $s .= <<<ResourcesTagStyle
         <style>
-            /* Every resources tag and control
-             */
-            .resources-tag {
-                    display:inline-block;
-                    font-size:9pt; background-color:#def; margin:0px 2px; padding:0px 3px;
-                    border:1px solid #aaa; border-radius:2px;
-                  }
-            /* [+] new tag button
-             */
-            .resources-tag-new {
-                  }
-            /* New tag input control and containing form
-             */
-            .resources-tag-new-form {
-                     display:inline-block;
-                  }
-            .resources-tag-new-input {
-                  }
             #break {
                 display: flex;
                 justify-content: space-around;
@@ -71,58 +53,24 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
             }
             #mode2 {
             }
-
         </style>
 ResourcesTagStyle;
 
     $s .= <<<ResourcesTagScript
         <script>
-        $(document).ready(function() {
-            $('.resources-tag-new').click( function() {
-                /* If someone clicks on the new tag button while adding another tag
-                 * The Old behavior caused the old tag to not be submitted.
-                 * This method prevents that from hapening
-                 */
-                $('.resources-tag-new-form').each(function(){
-                    $(this).submit();
-                });
-                /* The [+] new-tag button opens an input control where the user can type a new tag
-                 */
-                var tagNew = $("<form class='resources-tag-new-form'>"
-                              +"<input class='resources-tag-new-input resources-tag' type='text' value='' placeholder='New tag' />"
-                              +"</form>" );
-
-                /* Put the new-tag form after the [+] button and put focus on its input.
-                 * Apparently after() returns the unmodified jQuery i.e. $(this) so we have to use parent().
-                 */
-                $(this).after( tagNew );
-                $(this).parent().find('.resources-tag-new-input').focus();
-                /* When the user types something and hits Enter, send their text to the server and draw the new tag
-                 * (it will be drawn by the server when the page is refreshed).
-                 */
-                $(this).parent().find('.resources-tag-new-form').submit(
-                    function(e) {
-                        e.preventDefault();
-                        var tag = $(this).find('input').val();
-                        var folder = $(this).parent().data('folder');
-                        var filename = $(this).parent().data('filename');
-                        SEEDJXAsync( "jx.php", {cmd:"resourcestag--newtag",folder:folder,filename:filename,tag:tag}, function(){}, function(){} );
-/* Todo: this puts the tag in place, and it should look the same when the server draws it on the next page refresh.
-         But, this is putting the tag into the <form> which isn't there after the page refresh so the spacing is just a little off.
-         Replace the <form> with the div.resources-tag, not just its innerhtml.
-*/
-                        $(this).html("<div class='resources-tag'>"+tag+"</div>");
-                    });
-            });
-        });
         </script>
 ResourcesTagScript;
 
-    $oFCD = new FilingCabinetDownload( $oApp );
+    if( SEEDInput_Str('cmd') == 'download' ) {
+        $oFCD = new FilingCabinetDownload( $oApp );
+        $oFCD->DownloadFile();
+        exit;
+    }
     //list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
     //$s .= $s1;
     $mode = 'replace';  // deprecate this variable
 
+/*
     if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
         $resmode = SEEDInput_Str('resource-mode');
 
@@ -145,6 +93,7 @@ ResourcesTagScript;
         }
         exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
     }
+*/
 
     $oResourcesFiles = new ResourcesFiles( $oApp );
 
@@ -220,47 +169,20 @@ ResourcesTagScript;
                     </td>
                   </tr>
                  ";
-    
+
     $raOut = [];
     foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
     foreach ($dir as $fileinfo) {
-        $class = "";
-        $link = NULL;
-        if( $fileinfo->isDot() ) continue;
-
-        $dbFilename = addslashes($fileinfo->getFilename());
-        if( $sFilter ) {
-            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
-            $dbFilter = addslashes($sFilter);
-            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
-                                    ."WHERE folder='$folder' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
-            continue;
+        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles );
+    }
+    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+        $subdir = new DirectoryIterator($dir_name.$subfolder);
+        foreach( $subdir as $fileinfo ) {
+            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oResourcesFiles );
         }
-
-        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
-            $s = str_replace("[display]", "display:inline-block;", $s);
-            $class = "class='btn disabled'";
-            if(stripos($download_modes, 'n') !== false){
-                $link = "href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
-            }
-            else{
-                $link = "";
-            }
-        }
-
-        found:
-        $oApp->kfdb->SetDebug(0);
-
-         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
-         $filename = SEEDCore_HSC($fileinfo->getFilename());
-         $tags = $oResourcesFiles->DrawTags( $folder, $fileinfo->getFilename() );
-         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$folder' AND filename='$dbFilename'"))){
-             $subfolder = "";
-         }
-         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
     }
     $s .= "<table border='0'>";
     foreach($raOut as $k=>$v){
@@ -343,6 +265,49 @@ fcdScript;
     return( $s );
 }
 
+function addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles )
+{
+        $class = "";
+        $link = NULL;
+        if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
+
+        $dbFilename = addslashes($fileinfo->getFilename());
+        $dbDirName = addslashes($dir_short);
+
+        if( $sFilter ) {
+            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
+            $dbFilter = addslashes($sFilter);
+            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
+                                    ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
+            goto done;
+        }
+
+        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
+            $s = str_replace("[display]", "display:inline-block;", $s);
+            $class = "class='btn disabled'";
+            if(stripos($download_modes, 'n') !== false){
+                $link = downloadPath("no_replace", "", $fileinfo, $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
+            }
+            else{
+                $link = "";
+            }
+        }
+
+        found:
+        $oApp->kfdb->SetDebug(0);
+
+         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
+         $filename = SEEDCore_HSC($fileinfo->getFilename());
+         $tags = $oResourcesFiles->DrawTags( $dir_short, $fileinfo->getFilename() );
+         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
+             $subfolder = "";
+         }
+         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
+
+         done:
+         return( [$s,$raOut] );
+}
+
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
 
     $MODES = array('s' => array("code" => "replace"   , "title" => "Substitute Tags"    ),
@@ -378,7 +343,7 @@ function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
 function downloadPath($mode, $dir_name, $fileinfo, $dir_short){
     switch($mode){
         case 'replace':
-            return "href='javascript:void(0)' onclick=\"select_client('".addslashes($dir_name.$fileinfo->getFilename())."')\"";
+            return "href='javascript:void(0)' onclick=\"select_client('".addslashes(/*$dir_name.*/$fileinfo->getFilename())."')\"";
         case 'no_replace':
             return "href='?cmd=download&file=".addslashes($dir_name.$fileinfo->getFilename())."&resource-mode=no_replace&dir=$dir_short'";
         case 'blank':
@@ -552,7 +517,7 @@ class ResourcesFiles
         $raTags = explode( "\t", $ra['tags'] );
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
-            $s .= "<div class='resources-tag'>$tag</div> ";
+            $s .= "<div class='resources-tag resources-tag-filled'>$tag</div> ";
         }
         return( $s );
     }

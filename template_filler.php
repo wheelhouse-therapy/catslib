@@ -316,7 +316,7 @@ class template_filler {
             $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
         }
         foreach ($array as $img){
-            if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
+            if(is_string($img) && in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
                 $clinics = new Clinics($this->oApp);
                 $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
                 $rawData = FALSE;
