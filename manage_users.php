@@ -67,6 +67,9 @@ class ManageUsers {
         $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
         $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");
         $this->drawPartialFormRow("", "<input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+        if($uid){
+            $this->drawFormRow("Username", $this->oAccountDB->GetEmail($uid));
+        }
         $this->endRowDraw();
         $this->sForm .= "<tr class='row'>"
             ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
@@ -153,8 +156,76 @@ class ManageUsers {
         
     }
     
+    public function processCommands(String $cmd,int $uid = 0){
+        $cmd = strtolower($cmd);
+        if($uid == 0){
+            $uid = $this->oApp->sess->GetUID();
+        }
+        switch($cmd){
+            case 'issueCredentials':
+                $info = $this->oAccountDB->GetUserInfo($uid,false)[1];
+                $body = <<<body
+Hi [[name]],
+ 
+We are writing to let you know that an account for you has been setup on the backend of the CATS site (catherapyservices.ca/cats). We call the part of the site that requires an account to access the backend, and the part of the site that is available to the public the frontend.
+ 
+To access your account:
+1.	Go to catherapyservices.ca/cats
+2.	Login with:
+Username: [[username]]
+Password: cats
+3.	You will then be prompted to change your password. You will not be able to get off this screen until you change your password from cats. Other than that there are no requirements for your password.
+
+Please let us know if you don’t have permission to do something that you should have permission to do.
+ 
+Welcome to the CATS Team
+ 
+CATS Development Team
+ 
+Reminder the development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
+
+body;
+                $body = str_replace(['[[name]]','[[username]]'], [$info['realname'],$info['email']], $body);
+                SEEDEmailSend("developer@catherapyservices.ca", $this->getRecord($uid)->Value('P_email'), "CATS Backend Account", $body);
+                break;
+            case 'deactivate':
+                $this->oApp->kfdb->Execute("UPDATE `seedsession_users` SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},eStatus='INACTIVE' WHERE _key = $uid");
+                break;
+            case 'reissueCredentials':
+                $info = $this->oAccountDB->GetUserInfo($uid,false)[1];
+                $body = <<<body
+Hi [[name]],
+
+We are writing to let you know that your account on the backend of the CATS site (catherapyservices.ca/cats) has been reactivated.
+
+As a reminder, to access your account:
+1.	Go to catherapyservices.ca/cats
+2.	Login with:
+Username: [[username]]
+Password: Same as before (use the reset password link on the login page if you don't remember it)
+
+Please let us know if you don’t have permission to do something that you should have permission to do.
+
+Welcome back to the CATS Team
+
+CATS Development Team
+
+Reminder the development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
+
+body;
+                $body = str_replace(['[[name]]','[[username]]'], [$info['realname'],$info['email']], $body);
+                SEEDEmailSend("developer@catherapyservices.ca", $this->getRecord($uid)->Value('P_email'), "CATS Backend Account", $body);
+                break;
+        }
+    }
+    
     private function getRecord(int $uid):KeyframeRecord{
-        return $this->oPeopleDB->GetKFRCond(ClientList::INTERNAL_PRO,"P.uid = $uid");
+        if($uid){
+            return $this->oPeopleDB->GetKFRCond(ClientList::INTERNAL_PRO,"P.uid = $uid");
+        }
+        else{
+            return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
+        }
     }
     
     private function drawFormRow( $label, $control )
