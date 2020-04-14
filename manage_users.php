@@ -67,16 +67,50 @@ class ManageUsers {
         $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
         $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");
         $this->drawPartialFormRow("", "<input type=\"file\" name=\"new_signature\" accept='.jpg' />");
-        if($uid){
-            $this->drawFormRow("Username", $this->oAccountDB->GetEmail($uid));
-        }
         $this->endRowDraw();
         $this->sForm .= "<tr class='row'>"
             ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
             ."</tr>"
             ."</table>"
             ."</form>";
-        return $this->sForm;
+        
+        $s = "<div class='container-fluid'>"
+                ."<h3>".($uid?"CATS Staff: ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name'):"New Staff")."</h3>"
+                ."<div class='row'>"
+                   ."<div class='col-md-8'>".$this->sForm."</div>"
+                   ."<div class='col-md-4'>[[Sidebar]]</div>"
+                ."</div>"
+            ."</div>";
+        
+        $sSidebar = "<div style='padding:10px;border:1px solid #888'><strong>User Settings:</strong><br />";
+        if($uid){
+            $status = $this->oAccountDB->GetUserInfo($uid,false)[1]['eStatus'];
+            $sSidebar .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
+                        ."Status : {$status}<br />";
+            if(CATS_DEBUG){
+                switch($status){
+                    case "PENDING":
+                        //User has been created but credentials have not been issued
+                        $sSidebar .= "PENDING";
+                        break;
+                    case "ACTIVE":
+                        //User has been created and credentials have been issued
+                        $sSidebar .= "ACTIVE";
+                        break;
+                    case "INACTIVE":
+                        //User has been created but has been deactivated
+                        //Reactivation should reissue credentials
+                        $sSidebar .= "INACTIVE";
+                }
+            }
+        }
+        else{
+            $sSidebar .= "Staff must be saved before User Settings are available";
+        }
+        $sSidebar .= "</div>";
+        $s = str_replace("[[Sidebar]]", $sSidebar, $s);
+        
+        return $s;
     }
     
     public function drawList($raw = false){
@@ -88,10 +122,10 @@ class ManageUsers {
         $raTherapists = $this->oPeopleDB->GetList(ClientList::INTERNAL_PRO, $condStaff, array("sSortCol" => "P.first_name,_key"));
         if(!$raw){
             $s .= "<div class='container-fluid'><div class='row'>"
-                 ."<div id='users' class='col-md-4'>"
-                 ."<button onclick='getForm(0)'>New User</button>";
+                 ."<div id='users' class='col-md-4'>";
         }
-        $s .= SEEDCore_ArrayExpandRows( $raTherapists, "<div style='padding:5px;' onclick='getForm([[P_uid]])' >[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div>" );
+        $s .= "<button onclick='getForm(0)'>New User</button>"
+              .SEEDCore_ArrayExpandRows( $raTherapists, "<div style='padding:5px;cursor:pointer' onclick='getForm([[P_uid]])' >[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div>" );
         if(!$raw){
             $s .= "</div>"
                  ."<div id='form' class='col-md-8'></div></div></div>";
@@ -187,6 +221,7 @@ Reminder the development team can be reached at developer@catherapyservices.ca o
 body;
                 $body = str_replace(['[[name]]','[[username]]'], [$info['realname'],$info['email']], $body);
                 SEEDEmailSend("developer@catherapyservices.ca", $this->getRecord($uid)->Value('P_email'), "CATS Backend Account", $body);
+                $this->oAccountDB->ActivateUser($uid);
                 break;
             case 'deactivate':
                 $this->oApp->kfdb->Execute("UPDATE `seedsession_users` SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},eStatus='INACTIVE' WHERE _key = $uid");
@@ -215,6 +250,7 @@ Reminder the development team can be reached at developer@catherapyservices.ca o
 body;
                 $body = str_replace(['[[name]]','[[username]]'], [$info['realname'],$info['email']], $body);
                 SEEDEmailSend("developer@catherapyservices.ca", $this->getRecord($uid)->Value('P_email'), "CATS Backend Account", $body);
+                $this->oAccountDB->ActivateUser($uid);
                 break;
         }
     }
