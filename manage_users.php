@@ -18,7 +18,7 @@ class ManageUsers {
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
     }
     
-    public function manageUser(int $uid){
+    public function manageUser(int $uid, bool $userStatus = true){
         $kfr = $this->getRecord($uid);
         if(!$kfr){
             $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
@@ -46,7 +46,7 @@ class ManageUsers {
         
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm = "<form onSumbit='submitForm(event)'>"
-                ."<input type='hidden' name='uid' value='$uid'/>"
+                ."<input type='hidden' id='uid' name='uid' value='$uid'/>"
                 ."<input type='hidden' name='cmd' value='admin-userform-submit'/>"
                 .$oForm->HiddenKey()
                 ."<table class='container-fluid table table-striped table-sm'>";
@@ -87,11 +87,16 @@ class ManageUsers {
             $status = $this->oAccountDB->GetUserInfo($uid,false)[1]['eStatus'];
             $sSidebar .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
                         ."Status : {$status}<br />";
-            if(CATS_DEBUG){
+            if(CATS_DEBUG && $userStatus){
                 switch($status){
                     case "PENDING":
                         //User has been created but credentials have not been issued
-                        $sSidebar .= "PENDING";
+                        if($kfr->Value('P_email')){
+                            $sSidebar .= "PENDING";
+                        }
+                        else{
+                            $sSidebar .= "A valid Email must be entered for this staff before this user can be activated";
+                        }
                         break;
                     case "ACTIVE":
                         //User has been created and credentials have been issued
@@ -100,8 +105,16 @@ class ManageUsers {
                     case "INACTIVE":
                         //User has been created but has been deactivated
                         //Reactivation should reissue credentials
-                        $sSidebar .= "INACTIVE";
+                        if($kfr->Value('P_email')){
+                            $sSidebar .= "INACTIVE";
+                        }
+                        else{
+                            $sSidebar .= "A valid Email must be entered for this staff before this user can be reactivated";
+                        }
                 }
+            }
+            elseif(CATS_DEBUG){
+                $sSidebar .= "You must wait before adjusting the status of this user";
             }
         }
         else{
@@ -216,7 +229,7 @@ Welcome to the CATS Team
  
 CATS Development Team
  
-Reminder the development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
+The development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
 
 body;
                 $body = str_replace(['[[name]]','[[username]]'], [$info['realname'],$info['email']], $body);
@@ -253,6 +266,7 @@ body;
                 $this->oAccountDB->ActivateUser($uid);
                 break;
         }
+        return $this->manageUser($uid,false);
     }
     
     private function getRecord(int $uid):KeyframeRecord{
