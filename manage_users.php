@@ -89,7 +89,7 @@ class ManageUsers {
             $status = $this->oAccountDB->GetUserInfo($uid,false)[1]['eStatus'];
             $sSidebar .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
                         ."Status : {$status}<br />";
-            if(CATS_DEBUG && $userStatus){
+            if($userStatus){
                 switch($status){
                     case "PENDING":
                         //User has been created but credentials have not been issued
@@ -115,7 +115,7 @@ class ManageUsers {
                         }
                 }
             }
-            elseif(CATS_DEBUG){
+            else{
                 $sSidebar .= "You must wait before adjusting the status of this user";
             }
         }
