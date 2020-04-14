@@ -1,5 +1,7 @@
 <?php
 
+require_once( SEEDCORE."SEEDEmail.php" );
+
 class ManageUsers {
     
     private $oApp;
@@ -92,7 +94,7 @@ class ManageUsers {
                     case "PENDING":
                         //User has been created but credentials have not been issued
                         if($kfr->Value('P_email')){
-                            $sSidebar .= "PENDING";
+                            $sSidebar .= "<button onclick='executeCMD(\"issueCredentials\",$uid)'>Issue Credentials</button>";
                         }
                         else{
                             $sSidebar .= "A valid Email must be entered for this staff before this user can be activated";
@@ -100,13 +102,13 @@ class ManageUsers {
                         break;
                     case "ACTIVE":
                         //User has been created and credentials have been issued
-                        $sSidebar .= "ACTIVE";
+                        $sSidebar .= "<button onclick='executeCMD(\"deactivate\",$uid)'>Deactivate</button>";
                         break;
                     case "INACTIVE":
                         //User has been created but has been deactivated
                         //Reactivation should reissue credentials
                         if($kfr->Value('P_email')){
-                            $sSidebar .= "INACTIVE";
+                            $sSidebar .= "<button onclick='executeCMD(\"reissueCredentials\",$uid)'>Reactivate</button>";
                         }
                         else{
                             $sSidebar .= "A valid Email must be entered for this staff before this user can be reactivated";
@@ -204,7 +206,6 @@ class ManageUsers {
     }
     
     public function processCommands(String $cmd,int $uid = 0){
-        $cmd = strtolower($cmd);
         if($uid == 0){
             $uid = $this->oApp->sess->GetUID();
         }
