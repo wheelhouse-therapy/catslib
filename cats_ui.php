@@ -170,7 +170,7 @@ ResetPassword;
     {
         //Unimplemented Bubbles have been commented out to clean up display
         $raTherapistScreens = array(
-            array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
+            array( 'therapist-clientlist',      "Clients and External Providers" ),
             array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
             array( 'therapist-submitresources', "Submit Resources to Share" ),

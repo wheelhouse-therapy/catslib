@@ -109,9 +109,9 @@ class ClientList
              ."<div id='clients' class='col-md-4'>"
                  .$this->drawList(self::CLIENT,$condClinic)[0]
              ."</div>"
-             ."<div id='therapists' class='col-md-4'>"
-                 .$this->drawList(self::INTERNAL_PRO,$condClinic)[0]
-             ."</div>"
+//              ."<div id='therapists' class='col-md-4'>"
+//                  .$this->drawList(self::INTERNAL_PRO,$condClinic)[0]
+//              ."</div>"
              ."<div id='pros' class='col-md-4'>"
                  .$this->drawList(self::EXTERNAL_PRO,$condClinic)[0]
              ."</div>"
