@@ -24,7 +24,6 @@ class AkauntingHook {
     private static $_token = NULL;
     private static $accounts = array();
     private static $company = 0;
-    private static $fetchRequired = true;
 
     private static $bDebug = CATS_DEBUG;     // set this to true to turn on debugging messages
 
@@ -95,7 +94,10 @@ class AkauntingHook {
         self::switchCompany($entry->getCompany());
 
         //Fetch accounts if required
-        if(self::$fetchRequired){
+        if(!AccountingAccount::isLoaded()){
+            AccountingAccount::load(self::$company,false);
+        }
+        if(!AccountingAccount::isLoaded(self::$company)){
             self::fetchAccounts();
         }
 
@@ -198,8 +200,7 @@ class AkauntingHook {
         if(!$fetchOnly){
             $accounts = self::loadAccounts($data);
             if($loadCach){
-                self::$accounts = $accounts;
-                self::$fetchRequired = false;
+                AccountingAccount::updateCache($company,$accounts);
             }
             return $accounts;
         }
@@ -218,7 +219,7 @@ class AkauntingHook {
             $type = $match[1];
             preg_match_all('/<option value="(\d*?)">(\d*?) - (.*?)<\/option>/', $match[2],$accountData,PREG_SET_ORDER);
             foreach($accountData as $account){
-                $accounts[$account[1]] = array( "code" => $account[2], "name" => $account[3]);
+                $accounts[] = array( "id" => $account[1], "code" => $account[2], "name" => $account[3]);
             }
         }
         return $accounts;
@@ -229,17 +230,7 @@ class AkauntingHook {
         if(!$override && list($value,$possible) = self::getAccountByKeyWord($name)){
             return array($value,$possible);
         }
-        foreach(self::$accounts as $k => $account){
-            if(strtolower($account['name']) == strtolower($name)){
-                array_unshift($possible, $account['name']);
-                return array($k,$possible);
-            }
-            else if(stripos($account['name'], $name) === 0){
-                // The entry could possibly be incomplete and supposed to be this account.
-                // Add to list of possibilities to show the send back in the responce for this entry
-                $possible[] = $account['name'];
-            }
-        }
+        
         return array(NULL,$possible);
     }
 
@@ -301,12 +292,10 @@ class AkauntingHook {
         }
         global $email_processor;
         self::$session->get($email_processor['akauntingBaseUrl']."/common/companies/".$company."/set");
-        self::$fetchRequired = true;
     }
 
     private static function restoreCompany(){
         self::switchCompany(self::$company);
-        self::$fetchRequired = false;
     }
 
     public static function decodeErrors(array $errors):String{
@@ -562,6 +551,7 @@ class AccountingAccount {
     private const SERIALIZE_SPLIT = "*";
     
     private static $accounts = array();
+    private static $company = 0;
     
     /**
      * External code displayed to user
@@ -614,16 +604,34 @@ class AccountingAccount {
         $sql = str_replace(array("[[company]]","[[ak_prefix]]"), array($company,$config_KFDB['akaunting']['ak_tableprefix']), $sql);
         $raRows = $oAppAk->kfdb->QueryRowsRA( $sql );
         foreach ($raRows as $ra){
-            $raOut[] = new AccountingAccount($ra['id'], $ra['code'], $ra['name'], strtoupper(substr(str_replace("ies", "ys", substr($ra['type'], strripos($ra['type'], '.')+1)), 0, -1)));
+            $raOut[] = new AccountingAccount($ra['id'], $ra['code'], $ra['name'], self::parseType($ra['type']));
         }
         return $raOut;
     }
     
-    public static function updateCache($data = array(), int $company = 0,SEEDAppDB $oAppAk = NULL){
+    private static function parseType(String $type,int $id = 0, SEEDAppDB $oAppAk = NULL){
+        if(!$type && !$id){
+            throw new Exception("Insuficient Information to parse type");
+        }
+        if(!$type){
+            global $config_KFDB;
+            if(!$oAppAk){
+                $oAppAk = new SEEDAppDB( $config_KFDB['akaunting'] );
+            }
+            $sql = "SELECT C.name as type FROM `[[ak_prefix]]_double_entry_accounts` as A, `[[ak_prefix]]_double_entry_types` as T, `[[ak_prefix]]_double_entry_classes` as C WHERE T.class_id=C.id AND A.type_id=T.id AND A.enabled=1 and A.id=[[id]]";
+            $sql = str_replace(array("[[id]]","[[ak_prefix]]"), array($id,$config_KFDB['akaunting']['ak_tableprefix']), $sql);
+            $type = $oAppAk->kfdb->Query1($sql);
+        }
+        $type = strtoupper(substr(str_replace("ies", "ys", substr($type, strripos($type, '.')+1)), 0, -1));
+    }
+    
+    public static function updateCache(int $company,$data = array(),SEEDAppDB $oAppAk = NULL){
+        self::$company = $company;
         if($data){
             self::$accounts = array();
             foreach($data as $ra){
-                if(!@$ra['code'] || !@$ra['name'] || !@$ra['id'] || !@$ra['type']){
+                $type = self::parseType(@$ra['type'],@$ra['id']);
+                if(@$ra['code'] && @$ra['name'] && @$ra['id'] && $type){
                     self::$accounts[] = new AccountingAccount($ra['id'], $ra['code'], $ra['name'], $ra['type']);
                 }
             }
@@ -639,20 +647,37 @@ class AccountingAccount {
         foreach(self::$accounts as $account){
             $data[] = $account->serialize();
         }
-        $_SESSION['ak_accounts'] = $data;
+        $_SESSION['ak_accounts'] = array("company"=>self::$company,"accounts"=>$data);
     }
     
     public  static function load(int $company,bool $doFetch = true){
-        if(isset($_SESSION['ak_accounts'])){
+        self::$company = $company;
+        if(isset($_SESSION['ak_accounts']) && $_SESSION['ak_accounts']['company'] == $company){
             $data = array();
-            foreach ($_SESSION['ak_accounts'] as $account){
+            foreach ($_SESSION['ak_accounts']['accounts'] as $account){
                 $data[] = AccountingAccount::deSerialize($account);
             }
             self::$accounts = $data;
         }
         elseif ($doFetch){
-            self::updateCache(array(),$company);
+            self::updateCache($company);
         }
+    }
+    
+    /**
+     * Check if accounts have been loaded, useful is if your not sure if accounts were successfully loaded.
+     * Recomended to make a call to this function after a call to load() to check for success.
+     * A company can be specified to check if the loaded accounts are for a specific company.
+     * If company is omitted this method checks if any accounts have been loaded regardless of company
+     * @param int $company - Optional, Specifies a company to check if the loaded accounts are for. if omitted or zero it checks for any accounts regardless of company.
+     * @return bool - True if there are accounts loaded and they are for the company (if specified), False otherwise.
+     */
+    public static function isLoaded(int $company=0):bool{
+        if($company){
+            // Set company to currently loaded company to check if any accounts were loaded
+            $company = self::$company;
+        }
+        return self::$accounts && $company == self::$company;
     }
     
     public function checkCreditOperation(){
@@ -737,21 +762,31 @@ class AccountingAccount {
     }
     
     public static function getAccountByName(String $name):AccountingAccount{
+        $possible = array();
         foreach($accounts as $account){
             if(strtolower($account->getName()) == strtolower($name)){
                 return $account;
             }
+            if(strtolower($account->getName()) == strtolower($name)){
+                array_unshift($possible, $account->getName());
+                return array($account,$possible);
+            }
+            else if(stripos($account->getName(), $name) === 0){
+                // The entry could possibly be incomplete and supposed to be this account.
+                // Add to list of possibilities to show the send back in the responce for this entry
+                $possible[] = $account->getName();
+            }
         }
-        return NULL; // The account with the provided name does not exist
+        return array(NULL,$possible); // The account with the provided name does not exist
     }
     
     public  static function getAccountByCode($code){
         foreach($accounts as $account){
             if($account->getCode() == $code){
-                return $account;
+                return array($account,$account->getName());
             }
         }
-        return NULL; // The account with the provided code does not exist
+        return array(NULL,array()); // The account with the provided code does not exist
     }
     
     public static function getAccountByID($id){
@@ -761,6 +796,10 @@ class AccountingAccount {
             }
         }
         return NULL; // The account with the provided id does not exist
+    }
+    
+    public static function getCompany(){
+        return self::$company;
     }
     
 }

@@ -1,6 +1,6 @@
 <?php
 
-require_once(CATSLIB.'/vendor/autoload.php');
+require_once(CATSLIB.'vendor/autoload.php');
 require_once( SEEDCORE."SEEDEmail.php" );
 require_once 'share_resources.php';
 require_once 'AkauntingHook.php';
