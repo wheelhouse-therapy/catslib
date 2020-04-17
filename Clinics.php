@@ -183,6 +183,15 @@ class Clinics {
         return $clinicKeys;
     }
     
+    public function getClinicsByCity(String $city){
+        $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.city'".$city."'");
+        $clinicKeys = array();
+        foreach($clinics as $k => $v){
+            array_push($clinicKeys, $v["_key"]);
+        }
+        return $clinicKeys;
+    }
+    
     public function getClinicsILead($user = NULL){
         if(!$user){
             $user = $this->oApp->sess->GetUID();
