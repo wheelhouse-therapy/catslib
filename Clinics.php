@@ -140,7 +140,7 @@ class Clinics {
             $user = $this->oApp->sess->GetUID();
         }
         if($this->oApp->sess->GetUID() == $user){
-            $bFull = CATS_ADMIN;
+            $bFull = CATS_SYSADMIN;
         }
         else{
             // Little Hack to get arround the current login to check another users perms

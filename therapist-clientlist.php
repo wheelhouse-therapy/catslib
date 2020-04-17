@@ -468,7 +468,7 @@ ExistsWarning;
                 }
                 $raTherapists = $this->oPeopleDB->GetList(self::INTERNAL_PRO, $condStaff, $this->queryParams);
                 $s = "<h3>CATS Staff</h3>"
-                      .(CATS_ADMIN?"<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>":"")
+                      .(CATS_SYSADMIN?"<button onclick=\"getForm('".self::createID(self::INTERNAL_PRO, 0)."');\">Add Staff Member</button>":"")
                       .SEEDCore_ArrayExpandRows( $raTherapists, "<div id='therapist-[[_key]]' class='therapist' style='padding:5px;' data-id='".self::INTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "therapists";
                 break;

@@ -152,9 +152,9 @@ ResetPassword;
         $s = "<div class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
-            .(CATS_ADMIN                                  ? $this->DrawDeveloper() : "")
+            .(CATS_SYSADMIN                               ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
-            .(!CATS_ADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(!CATS_SYSADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
             .$this->DrawSystem()
             ."</div>";
 
@@ -261,13 +261,13 @@ ResetPassword;
             case 'admin-users':
                 require_once 'manage_users.php';
                 $manageUsers = new ManageUsers($this->oApp);
-                if(CATS_ADMIN){
+                if(CATS_SYSADMIN){
                     $s .= "<div style='float:right'><a href='".CATSDIR."?screen=admin-users-advanced'>advanced mode ></a></div>";
                 }
                 $s .= $manageUsers->drawList();
                 break;
             case 'admin-users-advanced':
-                if(CATS_ADMIN){
+                if(CATS_SYSADMIN){
                     $s .= "<div><a href='".CATSDIR."?screen=admin-users'>< basic mode</a></div><br />";
                 }
                 $s .= $this->drawAdminUsers();

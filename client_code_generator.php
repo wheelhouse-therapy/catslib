@@ -47,7 +47,7 @@ class ClientCodeGenerator {
      * @return string|false - The regenerated client code or false if the current user does not have permission to perform this action
      */
     public function regenerateCode(int $client_key){
-        if(!CATS_ADMIN){
+        if(!CATS_SYSADMIN){
             // Do not have permission to perform this action.
             return false;
         }
