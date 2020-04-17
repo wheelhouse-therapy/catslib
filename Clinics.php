@@ -364,7 +364,7 @@ class Clinics {
                 $kfr = $ClinicsDB->GetClinic( $clinic_key );
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
                     if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
-                        $kfr->SetValue( $field['alias'], strtolower(SEEDInput_Str('clinic_name'))."@catherapyservices.ca" );
+                        $kfr->SetValue( $field['alias'], str_replace(" ", ".", strtolower(SEEDInput_Str('clinic_name')))."@catherapyservices.ca" );
                     }
                     elseif($field['alias'] == 'mailing_address' && SEEDInput_Str('mailing_address') == 'add%91ress'){
                         $kfr->SetValue( $field['alias'], SEEDInput_Str('address') );
