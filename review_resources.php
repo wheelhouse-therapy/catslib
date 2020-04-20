@@ -4,12 +4,6 @@ require_once 'share_resources.php';
 
 FilingCabinet::EnsureDirectory("*");
 
-//TODO Remove to send page live
-if(!CATS_DEBUG){
-    $s .= "<h1>This page is temporarily down for filesystem maintenance. We apologieze for the inconvienence. -Development Team</h1>";
-    return;
-}
-
 $dir_name = CATSDIR_RESOURCES."pending/";
 $cmd = SEEDInput_Str( 'cmd' );
 
