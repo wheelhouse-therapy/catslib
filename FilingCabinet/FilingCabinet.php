@@ -29,6 +29,8 @@ class FilingCabinet
     {
         $s = "";
 
+        //FIXME Only Ensure directories when we need access to them
+        //This causes if a folder fails to be created when downloading
         self::EnsureDirectory("*");
 
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
@@ -189,4 +191,193 @@ class FilingCabinet
         'adl'     => ["Feeding","Toiletting?","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL/SCANNING","SENSORY","FUNCTIONAL","BEHAV/COMMUNICATION/EMOTIONAL","GENERAL DEVELOPMENTAL"]
     ];
+}
+
+/**
+ * Class Representing a resource in the database.
+ * This serves as a communication layer between the database and other files.
+ * The functions in this ADT are garenteed, regardles of the underlying database structure.
+ * @author Eric
+ *
+ */
+class ResourceRecord {
+    
+    //raParam and search keys
+    public const ID_KEY = 'id';
+    public const CREATED_KEY = 'created';
+    public const STATUS_KEY = 'status';
+    public const SUBDIRECTORY_KEY = 'subdir';
+    public const TAGS_KEY = 'tags';
+    
+    private const TAG_SEPERATOR = "\t";
+    
+    
+    //Additional search constants and keys
+    /**
+     * Used to denote that a search parameter should be excluded
+     */
+    public const WILDCARD = '*';
+    public const DIRECTORY_KEY = 'dir';
+    public const FILENAME_KEY = 'file';
+    
+    private $oApp;
+    
+    // Database flags
+    /**
+     * Index of the database row this data was fetched from
+     * value of 0 represents new row (not in database yet)
+     * READ ONLY
+     */
+    private $id = 0;
+    /**
+     * Date the file was initially revieved
+     * value of 0 represents new file (usually accompanied by and id of 0)
+     * READ ONLY
+     */
+    private $created = 0;
+    private $status = 0;
+    
+    // File info
+    private $dir;
+    private $subdir = '';
+    private $file;
+    private $tags = [];
+    /**
+     * Wether or not this record has been committed to the database.
+     * Only true if data has not changed since the last store or initial fetch
+     * INTERNAL USE ONLY
+     */
+    private $committed = false;
+    
+    private function __construct(SEEDAppConsole $oApp, String $dirname, String $filename, array $raParams = []){
+        $this->oApp = $oApp;
+        
+        $this->file = $filename;
+        $this->dir = $dirname;
+        $this->id = @$raParams[self::ID_KEY]?:0;
+        $this->created = @$raParams[self::CREATED_KEY]?:0;
+        $this->status = @$raParams[self::STATUS_KEY]?:0;
+        $this->subdir = @$raParams[self::SUBDIRECTORY_KEY]?:'';
+        if(is_string(@$raParams[self::TAGS_KEY])){
+            $this->tags = explode(self::TAG_SEPERATOR, @$raParams[self::TAGS_KEY]);
+        }
+        else{
+            $this->tags = @$raParams[self::TAGS_KEY]?:[];
+        }
+    }
+    
+    public function addTag(String $tag){
+        if(in_array($tag, $this->tags)){
+            return; // The Tag already exists in the list dont add it again
+        }
+        $this->committed = false; //Assume the tag did not exist before
+        $this->tags += [$tag];
+    }
+    
+    public function removeTag(String $tag){
+        $ra = array_diff($this->tags, [$tag]);
+        if($ra != $this->tags){
+            $this->committed = false;
+        }
+        $this->tags = $ra;
+    }
+    
+    public function setDirectory(String $dir){
+        if($dir != $this->dir){
+            $this->committed = false;
+        }
+        $this->dir = $dir;
+    }
+    
+    public function setSubDirectory(String $subdir){
+        if($subdir != $this->subdir){
+            $this->committed = false;
+        }
+        $this->subdir = $subdir;
+    }
+    
+    public function setStatus(int $status){
+        if($status != $this->status){
+            $this->committed = false;
+        }
+        $this->status = $status;
+    }
+    
+    public function StoreRecord(){
+        if($this->committed){
+            //The data has not changed since the last store
+            return;
+        }
+        //TODO implement Storing Mechanism
+    }
+    
+    public function getID():int{
+        return $this->id;
+    }
+    
+    public function getCreated(){
+        return $this->created;
+    }
+    
+    public function getStatus():int{
+        return $this->status;
+    }
+    
+    public function getTags():array{
+        return $this->tags;
+    }
+    
+    public function getFile():String{
+        return $this->file;
+    }
+    
+    public function getDirectory():String{
+        return $this->dir;
+    }
+    
+    public function getSubDirectory():String{
+        return $this->subdir;
+    }
+    
+    public function getPath():String{
+        return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
+    }
+    
+    // These methods should allow calling files to get a record without needing to depend on the underlying database structure
+    // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
+    
+    public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
+        $ra = $oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        if(!$ra){
+            // No Record with that id exists
+            return NULL;
+        }
+        $raParams = [];
+        $raParams += [self::ID_KEY=>$ra['_key']];
+        $raParams += [self::CREATED_KEY=>$ra['_created']];
+        $raParams += [self::STATUS_KEY=>$ra['_status']];
+        $raParams += [self::SUBDIRECTORY_KEY=>$ra['subfolder']];
+        $raParams += [self::TAGS_KEY=>$ra['tags']];
+        $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
+        $oRR->committed = true; // The data in this record was just pulled from the DB
+        return $oRR;
+        
+    }
+    
+    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
+        $oRR = self::search($oApp,[self::DIRECTORY_KEY=>$dirname,self::FILENAME_KEY=>$filename],1);
+        if(!$oRR){
+            $oRR = new ResourceRecord($oApp, $dirname, $filename);
+        }
+        return $oRR;
+    }
+    
+    private static function search(SEEDAppConsole $oApp, array $searchParams, int $maxResults = 0){
+        if($maxResults < 0){
+            //Treat negative values as 0
+            $maxResults = 0;
+        }
+        //TODO Implement Search Mechanism
+    }
+    
 }
