@@ -306,7 +306,26 @@ class ResourceRecord {
             //The data has not changed since the last store
             return;
         }
-        //TODO implement Storing Mechanism
+        $dbFolder = addslashes($this->dir);
+        $dbSubFolder = addslashes($this->subdir);
+        $dbFilename = addslashes($this->file);
+        $uid = $this->oApp->sess->getUID();
+        if($this->id == 0){
+            $cond = "_status={$this->status} AND subfolder='{$dbSubFolder}' AND folder='{$dbFolder}' AND filename='{$dbFilename}'";
+            $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE $cond" )?:0;
+        }
+        $tags = '';
+        foreach ($this->tags as $tag){
+            $dbtag = addslashes($tag);
+            $tags .= self::TAG_SEPERATOR.$dbtag.self::TAG_SEPERATOR;
+        }
+        if($this->id){
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder' WHERE _key = {$this->key}");
+        }
+        else{
+            $this->committed = $this->oApp->kfdb->Execute("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')");
+        }
+        
     }
     
     public function getID():int{
