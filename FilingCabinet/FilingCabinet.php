@@ -202,23 +202,21 @@ class FilingCabinet
  */
 class ResourceRecord {
     
-    //raParam and search keys
-    public const ID_KEY = 'id';
-    public const CREATED_KEY = 'created';
-    public const STATUS_KEY = 'status';
-    public const SUBDIRECTORY_KEY = 'subdir';
-    public const TAGS_KEY = 'tags';
+    //raParam keys
+    private const ID_KEY = 'id';
+    private const CREATED_KEY = 'created';
+    private const STATUS_KEY = 'status';
+    private const SUBDIRECTORY_KEY = 'subdir';
+    private const TAGS_KEY = 'tags';
     
     private const TAG_SEPERATOR = "\t";
     
     
-    //Additional search constants and keys
+    //search constants
     /**
      * Used to denote that a search parameter should be excluded
      */
     public const WILDCARD = '*';
-    public const DIRECTORY_KEY = 'dir';
-    public const FILENAME_KEY = 'file';
     
     private $oApp;
     
@@ -365,19 +363,7 @@ class ResourceRecord {
     }
     
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
-        $oRR = self::search($oApp,[self::DIRECTORY_KEY=>$dirname,self::FILENAME_KEY=>$filename],1);
-        if(!$oRR){
-            $oRR = new ResourceRecord($oApp, $dirname, $filename);
-        }
-        return $oRR;
-    }
-    
-    private static function search(SEEDAppConsole $oApp, array $searchParams, int $maxResults = 0){
-        if($maxResults < 0){
-            //Treat negative values as 0
-            $maxResults = 0;
-        }
-        //TODO Implement Search Mechanism
+        return new ResourceRecord($oApp, $dirname, $filename);
     }
     
 }
