@@ -97,8 +97,6 @@ ResourcesTagScript;
 
     $oResourcesFiles = new ResourcesFiles( $oApp );
 
-    $folder = str_replace( '/', '', $dir_name );        // resources, handouts, etc, for looking up the related tags
-
     // make sure dir_name is the full path
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
         $dir_name = CATSDIR_RESOURCES.$dir_name;
@@ -108,10 +106,10 @@ ResourcesTagScript;
         return $s;
     }
 
-    $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html'>Template Format Reference</a><br />";
+    $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a><br />";
 
-    $dir = new DirectoryIterator($dir_name);
-    if(iterator_count($dir) == 2){
+    $dirIterator = new DirectoryIterator($dir_name);
+    if(iterator_count($dirIterator) == 2){
         $s .= "<h2> No files in directory</h2>";
         return $s;
     }
@@ -155,33 +153,25 @@ ResourcesTagScript;
     $sFilter = SEEDInput_Str('resource-filter');
 
     $s .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
-         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
+         ."<input type='text' name='resource-filter' value='".SEEDCore_HSC($sFilter)."'/>"
+         ."<input type='hidden' name='dir' id='dir' value='$dir_short' />"
+         ."<input type='submit' value='Filter'/>"
          ."</form></div>";
-
-    $sTemplate = "<tr [[CLASS]]>
-                    <td valign='top'>
-                        <a style='white-space: nowrap' [[LINK]] >
-                            [[FILENAME]]
-                        </a>
-                    </td>
-                    <td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($folder)."' data-filename='[[FILENAME]]'>
-                        [[TAGS]]
-                    </td>
-                  </tr>
-                 ";
 
     $raOut = [];
     foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
-    foreach ($dir as $fileinfo) {
-        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles );
+
+    foreach ($dirIterator as $fileinfo) {
+        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles );
     }
+
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
-            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oResourcesFiles );
+            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oResourcesFiles );
         }
     }
     $s .= "<table border='0'>";
@@ -200,9 +190,6 @@ ResourcesTagScript;
         }
     }
     $s .= "</table>";
-
-    //Replace the display if it has not already been replaced
-    $s = str_replace("[display]", "display:none;", $s);
 
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
@@ -265,51 +252,63 @@ fcdScript;
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $sTemplate, $raOut, $oApp, $mode, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles )
 {
         $class = "";
-        $link = NULL;
+
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
 
         $dbFilename = addslashes($fileinfo->getFilename());
         $dbDirName = addslashes($dir_short);
 
         if( $sFilter ) {
-            if( stripos( $fileinfo->getFilename(), $sFilter ) !== false )  goto found;
-            $dbFilter = addslashes($sFilter);
-            if( $oApp->kfdb->Query1( "SELECT _key FROM resources_files "
-                                    ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%$dbFilter%'" ) ) goto found;
-            goto done;
-        }
-
-        if($mode!='no_replace' && $fileinfo->getExtension()!="docx"){
-            $s = str_replace("[display]", "display:inline-block;", $s);
-            $class = "class='btn disabled'";
-            if(stripos($download_modes, 'n') !== false){
-                $link = downloadPath("no_replace", "", $fileinfo, $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";  //.$MODES['n']['code']."'";
-            }
-            else{
-                $link = "";
+            // list this file if sFilter matches part of its filename, or part of one of its tags
+            if( stripos( $fileinfo->getFilename(), $sFilter ) === false &&
+                !$oApp->kfdb->Query1( "SELECT _key FROM resources_files "
+                                     ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%".addslashes($sFilter)."%'" ) )
+            {
+                goto done;
             }
         }
 
-        found:
-        $oApp->kfdb->SetDebug(0);
+        // docx files get a link to the modal dialog; other files get a link for simple download
+        if( $fileinfo->getExtension() == "docx" ) {
+            $link = downloadPath('replace', $dir_name, $fileinfo, $dir_short);
+        } else {
+            $link = downloadPath("no_replace", "", $fileinfo, $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";
+            //$class = "class='btn disabled'";
+        }
 
-         $link = ($link !== NULL?$link:downloadPath($mode, $dir_name, $fileinfo, $dir_short));
-         $filename = SEEDCore_HSC($fileinfo->getFilename());
-         $tags = $oResourcesFiles->DrawTags( $dir_short, $fileinfo->getFilename() );
-         if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
-             $subfolder = "";
-         }
-         $raOut[$subfolder] .= str_replace(array("[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"), array($class,$link,$filename,$tags), $sTemplate);
+// we used to store subfolders in db; and we'll do this again!
+//        if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
+//            $subfolder = "";
+//        }
+        $subfolder = (($p = strpos($dir_short,'/'))) !== false ? substr($dir_short,$p+1) : "";   // the part of dir_short after '/' if any
 
-         done:
-         return( [$s,$raOut] );
+        $sTemplate =
+            "<tr [[CLASS]]>
+                <td valign='top'>
+                    <a style='white-space: nowrap' [[LINK]] >[[FILENAME]]</a>
+                </td>
+                <td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($dir_short)."' data-filename='[[FILENAME]]'>
+                    [[TAGS]]
+                </td>
+            </tr>";
+
+        $raOut[$subfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
+                                           [$class,
+                                            $link,
+                                            SEEDCore_HSC($fileinfo->getFilename()),
+                                            $oResourcesFiles->DrawTags($dir_short, $fileinfo->getFilename())
+                                           ],
+                                           $sTemplate);
+
+        done:
+        return( [$s,$raOut] );
 }
 
-function getModeOptions($resourcesMode, $downloadModes, $mode, $dir){
-
+function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
+{
     $MODES = array('s' => array("code" => "replace"   , "title" => "Substitute Tags"    ),
                    'n' => array("code" => "no_replace", "title" => "Original Version" ),
                    'b' => array("code" => "blank"     , "title" => "Blank Mode"           )
@@ -372,8 +371,8 @@ function viewSOPs(SEEDAppConsole $oApp){
 viewSOP;
     FilingCabinet::EnsureDirectory("SOP");
     $listSOPs = "<h3>View Standard Operating Procedures</h3>";
-    $dir = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('SOP')['directory']);
-    if(iterator_count($dir) == 2){
+    $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('SOP')['directory']);
+    if(iterator_count($dirIterator) == 2){
         $listSOPs .= "<h2> No files in directory</h2>";
         goto brains;
     }
@@ -385,7 +384,7 @@ viewSOP;
                ."</form></div>";
 
     $listSOPs .= "<table border='0'>";
-    foreach ($dir as $fileinfo) {
+    foreach ($dirIterator as $fileinfo) {
         if( $fileinfo->isDot() ) continue;
 
         if( $sFilter ) {
@@ -447,8 +446,8 @@ function viewVideos(SEEDAppConsole $oApp){
 viewVideo;
     FilingCabinet::EnsureDirectory("videos");
     $listVideos = "<h3>View Uploaded Videos</h3>";
-    $dir = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
-    if(iterator_count($dir) == 2){
+    $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
+    if(iterator_count($dirIterator) == 2){
         $listVideos .= "<h2> No files in directory</h2>";
         goto brains;
     }
@@ -460,7 +459,7 @@ viewVideo;
         ."</form></div>";
 
         $listVideos .= "<table border='0'>";
-        foreach ($dir as $fileinfo) {
+        foreach ($dirIterator as $fileinfo) {
             if( $fileinfo->isDot() ) continue;
 
             if( $sFilter ) {
