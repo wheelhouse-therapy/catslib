@@ -22,8 +22,9 @@ class FilingCabinetDownload
 
     function DownloadFile()
     {
-        if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) && ($dir = SEEDInput_Str('dir')) ) {
-            $file = CATSDIR_RESOURCES.$dir.'/'.$file;
+        // dir is obsolete: it is prefixed to file. Soon we'll just refer to files with numbers anyway.
+        if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) /*&& ($dir = SEEDInput_Str('dir'))*/ ) {
+            $file = CATSDIR_RESOURCES./*$dir.'/'.*/$file;
 
             $resmode = SEEDInput_Str('resource-mode');
 

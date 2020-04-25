@@ -315,7 +315,7 @@ function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
 function downloadPath($mode, $dir_name, $fileinfo, $dir_short){
     switch($mode){
         case 'replace':
-            return "href='javascript:void(0)' onclick=\"select_client('".addslashes(/*$dir_name.*/$fileinfo->getFilename())."')\"";
+            return "href='javascript:void(0)' onclick=\"select_client('".addslashes($dir_short.'/'.$fileinfo->getFilename())."')\"";
         case 'no_replace':
             return "href='?cmd=download&file=".addslashes($dir_name.$fileinfo->getFilename())."&resource-mode=no_replace&dir=$dir_short'";
         case 'blank':
