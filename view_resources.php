@@ -79,8 +79,6 @@ ResourcesTagScript;
         return $s;
     }
 
-    $s .= "<a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a><br />";
-
     $dirIterator = new DirectoryIterator($dir_name);
     if(iterator_count($dirIterator) == 2){
         $s .= "<h2> No files in directory</h2>";

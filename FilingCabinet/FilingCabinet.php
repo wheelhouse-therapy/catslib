@@ -40,7 +40,8 @@ class FilingCabinetUI
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
-                ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
+                 ."<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>"
+                 ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
             if($dir == 'papers'){
                 include(CATSLIB."papers.php");
             }
