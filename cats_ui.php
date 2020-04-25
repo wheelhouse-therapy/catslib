@@ -193,7 +193,7 @@ ResetPassword;
                 break;
 
             case 'therapist-filing-cabinet':
-                $oFC = new FilingCabinet( $this->oApp );
+                $oFC = new FilingCabinetUI( $this->oApp );
                 $s .= $oFC->DrawFilingCabinet();
                 break;
             case 'therapist-reports':

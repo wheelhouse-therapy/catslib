@@ -6,16 +6,17 @@
  *
  * Upload and manage files
  *
+ * FilingCabinet         provides the base filesystem mechanism
+ * FilingCabinetUI       provides the top-level UI
  * FilingCabinetUpload   provides the UI to upload files to a pending status
  * FilingCabinetReview   provides the UI to review uploaded files to a final status
  * FilingCabinetDownload provides the UI to download files
  * FilingCabinetTools    provides the UI to move, rename, and delete files
  */
 
-class FilingCabinet
-/******************
-    Base filesystem class for the filing cabinet.
-    Code for any user actions on files goes in the appropriate UI class.
+class FilingCabinetUI
+/********************
+    Top-level UI for the filing cabinet.
  */
 {
     private $oApp;
@@ -25,18 +26,18 @@ class FilingCabinet
         $this->oApp = $oApp;
     }
 
-    function DrawFilingCabinet()
+    function DrawFilingCabinet( /* take a dir argument for Reports and other special drawers */ )
     {
         $s = "";
 
         //FIXME Only Ensure directories when we need access to them
         //This causes if a folder fails to be created when downloading
-        self::EnsureDirectory("*");
+        FilingCabinet::EnsureDirectory("*");
 
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
-        if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = self::GetDirInfo($dirbase)) ) {
+        if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
                 ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
@@ -51,7 +52,7 @@ class FilingCabinet
             $s .= "<h3>Filing Cabinet</h3>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = array_diff_key(self::$raDirectories, array_flip(array('reports','SOP','sections','videos')));
+            $ras = array_diff_key(FilingCabinet::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
             foreach( $ras as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {
@@ -75,6 +76,21 @@ class FilingCabinet
             default:
                 break;
         }
+    }
+}
+
+
+class FilingCabinet
+/******************
+    Base filesystem class for the filing cabinet.
+    Code for any user actions on files goes in the appropriate UI class.
+ */
+{
+    private $oApp;
+
+    function __construct( SEEDAppConsole $oApp )
+    {
+        $this->oApp = $oApp;
     }
 
     static function EnsureDirectory($dirs, $silent = FALSE)
@@ -201,25 +217,25 @@ class FilingCabinet
  *
  */
 class ResourceRecord {
-    
+
     //raParam keys
     private const ID_KEY = 'id';
     private const CREATED_KEY = 'created';
     private const STATUS_KEY = 'status';
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
-    
+
     private const TAG_SEPERATOR = "\t";
-    
-    
+
+
     //search constants
     /**
      * Used to denote that a search parameter should be excluded
      */
     public const WILDCARD = '*';
-    
+
     private $oApp;
-    
+
     // Database flags
     /**
      * Index of the database row this data was fetched from
@@ -234,7 +250,7 @@ class ResourceRecord {
      */
     private $created = 0;
     private $status = 0;
-    
+
     // File info
     private $dir;
     private $subdir = '';
@@ -246,10 +262,10 @@ class ResourceRecord {
      * INTERNAL USE ONLY
      */
     private $committed = false;
-    
+
     private function __construct(SEEDAppConsole $oApp, String $dirname, String $filename, array $raParams = []){
         $this->oApp = $oApp;
-        
+
         $this->file = $filename;
         $this->dir = $dirname;
         $this->id = @$raParams[self::ID_KEY]?:0;
@@ -263,7 +279,7 @@ class ResourceRecord {
             $this->tags = @$raParams[self::TAGS_KEY]?:[];
         }
     }
-    
+
     public function addTag(String $tag){
         if(in_array($tag, $this->tags)){
             return; // The Tag already exists in the list dont add it again
@@ -271,7 +287,7 @@ class ResourceRecord {
         $this->committed = false; //Assume the tag did not exist before
         $this->tags += [$tag];
     }
-    
+
     public function removeTag(String $tag){
         $ra = array_diff($this->tags, [$tag]);
         if($ra != $this->tags){
@@ -279,28 +295,28 @@ class ResourceRecord {
         }
         $this->tags = $ra;
     }
-    
+
     public function setDirectory(String $dir){
         if($dir != $this->dir){
             $this->committed = false;
         }
         $this->dir = $dir;
     }
-    
+
     public function setSubDirectory(String $subdir){
         if($subdir != $this->subdir){
             $this->committed = false;
         }
         $this->subdir = $subdir;
     }
-    
+
     public function setStatus(int $status){
         if($status != $this->status){
             $this->committed = false;
         }
         $this->status = $status;
     }
-    
+
     public function StoreRecord(){
         if($this->committed){
             //The data has not changed since the last store
@@ -325,44 +341,44 @@ class ResourceRecord {
         else{
             $this->committed = $this->oApp->kfdb->Execute("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')");
         }
-        
+
     }
-    
+
     public function getID():int{
         return $this->id;
     }
-    
+
     public function getCreated(){
         return $this->created;
     }
-    
+
     public function getStatus():int{
         return $this->status;
     }
-    
+
     public function getTags():array{
         return $this->tags;
     }
-    
+
     public function getFile():String{
         return $this->file;
     }
-    
+
     public function getDirectory():String{
         return $this->dir;
     }
-    
+
     public function getSubDirectory():String{
         return $this->subdir;
     }
-    
+
     public function getPath():String{
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
-    
+
     // These methods should allow calling files to get a record without needing to depend on the underlying database structure
     // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
-    
+
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
         $ra = $oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
@@ -378,11 +394,11 @@ class ResourceRecord {
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
-        
+
     }
-    
+
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
         return new ResourceRecord($oApp, $dirname, $filename);
     }
-    
+
 }

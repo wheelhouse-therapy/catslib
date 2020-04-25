@@ -11,11 +11,13 @@ class FilingCabinetDownload
 {
     private $oApp;
     private $oFC;
+    var $oResourcesFiles;   // make this private when its referers are moved into this class
 
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
         $this->oFC = new FilingCabinet( $oApp );
+        $this->oResourcesFiles = new ResourcesFiles( $oApp );
     }
 
     function DownloadFile()

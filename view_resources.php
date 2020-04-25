@@ -61,41 +61,14 @@ ResourcesTagStyle;
         </script>
 ResourcesTagScript;
 
+// TODO: the Filing Cabinet handles its own download cmd but this is still used by Reports (which should use DrawFilingCabinet('reports/') instead some day)
     if( SEEDInput_Str('cmd') == 'download' ) {
         $oFCD = new FilingCabinetDownload( $oApp );
         $oFCD->DownloadFile();
         exit;
     }
-    //list($mode,$s1) = $oFCD->GetDownloadMode( $download_modes, $dir_name );
-    //$s .= $s1;
-    $mode = 'replace';  // deprecate this variable
 
-/*
-    if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) ) {
-        $resmode = SEEDInput_Str('resource-mode');
-
-        if($resmode!="no_replace"){
-            // mode blank is implemented by telling template_filler that client=0
-            $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
-            $filler = new template_filler($oApp, @$_REQUEST['assessments']?:array());
-            $filler->fill_resource($file, ['client'=>$kClient]);
-        }
-        else{
-             header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
-             header('Content-Description: File Transfer');
-             header('Content-Disposition: attachment; filename="' . basename($file) . '"');
-             header('Content-Transfer-Encoding: binary');
-             if( ($fp = fopen( $file, "rb" )) ) {
-                 fpassthru( $fp );
-                 fclose( $fp );
-             }
-            die();
-        }
-        exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
-    }
-*/
-
-    $oResourcesFiles = new ResourcesFiles( $oApp );
+    $oFCD = new FilingCabinetDownload( $oApp );
 
     // make sure dir_name is the full path
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
@@ -165,13 +138,13 @@ ResourcesTagScript;
     $raOut += [''=>""];
 
     foreach ($dirIterator as $fileinfo) {
-        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles );
+        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD );
     }
 
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
-            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oResourcesFiles );
+            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oFCD );
         }
     }
     $s .= "<table border='0'>";
@@ -252,7 +225,7 @@ fcdScript;
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oResourcesFiles )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD )
 {
         $class = "";
 
@@ -299,7 +272,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
                                            [$class,
                                             $link,
                                             SEEDCore_HSC($fileinfo->getFilename()),
-                                            $oResourcesFiles->DrawTags($dir_short, $fileinfo->getFilename())
+                                            $oFCD->oResourcesFiles->DrawTags($dir_short, $fileinfo->getFilename())
                                            ],
                                            $sTemplate);
 
