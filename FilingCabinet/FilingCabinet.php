@@ -36,7 +36,7 @@ class FilingCabinetUI
 
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
-        var_dump(ResourceRecord::GetRecordFromPath($this->oApp, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD));
+        
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
@@ -283,7 +283,7 @@ class ResourceRecord {
     }
 
     /**
-     * Print all properties except oApp to clean up the screen when var_dumping object
+     * Print all properties except oApp to clean up the screen when printing object
      */
     public function __debugInfo() {
         return [
