@@ -36,7 +36,7 @@ class FilingCabinetUI
 
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
-
+        var_dump(ResourceRecord::GetRecordFromPath($this->oApp, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD));
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
@@ -279,8 +279,24 @@ class ResourceRecord {
         else{
             $this->tags = @$raParams[self::TAGS_KEY]?:[];
         }
+        $this->tags = array_values(array_filter($this->tags)); //Remove empty tags, saving to DB should keep them
     }
 
+    /**
+     * Print all properties except oApp to clean up the screen when var_dumping object
+     */
+    public function __debugInfo() {
+        return [
+            'id' => $this->id,
+            'created' => $this->created,
+            'status' => $this->status,
+            'dir' => $this->dir,
+            'subdir' => $this->subdir,
+            'tags' => $this->tags,
+            'committed' => $this->committed,
+        ];
+    }
+    
     public function addTag(String $tag){
         if(in_array($tag, $this->tags)){
             return; // The Tag already exists in the list dont add it again
@@ -377,6 +393,27 @@ class ResourceRecord {
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
 
+    /**
+     * Join a condition to the end of a condition.
+     * Will add AND/OR between the conditons if nessesary
+     * @param String $cond - condition to append to
+     * @param String $add - condition to append
+     * @param bool $disJuctive - weather to use or instead of and when joining conditions
+     * @return String - joined Conditions
+     */
+    private static function joinCondition(String $cond,String $add,bool $disJuctive = false):String{
+        if($cond){
+            if($disJuctive){
+                $cond .= " OR ";
+            }
+            else{
+                $cond .= " AND ";
+            }
+        }
+        $cond .= $add;
+        return $cond;
+    }
+    
     // These methods should allow calling files to get a record without needing to depend on the underlying database structure
     // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
 
@@ -402,4 +439,36 @@ class ResourceRecord {
         return new ResourceRecord($oApp, $dirname, $filename);
     }
 
+    public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
+        $cond = "";
+        if($dirname != self::WILDCARD){
+            $dbFolder = addslashes($dirname);
+            $cond = self::joinCondition($cond,"folder='$dbFolder'");
+        }
+        if($filename != self::WILDCARD){
+            $dbFilename = addslashes($filename);
+            $cond = self::joinCondition($cond, "filename='$dbFilename'");
+        }
+        if($subdir != self::WILDCARD){
+            $dbSubFolder = addslashes($subdir);
+            $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
+        }
+        $query = "SELECT _key FROM resources_files";
+        if($cond){
+            $query .= " WHERE $cond";
+        }
+        $ra = $oApp->kfdb->QueryRowsRA1($query,KEYFRAMEDB_RESULT_NUM);
+        $oRR = NULL;
+        if(count($ra) == 1){
+            $oRR = self::GetRecordByID($oApp, intval($ra[0]));
+        }
+        else if(count($ra) > 1){
+            $oRR = array();
+            foreach($ra as $id){
+                $oRR += [self::GetRecordByID($oApp, intval($id))];
+            }
+        }
+        return $oRR;
+    }
+    
 }
