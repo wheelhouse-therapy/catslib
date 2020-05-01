@@ -47,6 +47,28 @@ function createCircle(elements, styles) {
 	}
 	return true;
 }
+
+function loadMenu(menu){
+	$.ajax({
+        type: "POST",
+        data: {cmd:'loadMenu',screen:menu},
+        url: "jx.php",
+        success: function(data, textStatus, jqXHR) {
+            var jsData = JSON.parse(data);
+            if(jsData.bOk){
+            	document.getElementById('menu_body').innerHTML = jsData.sOut;
+            }
+            else{
+            	document.getElementById('menu_body').innerHTML = jsData.sErr;
+            }
+            $('#menu_dialog').modal('show');
+        },
+        error: function(jqXHR, status, error) {
+            console.log(status + ": " + error);
+        }
+    });
+}
+
 function run() {
     var x = document.querySelectorAll('.toCircle:not([class*=\"catsCircle\"])');
     var elements = [], styles = [];

@@ -106,7 +106,7 @@ class CATS_MainUI extends CATS_UI
         else if( substr($screen, 0,6) == "system"){
             $s .= $this->drawSystem();
         }
-        else if( substr($screen,0,9) == "developer" ) {
+        else if( substr($screen,0,13) == "administrator" ) {
             $s .= $this->DrawDeveloper();
         }
         else if( substr( $screen, 0, 5 ) == 'admin' ) {
@@ -151,12 +151,24 @@ ResetPassword;
     {
         $s = "<div class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
-            .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
-            .(CATS_SYSADMIN                               ? $this->DrawDeveloper() : "")
+            .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin()     : "")
+            .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
             .(!CATS_SYSADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
             .$this->DrawSystem()
             ."</div>";
+            $s .= "
+        <!-- the div that represents the modal dialog -->
+        <div class=\"modal\" id=\"menu_dialog\" role=\"dialog\">
+            <div class=\"modal-dialog modal-lg modal-dialog-centered\" style='max-width:1140px' role=\"document\">
+                <div class=\"modal-content\">
+                    <div class=\"modal-body\">
+                        <div class='container-fluid' id='menu_body'>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>";
 
             // Unset the mode var for resource download
             $this->oApp->sess->VarSet('resource-mode', 'replace');
@@ -182,7 +194,7 @@ ResetPassword;
             array( 'therapist-viewVideos',      "CATS University" ),
             //array( 'therapist-akaunting',       "Akaunting" ),
             array( 'therapist-distributeReports', "Distribute Reports" ),
-            array( 'link:https://www.catherapyservices.ca/webmail', "Manage Email" )
+            array( 'link:https://www.catherapyservices.ca/webmail', "Access Webmail" )
         );
 
         $s = "";
@@ -248,6 +260,7 @@ ResetPassword;
             case "therapist-distributeReports":
                 require_once CATSLIB."DistributeReports.php";
                 $s .= distributeReports($this->oApp);
+                break;
         }
         return( $s );
     }
@@ -282,7 +295,7 @@ ResetPassword;
                 $tnrs = new TagNameResolutionService($oApp->kfdb);
                 $s .= $tnrs->listResolution();
                 break;
-            default:
+            case "admin":
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
                     array( 'admin-resources',        "Review Resources" ),
@@ -290,8 +303,10 @@ ResetPassword;
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
                 $s .= $this->drawCircles( $raScreens );
-
                 break;
+            default:
+                $raScreens = [["menu:admin","Access Admin Functions"]];
+                $s .= $this->drawCircles($raScreens);
         }
         return( $s );
     }
@@ -305,7 +320,7 @@ ResetPassword;
     function DrawDeveloper(){
         $s = "";
         switch($this->oHistory->getScreen()){
-            case 'developer-droptable':
+            case 'administrator-droptable':
                 global $config_KFDB;
                 $db = $config_KFDB['cats']['kfdbDatabase'];
                 $oApp = $this->oApp;
@@ -328,28 +343,33 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'>Oops I miss placed your data</div>";
                 break;
-            case 'developer-clinics':
+            case 'administrator-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
-            case 'developer-confirmdrop':
+            case 'administrator-confirmdrop':
                 $s .= "<h3>Are you sure you want to drop the tables?</h3>"
                       ."<br /><h1>THIS CANNOT BE UNDONE</h1>"
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
-            case 'developer-SEEDBasket':
+            case 'administrator-SEEDBasket':
                 include_once( SEEDAPP."basket/basketManager.php" );
                 $s .= SEEDBasketManagerApp( $this->oApp );
                 break;
-            default:
+            case 'administrator':
                     $raScreens = array(
-                        array( 'developer-confirmdrop',    "Drop Tables"    ),
-                        array( 'developer-clinics',        "Manage Clinics" ),
+                        array( 'administrator-confirmdrop',    "Drop Tables"    ),
+                        array( 'administrator-clinics',        "Manage Clinics" ),
                     );
                     if( CATS_DEBUG ) {
                         $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
                     }
                     $s .= $this->drawCircles( $raScreens );
+                    break;
+            default:
+                $raScreens = [['menu:administrator',"Access Developer Functions"]];
+                $s .= $this->drawCircles($raScreens);
+                break;
         }
         return( $s );
     }
@@ -365,6 +385,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     array( 'leader-clinic',     "Manage Clinic")
                 );
                 $s .= $this->drawCircles( $raScreens );
+
         }
         return( $s );
     }
@@ -418,6 +439,10 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             if (SEEDCore_StartsWith($ra[0], "link:")) {
                 $href = substr($ra[0], 5);
                 $target = "target='_blank'";
+            } 
+            elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
+                $href = "#";
+                $target = "title='Open menu' onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
             } else {
                 $href = "?screen=".$ra[0];
             }
