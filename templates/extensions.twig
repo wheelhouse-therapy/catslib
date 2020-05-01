@@ -34,6 +34,12 @@
 	.catsCircle2 {
 		animation: colorChange 10s ease-in-out -5s infinite alternate;
 	}
+	/* Class for bluring the background for menus */
+	.blur {
+		background: rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(8px);
+		opacity: 1!important;
+	}
 </style>
 <script>
 function createCircle(elements, styles) {
@@ -62,6 +68,7 @@ function loadMenu(menu){
             	document.getElementById('menu_body').innerHTML = jsData.sErr;
             }
             $('#menu_dialog').modal('show');
+            $('.modal-backdrop').addClass('blur');
         },
         error: function(jqXHR, status, error) {
             console.log(status + ": " + error);

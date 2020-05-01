@@ -185,7 +185,7 @@ ResetPassword;
             array( 'therapist-clientlist',      "Clients and External Providers" ),
             array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-submitresources', "Submit Resources to Share" ),
+            array( 'menu:therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-assessments',     "Score Assessments"),
             //array( 'therapist-documents',       "Documents" ),
             //array( 'therapist-team',            "Meet the Team" ),
@@ -305,7 +305,7 @@ ResetPassword;
                 $s .= $this->drawCircles( $raScreens );
                 break;
             default:
-                $raScreens = [["menu:admin","Access Admin Functions"]];
+                $raScreens = [["menu:admin","Admin Tools"]];
                 $s .= $this->drawCircles($raScreens);
         }
         return( $s );
@@ -367,7 +367,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     $s .= $this->drawCircles( $raScreens );
                     break;
             default:
-                $raScreens = [['menu:administrator',"Access Developer Functions"]];
+                $raScreens = [['menu:administrator',"Developer Tools"]];
                 $s .= $this->drawCircles($raScreens);
                 break;
         }
@@ -412,17 +412,14 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 if(!CATS_DEBUG){
                     unset($raScreens[0]);
                 }
-                $s .= "<h2>System Resources</h2>";
-                foreach($raScreens as $ra){
-                    $s .= "<div><a href='?screen={$ra[0]}'>{$ra[1]}</a></div>";
-                }
+                $s .= $this->drawCircles($raScreens);
                 break;
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
                 $s .= $gen->footerOptions();
                 break;
             default:
-                $s .= $this->drawCircles(array(array('system',"Access System Resources")));
+                $s .= $this->drawCircles([['menu:system',"Access System Resources"]]);
         }
         return( $s );
     }
