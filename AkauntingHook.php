@@ -1,7 +1,5 @@
 <?php
 
-use Twig\Error\Error;
-
 if(!defined("CATSLIB")){define("CATSLIB", "./");}
 
 require_once(CATSLIB.'vendor/autoload.php');
