@@ -24,11 +24,10 @@ class FilingCabinetUpload
         // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
         $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions(),
                                                     ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-        return( "<form action='?screen=therapist-resources' method='post' enctype='multipart/form-data'>
+        return( "<form method='post' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
                  Select file to upload:
-                 <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts'>
-                 Max File size:".ini_get('upload_max_filesize')."b <br/>
-                 <input type='submit' value='Upload File' name='submit'></form>" );
+                 <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts'><br />
+                 <input type='submit' value='Upload File' name='submit' onclick='submitForm(event)'> Max Upload size:".ini_get('upload_max_filesize')."b</form>" );
     }
 
     function UploadToPending()
@@ -40,7 +39,7 @@ class FilingCabinetUpload
 
         FilingCabinet::EnsureDirectory("pending");
 
-        $s .= "<a href='?screen=therapist-submitresources'><button>Back</button></a><br />";
+        $s .= "<button onclick='resetForm()'>Reset</button><br />";
 
         // check if a file was uploaded
         if( !$_FILES[self::fileid]["name"] || !$_FILES[self::fileid]['size'] ) {

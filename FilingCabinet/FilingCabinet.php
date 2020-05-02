@@ -49,6 +49,11 @@ class FilingCabinetUI
                 $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
             }
         } else {
+            
+            $s .= "<div style='float:right;' id='uploadForm'>"
+                    .FilingCabinetUpload::DrawUploadForm()
+                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+            
             // Show the "closed drawers" of the filing cabinet
             $s .= "<h3>Filing Cabinet</h3>";
 

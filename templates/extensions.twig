@@ -672,3 +672,36 @@ debugger;
 
 %% manage-users
 <script src='{{ CATSDIR_JS }}manage-users.js'></script>
+
+%% filing-cabinet
+<script>
+	function submitForm(e){
+		var formData = new FormData(e.currentTarget.form);
+		formData.append("cmd","therapist-resource-upload");
+        $.ajax({
+            type: "POST",
+            data: formData,
+            cache       : false,
+            contentType : false,
+            processData : false,
+            url: 'jx.php',
+            success: function(data, textStatus, jqXHR) {
+                var jsData = JSON.parse(data)
+                if(jsData.bOk){
+					document.getElementById('uploadForm').innerHTML = jsData.sOut;
+                }
+                else{
+                	document.getElementById('uploadForm').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+        e.preventDefault();
+	}
+
+	function resetForm(){
+		document.getElementById('uploadForm').innerHTML = upload;
+	}
+</script>

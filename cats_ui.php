@@ -185,7 +185,6 @@ ResetPassword;
             array( 'therapist-clientlist',      "Clients and External Providers" ),
             array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
-            array( 'menu:therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-assessments',     "Score Assessments"),
             //array( 'therapist-documents',       "Documents" ),
             //array( 'therapist-team',            "Meet the Team" ),
@@ -224,15 +223,6 @@ ResetPassword;
                 break;
             case "therapist-team":
                 $s .= "MEET THE TEAM";
-                break;
-            case "therapist-submitresources":
-                $s .= "<h3>Submit Resources</h3>"
-                     .FilingCabinetUpload::DrawUploadForm();
-                break;
-            case 'therapist-resources':
-                $this->oHistory->removeFromHistory(-1);
-                $oFC = new FilingCabinetUpload( $this->oApp );
-                $s .= $oFC->UploadToPending();
                 break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
