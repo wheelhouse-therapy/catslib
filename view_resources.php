@@ -416,7 +416,17 @@ function viewVideos(SEEDAppConsole $oApp){
     </div>
 viewVideo;
     FilingCabinet::EnsureDirectory("videos");
-    $listVideos = "<h3>View Uploaded Videos</h3>";
+    // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
+    $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
+        ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
+    $listVideos = "<div style='float:right;' id='uploadForm'>"
+                    ."<form method='post' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                        Select video to upload:
+                        <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
+                        <input type='submit' value='Upload Video' name='submit' onclick='submitForm(event)'> Max Upload size:".ini_get('upload_max_filesize')."b</form>"
+                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+        
+    $listVideos .= "<h3>View Uploaded Videos</h3>";
     $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
     if(iterator_count($dirIterator) == 2){
         $listVideos .= "<h2> No files in directory</h2>";

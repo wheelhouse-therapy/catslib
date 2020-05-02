@@ -17,5 +17,6 @@ $mappings = array(
     "leader-clinic" => "clinics",
     "therapist-distributeReports" => "distributeReports",
     "admin-users" => "manage-users",
-    "therapist-filing-cabinet" => "filing-cabinet",
+    "therapist-filing-cabinet" => "file-upload",
+    "therapist-viewVideos" => "file-upload",
 );
