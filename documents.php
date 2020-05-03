@@ -406,19 +406,29 @@ class ResourceManager{
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
-                $directory = $this->getPartPath($file_info->getRealPath(), -2);
-                if(!$directory){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining resource subfolder for file ".$file_info->getFilename()."</div>";
+                $movedFileFull = $file_info->getRealPath();
+                if( !SEEDCore_StartsWith($movedFileFull, CATSDIR_RESOURCES) ) {
+                    $_SESSION['ResourceCMDResult'] =
+                        "<div class='alert alert-danger alert-dismissible'>Error determining subfolder for file ".$file_info->getFilename()."</div>";
                     break;
                 }
-                if(rename((substr($directory, 0,9) == "resources"?CATSDIR:CATSDIR_RESOURCES).$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
+                $movedFileRel = substr($movedFileFull, strlen(CATSDIR_RESOURCES));
+                $movedFileDir = pathinfo($movedFileRel, PATHINFO_DIRNAME);
+                $toFolder = SEEDInput_Str('folder');
+
+                //if(rename((substr($movedFileDir, 0,9) == "resources"?CATSDIR:CATSDIR_RESOURCES).$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
+                if( rename($movedFileFull, CATSDIR_RESOURCES.$toFolder.$file_info->getFilename()) ) {
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
-                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(SEEDInput_Str("folder"),"/"))."' WHERE folder='".addslashes(rtrim($directory,"/\\"))."' AND filename='".addslashes($file_info->getFilename())."'")){
+
+                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET folder='".addslashes(rtrim($toFolder,"/"))."' "
+                                                   ."WHERE folder='".addslashes(rtrim($movedFileDir,"/"))."' AND "
+                                                   ."filename='".addslashes($file_info->getFilename())."'") )
+                    {
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else{
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file ".$file_info->getFilename()." to $toFolder</div>";
                 }
                 break;
             case "rename":
