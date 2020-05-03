@@ -406,46 +406,77 @@ class ResourceManager{
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
-                $movedFileFull = $file_info->getRealPath();
-                if( !SEEDCore_StartsWith($movedFileFull, CATSDIR_RESOURCES) ) {
-                    $_SESSION['ResourceCMDResult'] =
-                        "<div class='alert alert-danger alert-dismissible'>Error determining subfolder for file ".$file_info->getFilename()."</div>";
+                $fromFileBase = $file_info->getFilename();                              // base file name
+                $fromFileFull = $file_info->getRealPath();                              // full file path with ".." removed
+                $fromFileRel = substr($fromFileFull, strlen(CATSDIR_RESOURCES));        // path relative to CATSDIR_RESOURCES
+                $fromDirRel = pathinfo($fromFileRel, PATHINFO_DIRNAME);                 // dir of relative path
+                $toDirRel = SEEDInput_Str('folder');                                    // destination relative dir
+                $toDirFull = realpath(CATSDIR_RESOURCES.$toDirRel);                     // destination full dir with ".." removed
+                $toFileFull = $toDirFull.'/'.$fromFileBase;                             // destination full filename
+//var_dump($toDirRel,$toDirFull,$fromFileFull,$toFileFull);exit;
+
+                // Don't allow somebody to move a file that isn't in CATSDIR_RESOURCES.
+                // This is possible if the input file path contains "..", but realpath removes those.
+                if( !SEEDCore_StartsWith($fromFileFull, CATSDIR_RESOURCES) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot move file</div>";
                     break;
                 }
-                $movedFileRel = substr($movedFileFull, strlen(CATSDIR_RESOURCES));
-                $movedFileDir = pathinfo($movedFileRel, PATHINFO_DIRNAME);
-                $toFolder = SEEDInput_Str('folder');
+                // Don't allow somebody to move a file outside of CATSDIR_RESOURCES.
+                // This is possible if the destination folder name contains "..", but realpath removes those.
+                if( !SEEDCore_StartsWith($toFileFull, CATSDIR_RESOURCES) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot move file to that folder</div>";
+                    break;
+                }
+
+                // Could check if $movedFileFull and $toFolder don't exist, but that could only happen if you're doing something stupid
 
                 //if(rename((substr($movedFileDir, 0,9) == "resources"?CATSDIR:CATSDIR_RESOURCES).$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
-                if( rename($movedFileFull, CATSDIR_RESOURCES.$toFolder.$file_info->getFilename()) ) {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved ".$file_info->getFilename()." to ".SEEDInput_Str("folder")."</div>";
+                if( rename($fromFileFull, $toFileFull) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved $fromFileBase to $toDirRel</div>";
 
-                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET folder='".addslashes(rtrim($toFolder,"/"))."' "
-                                                   ."WHERE folder='".addslashes(rtrim($movedFileDir,"/"))."' AND "
-                                                   ."filename='".addslashes($file_info->getFilename())."'") )
+                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET folder='".addslashes(rtrim($toDirRel,"/"))."' "
+                                                   ."WHERE folder='".addslashes(rtrim($fromDirRel,"/"))."' AND "
+                                                   ."filename='".addslashes($fromFileBase)."'") )
                     {
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $fromFileBase<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else{
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file ".$file_info->getFilename()." to $toFolder</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file $fromFileBase to $toFolder</div>";
                 }
                 break;
+
             case "rename":
-                $path = substr($file_info->getPathname(), 0,strrpos($file_info->getPathname(), DIRECTORY_SEPARATOR));
-                if(!$path){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error determining start of path for file ".$file_info->getFilename()."</div>";
+                $oldFileBase = $file_info->getFilename();                         // base path of old file
+                $oldFileFull = $file_info->getRealPath();                         // full path of old file
+                $dir = pathinfo($oldFileFull,PATHINFO_DIRNAME);                   // full dir of old file
+
+                if( ($name = SEEDInput_Str("name")) && ($ext = SEEDInput_Str("ext")) ) {
+                    $newFileBase = $name.'.'.$ext;                                // base name of new file
+                } else {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>New file name not given</div>";
                     break;
                 }
-                if(rename($file_info->getPathname(), $path.DIRECTORY_SEPARATOR.SEEDInput_Str("name").".".SEEDInput_Str("ext"))){
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." renamed to ".SEEDInput_Str("name").".".SEEDInput_Str("ext")."</div>";
-                    $directory = $this->getPartPath($file_info->getRealPath(), -2);
-                    if(!$this->oApp->kfdb->Execute("UPDATE resources_files SET filename = '".addslashes(SEEDInput_Str("name").".".SEEDInput_Str("ext"))."' WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename())."'")){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                $newFileFull = $dir.'/'.$newFileBase;                             // full path of new file
+
+                // Don't allow somebody to rename a file that isn't in CATSDIR_RESOURCES
+                // This is possible if the input file path contains "..", but realpath removes those.
+                if( !SEEDCore_StartsWith($oldFileFull, CATSDIR_RESOURCES) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot rename file</div>";
+                    break;
+                }
+                if( rename($oldFileFull, $newFileFull) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File $oldFileBase renamed to $newFileBase</div>";
+                    $dirRel = substr($dir,strlen(CATSDIR_RESOURCES));
+                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET filename='".addslashes($newFileBase)."' "
+                                                   ."WHERE folder='".addslashes($dirRel)."' AND "
+                                                   ."filename='".addslashes($oldFileBase)."'") )
+                    {
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $oldFileBase<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file ".$file_info->getFilename()." to ".SEEDInput_Str("name").".".SEEDInput_Str("ext")."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file $oldFileBase to $newFileBase</div>";
                 }
                 break;
             case "delete":
@@ -470,7 +501,7 @@ class ResourceManager{
         if(!$this->oApp->sess->CanAdmin("admin")){
             return "You don't have permission to edit files";
         }
-        $directory = $this->getPartPath($file_path,-2);
+        $directory = pathinfo(substr($file_path,strlen(CATSDIR_RESOURCES)),PATHINFO_DIRNAME);
         $move = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move\")'>move</a>";
         $move .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move' style='display:none'>"
                 ."<br /><form>
@@ -478,8 +509,15 @@ class ResourceManager{
                   <input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />
                   <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
-            if($v['directory'] != $directory."/" && in_array(pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION),$v['extensions'])){
-               $move .="<option value='".$v['directory']."'>".$v['name']."</option>";
+            // don't allow moving files into folders where they aren't supported
+            if( !in_array(pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION),$v['extensions']) ) continue;
+
+            $sDisabled = ($v['directory'] == $directory."/") ? " disabled" : "";
+            $move .= "<option value='".$v['directory']."' $sDisabled>".$v['name']."</option>";
+            foreach( FilingCabinet::GetSubfolders($k) as $sub ) {
+                $subfolder = $v['directory'].$sub;
+                $sDisabled = ($subfolder== $directory) ? " disabled" : "";
+                $move .= "<option value='$subfolder' $sDisabled> -- $sub</option>";
             }
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
