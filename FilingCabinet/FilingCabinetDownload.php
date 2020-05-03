@@ -49,6 +49,20 @@ class FilingCabinetDownload
         }
     }
 
+    function GetDownloadPath( $mode, $filename, $dir_short )
+    {
+        $dbFname = addslashes($dir_short.'/'.$filename);
+        switch( $mode ) {
+            case 'replace':
+                return "href='javascript:void(0)' onclick=\"select_client('$dbFname')\"";
+            case 'no_replace':
+                return "href='?cmd=download&file=$dbFname&resource-mode=no_replace'";
+            case 'blank':
+                return "href='?cmd=download&file=$dbFname&client=0'";
+        }
+    }
+
+
     function GetDownloadMode( $download_modes, $dir_name )
     {
         $s = "";
