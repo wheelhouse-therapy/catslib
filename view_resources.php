@@ -244,9 +244,9 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
 
         // docx files get a link to the modal dialog; other files get a link for simple download
         if( $fileinfo->getExtension() == "docx" ) {
-            $link = downloadPath('replace', $dir_name, $fileinfo, $dir_short);
+            $link = $oFCD->GetDownloadPath('replace', $fileinfo->getFilename(), $dir_short);
         } else {
-            $link = downloadPath("no_replace", "", $fileinfo, $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";
+            $link = $oFCD->GetDownloadPath("no_replace", $fileinfo->getFilename(), $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";
             //$class = "class='btn disabled'";
         }
 
@@ -308,17 +308,6 @@ function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
     $resourcesMode = str_replace("[[button2]]", "", $resourcesMode);
 
     return $resourcesMode;
-}
-
-function downloadPath($mode, $dir_name, $fileinfo, $dir_short){
-    switch($mode){
-        case 'replace':
-            return "href='javascript:void(0)' onclick=\"select_client('".addslashes($dir_short.'/'.$fileinfo->getFilename())."')\"";
-        case 'no_replace':
-            return "href='?cmd=download&file=".addslashes($dir_name.$fileinfo->getFilename())."&resource-mode=no_replace&dir=$dir_short'";
-        case 'blank':
-            return "href='?cmd=download&file=".addslashes($dir_name.$fileinfo->getFilename())."&client=0&dir=$dir_short'";
-    }
 }
 
 function viewSOPs(SEEDAppConsole $oApp){
@@ -425,7 +414,7 @@ viewVideo;
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
                         <input type='submit' value='Upload Video' name='submit' onclick='submitForm(event)'> Max Upload size:".ini_get('upload_max_filesize')."b</form>"
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-        
+
     $listVideos .= "<h3>View Uploaded Videos</h3>";
     $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
     if(iterator_count($dirIterator) == 2){
