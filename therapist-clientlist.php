@@ -567,9 +567,9 @@ ExistsWarning;
         $sPros       .= "</div>".($oForm->Value('_key')?drawModalButton($oForm->Value('_key')):"");
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
-        $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
+        $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years, %m Months");
         $this->sForm =
-             ($oForm->Value("_status")==0?"<form onSubmit='event.preventDefault()'>":"")
+             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event);submitSidebarForm(event)'>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
@@ -587,8 +587,8 @@ ExistsWarning;
              $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
              $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
              $this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"),$oForm)));
-             $this->drawPartialFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray'"))."<span class='date-description'>(YYYY-MM-DD)</span>" );
-             $this->drawPartialFormRow( "Age", $age);
+             $this->drawPartialFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray' pattern='\d{4}-((0\d)|(1[0-2]))-(([0-2]\d)|(3[01]))' title='yyyy-mm-dd' placeholder='yyyy-mm-dd' oninput='updateAge(event)'"))."<span class='date-description'>(YYYY-MM-DD)</span>" );
+             $this->drawPartialFormRow( "Age", "<span id='age'>".$age."</span>");
              $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
              $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
@@ -596,8 +596,8 @@ ExistsWarning;
              $this->endRowDraw();
              if($oForm->Value("_status")==0){
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event)' /></td>"
-                ."<td class='col-md-12'><input type='submit' value='Save and Close' style='margin:auto' onclick='clinicHack(event);submitForm(event)' /></td>"
+                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input type='submit' value='Save and Close' style='margin:auto' /></td>"
              ."</tr>"
              ."<tr class='row'>"
                  .($oForm->Value('P_email')
@@ -720,7 +720,7 @@ ExistsWarning;
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm =
-              "<form onSubmit='event.preventDefault()'>"
+              "<form onSubmit='clinicHack(event);submitSidebarForm(event);'>"
                   .($bTherapist ? (($oForm->Value('_key')?"<input type='hidden' name='therapist_key' id='therapistId' value='{$oForm->Value('_key')}'/>":"")
                              ."<input type='hidden' name='cmd' value='update_therapist'/>"
                                  .(($oForm->Value('_key')?($this->clinics->isCoreClinic() ? "<p>Therapist # {$oForm->Value('_key')}</p>":""):"New Therapist")
@@ -756,8 +756,8 @@ ExistsWarning;
              }
              $this->endRowDraw();
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
-                ."<td class='col-md-12'><input type='submit' name='action' value='Save and Close' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
+                ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input type='submit' name='action' value='Save and Close' style='margin:auto' /></td>"
              ."</tr>"
              ."</table>"
              ."</form>";
