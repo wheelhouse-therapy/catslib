@@ -492,12 +492,16 @@ class AssessmentsCommon
         $clinics->GetCurrentClinic();
         $clientlist = new ClientList($this->oApp);
         $raClients = $clientlist->getMyClients();
+        $raParams = array("attrs"=>"required");
+        if($this->oApp->sess->SmartGPC('client_key')){
+            $raParams = array_merge($raParams,['selected'=>$this->oApp->sess->SmartGPC('client_key')]);
+        }
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || CATS_SYSADMIN?" ({$ra['_key']})":"")] = $ra['_key'];
         }
 
-        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", $raParams )."</div>" );
     }
     function LookupProblemItems( int $kClient, string $asmtType, string $section )
     {

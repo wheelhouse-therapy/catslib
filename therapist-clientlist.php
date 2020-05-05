@@ -599,11 +599,10 @@ ExistsWarning;
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
                 ."<td class='col-md-12'><input type='submit' value='Save and Close' style='margin:auto' /></td>"
              ."</tr>"
-             ."<tr class='row'>"
-                 .($oForm->Value('P_email')
-                     ?"<td class='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
-             ."</tr>"
-             ."</tr>"
+//              ."<tr class='row'>"
+//                  .($oForm->Value('P_email')
+//                      ?"<td class='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
+//              ."</tr>"
              ."</table>"
              ."</form>";
              }
