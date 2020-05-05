@@ -816,8 +816,12 @@ ExistsWarning;
     }
 
     private function getLinkedUser(KeyframeForm $oForm, String $key):String{
+        if(!CATS_SYSADMIN){
+            // At this time to prevent confusion only show this form to System Admins, who likely know what it means
+            return "";
+        }
         $sUser = "<div style='padding:10px;border:1px solid #888'>Linked Account: [[account]]<br/>";
-        if($this->oApp->sess->CanAdmin('admin')){
+        if($this->oApp->sess->CanAdmin('admin')){ // Keep in case a non-admin sees this form. This will prevent them from makeing changes
             $sUser .= "<form onSubmit='event.preventDefault()'>"
                      ."<input type='hidden' name='cmd' value='linkAccount'/>"
                      ."<input type='hidden' name='key' value='$key'/>"
