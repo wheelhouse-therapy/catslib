@@ -357,7 +357,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     $s .= $this->drawCircles( $raScreens );
                     break;
             default:
-                $raScreens = [['menu:administrator',"Developer Tools"]];
+                $raScreens = [['menu:administrator',"Developer Tools","418 I'm a teapot"]];
                 $s .= $this->drawCircles($raScreens);
                 break;
         }
@@ -423,17 +423,24 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             if( $this->i % 4 == 0 ) $s .= "<div class='row'>";
             $href = "";
             $target = "";
+            $title = "";
             if (SEEDCore_StartsWith($ra[0], "link:")) {
                 $href = substr($ra[0], 5);
-                $target = "target='_blank'";
+                $target = " target='_blank'";
             } 
             elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
                 $href = "#";
-                $target = "title='Open menu' onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
+                $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
+                $title = " title='Open menu'";
             } else {
                 $href = "?screen=".$ra[0];
             }
-            $s .= "<div class='col-md-3'><a href='{$href}' {$target} class='toCircle $circle'>{$ra[1]}</a></div>";
+            if(@$ra[2]){
+                // The optional title has been set
+                $ra[2] = SEEDCore_HSC($ra[2]); //Allow for use of ' in title
+                $title = " title='{$ra[2]}'";
+            }
+            $s .= "<div class='col-md-3'><a href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}</a></div>";
             if( $this->i % 4 == 3 ) $s .= "</div>";   // row
             ++$this->i;
         }
