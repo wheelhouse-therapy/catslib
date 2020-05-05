@@ -414,7 +414,9 @@ class AssessmentsCommon
      */
     {
         if(!$client_key && !CATS_SYSADMIN){
-            return "";
+            //The user is not loading from a clients record and is not a System Admin, show this message instead of assessment results
+            //System Admins can see a list of all the assessmtents while everyone else must use therapist-clientlist to access assessment results
+            return "<strong>To view a clients results use the assessments result button in the client form. </strong><a href='?screen=therapist-clientlist'>Link to Client list</a>";
         }
         $s = "";
 
