@@ -403,6 +403,7 @@ class ResourceManager{
     }
 
     private function processCommands(DirectoryIterator $file_info){
+        //FIXME USE ResourceRecord instead of oApp->kfdb when working with database records
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":

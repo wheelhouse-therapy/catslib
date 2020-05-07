@@ -140,6 +140,7 @@ ResourcesTagScript;
     }
 
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+        if(!file_exists($dir_name.$subfolder)) continue;
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
             list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oFCD );
@@ -226,17 +227,20 @@ fcdScript;
 function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD )
 {
         $class = "";
-
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
-
-        $dbFilename = addslashes($fileinfo->getFilename());
-        $dbDirName = addslashes($dir_short);
+        
+        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
+        
+        if(!$oRR){
+            // The file does not have a record yet, create one
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()));
+            $oRR->StoreRecord();
+        }
 
         if( $sFilter ) {
             // list this file if sFilter matches part of its filename, or part of one of its tags
             if( stripos( $fileinfo->getFilename(), $sFilter ) === false &&
-                !$oApp->kfdb->Query1( "SELECT _key FROM resources_files "
-                                     ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%".addslashes($sFilter)."%'" ) )
+                !in_array($sFilter, $oRR->getTags()))
             {
                 goto done;
             }
@@ -251,6 +255,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
         }
 
 // we used to store subfolders in db; and we'll do this again!
+// TODO Update to use ResourceRecord instead of oApp->kfdb as the kfdb depends on the db structure remaining the same
 //        if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
 //            $subfolder = "";
 //        }
@@ -261,7 +266,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
                 <td valign='top'>
                     <a style='white-space: nowrap' [[LINK]] >[[FILENAME]]</a>
                 </td>
-                <td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($dir_short)."' data-filename='[[FILENAME]]'>
+                <td style='padding-left:20px' valign='top' data-id='".$oRR->getID()."'>
                     [[TAGS]]
                 </td>
             </tr>";
@@ -270,7 +275,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
                                            [$class,
                                             $link,
                                             SEEDCore_HSC($fileinfo->getFilename()),
-                                            $oFCD->oResourcesFiles->DrawTags($dir_short, $fileinfo->getFilename())
+                                            $oFCD->oResourcesFiles->DrawTags($oRR)
                                            ],
                                            $sTemplate);
 
@@ -469,21 +474,14 @@ viewVideo;
 
 class ResourcesFiles
 {
-    private $oApp;
 
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function DrawTags( $folder, $filename )
+    function DrawTags( ResourceRecord $oRR )
     {
         $s = "";
 
         $s .= "<div class='resources-tag resources-tag-new'>+</div>";
-
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE folder='".addslashes($folder)."' AND filename='".addslashes($filename)."'" );
-        $raTags = explode( "\t", $ra['tags'] );
+        
+        $raTags = $oRR->getTags();
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
             $s .= "<div class='resources-tag resources-tag-filled'>$tag</div> ";
