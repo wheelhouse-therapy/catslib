@@ -302,53 +302,100 @@ class ResourceRecord {
         ];
     }
     
-    public function addTag(String $tag){
+    /**
+     * Add a tag to the record
+     * NOTE: This DOES NOT STORE THE TAG
+     * @param String $tag - tag to add
+     * @return bool - true if the tag was added, false otherwise
+     */
+    public function addTag(String $tag):bool{
         if(in_array($tag, $this->tags)){
-            return; // The Tag already exists in the list dont add it again
+            return false; // The Tag already exists in the list dont add it again
         }
         $this->committed = false; //Assume the tag did not exist before
         $this->tags += [$tag];
+        return true;
     }
 
-    public function removeTag(String $tag){
+    /**
+     * Attempt to remove a tag from the record
+     * NOTE: This DOES NOT REMOVE THE TAG FROM THE DATABASE
+     * @param String $tag - tag to attempt to remove
+     * @return bool - true if tag no longer exists in record, false otherwise
+     */
+    public function removeTag(String $tag):bool{
         $ra = array_diff($this->tags, [$tag]);
         if($ra != $this->tags){
             $this->committed = false;
         }
         $this->tags = $ra;
+        return !$this->committed;
     }
 
-    public function setDirectory(String $dir){
+    /**
+     * Set the directory of the record.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 2: This DOES NOT MOVE THE FILE
+     * @param String $dir - dir to set
+     * @return bool - true if the directory has changed, false otherwise
+     */
+    public function setDirectory(String $dir):bool{
         if($dir != $this->dir){
             $this->committed = false;
         }
         $this->dir = $dir;
+        return !$this->committed;
     }
 
-    public function setSubDirectory(String $subdir){
+    /**
+     * Set the sub-directory of the record.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 2: This DOES NOT MOVE THE FILE
+     * @param String $subdir - sub-directory to set
+     * @return bool - true if the subdirectory has changed, false otherwise
+     */
+    public function setSubDirectory(String $subdir):bool{
         if($subdir != $this->subdir){
             $this->committed = false;
         }
         $this->subdir = $subdir;
+        return !$this->committed;
     }
 
-    public function setStatus(int $status){
+    /**
+     * Set the status of the record
+     * 0 for normal.
+     * 1 for deleted.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 2: Record Searches MAY IGNORE records which have a status other than 0
+     * NOTE 3: Create Methods MAY OVERWRITE records which have a status of 1.
+     * @param int $status - status to set
+     * @return bool - true if status has changed, false otherwise
+     */
+    public function setStatus(int $status):bool{
         if($status != $this->status){
             $this->committed = false;
         }
         $this->status = $status;
+        return !$this->committed;
     }
 
-    public function StoreRecord(){
+    /**
+     * Commit any record changes to the database, and update the id if needed.
+     * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
+     * @return bool - true if data successfully committed, false otherwise
+     */
+    public function StoreRecord():bool{
         if($this->committed){
             //The data has not changed since the last store
-            return;
+            return false;
         }
         $dbFolder = addslashes($this->dir);
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
+            //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
             $cond = "_status={$this->status} AND subfolder='{$dbSubFolder}' AND folder='{$dbFolder}' AND filename='{$dbFilename}'";
             $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE $cond" )?:0;
         }
@@ -361,9 +408,11 @@ class ResourceRecord {
             $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder' WHERE _key = {$this->key}");
         }
         else{
-            $this->committed = $this->oApp->kfdb->Execute("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')");
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')"))){
+                $this->committed = true;
+            }
         }
-
+        return $this->committed;
     }
 
     public function getID():int{
@@ -443,7 +492,41 @@ class ResourceRecord {
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
         return new ResourceRecord($oApp, $dirname, $filename);
     }
-
+    
+    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath){
+        $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
+        $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
+        $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
+        if($realpath == ""){
+            //Cant create a record from an empty path
+            return NULL;
+        }
+        $parts = explode(DIRECTORY_SEPARATOR, $realpath);
+        $dir = "";
+        $subdir = "";
+        $filename = "";
+        switch(count($parts)){
+            case 3:
+                $filename = $parts[2];
+                $subdir = $parts[1];
+                $dir = $parts[0];
+                break;
+            case 2:
+                $filename = $parts[1];
+                $dir = $parts[0];
+            case 1:
+                $dir = $parts[0];
+                break;
+            default:
+                //Should never reach here
+                return NULL;
+                break;
+        }
+        $oRR =  self::CreateNewRecord($oApp, $dir, $filename);
+        $oRR->subdir = $subdir;
+        return $oRR;
+    }
+    
     public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
         $cond = "";
         if($dirname != self::WILDCARD){
@@ -474,6 +557,38 @@ class ResourceRecord {
             }
         }
         return $oRR;
+    }
+    
+    public static function GetRecordFromRealPath(SEEDAppConsole $oApp, String $realpath){
+        $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
+        $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
+        $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
+        if($realpath == ""){
+            //Cant fetch a record of an empty path
+            return NULL;
+        }
+        $parts = explode(DIRECTORY_SEPARATOR, $realpath);
+        $dir = self::WILDCARD;
+        $subdir = self::WILDCARD;
+        $filename = self::WILDCARD;
+        switch(count($parts)){
+            case 3:
+                $filename = $parts[2];
+                $subdir = $parts[1];
+                $dir = $parts[0];
+                break;
+            case 2:
+                $filename = $parts[1];
+                $dir = $parts[0];
+            case 1:
+                $dir = $parts[0];
+                break;
+            default:
+                //Should never reach here
+                return NULL;
+                break;
+        }
+        return self::GetRecordFromPath($oApp, $dir, $filename,$subdir);
     }
     
 }
