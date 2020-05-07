@@ -34,9 +34,14 @@ class FilingCabinetUI
         //This causes if a folder fails to be created when downloading
         FilingCabinet::EnsureDirectory("*");
 
+        // Temporary method to build ResourceRecord db entries for all files in the Filing Cabinet
+        // Remove this when that is happening naturally.
+        (new FilingCabinet($this->oApp))->tmpEnsureResourceRecords();
+
+
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
-        
+
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
@@ -49,11 +54,11 @@ class FilingCabinetUI
                 $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
             }
         } else {
-            
+
             $s .= "<div style='float:right;' id='uploadForm'>"
                     .FilingCabinetUpload::DrawUploadForm()
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-            
+
             // Show the "closed drawers" of the filing cabinet
             $s .= "<h3>Filing Cabinet</h3>";
 
@@ -153,6 +158,43 @@ class FilingCabinet
                         if(!$silent){
                             echo "$subdirname directory ".($r ? "" : "Could Not Be")." Created<br />";
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    function tmpEnsureResourceRecords()
+    {
+        /* This is a temporary measure to make sure that a ResourceRecord exists for every file in the Filing Cabinet, except for "pending"
+         * Remove this method when ResourceRecords are naturally created for all files.
+         */
+        foreach( self::$raDirectories as $dir=>$raD ) {
+
+            $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.$dir);
+            foreach( $dirIterator as $fileinfo ) {
+                if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
+
+                if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
+                    if( CATS_DEBUG ) {
+                        echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
+                    }
+                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
+                    $oRR->StoreRecord();
+                }
+            }
+
+            foreach( FilingCabinet::GetSubFolders($dir) as $subfolder) {
+                $subdir = new DirectoryIterator(CATSDIR_RESOURCES.$dir.'/'.$subfolder);
+                foreach( $subdir as $fileinfo ) {
+                    if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
+
+                    if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
+                        if( CATS_DEBUG ) {
+                            echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
+                        }
+                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
+                        $oRR->StoreRecord();
                     }
                 }
             }
@@ -301,7 +343,7 @@ class ResourceRecord {
             'committed' => $this->committed,
         ];
     }
-    
+
     /**
      * Add a tag to the record
      * NOTE: This DOES NOT STORE THE TAG
@@ -467,7 +509,7 @@ class ResourceRecord {
         $cond .= $add;
         return $cond;
     }
-    
+
     // These methods should allow calling files to get a record without needing to depend on the underlying database structure
     // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
 
@@ -492,7 +534,7 @@ class ResourceRecord {
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
         return new ResourceRecord($oApp, $dirname, $filename);
     }
-    
+
     public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
@@ -526,7 +568,7 @@ class ResourceRecord {
         $oRR->subdir = $subdir;
         return $oRR;
     }
-    
+
     public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
         $cond = "";
         if($dirname != self::WILDCARD){
@@ -558,7 +600,7 @@ class ResourceRecord {
         }
         return $oRR;
     }
-    
+
     public static function GetRecordFromRealPath(SEEDAppConsole $oApp, String $realpath){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
@@ -590,5 +632,5 @@ class ResourceRecord {
         }
         return self::GetRecordFromPath($oApp, $dir, $filename,$subdir);
     }
-    
+
 }
