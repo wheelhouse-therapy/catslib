@@ -67,6 +67,7 @@ class FilingCabinetDownload
         $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
+                //TODO UPDATE TO USE oRR instead of filename
                 return "href='javascript:void(0)' onclick=\"select_client('$dbFname')\"";
             case 'no_replace':
                 return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
