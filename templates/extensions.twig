@@ -678,6 +678,7 @@ debugger;
 	function submitForm(e){
 		var formData = new FormData(e.currentTarget.form);
 		formData.append("cmd","therapist-resource-upload");
+		e.currentTarget.parentElement.innerHTML = "<button><i class='fa fa-sync fa-spin'></i> Uploading</button>";
         $.ajax({
             type: "POST",
             data: formData,
