@@ -190,7 +190,7 @@ ResetPassword;
             //array( 'therapist-team',            "Meet the Team" ),
             //array( 'therapist-calendar',        "Calendar" ),
             //array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
-            array( 'therapist-viewVideos',      "CATS University" ),
+            array( 'therapist-viewVideos',      "CATS University", "Learning!" ),
             //array( 'therapist-akaunting',       "Akaunting" ),
             array( 'therapist-distributeReports', "Distribute Reports" ),
             array( 'link:https://www.catherapyservices.ca/webmail', "Access Webmail" )
