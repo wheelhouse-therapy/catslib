@@ -244,7 +244,7 @@ class FilingCabinet
         'other'   => ["Hand skills","Gross Motor","Occulomotor"],
         'anxiety' => ["Dragon","Monster","Behaviour/Exposure"],
         'cog'     => ["literacy","writing","problem-solving","organization"],
-        'adl'     => ["Feeding","Toiletting?","Lifeskills"],
+        'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL/SCANNING","SENSORY","FUNCTIONAL","BEHAV/COMMUNICATION/EMOTIONAL","GENERAL DEVELOPMENTAL"]
     ];
 }
