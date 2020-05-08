@@ -22,13 +22,25 @@ class FilingCabinetDownload
 
     function DownloadFile()
     {
-        // dir is obsolete: it is prefixed to file. Soon we'll just refer to files with numbers anyway.
-        if( SEEDInput_Str('cmd') == 'download' && ($file = SEEDInput_Str('file')) /*&& ($dir = SEEDInput_Str('dir'))*/ ) {
-            $file = CATSDIR_RESOURCES./*$dir.'/'.*/$file;
+        if( SEEDInput_Str('cmd') == 'download' ) {
+
+  // this makes "replace" download work; throw this away when it works by rrid
+  if( ($file = SEEDInput_Str('file')) /*&& ($dir = SEEDInput_Str('dir'))*/ ) {
+       $file = CATSDIR_RESOURCES./*$dir.'/'.*/$file;
+  } else
+
+
+            if( !($rrid = SEEDInput_Int('rr')) ||
+                !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
+                !($file = $oRR->getPath()) )
+            {
+                $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
+                return;
+            }
 
             $resmode = SEEDInput_Str('resource-mode');
 
-            if( $resmode!="no_replace" ) {
+            if( $resmode != "no_replace" ) {
                 // mode blank is implemented by telling template_filler that client=0
                 $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
                 $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
@@ -49,16 +61,17 @@ class FilingCabinetDownload
         }
     }
 
-    function GetDownloadPath( $mode, $filename, $dir_short )
+    function GetDownloadPath( $mode, ResourceRecord $oRR, $filename = "", $dir_short = "" )
     {
+        $rrid = $oRR->getID();
         $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
                 return "href='javascript:void(0)' onclick=\"select_client('$dbFname')\"";
             case 'no_replace':
-                return "href='?cmd=download&file=$dbFname&resource-mode=no_replace'";
+                return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
             case 'blank':
-                return "href='?cmd=download&file=$dbFname&client=0'";
+                return "href='?cmd=download&rr=$rrid&client=0'";                    // &file=$dbFname
         }
     }
 

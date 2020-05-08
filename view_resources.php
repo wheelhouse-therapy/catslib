@@ -136,14 +136,14 @@ ResourcesTagScript;
     $raOut += [''=>""];
 
     foreach ($dirIterator as $fileinfo) {
-        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD );
+        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD );
     }
 
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
         if(!file_exists($dir_name.$subfolder)) continue;
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
-            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oFCD );
+            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD );
         }
     }
     $s .= "<table border='0'>";
@@ -224,13 +224,13 @@ fcdScript;
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD )
 {
         $class = "";
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
-        
+
         $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
-        
+
         if(!$oRR){
             // The file does not have a record yet, create one
             $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()));
@@ -248,18 +248,10 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
 
         // docx files get a link to the modal dialog; other files get a link for simple download
         if( $fileinfo->getExtension() == "docx" ) {
-            $link = $oFCD->GetDownloadPath('replace', $fileinfo->getFilename(), $dir_short);
+            $link = $oFCD->GetDownloadPath('replace', $oRR, $fileinfo->getFilename(), $dir_short );
         } else {
-            $link = $oFCD->GetDownloadPath("no_replace", $fileinfo->getFilename(), $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";
-            //$class = "class='btn disabled'";
+            $link = $oFCD->GetDownloadPath("no_replace", $oRR );
         }
-
-// we used to store subfolders in db; and we'll do this again!
-// TODO Update to use ResourceRecord instead of oApp->kfdb as the kfdb depends on the db structure remaining the same
-//        if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
-//            $subfolder = "";
-//        }
-        $subfolder = (($p = strpos($dir_short,'/'))) !== false ? substr($dir_short,$p+1) : "";   // the part of dir_short after '/' if any
 
         $sTemplate =
             "<tr [[CLASS]]>
@@ -271,7 +263,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
                 </td>
             </tr>";
 
-        $raOut[$subfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
+        $raOut[$kSubfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
                                            [$class,
                                             $link,
                                             SEEDCore_HSC($fileinfo->getFilename()),
@@ -280,7 +272,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
                                            $sTemplate);
 
         done:
-        return( [$s,$raOut] );
+        return( $raOut );
 }
 
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
@@ -480,7 +472,7 @@ class ResourcesFiles
         $s = "";
 
         $s .= "<div class='resources-tag resources-tag-new'>+</div>";
-        
+
         $raTags = $oRR->getTags();
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
