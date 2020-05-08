@@ -529,9 +529,36 @@ class ResourceRecord {
         return $cond;
     }
 
+    /**
+     * Get Resource Records from a db query
+     * @param SEEDAppConsole $oApp - object with access to db to query
+     * @param String $query - query to run on db
+     * @return array|NULL|ResourceRecord - Resource Records containing data or Null of there are no results
+     */
+    private static function getFromQuery(SEEDAppConsole $oApp, String $query){
+        $ra = $oApp->kfdb->QueryRowsRA1($query,KEYFRAMEDB_RESULT_NUM);
+        $oRR = NULL;
+        if(count($ra) == 1){
+            $oRR = self::GetRecordByID($oApp, intval($ra[0]));
+        }
+        else if(count($ra) > 1){
+            $oRR = array();
+            foreach($ra as $id){
+                $oRR += [self::GetRecordByID($oApp, intval($id))];
+            }
+        }
+        return $oRR;
+    }
+    
     // These methods should allow calling files to get a record without needing to depend on the underlying database structure
     // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
 
+    /**
+     * Get Resource Record from Id (aka db _key)
+     * @param SEEDAppConsole $oApp - object with access to db to get from
+     * @param int $id - id of the record to get
+     * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
+     */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
         $ra = $oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
@@ -606,18 +633,7 @@ class ResourceRecord {
         if($cond){
             $query .= " WHERE $cond";
         }
-        $ra = $oApp->kfdb->QueryRowsRA1($query,KEYFRAMEDB_RESULT_NUM);
-        $oRR = NULL;
-        if(count($ra) == 1){
-            $oRR = self::GetRecordByID($oApp, intval($ra[0]));
-        }
-        else if(count($ra) > 1){
-            $oRR = array();
-            foreach($ra as $id){
-                $oRR += [self::GetRecordByID($oApp, intval($id))];
-            }
-        }
-        return $oRR;
+        return self::getFromQuery($oApp,$query);
     }
 
     public static function GetRecordFromRealPath(SEEDAppConsole $oApp, String $realpath){
@@ -652,4 +668,11 @@ class ResourceRecord {
         return self::GetRecordFromPath($oApp, $dir, $filename,$subdir);
     }
 
+    public static function getRecordFromGlobalSearch(SEEDAppConsole $oApp,String $search){
+        $dbSearch = addslashes($search);
+        $query = "SELECT _key FROM resources_files WHERE filename LIKE '%$dbSearch%'";
+        $query = self::joinCondition($query, "tags LIKE tags LIKE '%$dbSearch%'",true);
+        return self::getFromQuery($oApp, $query);
+    }
+    
 }
