@@ -30,20 +30,12 @@ class FilingCabinetUI
     {
         $s = "";
 
-        //FIXME Only Ensure directories when we need access to them
-        //This causes if a folder fails to be created when downloading
-        FilingCabinet::EnsureDirectory("*");
-
-        // Temporary method to build ResourceRecord db entries for all files in the Filing Cabinet
-        // Remove this when that is happening naturally.
-        (new FilingCabinet($this->oApp))->tmpEnsureResourceRecords();
-
-
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
+            FilingCabinet::EnsureDirectory($dirbase);
             $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
                  ."<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>"
                  ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
@@ -54,7 +46,7 @@ class FilingCabinetUI
                 $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
             }
         } else {
-
+            FilingCabinet::EnsureDirectory("*");
             $s .= "<div style='float:right;' id='uploadForm'>"
                     .FilingCabinetUpload::DrawUploadForm()
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
@@ -116,7 +108,6 @@ class FilingCabinet
         } else {
             $perm = 0700;
         }
-
         if($dirs == "*"){
             // ensure that all directories are created
             foreach( self::$raDirectories as $k=>$v ) {
