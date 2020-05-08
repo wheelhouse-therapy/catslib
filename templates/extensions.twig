@@ -689,7 +689,7 @@ debugger;
             success: function(data, textStatus, jqXHR) {
                 var jsData = JSON.parse(data)
                 if(jsData.bOk){
-					//document.getElementById('uploadForm').innerHTML = jsData.sOut;
+					document.getElementById('uploadForm').innerHTML = jsData.sOut;
                 }
                 else{
                 	document.getElementById('uploadForm').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
