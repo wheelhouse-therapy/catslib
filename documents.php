@@ -347,7 +347,7 @@ class ResourceManager{
     }
 
     public function ManageResources(){
-        $this->selected_File = SEEDInput_Str("file");
+        $this->selected_File = SEEDInput_Str("id");
         if(isset($_SESSION['ResourceCMDResult'])){
             $cmdResult = $_SESSION['ResourceCMDResult'];
             unset($_SESSION['ResourceCMDResult']);
@@ -368,7 +368,7 @@ class ResourceManager{
     }
 
     private function listResources($dir){
-        FilingCabinet::EnsureDirectory("*");
+        FilingCabinet::EnsureDirectory("*",true);
         $s = "";
         $directory_iterator = new DirectoryIterator($dir);
 
@@ -380,8 +380,17 @@ class ResourceManager{
             if($fileinfo->isDot()){
                 continue;
             }
-            if($this->selected_File && $this->selected_File == $this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)){
-                $this->processCommands($fileinfo);
+            if($fileinfo->isDir() && $fileinfo->getFilename() == "pending") continue;
+            
+            if(!$fileinfo->isDir()){
+                $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $fileinfo->getRealPath());
+            }
+            else{
+                $oRR = Null;
+            }
+            
+            if($this->selected_File && $oRR != Null && $this->selected_File == $oRR->getID()){
+                $this->processCommands($oRR);
             }
             $filename = $fileinfo->getFilename();
             if(FilingCabinet::GetDirInfo($filename)){
@@ -402,29 +411,22 @@ class ResourceManager{
         return $s;
     }
 
-    private function processCommands(DirectoryIterator $file_info){
-        //FIXME USE ResourceRecord instead of oApp->kfdb when working with database records
+    private function processCommands(ResourceRecord $oRR){
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
-                $fromFileBase = $file_info->getFilename();                              // base file name
-                $fromFileFull = $file_info->getRealPath();                              // full file path with ".." removed
-                $fromFileRel = substr($fromFileFull, strlen(CATSDIR_RESOURCES));        // path relative to CATSDIR_RESOURCES
-                $fromDirRel = pathinfo($fromFileRel, PATHINFO_DIRNAME);                 // dir of relative path
-                $toDirRel = SEEDInput_Str('folder');                                    // destination relative dir
-                $toDirFull = realpath(CATSDIR_RESOURCES.$toDirRel);                     // destination full dir with ".." removed
-                $toFileFull = $toDirFull.'/'.$fromFileBase;                             // destination full filename
-//var_dump($toDirRel,$toDirFull,$fromFileFull,$toFileFull);exit;
+                $fromFileBase = $oRR->getFile();                                          // base file name
+                $fromFileFull = realpath($oRR->getPath());                                // full file path with ".." removed
+                $fromFileRel = $this->getPathRelativeTo($fromFileFull,CATSDIR_RESOURCES); // path relative to CATSDIR_RESOURCES
+                $fromDirRel = pathinfo($fromFileRel, PATHINFO_DIRNAME);                   // dir of relative path
+                $toDirRel = SEEDInput_Str('folder');                                      // destination relative dir
+                $toDirFull = realpath(CATSDIR_RESOURCES.$toDirRel);                       // destination full dir with ".." removed
+                $toFileFull = $toDirFull.'/'.$fromFileBase;                               // destination full filename
+//var_dump($toDirRel,$toDirFull,$fromFileRel,$toFileFull);exit;
 
-                // Don't allow somebody to move a file that isn't in CATSDIR_RESOURCES.
-                // This is possible if the input file path contains "..", but realpath removes those.
-                if( !SEEDCore_StartsWith($fromFileFull, CATSDIR_RESOURCES) ) {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot move file</div>";
-                    break;
-                }
                 // Don't allow somebody to move a file outside of CATSDIR_RESOURCES.
                 // This is possible if the destination folder name contains "..", but realpath removes those.
-                if( !SEEDCore_StartsWith($toFileFull, CATSDIR_RESOURCES) ) {
+                if( !$this->getPathRelativeTo($toFileFull, CATSDIR_RESOURCES) ) {
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot move file to that folder</div>";
                     break;
                 }
@@ -434,10 +436,12 @@ class ResourceManager{
                 //if(rename((substr($movedFileDir, 0,9) == "resources"?CATSDIR:CATSDIR_RESOURCES).$directory."/".$file_info->getFilename(), CATSDIR_RESOURCES.SEEDInput_Str("folder").$file_info->getFilename())){
                 if( rename($fromFileFull, $toFileFull) ) {
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved $fromFileBase to $toDirRel</div>";
-
-                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET folder='".addslashes(rtrim($toDirRel,"/"))."' "
-                                                   ."WHERE folder='".addslashes(rtrim($fromDirRel,"/"))."' AND "
-                                                   ."filename='".addslashes($fromFileBase)."'") )
+                    $dir = explode("/", rtrim($toDirRel,"/"))[0];
+                    $subdir = @explode("/", rtrim($toDirRel,"/"))[1]?:"";
+                    var_dump($dir,$subdir);
+                    $oRR->setDirectory($dir);
+                    $oRR->setSubDirectory($subdir);
+                    if(!$oRR->StoreRecord())
                     {
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $fromFileBase<br /> Contact system administrator to complete this operation</div>";
                     }
@@ -448,10 +452,9 @@ class ResourceManager{
                 break;
 
             case "rename":
-                $oldFileBase = $file_info->getFilename();                         // base path of old file
-                $oldFileFull = $file_info->getRealPath();                         // full path of old file
+                $oldFileBase = $oRR->getFile();                                   // base path of old file
+                $oldFileFull = realpath($oRR->getPath());                         // full path of old file
                 $dir = pathinfo($oldFileFull,PATHINFO_DIRNAME);                   // full dir of old file
-
                 if( ($name = SEEDInput_Str("name")) && ($ext = SEEDInput_Str("ext")) ) {
                     $newFileBase = $name.'.'.$ext;                                // base name of new file
                 } else {
@@ -459,19 +462,10 @@ class ResourceManager{
                     break;
                 }
                 $newFileFull = $dir.'/'.$newFileBase;                             // full path of new file
-
-                // Don't allow somebody to rename a file that isn't in CATSDIR_RESOURCES
-                // This is possible if the input file path contains "..", but realpath removes those.
-                if( !SEEDCore_StartsWith($oldFileFull, CATSDIR_RESOURCES) ) {
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Cannot rename file</div>";
-                    break;
-                }
                 if( rename($oldFileFull, $newFileFull) ) {
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File $oldFileBase renamed to $newFileBase</div>";
-                    $dirRel = substr($dir,strlen(CATSDIR_RESOURCES));
-                    if( !$this->oApp->kfdb->Execute("UPDATE resources_files SET filename='".addslashes($newFileBase)."' "
-                                                   ."WHERE folder='".addslashes($dirRel)."' AND "
-                                                   ."filename='".addslashes($oldFileBase)."'") )
+                    $oRR->setFile($newFileBase);
+                    if( !$oRR->StoreRecord())
                     {
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $oldFileBase<br /> Contact system administrator to complete this operation</div>";
                     }
@@ -481,15 +475,16 @@ class ResourceManager{
                 }
                 break;
             case "delete":
-                if(unlink($file_info->getRealPath())){
-                    $directory = $this->getPartPath($file_info->getRealPath(),-2);
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$file_info->getFilename()." has been deleted</div>";
-                    if(!$this->oApp->kfdb->Execute("DELETE FROM resources_files WHERE folder='".addslashes($directory)."' AND filename='".addslashes($file_info->getFilename()."' "))){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete tags for ".$file_info->getFilename()."<br /> Contact system administrator to complete this operation</div>";
+                if(unlink(realpath($oRR->getPath()))){
+                    $directory = $this->getPartPath(realpath($oRR->getPath()),-2);
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$oRR->getFile()." has been deleted</div>";
+                    $oRR->setStatus(1);
+                    if(!$oRR->StoreRecord()){
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete tags for ".$oRR->getFile()."<br /> Contact system administrator to complete this operation</div>";
                     }
                 }
                 else{
-                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file ".$file_info->getFilename()."</div>";
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file ".$oRR->getFile()."</div>";
                 }
                 break;
         }
@@ -502,12 +497,13 @@ class ResourceManager{
         if(!$this->oApp->sess->CanAdmin("admin")){
             return "You don't have permission to edit files";
         }
+        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($file_path));
         $directory = pathinfo(substr($file_path,strlen(CATSDIR_RESOURCES)),PATHINFO_DIRNAME);
         $move = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move\")'>move</a>";
         $move .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move' style='display:none'>"
                 ."<br /><form>
                   <input type='hidden' name='cmd' value='move' />
-                  <input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />
+                  <input type='hidden' name='id' value='".$oRR->getID()."' />
                   <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
             // don't allow moving files into folders where they aren't supported
@@ -527,7 +523,7 @@ class ResourceManager{
         $rename .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename' style='display:none'>"
                   ."<br /><form>"
                   ."<input type='hidden' name='cmd' value='rename' />"
-                  ."<input type='hidden' name='file' value='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' />"
+                  ."<input type='hidden' name='id' value='".$oRR->getID()."' />"
                   ."<input type='text' class='cats_form' name='name' required value='".explode(".",$this->getPartPath($file_path,-1))[0]."' />.";
         $dir_key = "old";
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
@@ -548,7 +544,7 @@ class ResourceManager{
                   ."</form>"
                   ."</div>";
 
-                  $delete = "<a href='?cmd=delete&file=".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
+                  $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
 
                   $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
         return $s;

@@ -185,6 +185,7 @@ class FilingCabinet
             }
 
             foreach( FilingCabinet::GetSubFolders($dir) as $subfolder) {
+                if(!file_exists(CATSDIR_RESOURCES.$dir.'/'.$subfolder))continue;
                 $subdir = new DirectoryIterator(CATSDIR_RESOURCES.$dir.'/'.$subfolder);
                 foreach( $subdir as $fileinfo ) {
                     if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
@@ -405,6 +406,21 @@ class ResourceRecord {
     }
 
     /**
+     * Set the file of the record.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 2: This DOES NOT RENAME THE FILE
+     * @param String $file - file to set
+     * @return bool - true if the file has changed, false otherwise
+     */
+    public function setFile(String $file):bool{
+        if($file != $this->file){
+            $this->committed = false;
+        }
+        $this->file = $file;
+        return !$this->committed;
+    }
+    
+    /**
      * Set the status of the record
      * 0 for normal.
      * 1 for deleted.
@@ -441,13 +457,25 @@ class ResourceRecord {
             $cond = "_status={$this->status} AND subfolder='{$dbSubFolder}' AND folder='{$dbFolder}' AND filename='{$dbFilename}'";
             $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE $cond" )?:0;
         }
+        if($this->id == 0){
+            // Could not find an existing record, overwrite an deleted record
+            $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE _status=1" )?:0;
+            if($this->id){
+                $this->status = 0;
+                $this->created = 'NOW()';
+                $this->oApp->kfdb->Execute("UPDATE resources_files SET _created_by=$uid WHERE _key = {$this->id}");
+            }
+        }
         $tags = '';
         foreach ($this->tags as $tag){
             $dbtag = addslashes($tag);
             $tags .= self::TAG_SEPERATOR.$dbtag.self::TAG_SEPERATOR;
         }
         if($this->id){
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder' WHERE _key = {$this->key}");
+            if($this->created != "NOW()"){
+                $this->created = "'$this->created'";
+            }
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder' WHERE _key = {$this->id}");
         }
         else{
             if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')"))){

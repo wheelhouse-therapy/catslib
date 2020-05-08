@@ -14,6 +14,10 @@ if($cmd == "accept"){
     $subdir = @$ra[1]? "{$ra[1]}/" : "";
     if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
         $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
+        $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file));
+        if(!$oRR->StoreRecord()){
+            $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Imeadiatly (Code 504)</div>";
+        }
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
