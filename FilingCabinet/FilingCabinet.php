@@ -176,7 +176,7 @@ class FilingCabinet
                 if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
 
                 if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
-                    if( CATS_DEBUG ) {
+                    if( CATS_SYSADMIN ) {
                         echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                     }
                     $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
@@ -191,7 +191,7 @@ class FilingCabinet
                     if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
 
                     if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
-                        if( CATS_DEBUG ) {
+                        if( CATS_SYSADMIN ) {
                             echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                         }
                         $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
