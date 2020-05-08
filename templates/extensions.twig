@@ -678,7 +678,7 @@ debugger;
 	function submitForm(e){
 		var formData = new FormData(e.currentTarget.form);
 		formData.append("cmd","therapist-resource-upload");
-		e.currentTarget.parentElement.innerHTML = "<button><i class='fa fa-sync fa-spin'></i> Uploading</button>";
+		e.currentTarget.parentElement.innerHTML = "<button><i class='fa fa-sync-alt fa-spin'></i> Uploading</button>";
         $.ajax({
             type: "POST",
             data: formData,
@@ -689,7 +689,7 @@ debugger;
             success: function(data, textStatus, jqXHR) {
                 var jsData = JSON.parse(data)
                 if(jsData.bOk){
-					document.getElementById('uploadForm').innerHTML = jsData.sOut;
+					//document.getElementById('uploadForm').innerHTML = jsData.sOut;
                 }
                 else{
                 	document.getElementById('uploadForm').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
