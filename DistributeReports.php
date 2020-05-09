@@ -15,7 +15,6 @@ function distributeReports($oApp) {
      *
      * All js and css are located in extensions.twig under the distributeReports template
      *
-     * TODO: add buttons to generate the address labels, fax cover sheets and emails.
      */
     $s = <<<Form
         <select id="clientlist" onchange="jxCall()">

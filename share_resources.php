@@ -23,6 +23,9 @@ function checkFileSystem(SEEDAppConsole $oApp){
                     continue;
                 }
                 rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('old')['directory'].$fileinfo->getFilename());
+                //TODO Use ResourceRecord instead.
+                // This is legacy update code for updating a legacy filesystem.
+                // All (or most) of the file systems should be updated now.
                 $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(FilingCabinet::GetDirInfo('old')['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
             }
             rmdir(realpath(CATSDIR_RESOURCES.$folder));

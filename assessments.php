@@ -440,6 +440,8 @@ class AssessmentsCommon
         }
         $s .= "</table>";
 
+        $s .= "<a href='".CATSDIR."?screen=therapist-reports'><button>Print Reports</button></a>";
+        
         return( $s );
     }
 

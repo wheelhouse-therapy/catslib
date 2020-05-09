@@ -27,7 +27,7 @@ class FilingCabinetUpload
         return( "<form method='post' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
                  Select file to upload:
                  <input type='file' id='upload-file-selector' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required><br />
-                 <input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'> Max Upload size:".ini_get('upload_max_filesize')."b</form>" );
+                 <span><input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>" );
     }
 
     function UploadToPending()

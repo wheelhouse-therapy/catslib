@@ -136,13 +136,14 @@ ResourcesTagScript;
     $raOut += [''=>""];
 
     foreach ($dirIterator as $fileinfo) {
-        list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD );
+        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD );
     }
 
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+        if(!file_exists($dir_name.$subfolder)) continue;
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
-            list($s,$raOut) = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name.$subfolder, $dir_short.'/'.$subfolder, $s, $download_modes, $oFCD );
+            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD );
         }
     }
     $s .= "<table border='0'>";
@@ -223,20 +224,23 @@ fcdScript;
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir_short, $s, $download_modes, $oFCD )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD )
 {
         $class = "";
-
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
 
-        $dbFilename = addslashes($fileinfo->getFilename());
-        $dbDirName = addslashes($dir_short);
+        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
+
+        if(!$oRR){
+            // The file does not have a record yet, create one
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()));
+            $oRR->StoreRecord();
+        }
 
         if( $sFilter ) {
             // list this file if sFilter matches part of its filename, or part of one of its tags
             if( stripos( $fileinfo->getFilename(), $sFilter ) === false &&
-                !$oApp->kfdb->Query1( "SELECT _key FROM resources_files "
-                                     ."WHERE folder='$dbDirName' AND filename='$dbFilename' AND tags LIKE '%".addslashes($sFilter)."%'" ) )
+                !in_array($sFilter, $oRR->getTags()))
             {
                 goto done;
             }
@@ -244,38 +248,31 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_name, $dir
 
         // docx files get a link to the modal dialog; other files get a link for simple download
         if( $fileinfo->getExtension() == "docx" ) {
-            $link = $oFCD->GetDownloadPath('replace', $fileinfo->getFilename(), $dir_short);
+            $link = $oFCD->GetDownloadPath('replace', $oRR, $fileinfo->getFilename(), $dir_short );
         } else {
-            $link = $oFCD->GetDownloadPath("no_replace", $fileinfo->getFilename(), $dir_short); //"href='?resource-mode=no_replace&dir=$dir_short''";
-            //$class = "class='btn disabled'";
+            $link = $oFCD->GetDownloadPath("no_replace", $oRR );
         }
-
-// we used to store subfolders in db; and we'll do this again!
-//        if(!($subfolder = $oApp->kfdb->Query1("SELECT subfolder FROM resources_files WHERE folder='$dbDirName' AND filename='$dbFilename'"))){
-//            $subfolder = "";
-//        }
-        $subfolder = (($p = strpos($dir_short,'/'))) !== false ? substr($dir_short,$p+1) : "";   // the part of dir_short after '/' if any
 
         $sTemplate =
             "<tr [[CLASS]]>
                 <td valign='top'>
                     <a style='white-space: nowrap' [[LINK]] >[[FILENAME]]</a>
                 </td>
-                <td style='padding-left:20px' valign='top' data-folder='".SEEDCore_HSC($dir_short)."' data-filename='[[FILENAME]]'>
+                <td style='padding-left:20px' valign='top' data-id='".$oRR->getID()."'>
                     [[TAGS]]
                 </td>
             </tr>";
 
-        $raOut[$subfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
+        $raOut[$kSubfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
                                            [$class,
                                             $link,
                                             SEEDCore_HSC($fileinfo->getFilename()),
-                                            $oFCD->oResourcesFiles->DrawTags($dir_short, $fileinfo->getFilename())
+                                            $oFCD->oResourcesFiles->DrawTags($oRR)
                                            ],
                                            $sTemplate);
 
         done:
-        return( [$s,$raOut] );
+        return( $raOut );
 }
 
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
@@ -413,7 +410,7 @@ viewVideo;
                         Select video to upload:
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
                         <input type='submit' value='Upload Video' name='submit' onclick='submitForm(event)'> Max Upload size:".ini_get('upload_max_filesize')."b</form>"
-                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+                 ."</div><script src='".CATSDIR_JS."fileUpload.js'></script><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
     $listVideos .= "<h3>View Uploaded Videos</h3>";
     $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
@@ -469,21 +466,14 @@ viewVideo;
 
 class ResourcesFiles
 {
-    private $oApp;
 
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function DrawTags( $folder, $filename )
+    function DrawTags( ResourceRecord $oRR )
     {
         $s = "";
 
         $s .= "<div class='resources-tag resources-tag-new'>+</div>";
 
-        $ra = $this->oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE folder='".addslashes($folder)."' AND filename='".addslashes($filename)."'" );
-        $raTags = explode( "\t", $ra['tags'] );
+        $raTags = $oRR->getTags();
         foreach( $raTags as $tag ) {
             if( !$tag ) continue;
             $s .= "<div class='resources-tag resources-tag-filled'>$tag</div> ";

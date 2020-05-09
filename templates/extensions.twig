@@ -673,40 +673,64 @@ debugger;
 %% manage-users
 <script src='{{ CATSDIR_JS }}manage-users.js'></script>
 
-%% file-upload
+%% filing-cabinet
+<script src='{{ CATSDIR_JS }}fileUpload.js'></script>
+<style>
+    .search {
+      width: 130px;
+      -webkit-transition: width 0.4s ease-in-out;
+      transition: width 0.4s ease-in-out;
+      line-height: 2;
+    }
+    
+    /* When the input field gets focus, change its width to 100% */
+    .search:focus {
+      width: 100%;
+    }
+</style>
 <script>
-	function submitForm(e){
-		var formData = new FormData(e.currentTarget.form);
-		formData.append("cmd","therapist-resource-upload");
-        $.ajax({
-            type: "POST",
-            data: formData,
-            cache       : false,
-            contentType : false,
-            processData : false,
-            url: 'jx.php',
-            success: function(data, textStatus, jqXHR) {
-                var jsData = JSON.parse(data)
-                if(jsData.bOk){
-					document.getElementById('uploadForm').innerHTML = jsData.sOut;
-                }
-                else{
-                	document.getElementById('uploadForm').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
-                }
-            },
-            error: function(jqXHR, status, error) {
-                console.log(status + ": " + error);
-            }
-        });
-        e.preventDefault();
+	function searchFiles(e){
+		var value = e.currentTarget.value;
+		if(value == ""){
+			document.getElementById('searchResults').innerHTML = "";
+		}
+		else{
+    		$.ajax({
+    	        type: "POST",
+    	        data: {cmd:'therapist-resource-search',search:value},
+    	        url: 'jx.php',
+    	        success: function(data, textStatus, jqXHR) {
+    	            var jsData = JSON.parse(data)
+    	            if(jsData.bOk){
+    					document.getElementById('searchResults').innerHTML = jsData.sOut;
+    	            }
+    	            else{
+    	            	document.getElementById('searchResults').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
+    	            }
+    	        },
+    	        error: function(jqXHR, status, error) {
+    	            console.log(status + ": " + error);
+    	        }
+    	    });
+		}
 	}
 
 	function resetForm(){
 		document.getElementById('uploadForm').innerHTML = upload;
 	}
+	$(document).ready(function () {
+		$("#search_dialog").on("hidden.bs.modal", function(){
+        	document.getElementById('search').value = "";
+        	document.getElementById('searchResults').innerHTML = "";
+    	});
+    	$("#search_dialog").on("shown.bs.modal",function(){
+	    	document.getElementById('search').focus();
+    	});
+	});
 </script>
 <style>
- #upload-file-selector:valid ~ #upload-file-button {
+ #upload-file-selector:valid ~ span #upload-file-button {
 	background-color: #67ed2d;
 }
 </style>
+
