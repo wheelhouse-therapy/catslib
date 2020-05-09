@@ -52,7 +52,7 @@ class FilingCabinetUI
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
             // Show the "closed drawers" of the filing cabinet
-            $s .= "<h3>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")'></i>";
+            $s .= "<div><h3 style='display:inline;padding-right:5px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='search'></i></div>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
             $ras = array_diff_key(FilingCabinet::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
@@ -76,7 +76,7 @@ class FilingCabinetUI
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <input type='text' class='search' id='search' name='search' placeholder='Search..' onchange='searchFiles(event)'>
+                <input type='text' class='search' id='search' name='search' placeholder='Search..' onkeyup='searchFiles(event)' role='search'>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
