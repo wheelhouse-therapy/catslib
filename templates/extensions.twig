@@ -675,3 +675,54 @@ debugger;
 
 %% filing-cabinet
 <script src='{{ CATSDIR_JS }}fileUpload.js'></script>
+<style>
+    .search {
+      width: 130px;
+      -webkit-transition: width 0.4s ease-in-out;
+      transition: width 0.4s ease-in-out;
+      line-height: 2;
+    }
+    
+    /* When the input field gets focus, change its width to 100% */
+    .search:focus {
+      width: 100%;
+    }
+</style>
+<script>
+	function searchFiles(e){
+		var value = e.currentTarget.value;
+		if(value == ""){
+			document.getElementById('searchResults').innerHTML = "";
+		}
+		else{
+    		$.ajax({
+    	        type: "POST",
+    	        data: {cmd:'therapist-resource-search',search:value},
+    	        url: 'jx.php',
+    	        success: function(data, textStatus, jqXHR) {
+    	            var jsData = JSON.parse(data)
+    	            if(jsData.bOk){
+    					document.getElementById('searchResults').innerHTML = jsData.sOut;
+    	            }
+    	            else{
+    	            	document.getElementById('searchResults').innerHTML = "<div class='alert alert-danger'>"+jsData.sErr+"</div>"
+    	            }
+    	        },
+    	        error: function(jqXHR, status, error) {
+    	            console.log(status + ": " + error);
+    	        }
+    	    });
+		}
+	}
+
+	$(document).ready(function () {
+		$("#search_dialog").on("hidden.bs.modal", function(){
+	        document.getElementById('search').value = "";
+	        document.getElementById('searchResults').innerHTML = "";
+	    });
+	    $("#search_dialog").on("shown.bs.modal",function(){
+		    document.getElementById('search').focus();
+	    });
+	});
+	
+</script>

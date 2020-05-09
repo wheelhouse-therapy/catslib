@@ -52,7 +52,7 @@ class FilingCabinetUI
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
             // Show the "closed drawers" of the filing cabinet
-            $s .= "<h3>Filing Cabinet</h3>";
+            $s .= "<h3>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")'></i>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
             $ras = array_diff_key(FilingCabinet::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
@@ -65,10 +65,30 @@ class FilingCabinetUI
                         ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}'>{$ra['name']}</a>"
                      ."</div></p>";
             }
+            $s .= $this->getSearchDialog();
         }
         return( $s );
     }
 
+    private function getSearchDialog(){
+        return <<<SearchDialog
+<div class='modal fade' id='search_dialog' role='dialog'>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <input type='text' class='search' id='search' name='search' placeholder='Search..' onchange='searchFiles(event)'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class='modal-body' id='searchResults'>
+            </div>
+        </div>
+    </div>
+</div>
+SearchDialog;
+    }
+    
     private function handleCmd()
     {
         switch( ($cmd = SEEDInput_Str('cmd')) ) {
@@ -544,7 +564,7 @@ class ResourceRecord {
         else if(count($ra) > 1){
             $oRR = array();
             foreach($ra as $id){
-                $oRR += [self::GetRecordByID($oApp, intval($id))];
+                $oRR[] = self::GetRecordByID($oApp, intval($id));
             }
         }
         return $oRR;
@@ -668,10 +688,10 @@ class ResourceRecord {
         return self::GetRecordFromPath($oApp, $dir, $filename,$subdir);
     }
 
-    public static function getRecordFromGlobalSearch(SEEDAppConsole $oApp,String $search){
+    public static function GetRecordFromGlobalSearch(SEEDAppConsole $oApp,String $search){
         $dbSearch = addslashes($search);
         $query = "SELECT _key FROM resources_files WHERE filename LIKE '%$dbSearch%'";
-        $query = self::joinCondition($query, "tags LIKE tags LIKE '%$dbSearch%'",true);
+        $query = self::joinCondition($query, "tags LIKE '%$dbSearch%'",true);
         return self::getFromQuery($oApp, $query);
     }
     
