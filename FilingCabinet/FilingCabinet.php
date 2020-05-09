@@ -55,7 +55,7 @@ class FilingCabinetUI
             $s .= "<div><h3 style='display:inline;padding-right:10px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = array_diff_key(FilingCabinet::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
+            $ras = FilingCabinet::GetFilingCabinetDirectories();
             foreach( $ras as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {
@@ -213,15 +213,30 @@ class FilingCabinet
         }
     }
 
-    static function GetDirectories() { return( self::$raDirectories ); }
-    static function GetDirInfo($dir) { return( @self::$raDirectories[$dir] ?: null ); }
-    static function GetSubFolders($dir){ return( @self::$raSubFolders[$dir] ?: []); }
-
-    static function GetSupportedExtensions()
-    /***************************************
-        Array of all the extensions supported by the Filing Cabinet
+    /**
+     * Get the list of directories in the Resource Subsystem
+     * @return array - containing directory information
      */
-    {
+    static function GetDirectories() { return( self::$raDirectories ); }
+    /**
+     * Get Directory information (eg. allowed extensions, display name, etc.) for a directory
+     * @param string $dir - directory to get information of
+     * @return NULL|array - array containing the info for the given directory, or Null if its not part of the Resource Subsystem
+     */
+    static function GetDirInfo(String $dir) { return( @self::$raDirectories[$dir] ?: null ); }
+    /**
+     * Get Subdirectories in the given directory
+     * @param string $dir - directory to get subdirs of
+     * @return array - list of defined subdirectories if defined
+     */
+    static function GetSubFolders(String $dir){ return( @self::$raSubFolders[$dir] ?: []); }
+
+    /**
+     * Get the extensions supported by the Resource Subsystem.
+     * NOTE: the extensions do not contain dots
+     * @return array - array of supported extensions
+     */
+    static function GetSupportedExtensions(){
         $exts = [];
         foreach(self::GetDirectories() as $ra) {
             $exts = array_merge($exts,$ra['extensions']);
@@ -229,6 +244,37 @@ class FilingCabinet
         return( array_unique($exts) );
     }
 
+    /**
+     * Get directories which are part of the filing cabinet
+     * @return array - array containing directory information of the directories which are part of the filing cabinet
+     */
+    static function GetFilingCabinetDirectories(){
+        return array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
+    }
+    
+    /**
+     * Get the accessor string to navigate a browser to the given file
+     * @param ResourceRecord $oRR - file to navigate to
+     * @return String - URI that directs to the appropriate location so the file can be accessed. Returns empty string if the file has no accessor
+     */
+    static function GetAccessor(ResourceRecord $oRR):String{
+        $directory = $oRR->getDirectory();
+        if(in_array($directory, self::GetFilingCabinetDirectories())){
+            // File is part of the filing cabinet, return the appropiate accessor
+            return "?screen=therapist-filing-cabinet&dir=".$directory;
+        }
+        elseif($directory == "reports"){
+            // File is a report, 
+            return "?screen=therapist-reports";
+        }
+        elseif($directory == "SOP"){
+            return "?screen=therapist-viewSOPs";
+        }
+        elseif($directory == "videos"){
+            return "?screen=therapist-viewVideos";
+        }
+        return ""; //No accessor for this file
+    }
 
     private static $raDirectories = [
         // Array of arrays containing directory information of resource folders
