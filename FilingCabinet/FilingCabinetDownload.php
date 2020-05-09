@@ -55,7 +55,7 @@ class FilingCabinetDownload
                      fpassthru( $fp );
                      fclose( $fp );
                  }
-                die();
+                 exit;
             }
             exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
         }

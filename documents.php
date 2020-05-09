@@ -487,6 +487,17 @@ class ResourceManager{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file ".$oRR->getFile()."</div>";
                 }
                 break;
+            case "download":
+                $file = $oRR->getPath();
+                header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+                header('Content-Description: File Transfer');
+                header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+                header('Content-Transfer-Encoding: binary');
+                if( ($fp = fopen( $file, "rb" )) ) {
+                    fpassthru( $fp );
+                    fclose( $fp );
+                }
+                exit;
         }
         header("HTTP/1.1 301 Moved Permanently");
         header("Location: ?");
@@ -508,7 +519,7 @@ class ResourceManager{
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
             // don't allow moving files into folders where they aren't supported
             if( !in_array(pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION),$v['extensions']) ) continue;
-
+    
             $sDisabled = ($v['directory'] == $directory."/") ? " disabled" : "";
             $move .= "<option value='".$v['directory']."' $sDisabled>".$v['name']."</option>";
             foreach( FilingCabinet::GetSubfolders($k) as $sub ) {
@@ -518,7 +529,7 @@ class ResourceManager{
             }
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
-
+    
         $rename = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename\")'>rename</a>";
         $rename .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename' style='display:none'>"
                   ."<br /><form>"
@@ -533,7 +544,7 @@ class ResourceManager{
             }
         }
         $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
-
+    
         if( ($exts = @FilingCabinet::GetDirInfo($dir_key)['extensions']) ) {
             $file_ext = pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION);
             foreach ($exts as $k=>$v){
@@ -543,10 +554,12 @@ class ResourceManager{
         $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
-
-                  $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
-
-                  $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
+        
+        $download = "<a href='?cmd=download&id=".$oRR->getID()."' data-tooltip='Download Resource'><i class='fa fa-download'></i></a>";
+        
+        $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
+        
+        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
         return $s;
     }
 
