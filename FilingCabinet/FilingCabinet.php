@@ -52,7 +52,7 @@ class FilingCabinetUI
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
             // Show the "closed drawers" of the filing cabinet
-            $s .= "<div><h3 style='display:inline;padding-right:10px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>";
+            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
             $ras = FilingCabinet::GetFilingCabinetDirectories();
@@ -259,7 +259,7 @@ class FilingCabinet
      */
     static function GetAccessor(ResourceRecord $oRR):String{
         $directory = $oRR->getDirectory();
-        if(in_array($directory, self::GetFilingCabinetDirectories())){
+        if(array_key_exists($directory, self::GetFilingCabinetDirectories())){
             // File is part of the filing cabinet, return the appropiate accessor
             return "?screen=therapist-filing-cabinet&dir=".$directory;
         }
@@ -397,6 +397,7 @@ class ResourceRecord {
             'status' => $this->status,
             'dir' => $this->dir,
             'subdir' => $this->subdir,
+            'file' => $this->file,
             'tags' => $this->tags,
             'committed' => $this->committed,
         ];
