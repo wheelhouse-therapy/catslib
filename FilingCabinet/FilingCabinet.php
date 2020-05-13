@@ -36,15 +36,23 @@ class FilingCabinetUI
         if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             FilingCabinet::EnsureDirectory($dirbase);
-            $s .= "<h3>Filing Cabinet : ".$raDirInfo['name']."</h3>"
-                 ."<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>"
-                 ."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>";
+            $title = "Close {$raDirInfo['name']} Drawer";
+            if(stripos($raDirInfo['name'], "Drawer") !== false){
+                $title = "Close {$raDirInfo['name']}";
+            }
+            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>"
+                 .($dir != 'papers'?"<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>":"")
+                 //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
+                 ."<p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center'>"
+                    ."<a title='{$title}' style='font-size: 18pt; color: #fff' href='?screen=therapist-filing-cabinet'>{$raDirInfo['name']}</a>"
+                 ."</div></p>";
             if($dir == 'papers'){
                 include(CATSLIB."papers.php");
             }
             else{
                 $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
             }
+            $s .= $this->getSearchDialog();
         } else {
             FilingCabinet::EnsureDirectory("*");
             $s .= "<div style='float:right;' id='uploadForm'>"
@@ -61,8 +69,13 @@ class FilingCabinetUI
                 if (array_key_exists("color", $ra)) {
                     $bgcolor = "background-color: {$ra['color']};";
                 }
+                $title = "Open {$ra['name']} Drawer";
+                if(stripos($ra['name'], "Drawer") !== false){
+                    $title = "Open {$ra['name']}";
+                }
+                
                 $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'>"
-                        ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}'>{$ra['name']}</a>"
+                        ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}' title='{$title}'>{$ra['name']}</a>"
                      ."</div></p>";
             }
             $s .= $this->getSearchDialog();

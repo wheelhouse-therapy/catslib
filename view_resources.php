@@ -146,22 +146,35 @@ ResourcesTagScript;
             $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD );
         }
     }
-    $s .= "<table border='0'>";
+    $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
-            $s.= "<tr><th>$k</th></tr>";
+            $s.= "<div class='folder'><div class='folder-title' data-folder='$k'><i class='far fa-folder-open'></i><strong>$k</strong></div>";
         }
-        else if(count($raOut) > 1){
-            $s.= "<tr><th>Other</th></tr>";
+        else if(count($raOut) > 1 && $v){
+            $s.= "<div class='folder'><div class='folder-title' data-folder='other'><i class='far fa-folder-open'></i><strong>Loose Files</strong></div>";
         }
         if($v){
-            $s.= $v;
+            $id = "";
+            if($k){
+                $id = $k;
+            }
+            else{
+                $id = "other";
+            }
+            $s.= "<div id='$id'>".$v."</div>";
         }
-        else{
-            $s .= "<tr><td>No Files</td></tr>";
+        else if($k){
+            $s .= "<div id='$k'>Empty Folder</div>";
+        }
+        if($k){
+            $s .= "</div>";
+        }
+        else if(count($raOut) > 1){
+            $s .= "</div>";
         }
     }
-    $s .= "</table>";
+    $s .= "</div>";
 
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
@@ -226,7 +239,6 @@ fcdScript;
 
 function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD )
 {
-        $class = "";
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
 
         $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
@@ -254,18 +266,17 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         $sTemplate =
-            "<tr [[CLASS]]>
-                <td valign='top'>
+            "<div style='display:inline-block;margin-right:10px;border: solid 2px;padding:5px;padding-bottom:0px'>
+                <div>
                     <a style='white-space: nowrap' [[LINK]] >[[FILENAME]]</a>
-                </td>
-                <td style='padding-left:20px' valign='top' data-id='".$oRR->getID()."'>
+                </div>
+                <div data-id='".$oRR->getID()."'>
                     [[TAGS]]
-                </td>
-            </tr>";
+                </div>
+            </div>";
 
-        $raOut[$kSubfolder] .= str_replace( ["[[CLASS]]","[[LINK]]","[[FILENAME]]","[[TAGS]]"],
-                                           [$class,
-                                            $link,
+        $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]"],
+                                           [$link,
                                             SEEDCore_HSC($fileinfo->getFilename()),
                                             $oFCD->oResourcesFiles->DrawTags($oRR)
                                            ],
