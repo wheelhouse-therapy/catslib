@@ -274,10 +274,17 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                     [[TAGS]]
                 </div>
             </div>";
+        
+        // Fallback if a Preview doesn't exist
+        $filename = SEEDCore_HSC($fileinfo->getFilename());
+        if($oRR->getPreview()){
+            // a preview exists use it instead of the fallback
+            $filename = "<img src='data:image/jpg;base64,".$oRR->getPreview()."' style='width:100%;padding-bottom:2px' />";
+        }
 
         $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]"],
                                            [$link,
-                                            SEEDCore_HSC($fileinfo->getFilename()),
+                                            $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR)
                                            ],
                                            $sTemplate);
