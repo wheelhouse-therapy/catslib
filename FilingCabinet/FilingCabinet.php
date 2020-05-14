@@ -331,7 +331,7 @@ class FilingCabinet
 /**
  * Class Representing a resource in the database.
  * This serves as a communication layer between the database and other files.
- * The functions in this ADT are garenteed, regardles of the underlying database structure.
+ * The functions in this ADT are guaranteed, regardles of the underlying database structure.
  * @author Eric
  *
  */
@@ -343,6 +343,7 @@ class ResourceRecord {
     private const STATUS_KEY = 'status';
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
+    private const PREVIEW_KEY = 'preview';
 
     private const TAG_SEPERATOR = "\t";
 
@@ -375,6 +376,7 @@ class ResourceRecord {
     private $subdir = '';
     private $file;
     private $tags = [];
+    private $preview = "";
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -398,6 +400,8 @@ class ResourceRecord {
             $this->tags = @$raParams[self::TAGS_KEY]?:[];
         }
         $this->tags = array_values(array_filter($this->tags)); //Remove empty tags, saving to DB should keep them
+        
+        $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
     }
 
     /**
@@ -413,6 +417,7 @@ class ResourceRecord {
             'file' => $this->file,
             'tags' => $this->tags,
             'committed' => $this->committed,
+            'preview' => $this->preview,
         ];
     }
 
@@ -510,6 +515,22 @@ class ResourceRecord {
     }
 
     /**
+     * Set the preview of the resource
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 2: The image data SHOULD NOT be base 64 encoded
+     * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
+     * @param String $image - Image data to store as preview
+     * @return boolean - true if preview has changed, false otherwise
+     */
+    public function setPreview(String $image){
+        if($image != $this->preview){
+            $this->committed = false;
+        }
+        $this->preview = $image;
+        return !$this->committed;
+    }
+    
+    /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
      * @return bool - true if data successfully committed, false otherwise
@@ -522,6 +543,7 @@ class ResourceRecord {
         $dbFolder = addslashes($this->dir);
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
+        $dbPreview = addslashes($this->preview);
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
             //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
@@ -546,10 +568,10 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder' WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview' WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder')"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview')"))){
                 $this->committed = true;
             }
         }
@@ -588,6 +610,18 @@ class ResourceRecord {
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
 
+    /**
+     * Get the stored preview of the resource.
+     * @param bool $encode - Wether or not to base 64 encode the image data for output. Default true.
+     * @return string containing the encoded or raw image data. Or empty string if there is no image stored
+     */
+    public function getPreview(bool $encode = true){
+        if($encode){
+            return base64_encode($this->preview);
+        }
+        return $this->preview;
+    }
+    
     /**
      * Join a condition to the end of a condition.
      * Will add AND/OR between the conditons if nessesary
@@ -651,6 +685,7 @@ class ResourceRecord {
         $raParams += [self::STATUS_KEY=>$ra['_status']];
         $raParams += [self::SUBDIRECTORY_KEY=>$ra['subfolder']];
         $raParams += [self::TAGS_KEY=>$ra['tags']];
+        $raParams += [self::PREVIEW_KEY=>$ra['preview']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
