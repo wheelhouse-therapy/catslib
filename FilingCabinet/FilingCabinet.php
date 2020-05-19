@@ -645,6 +645,10 @@ class ResourceRecord {
 
     /**
      * Get Resource Records from a db query
+     * NOTE: Result type depends on number of records retrieved.
+     * NULL is returned if no records are retrieved.
+     * A ResourceRecord Object is returned if one record is retrieved.
+     * An array of ResourceRecord Objects is returned if more than one record is retrieved.
      * @param SEEDAppConsole $oApp - object with access to db to query
      * @param String $query - query to run on db
      * @return array|NULL|ResourceRecord - Resource Records containing data or Null of there are no results
@@ -787,6 +791,21 @@ class ResourceRecord {
         $dbSearch = addslashes($search);
         $query = "SELECT _key FROM resources_files WHERE filename LIKE '%$dbSearch%'";
         $query = self::joinCondition($query, "tags LIKE '%$dbSearch%'",true);
+        return self::getFromQuery($oApp, $query);
+    }
+    
+    /**
+     * Get All records which do not have a preview stored.
+     * Useful for generating previews.
+     * NOTE: Result type depends on number of records retrieved.
+     * NULL is returned if no records are retrieved.
+     * A ResourceRecord Object is returned if one record is retrieved.
+     * An array of ResourceRecord Objects is returned if more than one record is retrieved.
+     * @param SEEDAppConsole $oApp - Connection to DB to fetch from
+     * @return array|NULL|ResourceRecord - Resource Records containing data or Null of there are no results
+     */
+    public static function GetRecordsWithoutPreview(SEEDAppConsole $oApp){
+        $query = "SELECT _key FROM resources_files WHERE preview = ''";
         return self::getFromQuery($oApp, $query);
     }
     
