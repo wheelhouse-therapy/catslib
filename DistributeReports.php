@@ -17,7 +17,7 @@ function distributeReports($oApp) {
      *
      */
     $s = <<<Form
-        <select id="clientlist" onchange="jxCall()">
+        <select id="clientlist" placeholder='Select Client...' onchange="jxCall()">
             [[options]]
         </select>
         <div id="content">

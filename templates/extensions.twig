@@ -340,6 +340,11 @@ function initPage() {
 	}
 }
 window.addEventListener("DOMContentLoaded", initPage);
+$(document).ready(function () {
+    $('#clientlist').selectize({
+        sortField: 'text'
+    });
+});
 </script>
 <style>
 td:not(.borderless),th:not(.borderless) {
