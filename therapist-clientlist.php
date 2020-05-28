@@ -896,7 +896,8 @@ ExistsWarning;
     /**
      * Get array of clients that the user has access to see
      * This method works internally and enforces Office Access Rights
-     * @param int $status - status of the clients
+     * @param int $status - status of the clients, -1 to get all a users clients
+     * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
     private function getMyClientsInternal(int $status = 0,array $raParms = array()):array{
@@ -913,7 +914,8 @@ ExistsWarning;
     
     /**
      * Get array of clients that the user has access to see
-     * @param int $status - status of the clients
+     * @param int $status - status of the clients, -1 to get all a users clients
+     * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
     public function getMyClients(int $status = 0,array $raParms = array()):array{
