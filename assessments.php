@@ -1295,7 +1295,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<style>.asmt_controlform { width:97%; margin:20px; padding:5% 0px 5% 5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
+                  "<script>$(document).ready(function (){\$('select').selectize({sortField: 'text'});});</script>"
+                 ."<style>.asmt_controlform { width:97%; margin:20px; padding:5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
                  ."<div class='asmt_controlform'>"
                  ."<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
