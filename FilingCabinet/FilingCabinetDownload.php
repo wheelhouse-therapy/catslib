@@ -49,12 +49,12 @@ class FilingCabinetDownload
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
                 $user = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'");
-                $from = $kfr->Value('email');
-                $fromName = $kfr->Value('first_name')." ".$kfr->Value("last_name");
+                $from = $user->Value('email');
+                $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 
                 // Message Content
-                $subject = "TODO:Subject"; //TODO Subject
-                $body = "TODO:Body"; //TODO Body
+                $subject = "Resource from CATS";
+                $body = "Please find a therapy resource specifically for you attached, as we discussed in the session.\n\nSincerely\n[[therapist name]]";
                 
                 // Brains behind message sending and Attachment
                 $headers = "From: $fromName <$from>"; // Sender info
@@ -109,7 +109,6 @@ class FilingCabinetDownload
         $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
-                //TODO UPDATE TO USE oRR instead of filename
                 return "href='javascript:void(0)' onclick=\"select_client('$rrid')\"";
             case 'no_replace':
                 return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
