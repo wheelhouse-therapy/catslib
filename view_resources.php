@@ -72,11 +72,13 @@ ResourcesTagScript;
 
     if(isset($_SESSION['mailResult'])){
         if($_SESSION['mailResult']){
-            $s .= "<div class='alert alert-success'>Email Sent Successfully!</div>";
+            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully!</div>";
         }
         else{
-            $s .= "<div class='alert alert-danger'>Could Not Send Email</div>";
+            $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
         }
+        unset($_SESSION['mailResult']);
+        $s .= "<script>hideAlerts()</script>";
     }
     
     // make sure dir_name is the full path
@@ -135,6 +137,7 @@ ResourcesTagScript;
         $s = str_replace(["[[title]]","[[avalible]]"], "", $s);
     }
     else if(CATS_DEBUG){
+        // Developer mechines aren't configred to talk with SMTP servers.
         $s = str_replace(["[[title]]","[[avalible]]"], ["title='Option disabled on dev machines'","disabled"], $s);
     }
     else{

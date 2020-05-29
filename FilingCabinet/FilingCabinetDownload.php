@@ -37,18 +37,12 @@ class FilingCabinetDownload
 
             $resmode = SEEDInput_Str('resource-mode');
 
-            if( $resmode != "no_replace" ) {
-                // mode blank is implemented by telling template_filler that client=0
-                $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
-                $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
-                $filler->fill_resource($file, ['client'=>$kClient]);
-            }
-            else if($resmode != "email"){
+            if($resmode == "email"){
                 $kClient = SEEDInput_Int('client');
                 $oPeopleDB = new PeopleDB($this->oApp);
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
-                $user = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'");
+                $user = $oPeopleDB->getKFRCond("P","uid='{$this->oApp->sess->GetUID()}'");
                 $from = $user->Value('email');
                 $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 
@@ -63,7 +57,7 @@ class FilingCabinetDownload
                 // Headers for attachment
                 $headers .= "\nMIME-Version: 1.0\nContent-Type: multipart/mixed;\n boundary=\"{$mime_boundary}\"";
                 $message = "--{$mime_boundary}\nContent-Type: text/plain; charset=\"UTF-8\"\n"
-                          ."Content-Transfer-Encoding: 7bit\n\n".$body."\n\n";
+                ."Content-Transfer-Encoding: 7bit\n\n".$body."\n\n";
                 if(!empty($file) > 0){
                     if(is_file($file)){
                         $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
@@ -75,9 +69,9 @@ class FilingCabinetDownload
                         @fclose($fp);
                         $data = chunk_split(base64_encode($data));
                         $message .= "Content-Type: application/octet-stream; name=\"".$code.($code?"-":"").basename($file)."\"\n"
-                                   ."Content-Description: ".$code.($code?"-":"").basename($file)."\n"
-                                   ."Content-Disposition: attachment;\n filename=\"".$code.($code?"-":"").basename($file)."\"; size=".filesize($filename).";\n"
-                                   ."Content-Transfer-Encoding: base64\n\n".$data."\n\n";
+                            ."Content-Description: ".$code.($code?"-":"").basename($file)."\n"
+                                ."Content-Disposition: attachment;\n filename=\"".$code.($code?"-":"").basename($file)."\"; size=".filesize($filename).";\n"
+                                    ."Content-Transfer-Encoding: base64\n\n".$data."\n\n";
                     }
                 }
                 $message .= "--{$mime_boundary}--";
@@ -85,8 +79,14 @@ class FilingCabinetDownload
                 $mail = @mail($to, $subject, $message, $headers,$returnpath);
                 $_SESSION['mailResult'] = $mail;
                 header("HTTP/1.1 303 SEE OTHER");
-                header("Location: ?");
+                header("Location: ?dir=".SEEDInput_Str('dir'));
                 exit();
+            }
+            else if( $resmode != "no_replace" ) {
+                // mode blank is implemented by telling template_filler that client=0
+                $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
+                $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
+                $filler->fill_resource($file, ['client'=>$kClient]);
             }
             else{
                  header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
