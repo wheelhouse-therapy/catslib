@@ -4,7 +4,7 @@ require_once 'template_filler.php';
 require_once 'share_resources.php';
 
 
-function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
+function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
@@ -70,6 +70,15 @@ ResourcesTagScript;
 
     $oFCD = new FilingCabinetDownload( $oApp );
 
+    if(isset($_SESSION['mailResult'])){
+        if($_SESSION['mailResult']){
+            $s .= "<div class='alert alert-success'>Email Sent Successfully!</div>";
+        }
+        else{
+            $s .= "<div class='alert alert-danger'>Could Not Send Email</div>";
+        }
+    }
+    
     // make sure dir_name is the full path
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
         $dir_name = CATSDIR_RESOURCES.$dir_name;
@@ -100,14 +109,15 @@ ResourcesTagScript;
                             <div class='row'><div class='col-sm-6'>
                                 <input type='hidden' name='cmd' value='download' />
                                 <input type='hidden' name='dir' id='dir' value='$dir_short' />
-                                <input type='hidden' name='file' id='file' value='' />
-                                <select name='client' id='fcd_clientSelector' required>
+                                <input type='hidden' name='rr' id='rr' value='' />
+                                <select name='client' id='fcd_clientSelector' required onchange='emailAvalible()'>
                                     <option selected value=''>Select a Client</option>"
                                 .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                                 ."</select>
                             </div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked />Substitute client details into document</p>
+                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[avalible]] id='email' />Substitute client details and email</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' />Substitute client details into document</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'/>Save file with no substitution</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'/>Fill document tags with blanks</p>
                                 </div>
@@ -120,6 +130,16 @@ ResourcesTagScript;
                     </div>
                 </div>
             </div>";
+    $oPeopleDB = new PeopleDB($oApp);
+    if(!CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
+        $s = str_replace(["[[title]]","[[avalible]]"], "", $s);
+    }
+    else if(CATS_DEBUG){
+        $s = str_replace(["[[title]]","[[avalible]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+    }
+    else{
+        $s = str_replace(["[[title]]","[[avalible]]"], ["title='Your account lacks an email address'","disabled"], $s);
+    }
 
     $sFilter = SEEDInput_Str('resource-filter');
 
@@ -178,9 +198,10 @@ ResourcesTagScript;
 
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
-            function select_client(file){
+            const disabledByServer = document.getElementById('email').disabled;
+            function select_client(rr){
                 document.getElementById('file_dialog').innerHTML = modal;
-                document.getElementById('file').value = file;
+                document.getElementById('rr').value = rr;
                 $('#file_dialog').modal('show');
             }
             function modalSubmit(e) {
@@ -221,17 +242,38 @@ ResourcesTagScript;
                     e.preventDefault();
                 }
             }
+            function fcd_clientselect_enable( bEnable )
+            {
+                $('#fcd_clientSelector').prop('disabled', !bEnable);
+            }
+            function emailAvalible(){
+                if(disabledByServer){
+                    return;
+                }
+                let select = document.getElementById('fcd_clientSelector');
+                kClient = select.options[select.selectedIndex].value;
+                $.ajax({
+                    type: \"POST\",
+                    data: {cmd:'therapist-fcd-canEmail',client:kClient},
+                    url: 'jx.php',
+                    success: function(data, textStatus, jqXHR) {
+                        var jsData = JSON.parse(data);
+                        if(jsData.bOk){
+                            $('#email').prop('disabled', false);
+                            $('#emailTitle').prop('title', '');
+                        }
+                        else{
+                            $('#email').prop('disabled', true);
+                            $('#emailTitle').prop('title', 'The selected client does not have an email address stored');
+                            $('#replace').prop('checked', true);
+                        }
+                    },
+                    error: function(jqXHR, status, error) {
+                        console.log(status + \": \" + error);
+                    }
+                });
+            }
            </script>";
-
-    $s .= <<<fcdScript
-<script>
-function fcd_clientselect_enable( bEnable )
-{
-    $('#fcd_clientSelector').prop("disabled", !bEnable);
-}
-</script>
-fcdScript;
-
 
     done:
     return( $s );
