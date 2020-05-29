@@ -499,7 +499,7 @@ class ResourceManager{
                 }
                 exit;
         }
-        header("HTTP/1.1 301 Moved Permanently");
+        header("HTTP/1.1 303 SEE OTHER");
         header("Location: ?");
         exit();
     }
