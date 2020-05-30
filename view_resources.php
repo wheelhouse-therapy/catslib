@@ -118,7 +118,7 @@ ResourcesTagScript;
                                 ."</select>
                             </div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
-                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[avalible]] id='email' />Substitute client details and email</p>
+                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' />Substitute client details and email</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' />Substitute client details into document</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'/>Save file with no substitution</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'/>Fill document tags with blanks</p>
@@ -134,14 +134,20 @@ ResourcesTagScript;
             </div>";
     $oPeopleDB = new PeopleDB($oApp);
     if(!CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
-        $s = str_replace(["[[title]]","[[avalible]]"], "", $s);
+        //TODO Revove once feature is confirmed to be working.
+        if(!CATS_ADMIN){
+            $s = str_replace(["[[title]]","[[disabled]]"], ["title='Feature not tested. Avalible only to developers'","disabled"], $s);
+        }
+        else{
+            $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
+        }
     }
     else if(CATS_DEBUG){
         // Developer mechines aren't configred to talk with SMTP servers.
-        $s = str_replace(["[[title]]","[[avalible]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
     }
     else{
-        $s = str_replace(["[[title]]","[[avalible]]"], ["title='Your account lacks an email address'","disabled"], $s);
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Your account lacks an email address'","disabled"], $s);
     }
 
     $sFilter = SEEDInput_Str('resource-filter');
