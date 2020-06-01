@@ -623,6 +623,21 @@ class ResourceRecord {
     }
     
     /**
+     * Delete the Record from the database.
+     * NOTE: the record is not actually deleted but the status has been set to 1
+     * NOTE2: once deleted the record is only retrieveable by its ID. As search methods ignore records with non-zero statuses
+     * NOTE3: The record can be recovered by setting the status to 0.
+     * NOTE4: New records will overwrite deleted records if availible instead of creating new records.
+     * @return boolean - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
+     * Check the status of the record to ensure it was deleted.
+     */
+    public function DeleteRecord(){
+        $result1 = $this->setStatus(1);
+        $result2 = $this->StoreRecord();
+        return $result1 && $result2;
+    }
+    
+    /**
      * Join a condition to the end of a condition.
      * Will add AND/OR between the conditons if nessesary
      * @param String $cond - condition to append to
