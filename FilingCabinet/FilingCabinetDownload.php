@@ -50,6 +50,8 @@ class FilingCabinetDownload
                 $subject = "Resource from CATS";
                 $body = "Please find a therapy resource specifically for you attached, as we discussed in the session.\n\nSincerely\n[[therapist name]]";
                 
+                $body = str_replace("[[therapist name]]", $fromName, $body);
+                
                 // Brains behind message sending and Attachment
                 $headers = "From: $fromName <$from>"; // Sender info
                 $semi_rand = md5(time());
