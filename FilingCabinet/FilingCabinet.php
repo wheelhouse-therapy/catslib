@@ -203,7 +203,7 @@ class FilingCabinet
                     if( CATS_SYSADMIN ) {
                         echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                     }
-                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
+                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),0);
                     $oRR->StoreRecord();
                 }
             }
@@ -218,7 +218,7 @@ class FilingCabinet
                         if( CATS_SYSADMIN ) {
                             echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                         }
-                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()));
+                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),0);
                         $oRR->StoreRecord();
                     }
                 }
@@ -340,6 +340,7 @@ class ResourceRecord {
     //raParam keys
     private const ID_KEY = 'id';
     private const CREATED_KEY = 'created';
+    private const CREATED_BY_KEY = 'created_by';
     private const STATUS_KEY = 'status';
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
@@ -364,11 +365,12 @@ class ResourceRecord {
      */
     private $id = 0;
     /**
-     * Date the file was initially revieved
-     * value of 0 represents new file (usually accompanied by and id of 0)
+     * Date the file was initially revieved or uploaded
+     * value of 0 represents new file (usually accompanied by an id of 0)
      * READ ONLY
      */
     private $created = 0;
+    private $created_by = 0;
     private $status = 0;
 
     // File info
@@ -391,6 +393,7 @@ class ResourceRecord {
         $this->dir = $dirname;
         $this->id = @$raParams[self::ID_KEY]?:0;
         $this->created = @$raParams[self::CREATED_KEY]?:0;
+        $this->created_by = @$raParams[self::CREATED_BY_KEY]?:$oApp->sess->getUID();
         $this->status = @$raParams[self::STATUS_KEY]?:0;
         $this->subdir = @$raParams[self::SUBDIRECTORY_KEY]?:'';
         if(is_string(@$raParams[self::TAGS_KEY])){
@@ -461,6 +464,11 @@ class ResourceRecord {
     public function setDirectory(String $dir):bool{
         if($dir != $this->dir){
             $this->committed = false;
+            if($this->dir == 'pending'){
+                // Update the created column to reflect the review time.
+                // Only do this if the file is being moved from pending to another folder (being reviewed)
+                $this->created = 'NOW()';
+            }
         }
         $this->dir = $dir;
         return !$this->committed;
@@ -556,7 +564,7 @@ class ResourceRecord {
             if($this->id){
                 $this->status = 0;
                 $this->created = 'NOW()';
-                $this->oApp->kfdb->Execute("UPDATE resources_files SET _created_by=$uid WHERE _key = {$this->id}");
+                $this->oApp->kfdb->Execute("UPDATE resources_files SET _created_by={$this->created_by} WHERE _key = {$this->id}");
             }
         }
         $tags = '';
@@ -571,13 +579,28 @@ class ResourceRecord {
             $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview' WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview) VALUES (NOW(),$uid,NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview')"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview')"))){
                 $this->committed = true;
             }
         }
         return $this->committed;
     }
 
+    /**
+     * Delete the Record from the database.
+     * NOTE: the record is not actually deleted but the status has been set to 1
+     * NOTE2: once deleted the record is only retrieveable by its ID. As search methods ignore records with non-zero statuses
+     * NOTE3: The record can be recovered by setting the status to 0.
+     * NOTE4: New records will overwrite deleted records if availible instead of creating new records.
+     * @return boolean - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
+     * Check the status of the record to ensure it was deleted.
+     */
+    public function DeleteRecord(){
+        $result1 = $this->setStatus(1);
+        $result2 = $this->StoreRecord();
+        return $result1 && $result2;
+    }
+    
     public function getID():int{
         return $this->id;
     }
@@ -623,18 +646,23 @@ class ResourceRecord {
     }
     
     /**
-     * Delete the Record from the database.
-     * NOTE: the record is not actually deleted but the status has been set to 1
-     * NOTE2: once deleted the record is only retrieveable by its ID. As search methods ignore records with non-zero statuses
-     * NOTE3: The record can be recovered by setting the status to 0.
-     * NOTE4: New records will overwrite deleted records if availible instead of creating new records.
-     * @return boolean - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
-     * Check the status of the record to ensure it was deleted.
+     * Get the user who created the record.
+     * NOTE: this user is also considered to be the uploader
+     * NOTE2: a value of 0 represents an unknown/anonynous uploader
+     * @param bool $userdata - wether to return the data associated with the uid or the uid itself
+     * @return array|int - array of user data if userdata is true, or the uid of the user who uploaded the indexed resource or 0 if the uploader is unknown
      */
-    public function DeleteRecord(){
-        $result1 = $this->setStatus(1);
-        $result2 = $this->StoreRecord();
-        return $result1 && $result2;
+    public function getUploader(bool $userdata = false){
+        if($userdata){
+            $acctDB = new SEEDSessionAccountDBRead($this->oApp->kfdb);
+            $result = $acctDB->GetUserInfo($this->created_by,false,true);
+            if(!$result[1]){
+                $result[1] = ['realname' => 'Anonymous'];
+            }
+            $result = array_merge($result[1],['metadata'=>$result[2]]);
+            return $result;
+        }
+        return $this->created_by;
     }
     
     /**
@@ -705,17 +733,21 @@ class ResourceRecord {
         $raParams += [self::SUBDIRECTORY_KEY=>$ra['subfolder']];
         $raParams += [self::TAGS_KEY=>$ra['tags']];
         $raParams += [self::PREVIEW_KEY=>$ra['preview']];
+        $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
 
     }
 
-    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename):ResourceRecord{
-        return new ResourceRecord($oApp, $dirname, $filename);
+    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1):ResourceRecord{
+        if($created_by == -1){
+            $created_by = $oApp->sess->getUID();
+        }
+        return new ResourceRecord($oApp, $dirname, $filename,[self::CREATED_BY_KEY=>$created_by]);
     }
 
-    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath){
+    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath,int $created_by=-1){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
         $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
@@ -744,7 +776,7 @@ class ResourceRecord {
                 return NULL;
                 break;
         }
-        $oRR =  self::CreateNewRecord($oApp, $dir, $filename);
+        $oRR =  self::CreateNewRecord($oApp, $dir, $filename,$created_by);
         $oRR->subdir = $subdir;
         return $oRR;
     }
