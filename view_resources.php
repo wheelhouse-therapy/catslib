@@ -296,7 +296,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
 
         if(!$oRR){
             // The file does not have a record yet, create one
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()));
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()),0);
             $oRR->StoreRecord();
         }
 
