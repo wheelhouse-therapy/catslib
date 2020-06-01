@@ -134,7 +134,7 @@ ResourcesTagScript;
             </div>";
     $oPeopleDB = new PeopleDB($oApp);
     if(!CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
-        //TODO Revove once feature is confirmed to be working.
+        //TODO Remove once feature is confirmed to be working.
         if(!CATS_ADMIN){
             $s = str_replace(["[[title]]","[[disabled]]"], ["title='Feature not tested. Avalible only to developers'","disabled"], $s);
         }
