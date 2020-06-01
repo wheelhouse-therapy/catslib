@@ -391,10 +391,10 @@ class ResourceRecord {
 
         $this->file = $filename;
         $this->dir = $dirname;
-        $this->id = @$raParams[self::ID_KEY]?:0;
+        $this->id = intval(@$raParams[self::ID_KEY]?:0);
         $this->created = @$raParams[self::CREATED_KEY]?:0;
-        $this->created_by = @$raParams[self::CREATED_BY_KEY]?:$oApp->sess->getUID();
-        $this->status = @$raParams[self::STATUS_KEY]?:0;
+        $this->created_by = intval(isset($raParams[self::CREATED_BY_KEY])?$raParams[self::CREATED_BY_KEY]:$oApp->sess->getUID());
+        $this->status = intval(@$raParams[self::STATUS_KEY]?:0);
         $this->subdir = @$raParams[self::SUBDIRECTORY_KEY]?:'';
         if(is_string(@$raParams[self::TAGS_KEY])){
             $this->tags = explode(self::TAG_SEPERATOR, @$raParams[self::TAGS_KEY]);
@@ -421,6 +421,7 @@ class ResourceRecord {
             'tags' => $this->tags,
             'committed' => $this->committed,
             'preview' => $this->preview,
+            'created_by' => $this->created_by,
         ];
     }
 
@@ -648,16 +649,26 @@ class ResourceRecord {
     /**
      * Get the user who created the record.
      * NOTE: this user is also considered to be the uploader
-     * NOTE2: a value of 0 represents an unknown/anonynous uploader
+     * NOTE2: a value of 0 represents an unknown/anonynous uploader. Requesting the userdata of a  0 value yields a name of "Anonymous"
+     * NOTE3: this method enforces clinic privacy, and changes the current users name to "Self"
+     * NOTE4: if a user does not have permission to see the user who uploaded a file (ie. dont share a clinic) the users name is replaced with "Anonymous"
+     * NOTE5: NOTE3 only applies when $userdata is true.
      * @param bool $userdata - wether to return the data associated with the uid or the uid itself
-     * @return array|int - array of user data if userdata is true, or the uid of the user who uploaded the indexed resource or 0 if the uploader is unknown
+     * @return array|int - array of user data if $userdata is true, or the uid of the user who uploaded the indexed resource or 0 if the uploader is unknown
      */
     public function getUploader(bool $userdata = false){
         if($userdata){
             $acctDB = new SEEDSessionAccountDBRead($this->oApp->kfdb);
+            $clinics = new Clinics($this->oApp);
             $result = $acctDB->GetUserInfo($this->created_by,false,true);
-            if(!$result[1]){
+            if(!$result[0]){
                 $result[1] = ['realname' => 'Anonymous'];
+            }
+            else if($result[0] == $this->oApp->sess->getUID()){
+                $result[1]['realname'] = 'Self';
+            }
+            else if((!$clinics->isCoreClinic() && !in_array($result[0], $clinics->getUsersInClinic($clinics->GetCurrentClinic())))){
+                $result[1]['realname'] = "Anonymous";
             }
             $result = array_merge($result[1],['metadata'=>$result[2]]);
             return $result;
