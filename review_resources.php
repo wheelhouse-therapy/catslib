@@ -70,10 +70,10 @@ foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
         $oRR = ResourceRecord::GetRecordFromRealPath($oApp, $fileinfo->getRealPath());
         if(!$oRR){
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, $fileinfo->getRealPath());
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, $fileinfo->getRealPath(),0);
             $oRR->StoreRecord();
         }
-        $s .= "<a href='?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
+        $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
         <form id='form".$oRR->getID()."' style='display:inline'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
@@ -103,7 +103,7 @@ foreach ($dir as $fileinfo) {
         <button type='submit' form='form".$oRR->getID()."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
         </form>
         <a href='?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
-        <br />";
+        <br />Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
     }
 }
 $url = "/cats" . substr(CATSDIR_IMG, 1);
