@@ -135,13 +135,7 @@ ResourcesTagScript;
             </div>";
     $oPeopleDB = new PeopleDB($oApp);
     if(!CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
-        //TODO Remove once feature is confirmed to be working.
-        if(!CATS_ADMIN){
-            $s = str_replace(["[[title]]","[[disabled]]"], ["title='Feature not tested. Avalible only to developers'","disabled"], $s);
-        }
-        else{
-            $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
-        }
+        $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
     else if(CATS_DEBUG){
         // Developer mechines aren't configred to talk with SMTP servers.
