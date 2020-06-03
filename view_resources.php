@@ -149,10 +149,10 @@ ResourcesTagScript;
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
-            $s.= "<div class='folder'><div class='folder-title' data-folder='$k'><i class='far fa-folder-open'></i><strong>$k</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open'></i><strong>$k</strong></div>";
         }
         else if(count($raOut) > 1 && $v){
-            $s.= "<div class='folder'><div class='folder-title' data-folder='other'><i class='far fa-folder-open'></i><strong>Loose Files</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open'></i><strong>Loose Files</strong></div>";
         }
         if($v){
             $id = "";
@@ -162,10 +162,10 @@ ResourcesTagScript;
             else{
                 $id = "other";
             }
-            $s.= "<div id='$id'>".$v."</div>";
+            $s.= "<div class='folder-contents' ontransitionend='clearHeight(event)' id='$id'>".$v."</div>";
         }
         else if($k){
-            $s .= "<div id='$k'>Empty Folder</div>";
+            $s .= "<div class='folder-contents' ontransitionend='clearHeight(event)' id='$k'>Empty Folder</div>";
         }
         if($k){
             $s .= "</div>";
