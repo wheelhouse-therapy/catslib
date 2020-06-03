@@ -43,9 +43,9 @@ class FilingCabinetUI
             $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>"
                  .($dir != 'papers'?"<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>":"")
                  //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                 ."<p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center'>"
-                    ."<a title='{$title}' style='font-size: 18pt; color: #fff' href='?screen=therapist-filing-cabinet'>{$raDirInfo['name']}</a>"
-                 ."</div></p>";
+                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                    ."{$raDirInfo['name']}"
+                 ."</div></p></a>";
             if($dir == 'papers'){
                 include(CATSLIB."papers.php");
             }
@@ -74,9 +74,9 @@ class FilingCabinetUI
                     $title = "Open {$ra['name']}";
                 }
                 
-                $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'>"
-                        ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}' title='{$title}'>{$ra['name']}</a>"
-                     ."</div></p>";
+                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                        ."{$ra['name']}"
+                     ."</div></a></p>";
             }
             $s .= $this->getSearchDialog();
         }

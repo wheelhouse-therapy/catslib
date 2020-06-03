@@ -178,10 +178,10 @@ ResourcesTagScript;
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
-            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open'></i><strong>$k</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open'></i> <strong>$k</strong></div>";
         }
         else if(count($raOut) > 1 && $v){
-            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open'></i><strong>Loose Files</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open'></i> <strong>Loose Files</strong></div>";
         }
         if($v){
             $id = "";
