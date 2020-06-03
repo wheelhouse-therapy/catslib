@@ -461,7 +461,7 @@ class AssessmentsCommon
             if( $k == 'cmd' )       continue;   // this is 'therapist-resourcemodal', should not be encoded because the next cmd is 'download'
             $raOut['body'] .= "<input type='hidden' name='$k' value='".htmlspecialchars($v)."' />";
         }
-        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
+        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>"; // Needed for reports to download
 
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":";
@@ -484,6 +484,10 @@ class AssessmentsCommon
             $raOut['body'] .= "</select>";
         }
         $raOut['body'] .="</form>";
+        
+        if(SEEDInput_Str("resource-mode") == 'email'){
+            $raOut['footer'] = "<input type='submit' id='submitVal' value='Email' form='assmt_form' />";
+        }
 
         return $bData ? $raOut : array();
     }

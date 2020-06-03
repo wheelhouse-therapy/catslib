@@ -18,49 +18,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 
     $dir_short = trim($dir_name,'/');
 
-    $s .= <<<ResourcesTagStyle
-        <style>
-            #break {
-                display: flex;
-                justify-content: space-around;
-                align-items: flex-start;
-                min-height: 100px;
-                height: auto;
-            }
-            #ResourceMode {
-                box-sizing: border-box;
-                display: inline-flex;
-                flex-direction: column;
-                padding: 7px 10px;
-                border: 2px outset #ccc;
-                border-style: inset outset outset inset;
-                border-radius: 5px;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                background-color: #ccc;
-                flex-basis: 20%;
-                align-content: space-between;
-            }
-            #modeText {
-                display: flex;
-                height: 30px;
-                align-items: center;
-                padding: 5px;
-                margin-bottom: 5px;
-            }
-            #mode1 {
-                margin-bottom: 5px;
-            }
-            #mode2 {
-            }
-        </style>
-ResourcesTagStyle;
-
-    $s .= <<<ResourcesTagScript
-        <script>
-        </script>
-ResourcesTagScript;
-
 // TODO: the Filing Cabinet handles its own download cmd but this is still used by Reports (which should use DrawFilingCabinet('reports/') instead some day)
     if( SEEDInput_Str('cmd') == 'download' ) {
         $oFCD = new FilingCabinetDownload( $oApp );
@@ -119,10 +76,10 @@ ResourcesTagScript;
                                 ."</select>
                             </div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
-                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' />Substitute client details and email</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' />Substitute client details into document</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'/>Save file with no substitution</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'/>Fill document tags with blanks</p>
+                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' onchange='buttonUpdate(\"Email\")' />Substitute client details and email</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' onchange='buttonUpdate(\"default\")' />Substitute client details into document</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Save file with no substitution</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Fill document tags with blanks</p>
                                 </div>
                             </div></div>
                             </form>
@@ -134,7 +91,7 @@ ResourcesTagScript;
                 </div>
             </div>";
     $oPeopleDB = new PeopleDB($oApp);
-    if(!CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
+    if(CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
     else if(CATS_DEBUG){
@@ -203,6 +160,7 @@ ResourcesTagScript;
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
             const disabledByServer = document.getElementById('email').disabled;
+            const buttonValue = document.getElementById('submitVal').value;
             function select_client(rr){
                 document.getElementById('file_dialog').innerHTML = modal;
                 document.getElementById('rr').value = rr;
@@ -276,6 +234,17 @@ ResourcesTagScript;
                         console.log(status + \": \" + error);
                     }
                 });
+            }
+            function buttonUpdate(value,override=false){
+                if(buttonValue == 'Download' || override){
+                    if(value == 'default'){
+                        value = buttonValue
+                    }
+                    document.getElementById('submitVal').value = value;
+                }
+                else{
+                    document.getElementById('submitVal').value = buttonValue;
+                }
             }
            </script>";
 
