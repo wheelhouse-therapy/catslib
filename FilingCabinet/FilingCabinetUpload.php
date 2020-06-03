@@ -63,11 +63,15 @@ class FilingCabinetUpload
         }
         // Allow certain file formats
         if(!in_array($documentFileType, FilingCabinet::GetSupportedExtensions())) {
-            $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed.<br />";
+            $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed. (Code 415)<br />";
             goto done;
         }
 
         if (move_uploaded_file($_FILES[self::fileid]["tmp_name"], $target_file)) {
+            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file));
+            if(!$oRR->StoreRecord()){
+                $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
+            }
             $s .= "The file ". basename( $_FILES[self::fileid]["name"]). " has been uploaded and is awaiting review.";
             if($this->oApp->sess->CanWrite("admin")){
                 $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
