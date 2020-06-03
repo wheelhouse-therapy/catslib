@@ -80,6 +80,7 @@ class FilingCabinetDownload
                 $returnpath = "-f".$from;
                 $mail = @mail($to, $subject, $message, $headers,$returnpath);
                 $_SESSION['mailResult'] = $mail;
+                $_SESSION['mailTarget'] = $to;
                 header("HTTP/1.1 303 SEE OTHER");
                 header("Location: ?dir=".SEEDInput_Str('dir'));
                 exit();

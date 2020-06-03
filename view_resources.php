@@ -72,12 +72,13 @@ ResourcesTagScript;
 
     if(isset($_SESSION['mailResult'])){
         if($_SESSION['mailResult']){
-            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully!</div>";
+            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
         }
         else{
             $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
         }
         unset($_SESSION['mailResult']);
+        unset($_SESSION['mailTarget']);
         $s .= "<script>hideAlerts()</script>";
     }
     
