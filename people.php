@@ -77,9 +77,9 @@ class People
      */
     {
         switch( $c ) {
-            case 'C':   $kfr = $this->oPeopleDB->GetKFR("C", $kCSE);      break;
-            case 'S':   $kfr = $this->oPeopleDB->GetKFR("PI", $kCSE);     break;
-            case 'E':   $kfr = $this->oPeopleDB->GetKFR("PE", $kCSE);     break;
+            case 'C':   $kfr = $this->oPeopleDB->GetKFR(ClientList::CLIENT, $kCSE);      break;
+            case 'S':   $kfr = $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $kCSE);     break;
+            case 'E':   $kfr = $this->oPeopleDB->GetKFR(ClientList::EXTERNAL_PRO, $kCSE);     break;
             default:    return;
         }
 

@@ -583,7 +583,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $oForm = $this->oData->GetForm();
-        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
+        $client = $oPeopleDB->getKFR(ClientList::CLIENT, $oForm->Value("fk_clients2"));
         $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
                     <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
                     <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>

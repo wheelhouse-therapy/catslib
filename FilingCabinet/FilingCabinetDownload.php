@@ -40,9 +40,10 @@ class FilingCabinetDownload
             if($resmode == "email"){
                 $kClient = SEEDInput_Int('client');
                 $oPeopleDB = new PeopleDB($this->oApp);
+                $manageUsers = new ManageUsers($this->oApp);
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
-                $user = $oPeopleDB->getKFRCond("P","uid='{$this->oApp->sess->GetUID()}'");
+                $user = $manageUsers->getClincRecord($this->oApp->sess->GetUID());
                 $from = $user->Value('email');
                 $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 

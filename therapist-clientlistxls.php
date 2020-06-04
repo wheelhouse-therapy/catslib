@@ -49,7 +49,7 @@ class Therapist_ClientListSpreadsheet
 
         /* Sheet 0 is Clients
          */
-        $raClients    = $this->oPeopleDB->GetList('C', $condClinic);
+        $raClients    = $this->oPeopleDB->GetList(ClientList::CLIENT, $condClinic);
         $raClientCols = $raPeople + array(
             '_key'             => "Client number",
             'fk_people'        => "P key",
@@ -63,7 +63,7 @@ class Therapist_ClientListSpreadsheet
 
         /* Sheet 1 is Staff
          */
-        $raStaff = $this->oPeopleDB->GetList('PI', $condClinic);
+        $raStaff = $this->oPeopleDB->GetList(ClientList::INTERNAL_PRO, $condClinic);
         $raStaffCols = $raPeople + array(
             '_key'         => "Staff number",
             'fk_people'    => "P key",
@@ -76,7 +76,7 @@ class Therapist_ClientListSpreadsheet
 
         /* Sheet 2 is External providers
          */
-        $raPros = $this->oPeopleDB->GetList('PE', $condClinic);
+        $raPros = $this->oPeopleDB->GetList(ClientList::EXTERNAL_PRO, $condClinic);
         $raProsCols = $raPeople + array(
             '_key'         => "Provider number",
             'fk_people'    => "P key",

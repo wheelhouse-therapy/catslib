@@ -90,8 +90,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                     </div>
                 </div>
             </div>";
-    $oPeopleDB = new PeopleDB($oApp);
-    if(CATS_DEBUG && ($kfr = $oPeopleDB->getKFRCond("P","uid='{$oApp->sess->GetUID()}'")) && $kfr->Value('email')){
+    $manageUsers = new ManageUsers($oApp);
+    if(!CATS_DEBUG && ($kfr = $manageUsers->getClincRecord($oApp->sess->GetUID())) && $kfr->Value('email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
     else if(CATS_DEBUG){

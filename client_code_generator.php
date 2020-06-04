@@ -20,7 +20,7 @@ class ClientCodeGenerator {
      * @return string - The generated client code or empty string if above generation conditions are not met.
      */
     public function getClientCode(int $client_key){
-        $kfr = $this->oPeopleDB->GetKFR("C", $client_key);
+        $kfr = $this->oPeopleDB->GetKFR(ClientList::CLIENT, $client_key);
         if(!$kfr || !$kfr->Value("P_first_name") || !$kfr->Value("P_last_name")){
             //Do not create a client code if the client has not been set up completely
             // ie. they dont exist or are missing their first or last name
@@ -31,7 +31,7 @@ class ClientCodeGenerator {
         }
         $code = strtoupper(substr($kfr->Value("P_last_name"),0,3))
                .strtoupper(substr($kfr->Value("P_first_name") ,0,3));
-        $existingCodes = $this->oPeopleDB->GetList("C", "code LIKE '".$code."%'", array("iStatus" => -1));
+        $existingCodes = $this->oPeopleDB->GetList(ClientList::CLIENT, "code LIKE '".$code."%'", array("iStatus" => -1));
         if(count($existingCodes) > 0){
             $code .= (count($existingCodes)+1);
         }
@@ -51,7 +51,7 @@ class ClientCodeGenerator {
             // Do not have permission to perform this action.
             return false;
         }
-        $kfr = $this->oPeopleDB->GetKFR("C", $client_key);
+        $kfr = $this->oPeopleDB->GetKFR(ClientList::CLIENT, $client_key);
         $kfr->SetValue("code", "");
         $kfr->PutDBRow();
         return $this->getClientCode($client_key);
