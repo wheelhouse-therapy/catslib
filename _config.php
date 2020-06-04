@@ -49,6 +49,7 @@ require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
 require_once 'share_resources.php';
+require_once 'manage_users.php';
 
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
