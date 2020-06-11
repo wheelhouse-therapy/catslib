@@ -174,6 +174,8 @@ ResetPassword;
             $this->oApp->sess->VarSet('resource-mode', 'replace');
             // Unset the assessement filter
             $this->oApp->sess->VarSet("client_key", 0);
+            // Unset the drawer of the filing cabinet.
+            $this->oApp->sess->VarUnSet("dir");
 
         return( $s );
     }
