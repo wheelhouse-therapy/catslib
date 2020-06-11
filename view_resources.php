@@ -93,7 +93,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     $manageUsers = new ManageUsers($oApp);
     $kfr = $manageUsers->getClincRecord($oApp->sess->GetUID());
     if(CATS_SYSADMIN){
-        var_dump($kfr);
+        $kfr = $manageUsers->getClincRecord(2);
+        var_dump($kfr->Value('email'));
     }
     if(!CATS_DEBUG && $kfr && $kfr->Value('email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
