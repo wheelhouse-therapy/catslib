@@ -44,7 +44,7 @@ class FilingCabinetDownload
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
                 $user = $manageUsers->getClincRecord($this->oApp->sess->GetUID());
-                $from = $user->Value('email');
+                $from = $user->Value('P_email');
                 $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 
                 // Message Content
