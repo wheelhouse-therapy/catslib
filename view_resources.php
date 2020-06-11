@@ -96,7 +96,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
         $kfr = $manageUsers->getClincRecord(2);
         var_dump($kfr->Value('P_email'));
     }
-    if(!CATS_DEBUG && $kfr && $kfr->Value('email')){
+    if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
     else if(CATS_DEBUG){
