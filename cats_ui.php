@@ -565,7 +565,7 @@ class ScreenManager{
 /**
  * Class representing the home screen tutorial
  * @author Eric
- * @version 2.0
+ * @version 4.0
  */
 class HomeTutorial extends Tutorial {
 
@@ -578,6 +578,7 @@ class HomeTutorial extends Tutorial {
             [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 2],
             [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 3],
+            [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'User Settings are avalible under the "system resources" bubble', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 4],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }
