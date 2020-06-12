@@ -399,7 +399,8 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $raScreens = array(
                 array( 'system-documentation',     "View Documentation"),
                 array( 'system-placeholders' ,     "Download Placeholder Images"),
-                array( 'system-footergenerator',   "Generate Clinic Footer")
+                array( 'system-footergenerator',   "Generate Clinic Footer"),
+                array( 'system-usersettings',      "User Settings")
                 );
                 if(!CATS_DEBUG){
                     unset($raScreens[0]);
@@ -409,6 +410,12 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
                 $s .= $gen->footerOptions();
+                break;
+            case "system-usersettings":
+                $s .= "<h2>User Settings</h2>";
+                $clone = SEEDInput_Str("clone")?true:false;
+                $manageUsers = new ManageUsers($this->oApp);
+                $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
                 break;
             default:
                 $s .= $this->drawCircles([['menu:system',"Access System Resources"]]);

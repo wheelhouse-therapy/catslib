@@ -43,7 +43,7 @@ class FilingCabinetDownload
                 $manageUsers = new ManageUsers($this->oApp);
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
-                $user = $manageUsers->getClincRecord($this->oApp->sess->GetUID());
+                $user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID());
                 $from = $user->Value('P_email');
                 $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 

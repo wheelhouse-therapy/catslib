@@ -226,7 +226,7 @@ class template_filler {
 
         $this->kStaff = $this->oApp->sess->GetUID();
         $manageUsers = new ManageUsers($this->oApp);
-        $this->kfrStaff = $manageUsers->getClincRecord($this->kStaff);
+        $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         $tags = $templateProcessor->getVariables();

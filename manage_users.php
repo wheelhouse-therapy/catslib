@@ -23,7 +23,7 @@ class ManageUsers {
     public function manageUser(int $staff_key, bool $userStatus = true, int $cloneID = 0){
         $kfr = $this->getRecord($staff_key);
         if(!$kfr){
-            $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
+            $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
         }
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
         $oForm->SetKFR($kfr);
@@ -77,7 +77,7 @@ class ManageUsers {
             ."</table>"
             ."</form>";
         
-        $kfrClone = $this->getClincRecord($cloneID); // Get the record of the user we are cloning
+        $kfrClone = $this->getClinicRecord($cloneID); // Get the record of the user we are cloning
         $s = "<div class='container-fluid'>"
             ."<h3>".($staff_key?"CATS Staff: ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name'):($cloneID?"Cloning: ".$kfrClone->Value('P_first_name')." ".$kfrClone->Value('P_last_name'):"New Staff"))."</h3>"
                 ."<div class='row'>"
@@ -86,7 +86,7 @@ class ManageUsers {
                 ."</div>"
             ."</div>";
         $sSidebar = "";
-        if((new ScreenManager($this->oApp))->getScreen() != 'therapist-user'){
+        if((new ScreenManager($this->oApp))->getScreen() != 'system-usersettings'){
             $sSidebar .= "<div style='padding:10px;border:1px solid #888; margin-bottom:5px'><strong>User Settings:</strong><br />";
             if(($uid = $kfr->Value('P_uid'))){
                 $status = $this->oAccountDB->GetUserInfo($uid,false)[1]['eStatus'];
@@ -129,12 +129,82 @@ class ManageUsers {
         }
         if(($uid = $kfr->Value('P_uid'))){
             $sSidebar .= "<button [[onClick]]>Copy record to clinic</button>";
-            if((new ScreenManager($this->oApp))->getScreen() != 'therapist-user'){
-                $sSidebar = str_replace("[[onClick]]", "onclick='cloneRecord(event,$uid)'", $sSidebar);
+            $sSidebar = str_replace("[[onClick]]", "onclick='cloneRecord(event,$uid)'", $sSidebar);
+        }
+        $s = str_replace("[[Sidebar]]", $sSidebar, $s);
+        
+        return $s;
+    }
+    
+    public function userSettings(int $uid, bool $clone = false){
+        $this->processUserCommands();
+        $kfr = $this->getClinicRecord($uid);
+        if(!$kfr || $clone){
+            $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
+        }
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+        $oForm->SetKFR($kfr);
+        $roles = ClientList::$staff_roles_name;
+        $myRole = $oForm->Value('pro_role');
+        $myRoleIsNormal = in_array($myRole, $roles);
+        $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
+        foreach ($roles as $role) {
+            if( $role == $myRole || ($role == "Other" && !$myRoleIsNormal)) {
+                $selRoles .= "<option selected />".$role;
+            } else{
+                $selRoles .= "<option />".$role;
             }
-            else{
-                $sSidebar = str_replace("[[onClick]]", "", $sSidebar);
-            }
+        }
+        $selRoles .= "</select>"
+                    ."<input type='text' ".($myRoleIsNormal?"style='display:none' disabled ":"")
+                    ."required id='other' name='".$oForm->Name('pro_role')."' maxlength='200' "
+                    ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
+        $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
+        $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
+        $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
+                
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
+        $this->sForm = "<form>"
+            ."<input type='hidden' id='staff_key' name='staff_key' value='{$kfr->Value('_key')}'/>"
+                      ."<input type='hidden' name='cmd' value='user-save'/>"
+                      .($clone?"<input type='hidden' name='{$oForm->Name('P_uid')}' value='$uid'/>":"")
+                      .$oForm->HiddenKey()
+                      ."<table class='container-fluid table table-striped table-sm'>";
+        $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) );
+        $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+        $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
+        $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
+        $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
+        $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+        $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
+        $this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) );
+        $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
+        $this->drawFormRow( "Pronouns", $this->getPronounList($oForm) );
+        $this->drawFormRow( "Role", $selRoles );
+        $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
+        $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
+        $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+        $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
+        $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");
+        $this->drawPartialFormRow("", "<input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+        $this->endRowDraw();
+        $this->sForm .= "<tr class='row'>"
+                       ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
+                       ."</tr>"
+                       ."</table>"
+                       ."</form>";
+        $kfrClone = $this->getClinicRecord($uid); // Get the record of the user we are cloning
+        $s = "<div class='container-fluid'>"
+            .($clone?"<h3>Cloning: ".$kfrClone->Value('P_first_name')." ".$kfrClone->Value('P_last_name')."</h3>":"")
+            ."<div class='row'>"
+                ."<div class='col-md-8'>".$this->sForm."</div>"
+                ."<div class='col-md-4'>[[Sidebar]]</div>"
+            ."</div>"
+            ."</div>";
+        $sSidebar = "";
+        if(($uid = $kfr->Value('P_uid')) && $kfr->Value("clinic") != $this->clinics->GetCurrentClinic($uid)){
+            $sSidebar .= "<button [[onClick]]>Copy record to clinic</button>";
+            $sSidebar = str_replace("[[onClick]]", "onclick='window.location = \"?clone=true\"'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
         
@@ -285,7 +355,16 @@ body;
         return $this->manageUser($uid,false);
     }
     
-    public function getClincRecord(int $uid):KeyframeRecord{
+    public function processUserCommands(){
+        $cmd = SEEDInput_Str("cmd");
+        switch($cmd){
+            case "save":
+                $this->saveForm();
+                break;
+        }
+    }
+    
+    public function getClinicRecord(int $uid):KeyframeRecord{
         if($uid){
             $ra = $this->oPeopleDB->GetList(ClientList::INTERNAL_PRO, "P.uid = $uid");
             $kfr = $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
