@@ -208,6 +208,22 @@ class ManageUsers {
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
         
+        $s .= "<script>
+                    function doUpdateForm() {
+                        var sel = document.getElementById('mySelect').value;
+                        if( sel == 'Other' ) {
+                            document.getElementById('other').style.display = 'inline';
+                            document.getElementById('other').disabled = false;
+                        } else {
+                            document.getElementById('other').style.display = 'none';
+                            document.getElementById('other').disabled = true;
+                        }
+                    }
+                    function clinicHack(e) {
+	                   $(\"select\",e.currentTarget.form).prop(\"disabled\", false);
+                    }
+               </script>";
+        
         return $s;
     }
     
@@ -239,7 +255,7 @@ class ManageUsers {
         return $s;
     }
     
-    public function saveForm(){
+    public function saveForm($clone = false){
         
         $staff_key = SEEDInput_Int('staff_key');
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
@@ -258,28 +274,29 @@ class ManageUsers {
         if(@$_FILES["new_signature"]["tmp_name"]){
             $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE pros_internal._key = ".$oForm->GetKey());
         }
-        
-        $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
-        $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
-        if(($uid = $oForm->Value('P_uid'))){
-            $userInfo = $this->oAccountDB->GetUserInfo($this->oApp->sess->GetUID())[1];
-            @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
-            $lname = $lname?:"";
-            if($userInfo['email'] == strtolower(substr($fname, 0,1).$lname) && $userInfo['email'] != $username){
-                $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},email='$username' WHERE seedsession_users._key = $uid");
+        if(!$clone){
+            $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
+            $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
+            if(($uid = $oForm->Value('P_uid'))){
+                $userInfo = $this->oAccountDB->GetUserInfo($this->oApp->sess->GetUID())[1];
+                @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
+                $lname = $lname?:"";
+                if($userInfo['email'] == strtolower(substr($fname, 0,1).$lname) && $userInfo['email'] != $username){
+                    $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},email='$username' WHERE seedsession_users._key = $uid");
+                }
+                if($realname != $userInfo['realname']){
+                    $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
+                }
             }
-            if($realname != $userInfo['realname']){
-                $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
+            else{
+                $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
+                $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->Value('P__key'));
             }
-        }
-        else{
-            $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
-            $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->Value('P__key'));
         }
         
         if($clinic != $oForm->Value('clinic')){
             if($clinic){
-                $this->oApp->kfdb->Execute("UPDATE users_clinics SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},fk_clinics={$oForm->Value('clinic')} WHERE fk_SEEDSession_users = {$oForm->Value('P_uid')} AND fk_clinics = $clinics");
+                $this->oApp->kfdb->Execute("UPDATE users_clinics SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},fk_clinics={$oForm->Value('clinic')} WHERE fk_SEEDSession_users = {$oForm->Value('P_uid')} AND fk_clinics = $clinic");
             }
             else{
                 $this->oApp->kfdb->Execute("INSERT INTO users_clinics( _created, _created_by, _updated, _updated_by, _status, fk_SEEDSession_Users, fk_clinics) VALUES (NOW(),{$this->oApp->sess->GetUID()},NOW(),{$this->oApp->sess->GetUID()},0,{$oForm->Value('P_uid')},{$oForm->Value('clinic')})");
@@ -358,8 +375,8 @@ body;
     public function processUserCommands(){
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
-            case "save":
-                $this->saveForm();
+            case "user-save":
+                $this->saveForm(true);
                 break;
         }
     }

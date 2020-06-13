@@ -400,7 +400,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 array( 'system-documentation',     "View Documentation"),
                 array( 'system-placeholders' ,     "Download Placeholder Images"),
                 array( 'system-footergenerator',   "Generate Clinic Footer"),
-                array( 'system-usersettings',      "User Settings")
+                array( 'system-usersettings',      "My Profile")
                 );
                 if(!CATS_DEBUG){
                     unset($raScreens[0]);
@@ -412,7 +412,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $s .= $gen->footerOptions();
                 break;
             case "system-usersettings":
-                $s .= "<h2>User Settings</h2>";
+                $s .= "<h2>My Profile</h2>";
                 $clone = SEEDInput_Str("clone")?true:false;
                 $manageUsers = new ManageUsers($this->oApp);
                 $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
@@ -581,7 +581,7 @@ class HomeTutorial extends Tutorial {
             [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 2],
             [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '#therapist-filing-cabinet', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 3],
-            [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'User Settings are avalible under the "Access System Resources" bubble', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 4],
+            [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'Your Profile is available under the "Access System Resources" bubble', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 4],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }
