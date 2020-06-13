@@ -166,7 +166,7 @@ class ManageUsers {
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm = "<form>"
             ."<input type='hidden' id='staff_key' name='staff_key' value='{$kfr->Value('_key')}'/>"
-                      ."<input type='hidden' name='cmd' value='user-save'/>"
+                      ."<input type='hidden' name='cmd' value='".($clone?"user-clone":"user-save")."'/>"
                       .($clone?"<input type='hidden' name='{$oForm->Name('P_uid')}' value='$uid'/>":"")
                       .$oForm->HiddenKey()
                       ."<table class='container-fluid table table-striped table-sm'>";
@@ -203,7 +203,7 @@ class ManageUsers {
             ."</div>";
         $sSidebar = "";
         if(($uid = $kfr->Value('P_uid')) && $kfr->Value("clinic") != $this->clinics->GetCurrentClinic($uid)){
-            $sSidebar .= "<button [[onClick]]>Copy record to clinic</button>";
+            $sSidebar .= "<button [[onClick]]>Create Profile for this clinic</button>";
             $sSidebar = str_replace("[[onClick]]", "onclick='window.location = \"?clone=true\"'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
@@ -274,7 +274,7 @@ class ManageUsers {
         if(@$_FILES["new_signature"]["tmp_name"]){
             $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE pros_internal._key = ".$oForm->GetKey());
         }
-        if(!$clone){
+        if($this->clinics->getUserClinic(0)['Clinics__key'] == $clinic){
             $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
             $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
             if(($uid = $oForm->Value('P_uid'))){
@@ -294,7 +294,7 @@ class ManageUsers {
             }
         }
         
-        if($clinic != $oForm->Value('clinic')){
+        if($clinic != $oForm->Value('clinic') && !in_array($oForm->Value('clinic'),array_column($this->clinics->GetUserClinics(), 'Clinics__key'))){
             if($clinic){
                 $this->oApp->kfdb->Execute("UPDATE users_clinics SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},fk_clinics={$oForm->Value('clinic')} WHERE fk_SEEDSession_users = {$oForm->Value('P_uid')} AND fk_clinics = $clinic");
             }
@@ -376,8 +376,10 @@ body;
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "user-save":
-                $this->saveForm(true);
+                $this->saveForm();
                 break;
+            case "user-clone":
+                $this->saveForm(true);
         }
     }
     

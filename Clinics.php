@@ -101,6 +101,16 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
 
+    /**
+     * Get the clinic at the given position in the users clinic
+     * @param int $clinicPosition - position of clinic to fetch. ZERO BASED.
+     * @param int|NULL $user - user to get clinics of. Default NULL = currently signed it user
+     */
+    public function getUserClinic(int $clinicPosition, $user = NULL){
+        $clinics = $this->GetUserClinics($user);
+        return $clinics[$clinicPosition];
+    }
+    
     function displayUserClinics($selector = false){
         $s = "";
         foreach($this->GetUserClinics() as $ra){
@@ -204,6 +214,7 @@ class Clinics {
         return $clinicKeys;
     }
     
+    //TODO Deprecate
     public function getClinicsWithAkaunting($user=NULL){
         $accessType = $this->checkAccess($user);
         if(!$accessType == self::FULL_ACCESS && !$this->isCoreClinic()){
