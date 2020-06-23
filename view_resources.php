@@ -107,7 +107,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 
     $s .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
          ."<input type='text' name='resource-filter' value='".SEEDCore_HSC($sFilter)."'/>"
-         ."<input type='hidden' name='dir' id='dir' value='$dir_short' />"
+         ."<input type='hidden' name='dir' value='$dir_short' />"
          ."<input type='submit' value='Filter'/>"
          ."</form></div>";
 
