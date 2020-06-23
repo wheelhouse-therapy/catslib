@@ -550,10 +550,10 @@ ExistsWarning;
         $sTherapists = "<div style='padding:10px;border:1px solid #888'>";
         $sPros       = "<div style='padding:10px;border:1px solid #888'>";
         foreach( $myPros as $ra ) {
-            if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( 'PI', $ra['fk_pros_internal'] )) ) {
+            if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( self::INTERNAL_PRO, $ra['fk_pros_internal'] )) ) {
                 $sTherapists .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
-            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
+            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( self::EXTERNAL_PRO, $ra['fk_pros_external'] )) ) {
                 $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
         }
@@ -862,7 +862,7 @@ ExistsWarning;
                 if( $sheetName == 'Clients' ) {
                     foreach( $raRows as $ra ) {
                         if( $ra[0] &&
-                            ($kfrC = $this->oPeopleDB->GetKFR( 'C', $ra[0])) &&
+                            ($kfrC = $this->oPeopleDB->GetKFR( self::CLIENT, $ra[0])) &&
                             ($kfrP = $this->oPeopleDB->GetKFR( 'P', $kfrC->Value('fk_people'))) )
                         {
                             $kfrP->SetValue( 'first_name', $ra[1] );

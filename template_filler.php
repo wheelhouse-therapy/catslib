@@ -219,13 +219,14 @@ class template_filler {
 
         FilingCabinet::EnsureDirectory("*",TRUE);
 
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
+        $this->kfrClient = $this->oPeopleDB->getKFR(ClientList::CLIENT, $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
         $this->kStaff = $this->oApp->sess->GetUID();
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
+        $manageUsers = new ManageUsers($this->oApp);
+        $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         $tags = $templateProcessor->getVariables();

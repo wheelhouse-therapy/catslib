@@ -40,10 +40,11 @@ class FilingCabinetDownload
             if($resmode == "email"){
                 $kClient = SEEDInput_Int('client');
                 $oPeopleDB = new PeopleDB($this->oApp);
+                $manageUsers = new ManageUsers($this->oApp);
                 $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
                 $to = $kfr->Value('P_email');
-                $user = $oPeopleDB->getKFRCond("P","uid='{$this->oApp->sess->GetUID()}'");
-                $from = $user->Value('email');
+                $user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID());
+                $from = $user->Value('P_email');
                 $fromName = $user->Value('first_name')." ".$user->Value("last_name");
                 
                 // Message Content
@@ -80,6 +81,7 @@ class FilingCabinetDownload
                 $returnpath = "-f".$from;
                 $mail = @mail($to, $subject, $message, $headers,$returnpath);
                 $_SESSION['mailResult'] = $mail;
+                $_SESSION['mailTarget'] = $to;
                 header("HTTP/1.1 303 SEE OTHER");
                 header("Location: ?dir=".SEEDInput_Str('dir'));
                 exit();

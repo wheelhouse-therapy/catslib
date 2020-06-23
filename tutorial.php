@@ -88,6 +88,7 @@ class TutorialManager {
 <script>
     var tour = new Tour({
         backdrop:true,
+        debug: true,
         steps: [
             [[steps]]
         ],

@@ -30,20 +30,24 @@ class FilingCabinetUI
     {
         $s = "";
 
+        if($this->oApp->sess->SmartGPC('dir') == 'main'){
+            $this->oApp->sess->VarUnSet('dir');
+        }
+        
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
-        if( ($dir = SEEDInput_Str('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
+        if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             FilingCabinet::EnsureDirectory($dirbase);
             $title = "Close {$raDirInfo['name']} Drawer";
             if(stripos($raDirInfo['name'], "Drawer") !== false){
                 $title = "Close {$raDirInfo['name']}";
             }
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>"
+            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
                  .($dir != 'papers'?"<div style='float:right'><a href='".CATSDIR_DOCUMENTATION."Template%20Format%20Reference.html' target='_blank'>Template Format Reference</a></div>":"")
                  //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
                     ."{$raDirInfo['name']}"
                  ."</div></p></a>";
             if($dir == 'papers'){
@@ -60,7 +64,7 @@ class FilingCabinetUI
                  ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
             // Show the "closed drawers" of the filing cabinet
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button'></i></div>";
+            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
             $ras = FilingCabinet::GetFilingCabinetDirectories();
