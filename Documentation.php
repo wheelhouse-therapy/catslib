@@ -4,48 +4,67 @@ class Documentation {
     
     //Directory to fetch docs from
     private const DIR = CATSDIR_DOCUMENTATION;
- 
-    //Id of the iframe to distgiguish it from the main browser window
-    private const FRAME_ID = "frame";
     
-    public function handleDocs(){
-        $file = SEEDInput_Str('file');
-        $id = SEEDInput_Str("id");
+    public function handleDocs(SEEDAppConsole $oApp){
         
-        if($id == self::FRAME_ID){
-            if($file && file_exists(self::DIR.$file)){
-                echo "<div><a href='?id=frame'>Back to Documentation</a></div>";
-                readfile(self::DIR.$file);
+        $documentation = <<<viewDoc
+        <style>
+            html, body {
+                height: 100vh;
+                overflow:hidden;
             }
-            else{
-                $dir = new DirectoryIterator(self::DIR);
-                if(iterator_count($dir) == 2){
-                    echo"<h2> No files in directory</h2>";
-                }
-                else{
-                    echo "<table border='0'>";
-                    foreach ($dir as $fileinfo) {
-                        if( $fileinfo->isDot() ) continue;
-                        
-                        echo "<tr>"
-                                ."<td valign='top'>"
-                                    ."<a style='white-space: nowrap' href='?id=frame&file=".$fileinfo->getFilename()."' >"
-                                        .pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)
-                                    ."</a>"
+            .docView {
+                height: 88%;
+            }
+            .catsToolbar {
+                margin-bottom:2px
+            }
+        </style>
+        <div class='catsToolbar'><h3>System Documentation</h3><a href='?doc_view=list'><button>Back to List</button></a></div>
+        <div class='docView'>
+            <embed src='[[doc]]#toolbar=0&navpanes=0&scrollbar=0&view=fitH,100' type='application/pdf' style='width:100%;height:100%;'>
+        </div>
+viewDoc;
+        
+        $listDocs = "<h3>System Documentation</h3>";
+        $dirIterator = new DirectoryIterator(self::DIR);
+        if(iterator_count($dirIterator) == 2){
+            $listDocs .= "<h2> No Documentation Avalible</h2>";
+            goto brains;
+        }
+            
+            $listDocs .= "<table border='0'>";
+            foreach ($dirIterator as $fileinfo) {
+                if( $fileinfo->isDot() ) continue;
+                
+                $listDocs .= "<tr>"
+                    ."<td valign='top'>"
+                        ."<a style='white-space: nowrap' href='?doc_view=item&doc_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
+                            .$fileinfo->getFilename()
+                            ."</a>"
                                 ."</td>"
-                            ."</tr>";
-                    }
-                    echo "</table>";
-                }
+                                    ."</tr>";
             }
-            exit;
-        }
-        else{
-            $s = "<h3>System Documentation</h3>"
-                ."<style>html,body{height:100%}</style>"
-                ."<iframe src='?id=frame[[file]]' style='border:none;width:100%;height:100%'></iframe>";
-            return str_replace("[[file]]", ($file?"&file=".$file:""), $s);
-        }
+            $listDocs .= "</table>";
+            
+            //Brains of operations
+            brains:
+            $view = $oApp->sess->SmartGPC("doc_view",array("list","item"));
+            $item = $oApp->sess->SmartGPC("doc_item", array(""));
+            
+            switch ($view){
+                case "item":
+                    //Complicated method to ensure the file is in the directory
+                    foreach (array_diff(scandir(self::DIR), array('..', '.')) as $file){
+                        if(pathinfo($file,PATHINFO_FILENAME) == $item){
+                            // show file
+                            return str_replace("[[doc]]", self::DIR.$file, $documentation);
+                        }
+                    }
+                    $oApp->sess->VarUnSet("doc_item");
+                case "list":
+                    return $listDocs;
+            }
     }
     
 }

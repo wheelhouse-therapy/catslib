@@ -388,7 +388,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             case "system-documentation":
                 require_once 'Documentation.php';
                 $documentation = new Documentation();
-                $s .= $documentation->handleDocs();
+                $s .= $documentation->handleDocs($this->oApp);
                 break;
             case "system-placeholders":
                 require_once 'Documentation.php';
@@ -402,9 +402,6 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 array( 'system-footergenerator',   "Generate Clinic Footer"),
                 array( 'system-usersettings',      "My Profile")
                 );
-                if(!CATS_DEBUG){
-                    unset($raScreens[0]);
-                }
                 $s .= $this->drawCircles($raScreens);
                 break;
             case "system-footergenerator":
