@@ -40,7 +40,7 @@ viewDoc;
                 $listDocs .= "<tr>"
                     ."<td valign='top'>"
                         ."<a style='white-space: nowrap' href='?doc_view=item&doc_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
-                            .$fileinfo->getFilename()
+                            .pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)
                             ."</a>"
                                 ."</td>"
                                     ."</tr>";
