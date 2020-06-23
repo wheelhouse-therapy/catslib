@@ -282,8 +282,8 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         $sTemplate =
-            "<div style='display:inline-block;margin-right:10px;border: solid 2px;padding:5px;padding-bottom:0px'>
-                <a style='white-space: nowrap' [[LINK]] >
+            "<div class='file-preview-container'>
+                <a [[LINK]] >
                     <div>
                         <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
                     </div>
