@@ -18,4 +18,5 @@ $mappings = array(
     "therapist-distributeReports" => "distributeReports",
     "admin-users" => "manage-users",
     "therapist-filing-cabinet" => "filing-cabinet",
+    "therapist-reports" => "reports",
 );
