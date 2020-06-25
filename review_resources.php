@@ -66,6 +66,11 @@ elseif ($cmd == "download"){
 $s .= "<div class='alert alert-warning'>Files in the Papers directory are currently <strong>NOT ACCESSABLE</strong> thru the CATS platform</div>";
 
 $dir = new DirectoryIterator($dir_name);
+
+if(iterator_count($dir) == 2){
+    $s .= "<h2> No files awaiting review</h2>";
+    goto footer;
+}
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
         $oRR = ResourceRecord::GetRecordFromRealPath($oApp, $fileinfo->getRealPath());
@@ -124,6 +129,8 @@ function replace(event, ra) {
 }
 </script>
 ";
+footer:
+$s .= "<a href='".CATSDIR."?screen=admin-manageresources'><- Go To manage resources</a>";
 
 function js($replace){
     $s = "replace(event, " . json_encode($replace) . ");";

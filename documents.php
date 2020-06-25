@@ -255,6 +255,7 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
 
 function ManageResources( SEEDAppSessionAccount $oApp ) {
     $s = "<h2>Manage Resources</h2>";
+    $s .= "<div style='text-align:right'><a href='".CATSDIR."?screen=admin-resources'>Go To review resources -></a></div>";
 
     $script = <<<JavaScript
 <script>
