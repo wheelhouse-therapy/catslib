@@ -18,14 +18,13 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 
     $dir_short = trim($dir_name,'/');
 
+    $oFCD = new FilingCabinetDownload( $oApp );
+    
 // TODO: the Filing Cabinet handles its own download cmd but this is still used by Reports (which should use DrawFilingCabinet('reports/') instead some day)
     if( SEEDInput_Str('cmd') == 'download' ) {
-        $oFCD = new FilingCabinetDownload( $oApp );
         $oFCD->DownloadFile();
         exit;
     }
-
-    $oFCD = new FilingCabinetDownload( $oApp );
 
     if(isset($_SESSION['mailResult'])){
         if($_SESSION['mailResult']){
