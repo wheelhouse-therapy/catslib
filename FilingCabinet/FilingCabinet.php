@@ -712,6 +712,9 @@ class ResourceRecord {
      * @return array|NULL|ResourceRecord - Resource Records containing data or Null of there are no results
      */
     private static function getFromQuery(SEEDAppConsole $oApp, String $query){
+        if(strripos($query, "_status") === FALSE){
+            $query = self::joinCondition($query, "_status=0");
+        }
         $ra = $oApp->kfdb->QueryRowsRA1($query,KEYFRAMEDB_RESULT_NUM);
         $oRR = NULL;
         if(count($ra) == 1){
