@@ -405,6 +405,35 @@ body;
         }
     }
     
+    /**
+     * Check if the clinic profile for the given user is valid.
+     * A valid profile should not be limited in functionality
+     * A profile is considered valid if the following fields are filled out:
+     * First Name
+     * Last Name
+     * Email
+     * 
+     * @param int $uid - uid of user to check
+     * @return bool - true if the profile is filled out where all features are unlocked. False otherwise
+     */
+    public function profileValid(int $uid):bool{
+        $valid = true;
+        $kfr = $this->getClinicRecord($uid);
+        if(!$kfr){
+            $valid = false;
+        }
+        else if(!$kfr->Value("P_first_name")){
+            $valid = false;
+        }
+        else if(!$kfr->Value("P_last_name")){
+            $valid = false;
+        }
+        else if(!$kfr->Value("P_email")){
+            $valid = false;
+        }
+        return $valid;
+    }
+    
     private function getRecord(int $staff_key):KeyframeRecord{
         if($staff_key){
             return $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $staff_key);
