@@ -278,7 +278,10 @@ class FilingCabinet
         $directory = $oRR->getDirectory();
         if(array_key_exists($directory, self::GetFilingCabinetDirectories())){
             // File is part of the filing cabinet, return the appropiate accessor
-            return "?screen=therapist-filing-cabinet&dir=".$directory;
+            if($oRR->templateFillerSupported()){
+                return "?screen=therapist-filing-cabinet&dir=".$directory."&rr=".$oRR->getID();
+            }
+            return "?screen=therapist-filing-cabinet&dir=".$directory."&cmd=download&rr={$oRR->getID()}&resource-mode=no_replace";
         }
         elseif($directory == "reports"){
             // File is a report, 
@@ -678,6 +681,16 @@ class ResourceRecord {
             return $result;
         }
         return $this->created_by;
+    }
+    
+    /**
+     * Get if this file is supported by the template filler subsystem.
+     * NOTE: Only docx files are supported at this time.
+     * NOTE2: if this method returns true it is safe to pass the file to the template filler subsystem
+     * @return bool - true if its supported false otherwise
+     */
+    public function templateFillerSupported():bool{
+        return pathinfo($this->file,PATHINFO_EXTENSION) == "docx";
     }
     
     /**

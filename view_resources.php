@@ -246,7 +246,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                     document.getElementById('submitVal').value = buttonValue;
                 }
             }
-           </script>";
+            ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").");});":"")."
+            </script>";
 
     done:
     return( $s );
