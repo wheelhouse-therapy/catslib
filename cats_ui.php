@@ -440,7 +440,8 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             case 'leader':
                 return [];
             case 'system':
-                return [];
+                $manageUsers = new ManageUsers($this->oApp);
+                return ['system-usersettings' => $manageUsers->profileValid($this->oApp->sess->GetUID())?"":"!"];
             default:
                 return [];
         }
@@ -470,7 +471,10 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $title = " title='Open menu'";
                 $id = substr($ra[0], 5);
                 $badgeCount = array_sum($this->GetBadges($id));
-                if($badgeCount > 0){
+                if($badgeCount > 0 || in_array("!", $this->GetBadges($id),true)){
+                    if(in_array("!", $this->GetBadges($id),true)){
+                        $badgeCount = "!";
+                    }
                     $badge = "<span class='badge'>$badgeCount</span>";
                 }
             } else {
@@ -483,7 +487,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             }
             if(array_key_exists($ra[0], $badges)){
                 $badgeCount = $badges[$ra[0]];
-                if($badgeCount > 0){
+                if($badgeCount > 0 || $badgeCount === "!"){
                     $badge = "<span class='badge'>$badgeCount</span>";
                 }
             }
