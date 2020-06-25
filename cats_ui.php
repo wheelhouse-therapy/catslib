@@ -202,7 +202,7 @@ ResetPassword;
         switch( $this->oHistory->getScreen() ) {
             case "therapist":
             default:
-                $s .= $this->drawCircles( $raTherapistScreens );
+                $s .= $this->drawCircles( $raTherapistScreens, "therapist" );
                 break;
 
             case 'therapist-filing-cabinet':
@@ -290,15 +290,15 @@ ResetPassword;
             case "admin":
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
-                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
+                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
-                $s .= $this->drawCircles( $raScreens );
+                $s .= $this->drawCircles( $raScreens, "admin" );
                 break;
             default:
                 $raScreens = [["menu:admin","Admin Tools"]];
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "admin");
         }
         return( $s );
     }
@@ -356,11 +356,11 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     if( CATS_DEBUG ) {
                         $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
                     }
-                    $s .= $this->drawCircles( $raScreens );
+                    $s .= $this->drawCircles( $raScreens, "developer" );
                     break;
             default:
                 $raScreens = [['menu:administrator',"Developer Tools","418 I'm a teapot"]];
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "developer");
                 break;
         }
         return( $s );
@@ -376,7 +376,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $raScreens = array(
                     array( 'leader-clinic',     "Manage Clinic")
                 );
-                $s .= $this->drawCircles( $raScreens );
+                $s .= $this->drawCircles( $raScreens, "leader" );
 
         }
         return( $s );
@@ -402,7 +402,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 array( 'system-footergenerator',   "Generate Clinic Footer"),
                 array( 'system-usersettings',      "My Profile")
                 );
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "system");
                 break;
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
@@ -415,14 +415,41 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
                 break;
             default:
-                $s .= $this->drawCircles([['menu:system',"Access System Resources"]]);
+                $s .= $this->drawCircles([['menu:system',"Access System Resources"]], "system");
         }
         return( $s );
     }
 
-    private function drawCircles( $raScreens )
+    /**
+     * Get any badges for a section/menu.
+     * Valid sections/menus have an associated draw method above.
+     * Menus should display a badge with the sum of the badges beneath it
+     * @param String $section - section to get badges for
+     * @return array with keys of screens with badges and the keys of the numbers to show
+     */
+    public function GetBadges(String $section){
+        switch($section){
+            case 'therapist':
+                return [];
+            case 'admin':
+                FilingCabinet::EnsureDirectory("pending");
+                $toReview = array_diff(scandir(CATSDIR_RESOURCES."pending/"), array('..', '.'));
+                return ['admin-resources' => count($toReview)];
+            case 'developer':
+                return [];
+            case 'leader':
+                return [];
+            case 'system':
+                return [];
+            default:
+                return [];
+        }
+    }
+    
+    private function drawCircles( array $raScreens, String $section )
     {
         $s = "";
+        $badges = $this->GetBadges($section);
         foreach( $raScreens as $ra ) {
             $circle = "catsCircle".($this->i % 2 + 1);
 
@@ -431,6 +458,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             $target = "";
             $title = "";
             $id = $ra[0];
+            $badge = "";
             if (SEEDCore_StartsWith($ra[0], "link:")) {
                 $href = substr($ra[0], 5);
                 $target = " target='_blank'";
@@ -441,6 +469,10 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
                 $title = " title='Open menu'";
                 $id = substr($ra[0], 5);
+                $badgeCount = array_sum($this->GetBadges($id));
+                if($badgeCount > 0){
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
             } else {
                 $href = "?screen=".$ra[0];
             }
@@ -449,7 +481,13 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $ra[2] = SEEDCore_HSC($ra[2]); //Allow for use of ' in title
                 $title = " title='{$ra[2]}'";
             }
-            $s .= "<div class='col-md-3'><a id='$id' href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}</a></div>";
+            if(array_key_exists($ra[0], $badges)){
+                $badgeCount = $badges[$ra[0]];
+                if($badgeCount > 0){
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
+            }
+            $s .= "<div class='col-md-3'><a id='$id' href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}{$badge}</a></div>";
             if( $this->i % 4 == 3 ) $s .= "</div>";   // row
             ++$this->i;
         }
