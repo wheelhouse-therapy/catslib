@@ -399,10 +399,10 @@ body;
                     }
                 }
             }
+            dev:
             return $kfr;
         }
         else{
-            dev:
             return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
         }
     }
