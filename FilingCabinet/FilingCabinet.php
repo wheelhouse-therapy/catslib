@@ -326,7 +326,7 @@ class FilingCabinet
         // The key of the first array must match the directory key above to link the "subfolders" with the directory
         // The second array defines the "subfolders" wich will be stored in the database
         'reg'     => ["Psycho Education","Strategies","Social Skills","Zones","Social Thinking"],
-        'visual'  => ["Pencil Control","Cutting","Upper case","Lower case","Reversals","Print Correction"],
+        'visual'  => ["Pencil Control","Cutting","Upper case","Lower case","Reversals","Print Correction","Numbers","Drawing"],
         'other'   => ["Hand skills","Gross Motor","Occulomotor"],
         'anxiety' => ["Dragon","Monster","Behaviour & Exposure"],
         'cog'     => ["literacy","writing","problem-solving","organization"],
