@@ -48,7 +48,7 @@ class FilingCabinetUI
                  .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
                  //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
                  ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                    ."{$raDirInfo['name']}"
+                    ."Back to Filing Cabinet"
                  ."</div></p></a>";
             if($dir == 'papers'){
                 include(CATSLIB."papers.php");

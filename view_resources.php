@@ -73,6 +73,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                                     <option selected value=''>Select a Client</option>"
                                 .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                                 ."</select>
+                                <br /><span id='filename'></span>
                             </div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
                                     <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' onchange='buttonUpdate(\"Email\")' />Substitute client details and email</p>
@@ -161,9 +162,10 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
             const modal = document.getElementById('file_dialog').innerHTML;
             const disabledByServer = document.getElementById('email').disabled;
             const buttonValue = document.getElementById('submitVal').value;
-            function select_client(rr){
+            function select_client(rr,name){
                 document.getElementById('file_dialog').innerHTML = modal;
                 document.getElementById('rr').value = rr;
+                document.getElementById('filename').innerHTML = name;
                 $('#file_dialog').modal('show');
             }
             function modalSubmit(e) {
@@ -246,7 +248,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                     document.getElementById('submitVal').value = buttonValue;
                 }
             }
-            ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").");});":"")."
+            ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").",'".ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->getFile()."');});":"")."
             </script>";
 
     done:

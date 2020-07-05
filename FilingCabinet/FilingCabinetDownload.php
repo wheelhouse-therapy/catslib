@@ -113,7 +113,7 @@ class FilingCabinetDownload
         $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
-                return "href='javascript:void(0)' onclick=\"select_client('$rrid')\"";
+                return "href='javascript:void(0)' onclick=\"select_client($rrid, '".addslashes($oRR->getFile())."')\"";
             case 'no_replace':
                 return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
             case 'blank':
