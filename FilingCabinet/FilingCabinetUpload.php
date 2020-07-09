@@ -57,6 +57,8 @@ class FilingCabinetUpload
             goto done;
         }
         // Check file size
+        $s .= $_FILES[self::fileid]["size"];
+        $s .= max_file_upload_in_bytes();
         if ($_FILES[self::fileid]["size"] > max_file_upload_in_bytes()) {
             $s .= "Sorry, your file is too large.<br />";
             goto done;
