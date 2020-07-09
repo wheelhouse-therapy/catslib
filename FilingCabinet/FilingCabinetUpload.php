@@ -57,12 +57,10 @@ class FilingCabinetUpload
             goto done;
         }
         // Check file size
-        $s .= $_FILES[self::fileid]["size"];
-        $s .= "<br />".max_file_upload_in_bytes();
-        if ($_FILES[self::fileid]["size"] > max_file_upload_in_bytes()) {
-            $s .= "Sorry, your file is too large.<br />";
-            goto done;
-        }
+//         if ($_FILES[self::fileid]["size"] > max_file_upload_in_bytes()) {
+//             $s .= "Sorry, your file is too large.<br />";
+//             goto done;
+//         }
         // Allow certain file formats
         if(!in_array($documentFileType, FilingCabinet::GetSupportedExtensions())) {
             $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed. (Code 415)<br />";
