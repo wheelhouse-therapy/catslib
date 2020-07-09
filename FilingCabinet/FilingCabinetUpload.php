@@ -24,7 +24,7 @@ class FilingCabinetUpload
         // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
         $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions(),
                                                     ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-        return( "<form method='post' id='upload-flile-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+        return( "<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
                  Select file to upload:
                  <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required><br />
                  <span><input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>" );
