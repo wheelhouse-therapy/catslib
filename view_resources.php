@@ -457,7 +457,7 @@ viewVideo;
     // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
     $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
         ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-    $listVideos = "<div style='float:right;' id='uploadForm'>"
+    $listVideos = "<div style='float:right;background:white;' id='uploadForm'>"
                     ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
                         Select video to upload:
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
@@ -473,7 +473,7 @@ viewVideo;
 
     $sFilter = SEEDInput_Str('resource-filter');
 
-    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
+    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;z-index:-10;'><form method='post'>"
         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
         ."</form></div>";
 
