@@ -137,7 +137,7 @@ class ClientList
         return( $s );
     }
 
-    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):String{
+    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):array{
         $ra = ['header'=>'','tab1'=>'','tab2'=>'','tab3'=>''];
         $kfr = $this->oPeopleDB->GetKFR($type, $pid );
         if(!$kfr){
