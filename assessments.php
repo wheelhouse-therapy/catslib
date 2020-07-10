@@ -1280,6 +1280,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             if( ($kUpdatedAsmt = $oAsmt->UpdateAsmt()) ) {
                 $s .= "<div class='alert alert-success'>Saved assessment</div>";
                 $p_kAsmt = $kUpdatedAsmt;    // if a new asmt was inserted show it below
+                $oApp->sess->VarSet('client_key', $oAsmt->GetData()->GetValue("fk_clients2"));
             } else {
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }
