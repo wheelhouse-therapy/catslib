@@ -506,7 +506,7 @@ viewVideo;
                 foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
                     if(pathinfo($file,PATHINFO_FILENAME) == $item){
                         // show file
-                        if(CATS_SYSADMIN){var_dump($file);}
+                        if(CATS_SYSADMIN){var_dump(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory'].$file);}
                         return str_replace("[[video]]", CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
                     }
                 }
