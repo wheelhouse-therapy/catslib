@@ -617,7 +617,7 @@ ExistsWarning;
                  ."</div>"
              ."</div>"
              ."</div>";
-         return( $s );
+         return( $ra );
     }
 
     private function schoolField( $value, $oForm )
@@ -769,9 +769,7 @@ ExistsWarning;
              $ra['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
          }
          
-         //Replace the sidebar if it hasn't been already. This ensures the placeholder text is never sent to the browser
-         $s = str_replace("[[Sidebar]]", "", $s);
-         return( $s );
+         return( $ra );
     }
 
     private function getClinicList( $oForm)
