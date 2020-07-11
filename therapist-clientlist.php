@@ -558,7 +558,7 @@ ExistsWarning;
         The user clicked on a client name so show their form
      */
     {
-        $ra = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1','tab2','tab3']];
+        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1','tab2','tab3']];
 
         $sTherapists = "<div style='padding:10px;border:1px solid #888'>";
         $sPros       = "<div style='padding:10px;border:1px solid #888'>";
@@ -619,10 +619,10 @@ ExistsWarning;
                  $this->sForm .= "</table>";
              }
 
-        $ra['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
-        $ra['tabs']['tab1'] = $this->sForm;
-        $ra['tabs']['tab2'] = $sTherapists.$sPros;
-        $ra['tabs']['tab3'] = ($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
+        $raOut['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
+        $raOut['tabs']['tab1'] = $this->sForm;
+        $raOut['tabs']['tab2'] = $sTherapists.$sPros;
+        $raOut['tabs']['tab3'] = ($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
@@ -630,8 +630,8 @@ ExistsWarning;
                  ."</div>"
              ."</div>"
              ."</div>";
-         $ra['tabNames'] = ['Client', 'Providers', 'Assessments'];
-         return( $ra );
+         $raOut['tabNames'] = ['Client', 'Providers', 'Assessments'];
+         return( $raOut );
     }
 
     private function schoolField( $value, $oForm )
@@ -680,7 +680,7 @@ ExistsWarning;
         The user clicked on a therapist / external provider's name so show their form
      */
     {
-        $ra = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1', 'tab2', 'tab3']];
+        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1', 'tab2', 'tab3']];
         $sClients = "<div style='padding:10px;border:1px solid #888'>Clients:<br/>";
         foreach( $myClients as $ra ) {
             if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $ra['fk_clients2'] )) ) {
@@ -767,22 +767,22 @@ ExistsWarning;
              ."</table>"
              ."</form>";
 
-        $ra['header'] = "<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
-        $ra['tabs']['tab1'] = $this->sForm;
+        $raOut['header'] = "<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
+        $raOut['tabs']['tab1'] = $this->sForm;
         
          if(isset($_SESSION['newLinks']['client_key']) && $kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $_SESSION['newLinks']['client_key'] )){
              
              $sSidebar = "<div style='padding:10px;border:1px solid #888'>Clients that will be connected:<br/>"
                             .$kfr->Expand( "<span>[[P_first_name]] [[P_last_name]]</span><br />" )
                         ."</div>";
-             $ra['tabs']['tab2'] = $sSidebar;
+             $raOut['tabs']['tab2'] = $sSidebar;
          }
          if($oForm->Value("_key")){
-             $ra['tabs']['tab2'] = $sClients;
-             $ra['tabs']['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
+             $raOut['tabs']['tab2'] = $sClients;
+             $raOut['tabs']['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
          }
-         $ra['tabNames'] = ['Provider', 'Clients', 'Linked Account'];
-         return( $ra );
+         $raOut['tabNames'] = ['Provider', 'Clients', 'Linked Account'];
+         return( $raOut );
     }
 
     private function getClinicList( $oForm)
