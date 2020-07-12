@@ -637,7 +637,9 @@ class template_filler {
 
         switch(strtolower($tag)){
             case 'date':
-                $s = date("M d, Y");
+                if($this->kClient){
+                    $s = date("M d, Y");
+                }
                 break;
         }
         return( $s );
