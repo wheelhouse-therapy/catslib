@@ -320,8 +320,17 @@ class template_filler {
         foreach ($placeholders as $placeholder){
             $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
         }
+        $this->checkFolders($array,$za,$hashes);
+        cleanup:
+        $za->close();
+    }
+
+    private function checkFolders(array $array, ZipArchive $za, array $hashes){
         foreach ($array as $img){
-            if(is_string($img) && in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
+            if(is_array($img)){
+                $this->checkFolders($img,$za,$hashes);
+            }
+            if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
                 $clinics = new Clinics($this->oApp);
                 $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
                 $rawData = FALSE;
@@ -363,10 +372,8 @@ class template_filler {
                 $za->addFromString("word/media/".$img, getImageData($imagePath?:$data, $imageType,$imagePath === FALSE));
             }
         }
-        cleanup:
-        $za->close();
     }
-
+    
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
