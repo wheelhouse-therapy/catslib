@@ -441,6 +441,46 @@ ExistsWarning;
                 $_SESSION['newLinks']['client_key'] = SEEDInput_Int('client_key');
                 $id = self::createID(self::EXTERNAL_PRO, 0);
                 break;
+            case 'mailPros':
+                $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+                // Get the provider keys
+                $raProKeys = array_column($this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams),'_key');
+                // Convert to IDs for template filler
+                $raProKeys = array_map(function($value){return self::createID(self::EXTERNAL_PRO, $value);}, $raProKeys);
+                // Split the keys into groups of 5 (for template)
+                $chunks = array_chunk($raProKeys, 5);
+                if(count($chunks) > 1){
+                    // We need more than one file
+                    $zip = new ZipArchive();
+                    $filename = tempnam(sys_get_temp_dir(), "pro");
+                    if ($zip->open($filename, ZIPARCHIVE::CREATE )!==TRUE) {
+                        exit("cannot open zip archive\n");
+                    }
+                    foreach($chunks as $k=>$chunk)
+                    {
+                        // Create the template filler object with the proper settings (ie data)
+                        $filler = new template_filler($this->oApp,[],$chunk);
+                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".$k+1);
+                    }
+                    $zip->close();
+                    header("Content-type: application/zip");
+                    header("Content-Disposition: attachment; filename='Address Labels'");
+                    header("Content-length: " . filesize($filename));
+                    header("Pragma: no-cache");
+                    header("Expires: 0");
+                    if( ($fp = fopen( $tempfile, "rb" )) ) {
+                        fpassthru( $fp );
+                        fclose( $fp );
+                    }
+                    exit;
+                }
+                else if(count($chunks) == 1){
+                    // We can get away with one file
+                    // Create the template filler object with the proper settings (ie data)
+                    $filler = new template_filler($this->oApp,[],$chunks[0]);
+                    $filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx");
+                }
+                exit;
         }
         $list = $this->drawList((@$this->parseID($id)[0]?:""));
         
