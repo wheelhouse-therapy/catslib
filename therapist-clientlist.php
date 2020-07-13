@@ -528,7 +528,7 @@ ExistsWarning;
             case self::EXTERNAL_PRO:
                 $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>External Providers</h3>"
-                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
+                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button><a href='jx.php?cmd=therapist--clientlist-mailPros' style='margin-left:5px'><button>Get Address labels</button></a>"
                       .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "pros";
                 break;
