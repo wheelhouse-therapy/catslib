@@ -442,9 +442,9 @@ ExistsWarning;
                 $id = self::createID(self::EXTERNAL_PRO, 0);
                 break;
             case 'mailPros':
-                $condClinic = $this->clinics->isCoreClinic() ? "" : ("clinic = ".$this->clinics->GetCurrentClinic());
+                $condClinic = $this->clinics->isCoreClinic() ? "" : (" AND clinic = ".$this->clinics->GetCurrentClinic());
                 // Get the provider keys
-                $raProKeys = array_column($this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams),'_key');
+                $raProKeys = array_column($this->oPeopleDB->GetList(self::EXTERNAL_PRO, 'P.address != "" AND P.city != "" AND P.province != "" AND P.postal_code != ""'.$condClinic),'_key');
                 // Convert to IDs for template filler
                 $raProKeys = array_map(function($value){return self::createID(self::EXTERNAL_PRO, $value);}, $raProKeys);
                 // Split the keys into groups of 5 (for template)
