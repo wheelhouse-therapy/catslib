@@ -461,7 +461,8 @@ viewVideo;
                     ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
                         Select video to upload:
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
-                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>"
+                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
+                        <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div>"
                  ."</div><script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
     $listVideos .= "<h3>View Uploaded Videos</h3>";
