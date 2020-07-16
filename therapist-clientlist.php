@@ -441,6 +441,46 @@ ExistsWarning;
                 $_SESSION['newLinks']['client_key'] = SEEDInput_Int('client_key');
                 $id = self::createID(self::EXTERNAL_PRO, 0);
                 break;
+            case 'mailPros':
+                $condClinic = $this->clinics->isCoreClinic() ? "" : (" AND clinic = ".$this->clinics->GetCurrentClinic());
+                // Get the provider keys
+                $raProKeys = array_column($this->oPeopleDB->GetList(self::EXTERNAL_PRO, 'P.address != "" AND P.city != "" AND P.province != "" AND P.postal_code != ""'.$condClinic),'_key');
+                // Convert to IDs for template filler
+                $raProKeys = array_map(function($value){return self::createID(self::EXTERNAL_PRO, $value);}, $raProKeys);
+                // Split the keys into groups of 5 (for template)
+                $chunks = array_chunk($raProKeys, 5);
+                if(count($chunks) > 1){
+                    // We need more than one file
+                    $zip = new ZipArchive();
+                    $filename = tempnam(sys_get_temp_dir(), "pro");
+                    if ($zip->open($filename, ZIPARCHIVE::CREATE )!==TRUE) {
+                        exit("cannot open zip archive\n");
+                    }
+                    foreach($chunks as $k=>$chunk)
+                    {
+                        // Create the template filler object with the proper settings (ie data)
+                        $filler = new template_filler($this->oApp,[],$chunk);
+                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".$k+1);
+                    }
+                    $zip->close();
+                    header("Content-type: application/zip");
+                    header("Content-Disposition: attachment; filename='Address Labels'");
+                    header("Content-length: " . filesize($filename));
+                    header("Pragma: no-cache");
+                    header("Expires: 0");
+                    if( ($fp = fopen( $tempfile, "rb" )) ) {
+                        fpassthru( $fp );
+                        fclose( $fp );
+                    }
+                    exit;
+                }
+                else if(count($chunks) == 1){
+                    // We can get away with one file
+                    // Create the template filler object with the proper settings (ie data)
+                    $filler = new template_filler($this->oApp,[],$chunks[0]);
+                    $filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx");
+                }
+                exit;
         }
         $list = $this->drawList((@$this->parseID($id)[0]?:""));
         
@@ -488,7 +528,7 @@ ExistsWarning;
             case self::EXTERNAL_PRO:
                 $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>External Providers</h3>"
-                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
+                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button><a href='jx.php?cmd=therapist--clientlist-mailPros' style='margin-left:5px'><button>Get Address labels</button></a>"
                       .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "pros";
                 break;

@@ -92,7 +92,11 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
             </div>";
     $manageUsers = new ManageUsers($oApp);
     $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
-    if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
+    if($dir_short == 'reports'){
+        // Disable Email Option on Reports screen
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled when printing reports'","disabled"], $s);
+    }
+    else if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
     else if(CATS_DEBUG){

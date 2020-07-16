@@ -39,7 +39,11 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                     substr($fix,0,7) == '${endif' ||
                     $isAssessment)
                 {
-                    return( $fix );
+                    // Close the existing <w:t> and open one which preserves spaces
+                    // This is neccessary since strip_tags can remove the preserve spaces property of the enclosing <w:t>
+                    // Thus causing spaces in the same <w:t> as the tag to be lost/not preserved
+                    // If there are no spaces to be preserved it has no effect on word or the document
+                    return( $fix.'</w:t><w:t xml:space="preserve">' );
                 } else {
                     return( $match[0] );
                 }
@@ -626,7 +630,9 @@ class template_filler {
 
         switch(strtolower($tag)){
             case 'date':
-                $s = date("M d, Y");
+                if($this->kClient){
+                    $s = date("M d, Y");
+                }
                 break;
         }
         return( $s );
