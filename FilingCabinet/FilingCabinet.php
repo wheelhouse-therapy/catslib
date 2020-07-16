@@ -674,9 +674,6 @@ class ResourceRecord {
             else if($result[0] == $this->oApp->sess->getUID()){
                 $result[1]['realname'] = 'Self';
             }
-            else if((!$clinics->isCoreClinic() && !in_array($result[0], $clinics->getUsersInClinic($clinics->GetCurrentClinic())))){
-                $result[1]['realname'] = "Anonymous";
-            }
             $result = array_merge($result[1],['metadata'=>$result[2]]);
             return $result;
         }
