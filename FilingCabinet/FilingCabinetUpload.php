@@ -53,7 +53,10 @@ class FilingCabinetUpload
 
         // Check if file already exists
         if (file_exists($target_file)) {
-            $s .= "Sorry, file already exists.<br />";
+            $s .= "Sorry, file is already awaiting review";
+            if($this->oApp->sess->CanWrite("admin")){
+                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
+            }
             goto done;
         }
         
