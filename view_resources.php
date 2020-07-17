@@ -463,6 +463,7 @@ viewVideo;
         ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
     $listVideos = "<div style='float:right;background:white;' id='uploadForm'>"
                     ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                        <input type='hidden' name='cmd' value='therapist-resource-upload' />
                         Select video to upload:
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
                         <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>

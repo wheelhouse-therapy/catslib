@@ -25,6 +25,7 @@ class FilingCabinetUpload
         $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions(),
             ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
         return( "<div><form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                 <input type='hidden' name='cmd' value='therapist-resource-upload' />
                  Select file to upload:
                  <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required><br />
                  <span><input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
