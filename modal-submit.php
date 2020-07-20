@@ -5,9 +5,13 @@ require_once "therapist-clientlist.php" ;
 $oCL = new ClientList($oApp);
 //Get Client Key
 $client_key = $_POST['client_key'];
+//Clear it from the request variable
+unset($_POST['client_key']);
+//Also Clear the command from the request variable
+unset($_POST['cmd']);
 //Convert post key-value array to value array ignoring blank
 $ra = array();
-foreach ($oCL->pro_roles_key as $role){
+foreach ($_POST as $role=>$v){
     if($_POST[$role] != "0"){
         array_push($ra, $_POST[$role]);
     }

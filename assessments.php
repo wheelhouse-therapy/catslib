@@ -3,13 +3,16 @@
 include( "assessments_mabc.php" );
 include( "assessments_spm.php"  );
 include( "assessments_aasp.php" );
+include( "assessments_spmc.php" );
+include( "assessments_sp2.php"  );
 
 
 $raGlobalAssessments = array(
     'spm'  => array( 'code'=>'spm',  'title'=>"Sensory Processing Measure (SPM)" ),
+    'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)"),
     'aasp' => array( 'code'=>'aasp', 'title'=>"Adolescent/Adult Sensory Profile (AASP)" ),
     'mabc' => array( 'code'=>'mabc', 'title'=>"Movement Assessment Battery for Children (MABC)" ),
-    'spmc' => array( 'code'=>'spmc', 'title'=>"Sensory Processing Measure for Classroom (SPMC)")
+    'sp2'  => array( 'code'=>'sp2',  'title'=>"Sensory Profile 2 (SP2)" ),
 );
 
 //Remove the null key if present
@@ -67,14 +70,17 @@ class AssessmentData
         $this->LoadAsmt( $kAsmt );
     }
 
+    public function GetScores()  { return( $this->raScores ); }
+    public function SetScore( $item, $score )  { $this->raScores[$item] = $score; }
+
     public final function setDate(String $date){
         $this->date = $date;
     }
-    
+
     public final function getDate():String{
         return $this->date;
     }
-    
+
     public function LoadAsmt( int $kAsmt )
     {
         $this->kfrAsmt = $kAsmt ? $this->oAsmt->KFRelAssessment()->GetRecordFromDBKey($kAsmt)
@@ -87,9 +93,9 @@ class AssessmentData
         foreach( $this->raRaws as $item => $raw ) {
             $this->raScores[$item] = $this->MapRaw2Score( $item, $raw );
         }
-        
+
         $this->date = $this->kfrAsmt->Value('date');
-        
+
     }
 
     public function GetAsmtKey() : int                      { return( $this->kfrAsmt->Key() ); }
@@ -104,15 +110,37 @@ class AssessmentData
         $oForm = new KeyFrameForm( $this->kfrAsmt->KFRel(), "A" );
         $oForm->SetKFR( $this->kfrAsmt );
 
+        // Load the values into i$k for result form
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+        
         return( $oForm );
     }
 
+    public function Columns()
+    /************************
+        Return the column names as an array.
+        SPM and SPMC support columnsDef().
+     */
+    {
+        return( method_exists($this, 'columnsDef') ? array_keys($this->columnsDef()) : [] );
+    }
+
+    public function GetRangeOfColumn( $col )
+    /***************************************
+        Return the colRange of the given column
+     */
+    {
+        return( method_exists($this, 'columnsDef') ? @$this->columnsDef()[$col]['colRange'] : "" );
+    }
 
     public function ComputeScore( string $item ) : int        { return(0); }
     public function ComputePercentile( string $item ) : float { return(0.0); }
 
 
-    protected function MapRaw2Score( string $item, string $raw ) : int { return(0); }
+    public function MapRaw2Score( string $item, string $raw ) : int { return(0); }
 
     public function DebugDumpKfr()
     {
@@ -150,13 +178,15 @@ class AssessmentUIColumns extends AssessmentUI
     If an assessment UI uses columns of items, extend it from this one instead of from AssessmentUI.
  */
 {
-    protected $raColumnsDef;
+    private $raColumnsDef;
 
     protected function __construct( AssessmentData $oData, $raColumnsDef )
     {
         parent::__construct( $oData );
         $this->SetColumnsDef( $raColumnsDef );
     }
+
+    public function GetColumnDef() { return( $this->raColumnsDef ); }
 
     function SetColumnsDef( $raColumnsDef ) { $this->raColumnsDef = $raColumnsDef; }
 
@@ -168,17 +198,26 @@ class AssessmentUIColumns extends AssessmentUI
     {
         $s = "<h2>".@$this->oAsmt->raAssessments[$this->oA->GetAsmtCode()]['title']."</h2>";
 
-        $oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+        //$oForm = new KeyframeForm( $this->oAsmt->KFRelAssessment(), "A" );
+        // oData already has the form you are looking for, with the kfr already loaded.
+        $oForm = $this->oData->GetForm();
+        if( !$oForm->GetKey() ) {
+            // this is a new form with empty data so fill the basics before drawing it
+            $oForm->SetValue('fk_clients2', $kClient);
+            $oForm->SetValue('date', $this->oData->getDate());
+        }
+//var_dump($oForm->GetValuesRA());
 
         $s .= "<form method='post'>"
-             .$oForm->Hidden( 'fk_clients2', ['value'=>$kClient] )
-             .$oForm->Hidden('date', ['value'=>$this->oData->getDate()]);
+             .$oForm->Hidden( 'fk_clients2' )
+             .$oForm->Hidden('date')
+             .$oForm->HiddenKey();
 
         if( @$raParms['hiddenParms'] ) {
             foreach( $raParms['hiddenParms'] as $k => $v ) $s .= $oForm->Hidden( $k, ['value'=>$v] );
         }
 
-        $s .= $this->DrawColFormTable( $oForm, $this->raColumnsDef, true );
+        $s .= $this->DrawColFormTable( $oForm, true );
 
         if( $this->oA->bUseDataList ) {
             $s .= $this->getDataList( $oForm, $this->oA->Inputs("datalist") )
@@ -187,7 +226,6 @@ class AssessmentUIColumns extends AssessmentUI
 
         $s .= "<input hidden name='sAsmtAction' value='save'/>"
              ."<input hidden name='sAsmtType' value='".$this->oA->GetAsmtCode()."'/>"
-             .$oForm->HiddenKey()
              ."<input type='submit'>&nbsp;&nbsp;&nbsp;<a href='.'>Cancel</a></form>"
              ."<span id='total'></span>";
 
@@ -212,17 +250,15 @@ class AssessmentUIColumns extends AssessmentUI
         return $s;
     }
 
-    function DrawColFormTable( SEEDCoreForm $oForm, $raColumnDef, $bEditable )
+    function DrawColFormTable( SEEDCoreForm $oForm, $bEditable )
     {
-        $colwidth = (100/count($raColumnDef))."%";
-
-        $s = "<table width='100%'><tr>";
-        foreach( $raColumnDef as $ra ) {
-            $s .= "<th valign='top' style='width:$colwidth'>{$ra['label']}<br/><br/></th>";
+        $s = "<table style='width:100%;table-layout:fixed'><tr>";
+        foreach( $this->raColumnsDef as $ra ) {
+            $s .= "<th style='vertical-align:top'>{$ra['label']}<br/><br/></th>";
         }
         $s .= "</tr><tr>";
-        foreach( $raColumnDef as $ra ) {
-            $s .= "<td valign='top' style='width:$colwidth; border-right:1px solid #ccc;padding:0px 5px'>";
+        foreach( $this->raColumnsDef as $ra ) {
+            $s .= "<td style='vertical-align:top; border-right:1px solid #ccc;padding:0px 5px'>";
             if( isset($ra['cols']) ) {
                 // columns are explicitly defined
                 $s .= $this->column( $oForm, $ra['cols'], $bEditable );
@@ -239,9 +275,9 @@ class AssessmentUIColumns extends AssessmentUI
         }
         if( !$bEditable ) {
             $s .= "</tr><tr>";
-            foreach( $raColumnDef as $ra ) {
+            foreach( $this->raColumnsDef as $ra ) {
                 if( isset($ra['colRange']) ) {
-                    $s .= "<td valign='top' width='$colwidth' style='text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
+                    $s .= "<td style='vertical-align:top;text-align:right'>".$this->column_total( $oForm, $ra['colRange'], false )."</td>";
                 }
             }
         }
@@ -288,7 +324,7 @@ class AssessmentUIColumns extends AssessmentUI
     {
         if( $bEditable ) {
             $score = "";
-            $s = $oForm->Text("i$itemKey","",array('attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
+            $s = $oForm->Text("i$itemKey","",array('value'=>$this->oData->GetRaw($itemKey),'attrs'=>"class='score-item s-i-$itemKey' data-num='$itemKey' list='options' required"));
         } else {
             list($v,$score) = $this->itemVal( $oForm, $itemKey );
             $s = "<strong style='border:1px solid #aaa; padding:0px 4px;background-color:#eee'>".$v."</strong>";
@@ -356,29 +392,56 @@ class AssessmentsCommon
             case 'aasp': $o = new Assessment_AASP( $this, $kA ); break;
             case 'mabc': $o = new Assessment_MABC( $this, $kA ); break;
             case 'spmc': $o = new Assessment_SPM_Classroom($this, $kA); break;
+            case 'sp2':  $o = new Assessment_SP2($this, $kA); break;
             default:     break;
         }
         return( $o );
     }
 
-    function GetSummaryTable( $kAsmtCurr )
+    /**
+     * Get the date when the assessment was recorded, falling back on the record creation date if necesary.
+     * All new assessments should record the date they were recorded upon creation but in case its missing for some reason we fall back on the when the record was created.
+     * @param array $ra - array containing assessment data
+     * @return string - Date when the assessment was recorded.
+     */
+    static function GetAssessmentDate(array $ra):string{
+        return $ra['date']?:"Entered: ".substr( $ra['_created'], 0, 10 );
+    }
+
+    function GetSummaryTable( $kAsmtCurr, $client_key=0 )
     /*************************************
         Draw a table of assessments, highlight the given one
      */
     {
+        if(!$client_key && !CATS_SYSADMIN){
+            //The user is not loading from a clients record and is not a System Admin, show this message instead of assessment results
+            //System Admins can see a list of all the assessmtents while everyone else must use therapist-clientlist to access assessment results
+            return "<strong>To view a client's results, open their profile and click the \"Assessment Results\" button.</strong><br /><a href='?screen=therapist-clientlist'>Go to your client list</a>";
+        }
         $s = "";
 
-        $raA = $this->oAsmtDB->GetList( "AxCxP", "" );
+        $clinics = new Clinics($this->oApp);
+        $cond = $clinics->isCoreClinic() ? "" : ("C.clinic = ".$clinics->GetCurrentClinic());;
+        if($client_key){
+            if($cond){
+                $cond .= " AND ";
+            }
+            $cond .= "fk_clients2=".$client_key;
+        }
+
+        $raA = $this->oAsmtDB->GetList( "AxCxP", $cond );
         $s .= "<table style='border:none'>";
         foreach( $raA as $ra ) {
-            $date = substr( $ra['_created'], 0, 10 );
+            $date = self::GetAssessmentDate($ra);
             $sStyle = $kAsmtCurr == $ra['_key'] ? "font-weight:bold;color:green" : "";
             $s .= "<tr><td>$date</td>"
-                     ."<td><a style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></td>"
+                     ."<td><a style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['C__key']).")</a></td>"
                      ."<td>{$ra['testType']}</td></tr>";
         }
         $s .= "</table>";
 
+        $s .= "<a href='".CATSDIR."?screen=therapist-reports'><button>Print Reports</button></a>";
+        
         return( $s );
     }
 
@@ -398,7 +461,7 @@ class AssessmentsCommon
             if( $k == 'cmd' )       continue;   // this is 'therapist-resourcemodal', should not be encoded because the next cmd is 'download'
             $raOut['body'] .= "<input type='hidden' name='$k' value='".htmlspecialchars($v)."' />";
         }
-        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
+        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>"; // Needed for reports to download
 
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":";
@@ -411,7 +474,7 @@ class AssessmentsCommon
                 $raOut['body'] .= "<option value='".self::DO_NOT_INCLUDE."'>Do Not Include</option>";
                 $bFirst = true;
                 foreach ($raA as $ra){
-                    $date = $ra['date']?:substr( $ra['_created'], 0, 10 );
+                    $date = self::GetAssessmentDate($ra);
                     $raOut['body'] .= "<option value='".$ra['_key']."' ".($bFirst?"selected":"").">".$date."</option>";
                     $bFirst = false;
                 }
@@ -421,6 +484,10 @@ class AssessmentsCommon
             $raOut['body'] .= "</select>";
         }
         $raOut['body'] .="</form>";
+        
+        if(SEEDInput_Str("resource-mode") == 'email'){
+            $raOut['footer'] = "<input type='submit' id='submitVal' value='Email' form='assmt_form' />";
+        }
 
         return $bData ? $raOut : array();
     }
@@ -429,14 +496,18 @@ class AssessmentsCommon
     {
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
-        $oPeopleDB = new PeopleDB( $this->oApp );
-        $raClients = $oPeopleDB->GetList( ClientList::CLIENT, $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'"),array("sSortCol" => "P.first_name,_key") );
+        $clientlist = new ClientList($this->oApp);
+        $raClients = $clientlist->getMyClients();
+        $raParams = array("attrs"=>"required");
+        if($this->oApp->sess->SmartGPC('client_key')){
+            $raParams = array_merge($raParams,['selected'=>$this->oApp->sess->SmartGPC('client_key')]);
+        }
         $opts = array( '--- Choose Client ---' => '' );
         foreach( $raClients as $ra ) {
-            $opts["{$ra['P_first_name']} {$ra['P_last_name']}".($clinics->isCoreClinic() || $this->oApp->sess->GetUID() == 1?" ({$ra['_key']})":"")] = $ra['_key'];
+            $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || CATS_SYSADMIN?" ({$ra['_key']})":"")] = $ra['_key'];
         }
 
-        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", array("attrs"=>"required") )."</div>" );
+        return( "<div>".$oForm->Select( 'fk_clients2', $opts, "", $raParams )."</div>" );
     }
     function LookupProblemItems( int $kClient, string $asmtType, string $section )
     {
@@ -484,9 +555,9 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         if( $this->asmtCode == 'spm' || $this->asmtCode == 'spmc' ) {
             $s = "<script>
                   var raPercentilesSPM = ".json_encode($this->oData->raPercentiles).";
-                  var cols = ".json_encode($this->Columns()).";
+                  var cols = ".json_encode($this->oData->Columns()).";
                   var chars = ".json_encode($this->Inputs("script")).";
-                  var raTotalsSPM = ".json_encode($this->oData->raTotals).";";
+                  var raTotalsSPM = ".json_encode($this->oData->GetTotals()).";";
         }
 
         if($this->bUseDataList){
@@ -495,16 +566,34 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
             }
             $s .= "var chars = ".json_encode($this->Inputs("script")).";";
         }
-        
+
         if(substr($s, 0,8) === "<script>"){
             $s .= "</script>";
         }
-        
+
         return( $s );
     }
 
     abstract function DrawAsmtForm( int $kClient );
-    abstract function DrawAsmtResult();
+    public function DrawAsmtResult()
+    {
+        $s = "";
+
+        if( !$this->oData->GetAsmtKey() )  goto done;
+
+        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
+        $oForm = $this->oData->GetForm();
+        $client = $oPeopleDB->getKFR(ClientList::CLIENT, $oForm->Value("fk_clients2"));
+        $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
+                    <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
+                    <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
+                    <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
+        $s .= $this->oUI->DrawScoreResults();
+
+        done:
+        return( $s );
+    }
+
 
     public function UpdateAsmt()
     {
@@ -544,7 +633,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $clinics = new Clinics($this->oApp);
         $clinics->GetCurrentClinic();
-        $oPeopleDB = new PeopleDB( $this->oApp );
+        $clientlist = new ClientList( $this->oApp );
         $oAssessmentsDB = new AssessmentsDB( $this->oApp );
         $oForm = new KeyFrameForm( $oAssessmentsDB->Kfrel('A'), "A" );
 
@@ -574,17 +663,17 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $raColumns = $this->raColumnRanges;
 
-        $raClients = $oPeopleDB->GetList( 'C', $clinics->isCoreClinic() ? "" : ("clinic= '".$clinics->GetCurrentClinic()."'") );
+        $raClients = $clientlist->getMyClients();
 
         $sAsmt = $sList = "";
 
         /* Draw the list of assessments
          */
-        $sList = "<form action='{$_SERVER['PHP_SELF']}' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
+        $sList = "<form action='".CATSDIR."' method='post'><input type='hidden' name='new' value='1'/><input type='submit' value='New'/></form>";
         $raA = $oAssessmentsDB->GetList( "AxCxP", "" );
         foreach( $raA as $ra ) {
             $sStyle = $kAsmt == $ra['_key'] ? "font-weight:bold;color:green" : "";
-            $sList .= "<div class='assessment-link'><a  style='$sStyle' href='{$_SERVER['PHP_SELF']}?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
+            $sList .= "<div class='assessment-link'><a  style='$sStyle' href='".CATSDIR."?kA={$ra['_key']}'>{$ra['P_first_name']} {$ra['P_last_name']}</a></div>";
         }
 
 
@@ -617,31 +706,6 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
         return( $s );
     }
 
-    function drawResult()
-    {
-        $s = "";
-
-        if( !$this->oData->GetAsmtKey() )  goto done;
-
-        $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
-        $oForm = $this->oData->GetForm();
-        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
-        $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
-                    <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
-                    <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
-                    <span style='margin-left: 10%' id='DateRecorded'>Date Recorded: ".$this->oData->getDate()."</span><br />";
-        $s .= $this->oUI->DrawScoreResults();
-
-        done:
-        return( $s );
-    }
-
-    protected function Columns()
-    {
-        // Override to provide the column names
-        return( array() );
-    }
-
     function Inputs($type){
         switch($type){
             case "datalist":
@@ -670,26 +734,23 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     public function getGlobalTags():array{
         return array("date", "respondent", "date_entered");
     }
-    
+
     private final function getGlobalTagField(String $tag):String{
         $s = "";
         switch($tag){
             case "date":
-                $s = $this->oData->GetValue("date");
-                if($s = ""){
-                    $s = $this->oData->GetValue("_created");
-                }
+                $s = AssessmentsCommon::GetAssessmentDate($this->oData->GetForm()->GetValuesRA());
                 break;
             case "respondent":
                 $s = $this->oData->GetValue("respondent");
                 break;
-                case "date_entered":
-                    $s = $this->oData->GetValue("_created");
+            case "date_entered":
+                $s = substr( $this->oData->GetValue("_created"), 0, 10 );
                 break;
         }
         return $s;
     }
-    
+
     /**
      * Get a list of tags availible for this assesment type
      * Tags in the returned array should return a value when passed to getTagValue()
@@ -734,85 +795,160 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
     /**
      * Return the percentile score for the given section
      */
-    abstract function GetPercentile( string $section ) : string;
-    
+    abstract function GetPercentile( string $section ) : float;
+
     public final function GetData():AssessmentData{
         return $this->oData;
     }
-    
+
     /** Check if a client is eligable for this assessment
      * or if we have the scores needed to properly handle an assessment of this client.
-     * 
+     *
      * If this message returns false a message will be shown to the user presenting them with the option to continue anyway.
-     * 
+     *
      * Assesments should override to add restrictions to the clients that can be assesed.
-     * 
+     *
      * Usefull for alerting users if they try to create a MABC for a client > 16 or <3 years of age
-     * 
+     *
      * @param int $kClient client to check eligability of
      * @return bool true if client is eligable and should procced with out notice, false otherwise
      */
     public function checkEligibility(int $kClient, $date = ""):bool{
         return true;
     }
-    
+
     public function getIneligibleMessage():String{
         return "Would you like to proceed?";
     }
-    
+
 }
 
-class Assessment_SPM extends Assessments
-{
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt, String $subclass = "" )
-    {
-        $oData = new AssessmentData_SPM( $this, $oAsmt, $kAsmt );
-        $oUI = new AssessmentUI_SPM( $oData );
 
-        //Use subclass when defining a sub class of this such as the classroom spm
-        //Subclass ensures that scoreing does not break when subclassing
-        parent::__construct( $oAsmt, 'spm'.$subclass, $oData, $oUI );
+class Assessment_AASP extends Assessments
+{
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        $oData = new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_AASP( $oData );
+
+        parent::__construct( $oAsmt, 'aasp', $oData, $oUI );
         $this->bUseDataList = true;     // the data entry form uses <datalist>
     }
-
-    function DrawAsmtResult()
-    {
-        return( $this->drawResult() );
-    }
-
 
     function DrawAsmtForm( int $kClient )
     {
         return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
+    protected function InputOptions(){
+        // Override to provide custom input options
+        return array("Almost Never"=>"1","Seldom"=>"2","Occasionally"=>"3","Frequently"=>"4","Almost Always"=>"5");
+    }
 
-    protected function Columns()
+    protected function GetScore( $n, $v ):int
     {
-        return( array_keys($this->oData->raPercentiles[8]) );
+        return( 0 );
+    }
+
+    public function getTags(): array{
+        return array(
+            "visual_items","visual_items_never",
+            "auditory_items", "auditory_items_never",
+            "tactile_items", "tactile_items_never",
+            "vestibular_items", "vestibular_items_never",
+            "taste_items", "taste_items_never",
+            "low_registration", "sensory_seeking", "sensory_sensativity", "sensory_sensitivity", "sensory_avoiding",
+            "q1_interpretation", "q2_interpretation", "q3_interpretation", "q4_interpretation"
+        );
+    }
+
+    protected function getTagField(String $tag):String{
+        switch($tag){
+            case "visual_items":
+            case "auditory_items":
+            case "tactile_items":
+            case "vestibular_items":
+            case "taste_items":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],4,5), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+            case "visual_items_never":
+            case "auditory_items_never":
+            case "tactile_items_never":
+            case "vestibular_items_never":
+            case "taste_items_never":
+                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],1), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
+            case "low_registration":
+            case "sensory_seeking":
+            case "sensory_sensativity":
+            case "sensory_sensitivity":
+            case"sensory_avoiding":
+                $tag = array("low_registration" => "q1", "sensory_seeking" => "q2", "sensory_sensativity" => "q3", "sensory_sensitivity" => "q3", "sensory_avoiding" => "q4")[$tag];
+            case "q1_interpretation":
+            case "q2_interpretation":
+            case "q3_interpretation":
+            case "q4_interpretation":
+                $ra = $this->raSectionBounds[ucfirst(explode("_", $tag)[0])];
+                $score = $this->oData->ComputeScore(ucfirst(explode("_", $tag)[0])."_total");
+                if($score <= $ra[0]){
+                    return "Much Less than Most People";
+                }
+                if($score <= $ra[1]){
+                    return "Less than Most People";
+                }
+                if($score <= $ra[2]){
+                    return "Similar to Most People";
+                }
+                if($score <= $ra[3]){
+                    return "More than Most People";
+                }
+                if($score <= $ra[4]){
+                    return "Much More than Most People";
+                }
+        }
+    }
+
+    function GetProblemItems( string $section ) : string
+    {}
+    function GetPercentile( string $section ) : float
+    {}
+
+    protected $raColumnRanges = array(
+        "Taste/Smell"           => "1-8",
+        "Movement"              => "9-16",
+        "Visual"                => "17-26",
+        "Touch"                 => "27-39",
+        "Activity<br/>Level"    => "40-49",
+        "Auditory"              => "50-60"
+    );
+
+    protected $raPercentiles = array();
+
+    private $raSectionBounds = array(
+        "Q1" => array(18,26,40,51,75),
+        "Q2" => array(27,41,58,65,75),
+        "Q3" => array(19,25,40,48,75),
+        "Q4" => array(18,25,40,48,75)
+    );
+
+}
+
+
+abstract class Assessment_SPMShared extends Assessments
+/******************************************************
+    Stuff that is common to SPM and SPMC
+ */
+{
+    protected function __construct( AssessmentsCommon $oAsmt, string $asmtCode, AssessmentData $oData, AssessmentUI $oUI )
+    {
+        parent::__construct( $oAsmt, $asmtCode, $oData, $oUI );
+    }
+
+    function DrawAsmtForm( int $kClient )
+    {
+        return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
     protected function InputOptions(){
         return array("never","occasionally","frequently","always");
-    }
-
-    protected function GetScore( $n, $v ):int
-    /************************************
-        Return the score for item n when it has the value v
-     */
-    {
-        $score = "0";
-
-        if(!$v){
-            return 0;
-        }
-
-        if( ($n >= 1 && $n <= 10) || $n == 57 ) {
-            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
-        } else {
-            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
-        }
-        return( $score );
     }
 
     public function getTags(): array{
@@ -851,7 +987,7 @@ class Assessment_SPM extends Assessments
                     }
                     break;
                 case "percent":
-                    $s = (1 - (floatval($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0]))/100))*100 ."%";
+                    $s = (1 - ($this->GetPercentile(@$raSectionKeys[$parts[0]]?:$parts[0])/100))*100 ."%";
                     break;
                 case "item":
                     $s = $this->GetProblemItems(@$raSectionKeys[$parts[0]]?:$parts[0]);
@@ -861,74 +997,6 @@ class Assessment_SPM extends Assessments
         return $s;
     }
 
-    protected $items = array(
-        '1' => "Plays with friends cooperatively (without lots of arguments)",
-       '11' => "Seems bothered by light, especially bright lights (blinks, squints, cries, closes eyes, etc.)",
-       '12' => "Has trouble finding an object when it is part of a group of other things",
-       '13' => "Closes one eye or tips his/her head back when looking at something or someone",
-       '14' => "Becomes distressed in unusual visual environments",
-       '15' => "Has difficulty controlling eye movement when following objects like a ball with his/her eyes",
-       '16' => "Has difficulty recognizing how objects are similar or different based on their colours, shapes or sizes",
-       '17' => "Enjoys watching objects spin or move more than most kids his/her age",
-       '18' => "Walks into objects or people as if they were not there",
-       '19' => "Likes to flip light switches on and off repeatedly",
-       '20' => "Dislikes certain types of lighting, such as midday sun, strobe lights, flickering lights or fluorescent lights",
-       '21' => "Enjoys looking at moving objects out of the corner of his/her eye",
-       '22' => "Seems bothered by ordinary household sounds, such as the vacuum cleaner, hair dryer or toilet flushing",
-       '23' => "Responds negatively to loud noises by running away, crying, or holding hands over ears",
-       '24' => "Appears not to hear certain sounds",
-       '25' => "Seems disturbed by or intensely interested in sounds not usually noticed by other people",
-       '26' => "Seems frightened of sounds that do not usually cause distress in other kids her/her age",
-       '27' => "Seems easily distracted by background noises such as lawn mower outside, an air conditioner, a refrigerator, or fluorescent lights",
-       '28' => "Likes to cause certain sounds to happen over and over again, such as by repeatedly flushing the toilet",
-       '29' => "Shows distress at shrill or brassy sounds, such as whistles, party noisemakers, flutes and trumpets",
-       '30' => "Pulls away from being touched lightly",
-       '31' => "Seems to lack normal awareness of being touched",
-       '32' => "Becomes distressed by the feel of new clothes",
-       '33' => "Prefers to touch rather than to be touched",
-       '34' => "Becomes distressed by having his/her fingernails or toenails cut",
-       '35' => "Seems bothered when someone touches his/her face",
-       '36' => "Avoids touching or playing with finger paint, paste, sand, clay, mud, glue, or other messy things",
-       '37' => "Has an unusually high tolerance for pain",
-       '38' => "Dislikes teeth brushing, more than other kids his/her age",
-       '39' => "Seems to enjoy ensasations that should be painful, such as crashing onto the floor or hitting his/her own body",
-       '40' => "Has trouble finding things in a pocket, bag or backpack using touch only (without looking)",
-       '41' => "Likes to taste nonfood items, such as glue or paint",
-       '42' => "Gags at the thought of an unappealing food, such as cooked spinach",
-       '43' => "Likes to smell nonfood objects and people",
-       '44' => "Shows distress at smell that other children do not notice",
-       '45' => "Seems to ignore or not notice strong odors that other children react to",
-       '46' => "Grasps objects so tightly that it is difficult to use the object",
-       '47' => "Seems driven to seek activities such as pushing, pulling, dragging, lifting and jumping",
-       '48' => "Seems unsure of how far to raise or lower the body during movement such as sitting down or stepping over an object",
-       '49' => "Grasps objects so loosely that it is difficult to use the object",
-       '50' => "Seems to exert too much pressure for the task, such as walking heavily, slamming doors, or pressing too hard when using pencils or crayons",
-       '51' => "Jumps a lot",
-       '52' => "Tends to pet animals with too much force",
-       '53' => "Bumps or pushes other children",
-       '54' => "Chews on toys, clothes or other objects more than other children",
-       '55' => "Breaks things from pressing or pushing too hard on them",
-       '56' => "Seems excessively fearful of movement such as going up and down stairs, riding swings, teeter-totters, slides or other playground equipment",
-       '57' => "Doesn't seem to have good balance",
-       '58' => "Avoids balance activities, such as walking on curbs or uneven ground",
-       '59' => "Falls out of a chair when shifting his/her body",
-       '60' => "Fails to catch self when falling",
-       '61' => "Seems not to get dizzy when others usually do",
-       '62' => "Spins and whirls his/her body more than other children",
-       '63' => "Shows distress when his/her head is tilted away from vertical position",
-       '64' => "Shows poor coordination and appears to be clumsy",
-       '65' => "Seems afraid of riding in elevators or escalators",
-       '66' => "Leans on other people or furniture when sitting or when trying to stand up",
-       '67' => "Performs inconsistently in daily tasks",
-       '68' => "Has trouble figuring out how to carry multiple objects at the same time",
-       '69' => "Seems confused about how to put away materials and belongings in their correct places",
-       '70' => "Fails to perform tasks in proper sequence, such as getting dressed or setting the table",
-       '71' => "Fails to complete tasks with multiple steps",
-       '72' => "Has difficulty imitating demonstrated actions, such as movement games or songs with motions",
-       '73' => "Has difficulty building to copy a model, such as using Legos or blocks to build something that matches a model",
-       '74' => "Has trouble coming up with ideas for new games and activities",
-       '75' => "Tends to play the same activities over and over, rather than shift to new activities when given the chance",
-    );
 
     function GetProblemItems( string $section ) : string
     {
@@ -938,7 +1006,7 @@ class Assessment_SPM extends Assessments
             $range = SEEDCore_ParseRangeStrToRA( $range );
             foreach( $range as $k ) {
                 if( $this->oData->ComputeScore($k) >=3 ) {
-                    $s .= $this->items[$k]."\n";
+                    $s .= $this->oData->raItemDescriptions[$k]."\n";
                 }
             }
         }
@@ -946,211 +1014,203 @@ class Assessment_SPM extends Assessments
         return( $s );
     }
 
-    function GetPercentile( string $section ) : string
+    function GetPercentile( string $section ) : float
     {
         return( $this->oData->ComputePercentile($section) );
     }
 
-    protected $raColumnRanges = array(  // deprecated, use raColumnDef instead
-            "Social<br/>participation" => "1-10",
-            "Vision"                   => "11-21",
-            "Hearing"                  => "22-29",
-            "Touch"                    => "30-40",
-            "Taste /<br/>Smell"        => "41-45",
-            "Body<br/>Awareness"       => "46-55",
-            "Balance<br/>and Motion"   => "56-66",
-            "Planning<br/>and Ideas"   => "67-75"
-        );
-}
+/* These should probably not be the same for SPM and SPMC !
+ */
+    public function GetTotals() { return($this->raTotals); }
+    private $raTotals = array("56"=>"16","57"=>"16","58"=>"16","59"=>"21","60"=>"27","61"=>"34","62"=>"38","63"=>"42","64"=>"50","65"=>"54","66"=>"58",
+        "67"=>"62","68"=>"62","69"=>"66","70"=>"69","71"=>"73","72"=>"73","73"=>"76","74"=>"76","75"=>"79","76"=>"79","77"=>"82","78"=>"82","79"=>"84",
+        "80"=>"84","81"=>"86","82"=>"86","83"=>"86","84"=>"88","85"=>"88","86"=>"88","87"=>"88","88"=>"90","89"=>"90","90"=>"90","91"=>"90","92"=>"92",
+        "93"=>"92","94"=>"93","95"=>"93","96"=>"93","97"=>"93","98"=>"93","99"=>"95","100"=>"95","101"=>"95","102"=>"95","103"=>"95.5","104"=>"95.5",
+        "105"=>"95.5","106"=>"96","107"=>"96","108"=>"96","109"=>"96","110"=>"97","111"=>"97","112"=>"97","113"=>"97","114"=>"97","115"=>"97","116"=>"97",
+        "117"=>"97","118"=>"97","119"=>"97.5","120"=>"97.5","121"=>"97.5","122"=>"98","123"=>"98","124"=>"98","125"=>"98","126"=>"98","127"=>"98","128"=>"98",
+        "129"=>"98.5","130"=>"98.5","131"=>"99","132"=>"99","133"=>"99.5","134"=>"99.5","135"=>"99.5","136"=>"99.5","137"=>"99.5","138"=>"99.5","139"=>"99.5",
+        "140"=>"99.5","141"=>"99.5","142"=>"99.5","143"=>"99.5","144"=>"99.5","145"=>"99.5","146"=>"99.5","147"=>"99.5","148"=>"99.5","149"=>"99.5",
+        "150"=>"99.5","151"=>"99.5","152"=>"99.5","153"=>"99.5","154"=>"99.5","155"=>"99.5","156"=>"99.5","157"=>"99.5","158"=>"99.5","159"=>"99.5",
+        "160"=>"99.5","161"=>"99.5","162"=>"99.5","163"=>"99.5","164"=>"99.5","165"=>"99.5","166"=>"99.5","167"=>"99.5","168"=>"99.5","169"=>"99.5",
+        "170"=>"99.5","171"=>"99.5");
 
-class Assessment_AASP extends Assessments
-{
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+
+    public function ComputeScore( string $item ) : int
     {
-        $oData = new AssessmentData_AASP( $this, $oAsmt, $kAsmt );
-        $oUI = new AssessmentUI_AASP( $oData );
 
-        parent::__construct( $oAsmt, 'aasp', $oData, $oUI );
-        $this->bUseDataList = true;     // the data entry form uses <datalist>
+        // Array of items not to be included when computing total.
+        // Since we use array_sum to calculate total we need to exclude totals to produce accurate results
+        $doNotInclude = array("total","social_total","vision_total","hearing_total","touch_total","taste_total","body_total","balance_total","planning_total");
+
+        $score = 0;
+
+        $raScores = $this->oData->GetScores();
+
+        // Basic scores were computed and scored by the constructor.
+        // Aggregate scores are computed below and cached here.
+        if( isset($raScores[$item]) ) { $score = $raScores[$item]; goto done; }
+
+        // Look up aggregate / computed score
+        switch( $item ) {
+            case "social_total":
+            case "vision_total":
+            case "hearing_total":
+            case "touch_total":
+            case "taste_total":
+            case "body_total":
+            case "balance_total":
+            case "planning_total":
+                $range = SEEDCore_ParseRangeStrToRA( $this->oData->GetRangeOfColumn(explode("_", $item)[0]) );
+                $score = array_sum(array_intersect_key($raScores, array_flip($range)));
+                break;
+            case "total":
+                $score = array_sum(array_diff_key($raScores, array_flip($doNotInclude)));
+                break;
+        }
+
+        $this->oData->SetScore( $item, $score );    // cache for next lookup
+
+        done:
+        return( $score );
     }
 
-    function DrawAsmtForm( int $kClient )
+    public function ComputePercentile( string $item ) : float
+    {
+        $percentile = 0.0;
+
+        switch($item){
+            case "social":
+            case "vision":
+            case "hearing":
+            case "touch":
+            case "taste":
+            case "body":
+            case "balance":
+            case "planning":
+                $score = $this->ComputeScore($item."_total");
+                $percentile = floatval(@$this->oData->raPercentiles[$score][$item]);
+                break;
+            case 'total':
+                $score = $this->ComputeScore("total") - $this->ComputeScore("balance_total") - $this->ComputeScore("social_total");
+                $percentile = floatval(@$this->raTotals[$score]);
+                break;
+        }
+
+        return( $percentile );
+
+    }
+
+    function MapRaw2Score( string $item, string $raw ) : int
+    /*************************************************
+        Map raw -> score for basic items
+     */
+    {
+        $score = 0;
+
+        if( in_array($raw, ['n','o','f','a']) && is_numeric($item) ) {
+            $score = (($item >= 1 && $item <= 10) || $item == 57 )
+                        ? array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$raw]
+                        : array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$raw];
+        }
+
+        return( $score );
+    }
+
+
+    function DrawScoreResults() : string
+    {
+        $s = "";
+
+        $oForm = $this->oData->GetForm();
+
+        $raResults = SEEDCore_ParmsURL2RA( $oForm->Value('results') );
+        foreach( $raResults as $k => $v ) {
+            $oForm->SetValue( "i$k", $v );
+        }
+
+        $s .= "<table id='results'>
+                    <tr><th> Results </th><th> Score </th><th> Interpretation </th>
+                        <th> Percentile </th><th> Reverse Percentile </th></tr>
+
+                </table>
+                <template id='rowtemp'>
+                    <tr><td class='section'> </td><td class='score'> </td><td class='interp'> </td>
+                        <td class='per'> </td><td class='rev'> </td></tr>
+
+                </template>
+                <script src='w/js/asmt-overview.js'></script>";
+
+        /*$sReports = "";
+        foreach( explode( "\n", $this->Reports ) as $sReport ) {
+            if( !$sReport ) continue;
+            $n = intval(substr($sReport,0,2));
+            $report = substr($sReport,3);
+            $v = $oForm->Value( "i$n" );
+            if( $this->getScore( $n, $v ) > 2 ) $sReports .= $report."<br/>";
+        }
+        if( $sReports ) {
+            $sAsmt .= "<div style='border:1px solid #aaa;margin:20px 30px;padding:10px'>$sReports</div>";
+        }*/
+
+        $s .= SPMChart();
+
+        $s .= $this->oUI->DrawColFormTable( $oForm, false );
+
+        // Put the results in a js array for processing on the client
+        $s .= "<script>
+               var raResultsSPM = ".json_encode($raResults).";
+               var raTotalsSPM = ".json_encode($this->oData->GetTotals()).";
+               </script>";
+
+        return( $s );
+    }
+
+}
+
+class Assessment_SP2 extends Assessments {
+    
+    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
+    {
+        $oData = new AssessmentData_SP2( $this, $oAsmt, $kAsmt );
+        $oUI = new AssessmentUI_SP2( $oData );
+        
+        parent::__construct( $oAsmt, 'sp2', $oData, $oUI );
+        $this->bUseDataList = true;     // the data entry form uses <datalist>
+    }
+    
+    protected function GetScore($item, $value): int
+    {
+        return 0;
+    }
+
+    public function GetProblemItems(string $section): string
+    {
+        return "";
+    }
+
+    public function DrawAsmtForm( int $kClient )
     {
         return( $this->oUI->DrawColumnForm( $kClient ) );
     }
 
-    function DrawAsmtResult()
+    public function getTags(): array
     {
-        return( $this->drawResult() );
+        return array();
+    }
+
+    protected function getTagField(String $tag): String
+    {
+        return "";
+    }
+
+    public function GetPercentile(string $section): float
+    {
+        return 0.0;
     }
 
     protected function InputOptions(){
-        // Override to provide custom input options
-        return array("Almost Never"=>"1","Seldom"=>"2","Occasionally"=>"3","Frequently"=>"4","Almost Always"=>"5");
+        return array("Almost Always"=>5,"Frequently"=>4,"Half the Time"=>3,"Occasionally"=>2,"Almost Never"=>1,"Does Not Apply"=>0);
     }
-    
-    protected function GetScore( $n, $v ):int
-    {
-        return( 0 );
-    }
-
-    public function getTags(): array{
-        return array(
-            "visual_items","visual_items_never",
-            "auditory_items", "auditory_items_never",
-            "tactile_items", "tactile_items_never",
-            "vestibular_items", "vestibular_items_never",
-            "taste_items", "taste_items_never",
-            "low_registration", "sensory_seeking", "sensory_sensativity", "sensory_avoiding",
-            "q1_interpretation", "q2_interpretation", "q3_interpretation", "q4_interpretation"
-        );
-    }
-
-    protected function getTagField(String $tag):String{
-        switch($tag){
-            case "visual_items":
-            case "auditory_items":
-            case "tactile_items":
-            case "vestibular_items":
-            case "taste_items":
-                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],4,5), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
-            case "visual_items_never":
-            case "auditory_items_never":
-            case "tactile_items_never":
-            case "vestibular_items_never":
-            case "taste_items_never":
-                return SEEDCore_ArrayExpandSeries($this->oData->getItems(explode("_", $tag)[0],1), "[[]]\n ",true,array("sTemplateLast"=>"[[]]"));
-            case "low_registration":
-            case "sensory_seeking":
-            case "sensory_sensativity":
-            case"sensory_avoiding":
-                $tag = array("low_registration" => "q1", "sensory_seeking" => "q2", "sensory_sensativity" => "q3", "sensory_avoiding" => "q4")[$tag];
-            case "q1_interpretation":
-            case "q2_interpretation":
-            case "q3_interpretation":
-            case "q4_interpretation":
-                $ra = $this->raSectionBounds[ucfirst(explode("_", $tag)[0])];
-                $score = $this->oData->ComputeScore(ucfirst(explode("_", $tag)[0])."_total");
-                if($score <= $ra[0]){
-                    return "Much Less than Most People";
-                }
-                if($score <= $ra[1]){
-                    return "Less than Most People";
-                }
-                if($score <= $ra[2]){
-                    return "Similar to Most People";
-                }
-                if($score <= $ra[3]){
-                    return "More than Most People";
-                }
-                if($score <= $ra[4]){
-                    return "Much More than Most People";
-                }
-        }
-    }
-
-    function GetProblemItems( string $section ) : string
-    {}
-    function GetPercentile( string $section ) : string
-    {}
-
-    protected $raColumnRanges = array(
-        "Taste/Smell"           => "1-8",
-        "Movement"              => "9-16",
-        "Visual"                => "17-26",
-        "Touch"                 => "27-39",
-        "Activity<br/>Level"    => "40-49",
-        "Auditory"              => "50-60"
-    );
-
-    protected $raPercentiles = array();
-    
-    private $raSectionBounds = array(
-        "Q1" => array(18,26,40,51,75),
-        "Q2" => array(27,41,58,65,75),
-        "Q3" => array(19,25,40,48,75),
-        "Q4" => array(18,25,40,48,75)
-    );
-    
-}
-
-
-class Assessment_SPM_Classroom extends Assessment_SPM
-{
-    function __construct( AssessmentsCommon $oAsmt, int $kAsmt )
-    {
-        parent::__construct( $oAsmt, $kAsmt, 'c' );
-
-        //TODO Rework the data system to get rid of this dirty work arround
-        $this->oData->raPercentiles = $this->raPercentiles;
-    }
-
-    protected function GetScore( $n, $v ):int
-    /************************************
-     Return the score for item n when it has the value v
-     */
-    {
-        $score = "0";
-
-        if( $n >= 1 && $n <= 10 ) {
-            $score = array( 'n'=>4, 'o'=>3, 'f'=>2, 'a'=>1 )[$v];
-        } else {
-            $score = array( 'n'=>1, 'o'=>2, 'f'=>3, 'a'=>4 )[$v];
-        }
-        return( $score );
-    }
-
-    protected $raColumnRanges = array(
-        "Social<br/>participation" => "1-10",
-        "Vision"                   => "11-17",
-        "Hearing"                  => "18-24",
-        "Touch"                    => "25-32",
-        "Taste /<br/>Smell"        => "33-36",
-        "Body<br/>Awareness"       => "37-43",
-        "Balance<br/>and Motion"   => "44-52",
-        "Planning<br/>and Ideas"   => "53-62"
-    );
-
-    /* The percentiles that apply to each score, per column
-     */
-    protected $raPercentiles =
-    array(
-        '7'  => array( 'social'=>'',     'vision'=>'',     'hearing'=>'24',   'touch'=>'',     'body'=>'21',   'balance'=>'',     'planning'=>''     ),
-        '8'  => array( 'social'=>'',     'vision'=>'42',   'hearing'=>'58',   'touch'=>'27',   'body'=>'54',   'balance'=>'',     'planning'=>''     ),
-        '9'  => array( 'social'=>'',     'vision'=>'62',   'hearing'=>'73',   'touch'=>'62',   'body'=>'66',   'balance'=>'16',   'planning'=>''     ),
-        '10' => array( 'social'=>'16',   'vision'=>'76',   'hearing'=>'82',   'touch'=>'79',   'body'=>'76',   'balance'=>'38',   'planning'=>'16'   ),
-        '11' => array( 'social'=>'18',   'vision'=>'82',   'hearing'=>'86',   'touch'=>'86',   'body'=>'82',   'balance'=>'54',   'planning'=>'38'   ),
-        '12' => array( 'social'=>'27',   'vision'=>'88',   'hearing'=>'90',   'touch'=>'90',   'body'=>'86',   'balance'=>'62',   'planning'=>'50'   ),
-        '13' => array( 'social'=>'31',   'vision'=>'92',   'hearing'=>'93',   'touch'=>'93',   'body'=>'90',   'balance'=>'73',   'planning'=>'58'   ),
-        '14' => array( 'social'=>'38',   'vision'=>'93',   'hearing'=>'95.5', 'touch'=>'95.5', 'body'=>'93',   'balance'=>'79',   'planning'=>'66'   ),
-        '15' => array( 'social'=>'46',   'vision'=>'95.5', 'hearing'=>'97',   'touch'=>'96',   'body'=>'95',   'balance'=>'84',   'planning'=>'69'   ),
-        '16' => array( 'social'=>'50',   'vision'=>'97.5', 'hearing'=>'98.5', 'touch'=>'97.5', 'body'=>'95.5', 'balance'=>'86',   'planning'=>'76'   ),
-        '17' => array( 'social'=>'58',   'vision'=>'98.5', 'hearing'=>'99.5', 'touch'=>'98.5', 'body'=>'96',   'balance'=>'90',   'planning'=>'79'   ),
-        '18' => array( 'social'=>'62',   'vision'=>'99',   'hearing'=>'99.5', 'touch'=>'99',   'body'=>'97',   'balance'=>'92',   'planning'=>'82'   ),
-        '19' => array( 'social'=>'66',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'97.5', 'balance'=>'95',   'planning'=>'84'   ),
-        '20' => array( 'social'=>'73',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'98.5', 'balance'=>'95.5', 'planning'=>'86'   ),
-        '21' => array( 'social'=>'76',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'97',   'planning'=>'88'   ),
-        '22' => array( 'social'=>'82',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'97.5', 'planning'=>'88'   ),
-        '23' => array( 'social'=>'84',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98',   'planning'=>'90'   ),
-        '24' => array( 'social'=>'86',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98.5', 'planning'=>'92'   ),
-        '25' => array( 'social'=>'88',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'98.5', 'planning'=>'95'   ),
-        '26' => array( 'social'=>'90',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99',   'planning'=>'95.5' ),
-        '27' => array( 'social'=>'92',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99.5', 'planning'=>'96'   ),
-        '28' => array( 'social'=>'93',   'vision'=>'99.5', 'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'99.5', 'balance'=>'99.5', 'planning'=>'97.5' ),
-        '29' => array( 'social'=>'95',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98'   ),
-        '30' => array( 'social'=>'96',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98.5' ),
-        '31' => array( 'social'=>'97',   'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'98.5' ),
-        '32' => array( 'social'=>'97.5', 'vision'=>'',     'hearing'=>'99.5', 'touch'=>'99.5', 'body'=>'',     'balance'=>'99.5', 'planning'=>'99'   ),
-        '33' => array( 'social'=>'98.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99'   ),
-        '34' => array( 'social'=>'99',   'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
-        '35' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
-        '36' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'99.5', 'planning'=>'99.5' ),
-        '37' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
-        '38' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
-        '39' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' ),
-        '40' => array( 'social'=>'99.5', 'vision'=>'',     'hearing'=>'',     'touch'=>'',     'body'=>'',     'balance'=>'',     'planning'=>'99.5' )
-    );
-
 }
 
 function AssessmentsScore( SEEDAppConsole $oApp )
@@ -1197,16 +1257,19 @@ function AssessmentsScore( SEEDAppConsole $oApp )
     // Output <style> and <script> for the current assessment if any
     $s .= $oAsmt ? $oAsmt->StyleScript() : "";
 
-
     switch( $p_action ) {
         case 'edit':
             /* Show the input form for the given assessment type.
              * The form is smart enough to do Edit or New depending on whether it was created with a kAsmt.
              * Don't show the summary list because it takes too much space.
              */
-            if( ($kClient = SEEDInput_Int('fk_clients2')) ) {
+            if($p_kAsmt && (!SEEDInput_Int('fk_clients2') || SEEDInput_Int('fk_clients2') == $oAsmt->GetData()->GetValue("fk_clients2"))){
+                $s .= $oAsmt->DrawAsmtForm($oAsmt->GetData()->GetValue("fk_clients2"));
+            }
+            else if( !$p_kAsmt && ($kClient = SEEDInput_Int('fk_clients2')) ) {
                 $s .= $oAsmt->DrawAsmtForm( $kClient );
             } else {
+                $s .= "<div class='alert alert-danger'>Could not load assessment edit form</div>";
                 goto do_default;
             }
             break;
@@ -1217,6 +1280,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             if( ($kUpdatedAsmt = $oAsmt->UpdateAsmt()) ) {
                 $s .= "<div class='alert alert-success'>Saved assessment</div>";
                 $p_kAsmt = $kUpdatedAsmt;    // if a new asmt was inserted show it below
+                $oApp->sess->VarSet('client_key', $oAsmt->GetData()->GetValue("fk_clients2"));
             } else {
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }
@@ -1227,8 +1291,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             do_default:
             /* Show the landing page or a particular assessment.
              */
-            $sLeft = $oAC->GetSummaryTable( $p_kAsmt );
-            $sRight = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
+            $sList = $oAC->GetSummaryTable( $p_kAsmt,$oApp->sess->smartGPC('client_key') );
+            $sResult = $p_kAsmt ? $oAsmt->DrawAsmtResult() : "";
 // uncomment to see the problem items in the vision column of an spm test
 //$sRight .= $p_kAsmt ? $oAsmt->GetProblemItems('vision') : "";
 
@@ -1236,7 +1300,10 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<form action='{$_SERVER['PHP_SELF']}' method='post' onSubmit='onAssementCreate(event)'>"
+                  "<script>$(document).ready(function (){\$('select').selectize({sortField: 'text'});});</script>"
+                 ."<style>.asmt_controlform { width:97%; margin:20px; padding:5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
+                 ."<div class='asmt_controlform'>"
+                 ."<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
                  ."<select name='sAsmtType' required>"
@@ -1244,28 +1311,41 @@ function AssessmentsScore( SEEDAppConsole $oApp )
                  ."</select>"
                  ."<input type='date' name='date' max='".date("Y-m-d")."' value='".date("Y-m-d")."' required>"
                  ."<input type='hidden' name='sAsmtAction' value='edit'/>"   // this means 'new' if there is no kA
-                 ."<br/><input type='submit' value='New'/>"
-                 ."</form>";
-            $s .= "<div style='float:right;'><div style='width:97%;margin:20px;padding-top:5%;padding-left:5%;padding-bottom:5%;border:1px solid #aaa; background-color:#eee; border-radius:3px'>$sControl</div>";
-            if($sRight){
-                if(CATS_DEBUG){
-                    $sRight .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button><div id='tags'b style='display:none'>";
-                    foreach($oAsmt->getTags() as $tag){
-                        $sRight .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
+                 ."</form>"
+                 ."<button onclick='onAssementCreate()'>New</button>"
+                 ."</div>";
+
+            if($sResult){
+                if((CATS_DEBUG)||CATS_SYSADMIN){
+                    $sResult .= "Tags: <button style='width:50px' onclick='$(\"#tags\").slideDown(1000);'>Show</button>"
+                               ."<div id='tags'b style='display:none'>";
+                    foreach(array_merge($oAsmt->getTags(),$oAsmt->getGlobalTags()) as $tag){
+                        $sResult .= "<strong>$tag:</strong>".$oAsmt->getTagValue($tag)."<br />";
                     }
-                    $sRight .= "</div>";
+                    $sResult .= "</div>";
                 }
-                $sRight = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>".$sRight;
-                $s .= "<script src='w/js/printme/jquery-printme.js'></script>"
-                    ."<div style='padding:5%;display:inline'>"
-                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
+                $sResult = "<script> var AssmtType = '".$oAC->KFRelAssessment()->GetRecordFromDBKey($p_kAsmt)->Value("testType")."';</script>"
+                          .$sResult;
+                $sControl .= "<script src='w/js/printme/jquery-printme.js'></script>"
+                    ."<div style='padding-left:5%;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."Print.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Print Assessment' onclick='$(\"#assessment\").printMe({ \"path\": [\"w/css/spmChart.css\",\"w/css/asmt-overview.css\"]});'></button>"
+                    ."</div>"
+                    ."<div style='padding-left:5px;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."invoice.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='Edit Assessment' onclick='window.location=\"".CATSDIR."?sAsmtAction=edit&kA=$p_kAsmt\"'></button>"
+                    ."</div>"
+                    ."<div style='padding-left:5px;display:inline'>"
+                        ."<button style='background: url(".CATSDIR_IMG."tags.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none;cursor:pointer;' data-tooltip='View Assessment Tags' onclick=\"$('#tags_dialog').modal('show')\"></button>"
                     ."</div>";
             }
-            $s .= "</div><div class='container-fluid'><div class='row'>"
-                     ."<div class='col-md-3' style='border-right:1px solid #bbb'>$sLeft</div>"
-                     ."<div id='assessment' class='col-md-9' style='border-right:1px solid #bbb'>$sRight</div>"
+            $s .= "</div>"
+                 ."<div class='container-fluid'><div class='row'>"
+                     ."<div id='assessment' class='col-md-8' style='border-right:1px solid #bbb'>$sResult</div>"
+                     ."<div class='col-md-4'><div>$sControl</div><div>$sList</div></div>"
                  ."</div>";
             $s .= eligibilityScript();
+            if($sResult){
+                $s .= getAssessmentTags($oAsmt);
+            }
     }
 
     done:
@@ -1402,52 +1482,84 @@ function eligibilityScript(){
                             The Selected client is not eligible for this assessment.<br />
                             Results may not be correct.
                             <div style='display:inline' id='assmtMessage'></div>
-                            <form id='confirm_form''>
-                                <input type='hidden' id='sAsmtType' name='sAsmtType' value='' readonly />
-                                <input type='hidden' name='fk_clients2' id='fk_clients2' value='' />
-                                <input type='hidden' name='date' id='date' value='' />
-                            </form>
                         </div>
                         <div class='modal-footer'>
-                            <input type='submit' value='Yes' form='confirm_form' />
+                            <button onClick="document.getElementById('assmtForm').submit();">Yes</button>
                             <button onClick="$('#confirm_dialog').modal('hide');">No</button>
                         </div>
                     </div>
                 </div>
             </div>
             <script>
-                function onAssementCreate(e) {
-                    var target  = $(e.currentTarget);
+                function onAssementCreate() {
+                    var target  = $('#assmtForm');
                     var postData = target.serializeArray();
                     postData.push({name: 'cmd', value: 'therapist-assessment-check'});
-                    var preventDefault = true;
                     $.ajax({
                         type: "POST",
                         data: postData,
-                        async: false,
                         url: 'jx.php',
                         success: function(data, textStatus, jqXHR) {
                             var jsData = JSON.parse(data);
-                            preventDefault = jsData.bOk;
-                            if(jsData.bOk){
+                            if(!jsData.bOk){
                                 document.getElementById('assmtMessage').innerHTML = jsData.sOut;
+                                $('#confirm_dialog').modal('show');
+                            }
+                            else{
+                                document.getElementById('assmtForm').submit();
                             }
                         },
                         error: function(jqXHR, status, error) {
                             console.log(status + ": " + error);
                         }
                     });
-                    if(preventDefault){
-                        e.preventDefault();
-                        for(var x = 0;x<postData.length;x++){
-                            if(!document.getElementById(postData[x].name)){
-                                continue;
-                            }
-                            document.getElementById(postData[x].name).value = postData[x].value;
-                        }
-                        $('#confirm_dialog').modal('show');
-                    }
                 }
             </script>
 eligibilityScript;
+}
+
+function getAssessmentTags(Assessments $oAsmt){
+    $s = <<<TEMPLATE
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="tags_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Avalible Tags for [[type]] Assessments</h4>
+            </div>
+            <div class="modal-body">
+                <strong>Assessment Specific Tags:</strong><br />
+                [[tags]]
+                <div>
+                    <strong>General Assessment Tags:</strong><br />
+                    [[global]]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+TEMPLATE;
+    
+    $tags = "";
+    foreach ($oAsmt->getTags() as $tag){
+        if($tags){
+            $tags .= "<br />";
+        }
+        $tags .= "\${{$oAsmt->GetAsmtCode()}:$tag}";
+    }
+    if(!$tags){
+        $tags = "No Tags Avalible for this Assessment Type";
+    }
+    
+    $global = "";
+    foreach ($oAsmt->getGlobalTags() as $tag){
+        if($global){
+            $global .= "<br />";
+        }
+        $global .= "\${{$oAsmt->GetAsmtCode()}:$tag}";
+    }
+    
+    $s = str_replace(array("[[type]]","[[tags]]","[[global]]"), array(strtoupper($oAsmt->GetAsmtCode()),$tags,$global), $s);
+    
+    return $s;
 }

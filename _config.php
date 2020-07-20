@@ -48,6 +48,8 @@ require_once "cats_ui.php";
 require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
+require_once 'share_resources.php';
+require_once 'manage_users.php';
 
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
@@ -56,6 +58,7 @@ if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
 if( !defined("CATSDIR_RESOURCES") ) { define( "CATSDIR_RESOURCES", CATSDIR."resources/" ); }
 if( !defined("CATSDIR_DOCUMENTATION")){ define( "CATSDIR_DOCUMENTATION", CATSDIR."w/documentation/");}
 if( !defined("CATSDIR_AKAUNTING")){ define( "CATSDIR_AKAUNTING", CATSDIR."w/akaunting/");}
+if( !defined("CATSDIR_FONTS")){ define( "CATSDIR_FONTS", CATSDIR."w/fonts/");}
 
 $dirImg = CATSDIR_IMG;
 //Directory to the logo used on the CATS server
@@ -85,9 +88,16 @@ $oApp = new SEEDAppConsole(
                            )
 );
 
-
 if( CATS_DEBUG ) {
     $oApp->kfdb->SetDebug(1);
 }
+
+checkFileSystem($oApp);
+
+/**
+ * CATS_SYSADMIN is true IF AND ONLY IF the user can read the administrator permission.
+ * Users with this permission are to be considered system administratiors (eg. dev) and get access to extra features.
+ */
+define("CATS_SYSADMIN", $oApp->sess->CanRead('administrator'));
 
 ?>

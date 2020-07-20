@@ -5,6 +5,7 @@ include_once('share_resources.php');
 include_once('Clinics.php');
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 include_once( SEEDLIB."SEEDUGP.php" );
+include_once 'tutorial.php';
 
 /* Classes to help draw the user interface
  */
@@ -39,13 +40,16 @@ class CATS_UI
             exit;
         }
 
+        $body .= TutorialManager::runTutorial($this->oApp, $this->oHistory->getScreen());
+
         $body .=
             "<script> SEEDCore_CleanBrowserAddress(); </script>"
              .($this->oHistory->getScreen()=="home"?"<script> run(); </script>":"");
 
         $clinics = new Clinics($this->oApp);
+        $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
         $s = $this->oTmpl->ExpandTmpl( 'cats_page',
-            ['img_cats_logo'=>CATS_LOGO,
+            ['img_cats_logo'=>base64_encode(getImageData($imagePath, IMAGETYPE_PNG)),
                 'CATSDIR'=>CATSDIR,
                 'CATSDIR_CSS'=>CATSDIR_CSS,
                 'CATSDIR_JS'=>CATSDIR_JS,
@@ -92,28 +96,36 @@ class CATS_MainUI extends CATS_UI
 
         $s = $this->Header();
         $clinics = new Clinics($this->oApp);
-        if($clinics->GetCurrentClinic() == NULL){
+        if( $screen == "logout" ) {     // put this one first so you can logout if you have no clinics defined (so you get stuck in the next case)
+            $s .= $this->DrawLogout();
+        } else if($clinics->GetCurrentClinic() == NULL){
             $s .= "<div style='margin:auto; width:33%; padding: 10px; padding-top: 0px; margin-top:10em;'><h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics(true)
                  ."</div>";
         }
-        else if( substr($screen,0,9) == "developer" ) {
+        else if( substr($screen, 0,6) == "system"){
+            $s .= $this->drawSystem();
+        }
+        else if( substr($screen,0,13) == "administrator" ) {
             $s .= $this->DrawDeveloper();
-        }else if( substr( $screen, 0, 5 ) == 'admin' ) {
+        }
+        else if( substr( $screen, 0, 5 ) == 'admin' ) {
             $s .= $this->DrawAdmin();
-        } else if( substr( $screen, 0, 9 ) == "therapist" ) {
+        }
+        else if( substr( $screen, 0, 9 ) == "therapist" ) {
             $s .= $this->DrawTherapist();
-        } else if( substr($screen, 0, 6 ) == "leader" ){
+        }
+        else if( substr($screen, 0, 6 ) == "leader" ){
             $s .= $this->DrawLeader();
-        } else if( $screen == "logout" ) {
-            $s .= $this->DrawLogout();
-        } else if( $screen == "clinicImage"){
+        }
+        else if( $screen == "clinicImage"){
             //Revert the screen to the actual screen.
             //If we dont users will be stuck on this screen and have to know the screen name to escape.
             //This will be a problem since our screen names aren't exactly straightforward.
             $this->oHistory->restoreScreen();
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
-        }else if($this->pswdIsTemporary()){
+        }
+        else if($this->pswdIsTemporary()){
             $s .= <<<ResetPassword
 <form style='margin:auto;border:1px solid gray; width:33%; padding: 10px; padding-top: 0px; border-radius:10px; margin-top:10em;' method='post'>
          You used a temporary password to login.<br />Please enter a new password to continue.
@@ -126,7 +138,8 @@ class CATS_MainUI extends CATS_UI
          <input type='submit' value='Change Password' style='border-style: inset outset outset inset; font-family: \"Lato\", sans-serif; font-weight: 400; border-radius:5px; display:block; margin:auto;' />
          </form>"
 ResetPassword;
-        }else {
+        }
+        else {
             $s .= $this->DrawHome();
         };
 
@@ -136,16 +149,33 @@ ResetPassword;
 
     function DrawHome()
     {
-        $s = "<div class='container-fluid'>"
+        $s = "<div id='bubbles' class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
-            .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin() : "")
+            .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin()     : "")
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
-        .(!$this->oApp->sess->CanRead('administrator') && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .(!CATS_SYSADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
+            .$this->DrawSystem()
             ."</div>";
+            $s .= "
+        <!-- the div that represents the modal dialog -->
+        <div class=\"modal\" id=\"menu_dialog\" role=\"dialog\">
+            <div class=\"modal-dialog modal-lg modal-dialog-centered\" style='max-width:1140px' role=\"document\">
+                <div class=\"modal-content\">
+                    <div class=\"modal-body\">
+                        <div class='container-fluid' id='menu_body'>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>";
 
             // Unset the mode var for resource download
             $this->oApp->sess->VarSet('resource-mode', 'replace');
+            // Unset the assessement filter
+            $this->oApp->sess->VarSet("client_key", 0);
+            // Unset the drawer of the filing cabinet.
+            $this->oApp->sess->VarUnSet("dir");
 
         return( $s );
     }
@@ -154,51 +184,34 @@ ResetPassword;
     {
         //Unimplemented Bubbles have been commented out to clean up display
         $raTherapistScreens = array(
-            array( 'therapist-clientlist',      "Clients, Therapists, and External Providers" ),
+            array( 'therapist-clientlist',      "Client list / External Provider list" ),
+            array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
-            array( 'therapist-formscharts',     "Print Forms for Charts" ),
-            array( 'therapist-handouts',        "Print Handouts" ),
-            array( 'therapist-linedpapers',     "Print Different Lined Papers" ),
-            array( 'therapist-submitresources', "Submit Resources to Share" ),
             array( 'therapist-assessments',     "Score Assessments"),
-            //array( 'therapist-ideas',           "Get Ideas" ),
-            array( 'therapist-materials',       "Download Marketable Materials" ),
             //array( 'therapist-documents',       "Documents" ),
             //array( 'therapist-team',            "Meet the Team" ),
             //array( 'therapist-calendar',        "Calendar" ),
-            array( 'therapist-clinicresources', "Print Clinic Resources"),
-            array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
-            array( 'therapist-akaunting',       "Akaunting" ),
-            array( 'therapist-distributeReports', "Distribute Reports" )
+            //array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
+            array( 'therapist-viewVideos',      "CATS College", "Learning!" ),
+            //array( 'therapist-akaunting',       "Akaunting" ),
+            array( 'therapist-distributeReports', "Distribute Reports" ),
+            array( 'link:https://www.catherapyservices.ca/webmail', "Access Webmail" )
         );
 
         $s = "";
         switch( $this->oHistory->getScreen() ) {
             case "therapist":
             default:
-                $s .= $this->drawCircles( $raTherapistScreens );
+                $s .= $this->drawCircles( $raTherapistScreens, "therapist" );
                 break;
 
-            case "therapist-handouts":
-                $s .= "<h3>Handouts</h3>"
-                     .ResourcesDownload( $this->oApp, "handouts/" );
-                break;
-            case "therapist-formscharts":
-                $s .= "<h3>Forms</h3>"
-                     .ResourcesDownload( $this->oApp, "forms/" );
+            case 'therapist-filing-cabinet':
+                $oFC = new FilingCabinetUI( $this->oApp );
+                $s .= $oFC->DrawFilingCabinet();
                 break;
             case 'therapist-reports':
                 $s .= "<h3>Reports</h3>"
                      .ResourcesDownload( $this->oApp, "reports/" );
-                break;
-            case "therapist-linedpapers":
-                include("papers.php");
-                break;
-            case "therapist-entercharts":
-                $s .= "ENTER CHARTS";
-                break;
-            case "therapist-ideas":
-                $s .= "GET IDEAS";
                 break;
             case "therapist-assessments":
                 $s .= "<h3>Assessments</h3>"
@@ -213,14 +226,6 @@ ResetPassword;
             case "therapist-team":
                 $s .= "MEET THE TEAM";
                 break;
-            case "therapist-submitresources":
-                $s .= "SUBMIT RESOURCES";
-                $s .= share_resources();
-                break;
-            case 'therapist-resources':
-                $this->oHistory->removeFromHistory(-1);
-                include('share_resorces_upload.php');
-                break;
             case "therapist-clientlist":
                 $o = new ClientList( $this->oApp );
                 $s .= $o->DrawClientList();
@@ -230,12 +235,15 @@ ResetPassword;
                 $o = new Calendar( $this->oApp );
                 $s .= $o->DrawCalendar();
                 break;
-            case "therapist-clinicresources":
-                $s .= "<h3>Clinic Resources</h3>"
-                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
+//            case "therapist-clinicresources":
+//                $s .= "<h3>Clinic Resources</h3>"
+//                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
                 break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
+                break;
+            case "therapist-viewVideos":
+                $s .= viewVideos($this->oApp);
                 break;
             case "therapist-akaunting":
                 require_once CATSLIB."AkauntingReports.php";
@@ -244,6 +252,7 @@ ResetPassword;
             case "therapist-distributeReports":
                 require_once CATSLIB."DistributeReports.php";
                 $s .= distributeReports($this->oApp);
+                break;
         }
         return( $s );
     }
@@ -255,6 +264,17 @@ ResetPassword;
         $oApp = $this->oApp;
         switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
+                require_once 'manage_users.php';
+                $manageUsers = new ManageUsers($this->oApp);
+                if(CATS_SYSADMIN){
+                    $s .= "<div style='float:right'><a href='".CATSDIR."?screen=admin-users-advanced'>advanced mode ></a></div>";
+                }
+                $s .= $manageUsers->drawList();
+                break;
+            case 'admin-users-advanced':
+                if(CATS_SYSADMIN){
+                    $s .= "<div><a href='".CATSDIR."?screen=admin-users'>< basic mode</a></div><br />";
+                }
                 $s .= $this->drawAdminUsers();
                 break;
             case 'admin-resources':
@@ -267,17 +287,18 @@ ResetPassword;
                 $tnrs = new TagNameResolutionService($oApp->kfdb);
                 $s .= $tnrs->listResolution();
                 break;
-            default:
-                //Unimplemented Bubbles have been commented out to clean up display
+            case "admin":
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
-                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
+                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
-                $s .= $this->drawCircles( $raScreens );
-
+                $s .= $this->drawCircles( $raScreens, "admin" );
                 break;
+            default:
+                $raScreens = [["menu:admin","Admin Tools"]];
+                $s .= $this->drawCircles($raScreens, "admin");
         }
         return( $s );
     }
@@ -291,7 +312,7 @@ ResetPassword;
     function DrawDeveloper(){
         $s = "";
         switch($this->oHistory->getScreen()){
-            case 'developer-droptable':
+            case 'administrator-droptable':
                 global $config_KFDB;
                 $db = $config_KFDB['cats']['kfdbDatabase'];
                 $oApp = $this->oApp;
@@ -314,28 +335,33 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $oApp->kfdb->Execute("drop table $db.users_clinics");
                 $s .= "<div class='alert alert-success'>Oops I miss placed your data</div>";
                 break;
-            case 'developer-clinics':
+            case 'administrator-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
-            case 'developer-confirmdrop':
+            case 'administrator-confirmdrop':
                 $s .= "<h3>Are you sure you want to drop the tables?</h3>"
                       ."<br /><h1>THIS CANNOT BE UNDONE</h1>"
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
-            case 'developer-SEEDBasket':
+            case 'administrator-SEEDBasket':
                 include_once( SEEDAPP."basket/basketManager.php" );
                 $s .= SEEDBasketManagerApp( $this->oApp );
                 break;
-            default:
+            case 'administrator':
                     $raScreens = array(
-                        array( 'developer-confirmdrop',    "Drop Tables"    ),
-                        array( 'developer-clinics',        "Manage Clinics" ),
+                        array( 'administrator-confirmdrop',    "Drop Tables"    ),
+                        array( 'administrator-clinics',        "Manage Clinics" ),
                     );
                     if( CATS_DEBUG ) {
                         $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
                     }
-                    $s .= $this->drawCircles( $raScreens );
+                    $s .= $this->drawCircles( $raScreens, "developer" );
+                    break;
+            default:
+                $raScreens = [['menu:administrator',"Developer Tools","418 I'm a teapot"]];
+                $s .= $this->drawCircles($raScreens, "developer");
+                break;
         }
         return( $s );
     }
@@ -350,19 +376,122 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $raScreens = array(
                     array( 'leader-clinic',     "Manage Clinic")
                 );
-                $s .= $this->drawCircles( $raScreens );
+                $s .= $this->drawCircles( $raScreens, "leader" );
+
         }
         return( $s );
     }
 
-    private function drawCircles( $raScreens )
+    public function drawSystem(){
+        $s = "";
+        switch ($this->oHistory->getScreen()){
+            case "system-documentation":
+                require_once 'Documentation.php';
+                $documentation = new Documentation();
+                $s .= $documentation->handleDocs($this->oApp);
+                break;
+            case "system-placeholders":
+                require_once 'Documentation.php';
+                $placeholders = new Placeholders();
+                $s .= $placeholders->drawPlaceholderList();
+                break;
+            case "system":
+                $raScreens = array(
+                array( 'system-documentation',     "View Documentation"),
+                array( 'system-placeholders' ,     "Download Placeholder Images"),
+                array( 'system-footergenerator',   "Generate Clinic Footer"),
+                array( 'system-usersettings',      "My Profile")
+                );
+                $s .= $this->drawCircles($raScreens, "system");
+                break;
+            case "system-footergenerator":
+                $gen = new ImageGenerator($this->oApp);
+                $s .= $gen->footerOptions();
+                break;
+            case "system-usersettings":
+                $s .= "<h2>My Profile</h2>";
+                $clone = SEEDInput_Str("clone")?true:false;
+                $manageUsers = new ManageUsers($this->oApp);
+                $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
+                break;
+            default:
+                $s .= $this->drawCircles([['menu:system',"Access System Resources"]], "system");
+        }
+        return( $s );
+    }
+
+    /**
+     * Get any badges for a section/menu.
+     * Valid sections/menus have an associated draw method above.
+     * Menus should display a badge with the sum of the badges beneath it
+     * @param String $section - section to get badges for
+     * @return array with keys of screens with badges and the keys of the numbers to show
+     */
+    public function GetBadges(String $section){
+        switch($section){
+            case 'therapist':
+                return [];
+            case 'admin':
+                FilingCabinet::EnsureDirectory("pending");
+                $toReview = array_diff(scandir(CATSDIR_RESOURCES."pending/"), array('..', '.'));
+                return ['admin-resources' => count($toReview)];
+            case 'developer':
+                return [];
+            case 'leader':
+                return [];
+            case 'system':
+                $manageUsers = new ManageUsers($this->oApp);
+                return ['system-usersettings' => $manageUsers->profileValid($this->oApp->sess->GetUID())?"":"!"];
+            default:
+                return [];
+        }
+    }
+    
+    private function drawCircles( array $raScreens, String $section )
     {
         $s = "";
+        $badges = $this->GetBadges($section);
         foreach( $raScreens as $ra ) {
             $circle = "catsCircle".($this->i % 2 + 1);
 
             if( $this->i % 4 == 0 ) $s .= "<div class='row'>";
-            $s .= "<div class='col-md-3'><a href='?screen={$ra[0]}' class='toCircle $circle'>{$ra[1]}</a></div>";
+            $href = "";
+            $target = "";
+            $title = "";
+            $id = $ra[0];
+            $badge = "";
+            if (SEEDCore_StartsWith($ra[0], "link:")) {
+                $href = substr($ra[0], 5);
+                $target = " target='_blank'";
+                $id = substr($ra[0], strrpos($ra[0], "/"));
+            } 
+            elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
+                $href = "#";
+                $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
+                $title = " title='Open menu'";
+                $id = substr($ra[0], 5);
+                $badgeCount = array_sum($this->GetBadges($id));
+                if($badgeCount > 0 || in_array("!", $this->GetBadges($id),true)){
+                    if(in_array("!", $this->GetBadges($id),true)){
+                        $badgeCount = "!";
+                    }
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
+            } else {
+                $href = "?screen=".$ra[0];
+            }
+            if(@$ra[2]){
+                // The optional title has been set
+                $ra[2] = SEEDCore_HSC($ra[2]); //Allow for use of ' in title
+                $title = " title='{$ra[2]}'";
+            }
+            if(array_key_exists($ra[0], $badges)){
+                $badgeCount = $badges[$ra[0]];
+                if($badgeCount > 0 || $badgeCount === "!"){
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
+            }
+            $s .= "<div class='col-md-3'><a id='$id' href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}{$badge}</a></div>";
             if( $this->i % 4 == 3 ) $s .= "</div>";   // row
             ++$this->i;
         }
@@ -472,5 +601,36 @@ class ScreenManager{
     private function store(){
         $_SESSION['screenHistory'] = $this->screens;
     }
+
+}
+
+/**
+ * Class representing the home screen tutorial
+ * @author Eric
+ * @version 4.0
+ */
+class HomeTutorial extends Tutorial {
+
+    protected final function getSteps(): array{
+        return array(
+            [self::TITLE_KEY => 'Welcome!',self::CONTENT_KEY => 'Welcome to the CATS "backend". Lets show you arround'],
+            [self::TITLE_KEY => 'Bubbles', self::CONTENT_KEY => 'These bubble will take you the different screens you have access to.', self::ELEMENT_KEY => '#bubbles',self::PLACEMENT_KEY => Placement::TOP],
+            [self::TITLE_KEY => 'Clinics', self::CONTENT_KEY => 'The current clinic you are viewing will be shown here. If you have access to multiple clinics you will also be able to switch between them here, by clicking on the clinic\'s name', self::ELEMENT_KEY => '#clinics',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'Back Button', self::CONTENT_KEY => 'Your browser back button is not garenteed to take you back to the previous screen. Please use this back button instead. In most cases the previous screen will be the home screen, however we track your screen history from the moment you log in and you can use the back button to backtrack through it.<br /><br />NOTE: the screen history is only avalible for as long as you are logged in we don\'t store it permanently',self::ELEMENT_KEY => '#backButton',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
+            [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 2],
+            [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '#therapist-filing-cabinet', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 3],
+            [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'Your Profile is available under the "Access System Resources" bubble', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 4],
+            [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
+        );
+    }
+
+    public final function getScreen(): string{
+        return 'home';
+    }
+    public function __construct(){
+        // No need to initiate anything
+    }
+
 
 }

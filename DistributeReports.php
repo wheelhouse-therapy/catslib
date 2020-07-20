@@ -12,13 +12,12 @@ function distributeReports($oApp) {
      * It then searches the database to determine if we have enough data to determine address labels,
      * fax cover sheets and emails for each person. It disables the checkbox if we don't have enough
      * data, and it prints the data underneath the checkbox if we do.
-     * 
+     *
      * All js and css are located in extensions.twig under the distributeReports template
-     * 
-     * TODO: add buttons to generate the address labels, fax cover sheets and emails.
+     *
      */
     $s = <<<Form
-        <select id="clientlist" onchange="jxCall()">
+        <select id="clientlist" placeholder='Select Client...' onchange="jxCall()">
             [[options]]
         </select>
         <div id="content">
@@ -27,13 +26,13 @@ function distributeReports($oApp) {
         <script>
             document.querySelector("option[value='[[_key]]']").setAttribute("selected", "selected");
         </script>
-        
+
 Form;
     $clientId = $oApp->sess->SmartGPC("idOut");
-    $raClients = $oPeopleDB->GetList(Clientlist::CLIENT, $condClinic, array("iStatus" => -1));
+    $raClients = (new ClientList($oApp))->getMyClients(-1);
     $s = str_replace("[[_key]]", $clientId, $s);
     $s = str_replace("[[content]]", drawForm($oApp, $clientId), $s);
-    $s = str_replace("[[options]]", SEEDCore_ArrayExpandRows($raClients, 
+    $s = str_replace("[[options]]", SEEDCore_ArrayExpandRows($raClients,
         "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>"), $s);
     return $s;
 }
@@ -44,12 +43,12 @@ function drawForm($oApp, $clientId) {
     }
     $oPeopleDB = new PeopleDB($oApp);
     $kfr = $oPeopleDB->GetKFR(Clientlist::CLIENT, $clientId);
-    $out = "<table><tbody id='tableBody'";    
-    
+    $out = "<table><tbody id='tableBody'";
+
     //Add header row
     $out .= "<tr><th class='borderless'></th><th>Address Label</th><th>Fax</th><th>Email</th></tr>";
     //Columns are: Person Data, Address Label, Fax, Email.
-            
+
     //Add client row
     $out .= "<tr data-id='" . ClientList::createID(ClientList::CLIENT, $clientId) . "'>";
     $out .= "<td>Client: ". $kfr->Expand("[[P_first_name]] [[P_last_name]]") . "</td>";
@@ -59,7 +58,7 @@ function drawForm($oApp, $clientId) {
     $postal_code = $kfr->Value("P_postal_code");
     $city = $kfr->Value("P_city");
     $province = $kfr->Value("P_province");
-    if (!$address || !$postal_code || 
+    if (!$address || !$postal_code ||
         !$city || !$province) {
         $out .= " disabled />"; //disable the checkbox if we don't have all the necessary data
     }
@@ -72,13 +71,13 @@ function drawForm($oApp, $clientId) {
     ."<span>" . ($city ?: "(no city entered)") . "</span><br />"
     ."<span>" . ($province ?: "(no province entered)") . "</span>"
     ."</div>";
-    
+
     $out .=" </td>"; //close address label column
-    
+
     //We don't even store client faxes, so just add a disabled checkbox
     $out .= "<td><input class='fax' type='checkbox' disabled /><br/>"
     ."<span>n/a</span></td>";
-    
+
     //Add email column
     $email = $kfr->Value("P_email"); //Need the database column for email
     $out .= "<td><input class='email' type='checkbox'";
@@ -92,12 +91,12 @@ function drawForm($oApp, $clientId) {
     $out .= "<br /><span>". ($email?: "(no email entered)") . "</span>";
     $out .= "</td>"; //close email column
     $out .= "</tr>"; //close client row
-    
+
     //Add parents row
     $parent_name = $kfr->Value("parents_name");
     if ($parent_name) {
         $out .= "<tr data-id='" . ClientList::createID(ClientList::CLIENT, $clientId). "p'>"
-        ."<td>Parent: ". parent_name ."</td>";
+        ."<td>Parent: $parent_name</td>";
         //add address label cell
         $out .= "<td><input class='label' type='checkbox'";
         if (!$address || !$postal_code ||
@@ -114,11 +113,11 @@ function drawForm($oApp, $clientId) {
         ."<span>" . ($province ?: "(no province entered)") . "</span>"
         ."</div>";
         $out .= "</td>"; //close parent address label cell
-        
+
         //We don't even store parent faxes, so just add a disabled checkbox
         $out .= "<td><input class='fax' type='checkbox' disabled /><br />"
         ."<span>n/a</span></td>";
-        
+
         //Open parent email cell
         $out .= "<td><input class='email' type='checkbox'";
         //We assume parent and client emails are the same since we only store 1 email
@@ -133,30 +132,34 @@ function drawForm($oApp, $clientId) {
         $out .= "</tr>"; //close parent row
 
     }
-    
+
     //get array of all the providers for the current client
     $prosList = ($clientId?$oPeopleDB->GetList('CX', "fk_clients2='{$clientId}'"):array());
     foreach($prosList as $pro) {
-        $pro['fk_pros_internal'] && ($kfr = $oPeopleDB->GetKFR( 'PI', $pro['fk_pros_internal'] ));
+        $type = null;
+        $kfr = null;
+        $pro['fk_pros_internal'] && ($kfr = $oPeopleDB->GetKFR( ClientList::INTERNAL_PRO, $pro['fk_pros_internal'] ));
         $pro['fk_pros_internal'] && $type = ClientList::INTERNAL_PRO;
-        $pro['fk_pros_external'] && ($kfr = $oPeopleDB->GetKFR( 'PE', $pro['fk_pros_external'] ));
+        $pro['fk_pros_external'] && ($kfr = $oPeopleDB->GetKFR( ClientList::EXTERNAL_PRO, $pro['fk_pros_external'] ));
         $pro['fk_pros_external'] && $type = ClientList::EXTERNAL_PRO;
-        
-        $cell = $kfr->Expand( 
+
+        if( !$type || !$kfr ) continue;
+
+        $cell = $kfr->Expand(
             "<div><span>Provider: [[P_first_name]] [[P_last_name]]</span><br/>
             <span>Role: [[pro_role]]</span></div>" );
         $out .= "<tr data-id='" . ClientList::createID($type, $kfr->Value("_key")) . "'>"
         ."<td>". $cell ."</td>"; //open and close person description cell
-        
-        
+
+
         $address = $kfr->Value("P_address");
         $postal_code = $kfr->Value("P_postal_code");
         $city = $kfr->Value("P_city");
         $province = $kfr->Value("P_province");
-        
+
         //add address label column
-        $out .="<td><input class='label' type='checkbox'";
-        
+        $out .="<td><input class='label ext-pro-label' type='checkbox'";
+
         if (!$address || !$postal_code ||
           !$city || !$province) {
             $out .= " disabled />"; //disable the checkbox if we don't have all the necessary data
@@ -164,16 +167,27 @@ function drawForm($oApp, $clientId) {
         else {
             $out .= " />"; //close checkbox without disabling
         }
-        $out .= "<br />"
-        ."<div>"
+        $out .= "<br />";
+        // this checkbox toggles whether the provider will be included in a generated cover letter
+        // the cover letter is generated by a button underneath "generate address labels"
+        // this checkbox should be hidden by default, then show if address labels is selected
+        // we do the hiding with css, and a "visible" class
+        // it should also be automatically selected
+        // we exclude hidden but selected checkboxes with JavaScript (getSelected)
+        // when we generate the cover letter
+        $out .= "<div class='cover-letter-container'>"
+            ."<span>Cover Letter: </span>"
+            ."<input class='cover-letter no-select' type='checkbox' checked />"
+        ."</div>";
+        $out .= "<div>"
         ."<span>" . ($address ?: "(no address entered)") . "</span><br />"
         ."<span>" . ($postal_code ?: "(no postal code entered)") . "</span><br />"
         ."<span>" . ($city ?: "(no city entered)") . "</span><br />"
         ."<span>" . ($province ?: "(no province entered)") . "</span>"
         ."</div>";
-        
+
         $out .=" </td>"; //close address label column
-        
+
         $fax = $kfr->Value("fax_number");
         //add fax column
         $out .= "<td><input class='fax' type='checkbox'";
@@ -185,7 +199,7 @@ function drawForm($oApp, $clientId) {
         }
         $out .= "<br/><span>" . ($fax ?: "(no fax entered)") . "</span>"; //put fax number in a span
         $out .= "</td>"; //close fax cell
-        
+
         $email = $kfr->Value("P_email");
         //add email column
         $out .= "<td><input class='email' type='checkbox'";
@@ -197,17 +211,71 @@ function drawForm($oApp, $clientId) {
         }
         $out .= "<br /><span>" . ($email ?: "(no email entered)") ."</span>";
         $out .= "</td>";
-        
+
         $out .= "</tr>"; //close provider row
     }
-    
+
     //add a row for the "generate ..." buttons
-    $out .= "<tr><td class='borderless'></td>"
-    ."<td><button class='generate' onclick='generateLabels()'>Generate Address Labels</button></td>"
-    ."<td><button class='generate' onclick='generateFaxes()'>Generate Fax Cover Sheets</button></td>"
-    ."<td><button class='generate' onclick='generateEmails()'>Generate Emails</button></td>"
-    ."</tr>";
-    
+    $out .= <<<GenButtons
+<tr>
+    <td class='borderless'></td>
+    <td>
+        <button class='generate' onclick='DistributeReports.generateLabels();'>
+            Generate Address Labels
+        </button><br />
+        <button class='generate' onclick='DistributeReports.generateCoverLetter();'>
+            Generate Cover Letter
+        </button>
+    </td>
+    <td>
+        <button class='generate' onclick='DistributeReports.generateFaxes();'>
+            Generate Fax Cover Sheets
+        </button>
+    </td>
+    <td>
+        <button class='generate' onclick='DistributeReports.generateEmails();'>
+            Generate Emails
+        </button>
+    </td>
+</tr>
+GenButtons;
     $out .= "</tbody></table>";
     return $out;
+}
+
+class DistributeReports
+{
+    private $oApp;
+
+    function __construct( SEEDAppSession $oApp )
+    {
+        $this->oApp = $oApp;
+    }
+
+    function OutputAddressLabels( array $info )
+    {
+        require_once CATSLIB."template_filler.php";
+
+        $filler = new template_filler($this->oApp, array(), $info);
+        $filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx");
+        exit;
+    }
+
+    function OutputFaxCover( string $info )
+    {
+        require_once CATSLIB."template_filler.php";
+
+        $filler = new template_filler($this->oApp, array(), [$info]);
+        $filler->fill_resource(CATSLIB . "ReportsTemplates/Fax Cover Sheet Template.docx");
+        exit;
+    }
+
+    function OutputCoverLetter( string $info )
+    {
+        require_once CATSLIB."template_filler.php";
+
+        $filler = new template_filler($this->oApp, array(), [$info]);
+        $filler->fill_resource(CATSLIB . "ReportsTemplates/Template Doctor Letter Ax only-Sue.docx");
+        exit;
+    }
 }

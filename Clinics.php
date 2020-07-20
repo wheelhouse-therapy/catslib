@@ -1,11 +1,11 @@
 <?php
-
 require_once 'handle_images.php';
 
 class Clinics {
     private $oApp;
     private $clinicsDB;
 
+    //Access Rights
     private const NO_ACCESS     = 0;
     private const LEADER_ACCESS = 1;
     private const FULL_ACCESS   = 2;
@@ -23,15 +23,15 @@ class Clinics {
         return $this->GetCurrentClinic() == 1;
     }
 
+    /**
+     * Returns the current clinic the user is looking at
+     * A result of NULL means a clinic has not been specefied
+     * A list of accessable clinics should be presented at this point
+     *
+     * A user with access to the core clinic will never return NULL through this call.
+     * Clinic leaders default to the first clinic they lead.
+     */
     function GetCurrentClinic($user = NULL){
-        /*
-         * Returns the current clinic the user is looking at
-         * A result of NULL means a clinic has not been specefied
-         * A list of accessable clinics should be presented at this point
-         *
-         * A user with access to the core clinic will never return NULL through this call.
-         * Clinic leaders default to the first clinic they lead.
-         */
 
         if(!$user){
             $user = $this->oApp->sess->GetUID();
@@ -59,18 +59,31 @@ class Clinics {
         return $k;
     }
 
+    /**
+     * Returns a list of clinics that the user is part of (accessable)
+     *
+     * A clinic is considerd accessable to the user by CATS if they are part of that clinic
+     * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
+     */
     function GetUserClinics($user = NULL){
-        /*
-         * Returns a list of clinics that the user is part of (accessable)
-         *
-         * A clinic is considerd accessable to the user by CATS if they are part of that clinic
-         * ie. their user id is mapped to the clinic id in the Users_Clinics Database table
-         */
 
         if(!$user){
             $user = $this->oApp->sess->GetUID();
         }
 
+        if($user == 1){
+            // We are working with the developer account. Grant access to all clinics.
+            $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("");
+            foreach($clinics as $k => $ra){
+                $clinics1 = array();
+                foreach($ra as $k1 => $v){
+                    $clinics1["Clinics_".$k1] = $v;
+                }
+                $clinics[$k] = $clinics1;
+            }
+            return $clinics;
+        }
+        
         $UsersClinicsDB = new Users_ClinicsDB($this->oApp->kfdb);
         $clinics = $UsersClinicsDB->KFRel()->GetRecordSetRA("Users._key='".$user."'");
         $leading = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
@@ -88,6 +101,16 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
 
+    /**
+     * Get the clinic at the given position in the users clinic
+     * @param int $clinicPosition - position of clinic to fetch. ZERO BASED.
+     * @param int|NULL $user - user to get clinics of. Default NULL = currently signed it user
+     */
+    public function getUserClinic(int $clinicPosition, $user = NULL){
+        $clinics = $this->GetUserClinics($user);
+        return $clinics[$clinicPosition];
+    }
+    
     function displayUserClinics($selector = false){
         $s = "";
         foreach($this->GetUserClinics() as $ra){
@@ -127,7 +150,7 @@ class Clinics {
             $user = $this->oApp->sess->GetUID();
         }
         if($this->oApp->sess->GetUID() == $user){
-            $bFull = $this->oApp->sess->CanRead('administrator');
+            $bFull = CATS_SYSADMIN;
         }
         else{
             // Little Hack to get arround the current login to check another users perms
@@ -170,6 +193,15 @@ class Clinics {
         return $clinicKeys;
     }
     
+    public function getClinicsByCity(String $city){
+        $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.city'".$city."'");
+        $clinicKeys = array();
+        foreach($clinics as $k => $v){
+            array_push($clinicKeys, $v["_key"]);
+        }
+        return $clinicKeys;
+    }
+    
     public function getClinicsILead($user = NULL){
         if(!$user){
             $user = $this->oApp->sess->GetUID();
@@ -182,6 +214,7 @@ class Clinics {
         return $clinicKeys;
     }
     
+    //TODO Deprecate
     public function getClinicsWithAkaunting($user=NULL){
         $accessType = $this->checkAccess($user);
         if(!$accessType == self::FULL_ACCESS && !$this->isCoreClinic()){
@@ -342,7 +375,7 @@ class Clinics {
                 $kfr = $ClinicsDB->GetClinic( $clinic_key );
                 foreach( $kfr->KFRel()->BaseTableFields() as $field ) {
                     if($field['alias'] == 'email' && SEEDInput_Str('email') == 'default'){
-                        $kfr->SetValue( $field['alias'], strtolower(SEEDInput_Str('clinic_name'))."@catherapyservices.ca" );
+                        $kfr->SetValue( $field['alias'], str_replace(" ", ".", strtolower(SEEDInput_Str('clinic_name')))."@catherapyservices.ca" );
                     }
                     elseif($field['alias'] == 'mailing_address' && SEEDInput_Str('mailing_address') == 'add%91ress'){
                         $kfr->SetValue( $field['alias'], SEEDInput_Str('address') );
@@ -712,6 +745,155 @@ Modal;
             }
         }
         return $filename;
+    }
+    
+}
+
+class ImageGenerator {
+    
+    private const TEMPLATE = CATSDIR_IMG."footer/footer_template.jpg";
+    private const DOT = CATSDIR_IMG."footer/dot.gif";
+    private const ROW1 = 60;
+    private const ROW2 = 130;
+    private const ROW2_DOT = 100;
+    private const ROW3 = 205;
+    private const ROW3_DOT = 170;
+    private const FONT = 45;
+    private const FONTFILE = CATSDIR_FONTS."arialbd.ttf";
+    private const DOT_SIZE = 30;
+    private const LINE_START1 = 700;
+    private const LINE_START2 = 500;
+    private const LINE_START3 = 260;
+    
+    private $oApp;
+    
+    public function __construct(SEEDAppConsole $oApp){
+        $this->oApp = $oApp;
+    }
+    
+    public function generateFooter(int $clinicId){
+        $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
+        $kfr = $ClinicsDB->GetClinic( $clinicId );
+        $im = imagecreatefromjpeg(self::TEMPLATE);
+        $dot = imagecreatefromgif(self::DOT);
+        $color = imagecolorallocate($im, 0, 0, 0);
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START1, self::ROW1, $color, realpath(self::FONTFILE), "Collaborative Approach Therapy Services");
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START2, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('address'));
+        imagecopy($im, $dot, $ra[2]+100, self::ROW2_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+205, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value("city").", ON");
+        imagecopy($im, $dot, $ra[2]+100, self::ROW2_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+205, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('postal_code'));
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START3, self::ROW3, $color, realpath(self::FONTFILE), $kfr->Value("phone_number"));
+        imagecopy($im, $dot, $ra[2]+35, self::ROW3_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+100, self::ROW3, $color, realpath(self::FONTFILE), $kfr->Value('email'));
+        imagecopy($im, $dot, $ra[2]+35, self::ROW3_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        imagettftext($im, self::FONT, 0, $ra[2]+100, self::ROW3, $color, realpath(self::FONTFILE), "www.catherapyservices.ca");
+        imagedestroy($dot);
+        
+        return $im;
+        
+    }
+    
+    public function processCMDs(string $cmd,int $clinic_id = 0){
+        if(substr($_SERVER['PHP_SELF'],strrpos($_SERVER['PHP_SELF'], '/')+1) != 'jx.php'){
+            die("Calling of ImageGenerator->processCMDs() through the the main CATS Software is forbidden");
+        }
+        if($clinic_id <= 0 || $clinic_id > intval($this->oApp->kfdb->Query1("SELECT MAX(`_key`) FROM `clinics`"))){
+           $clinic_id = (new Clinics($this->oApp))->GetCurrentClinic(); 
+        }
+        switch(strtolower($cmd)){
+            case 'view':
+                $im = $this->generateFooter($clinic_id);
+                ob_start();
+                imagejpeg($im);
+                $data = ob_get_clean();
+                imagedestroy($im);
+                return "<img style='width:100%' src='data:image/jpeg;base64," . base64_encode( $data )."'>";
+            case 'download':
+                $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
+                $kfr = $ClinicsDB->GetClinic( $clinic_id );
+                header("Content-Transfer-Encoding: binary");
+                header('Content-Description: File Transfer');
+                header('Content-Type: image/jpeg');
+                header('Content-Disposition: attachment; filename="' . $kfr->Value('clinic_name').' footer.jpg"');
+                $im = $this->generateFooter($clinic_id);
+                imagejpeg($im);
+                imagedestroy($im);
+                exit;
+            case 'save':
+                $filepath = CATSDIR_FILES."clinic Images/".$clinic_id."/";
+                $filename = "Footer";
+                $continue = true;
+                $saved = true;
+                if(file_exists($filepath)){
+                    foreach (scandir($filepath) as $file){
+                        if(substr($file, 0,strlen($filename)) == $filename){
+                            $filename = $file;
+                        }
+                    }
+                }
+                if(strpos($filename, ".") !== false && file_exists($filepath.$filename)){
+                    $continue = rename($filepath.$filename, $filepath.str_replace(".", " old.", $filename));
+                }
+                if($continue){
+                    $im = $this->generateFooter($clinic_id);
+                    $saved = imagejpeg($im,$filepath.'Footer.jpg');
+                    imagedestroy($im);
+                }
+                if($continue && $saved){
+                    $s = "<div class='alert alert-success'><strong>Success!</strong> Footer Saved to clinic</div>";
+                }
+                else if($continue){
+                    $s = "<div class='alert alert-danger'><strong>Error!</strong> An Error Occured while saving the footer. A backup of the previous footer was saved. <strong>The footer Was NOT Saved</strong></div>";
+                }
+                else{
+                    $s = "<div class='alert alert-danger'><strong>Error!</strong> An Error Occured while backing up the previous footer. <strong>The footer Was NOT Saved</strong></div>";
+                }
+                return $s;
+            default:
+                return '';
+        }
+    }
+    
+    public function footerOptions(){
+        return <<<FooterOptions
+<script>
+    function sendCMD(act){
+        $.ajax({
+            type: "POST",
+            data: {cmd:'system-footergenerator',action:act},
+            url: 'jx.php',
+            success: function(data, textStatus, jqXHR) {
+                var jsData = JSON.parse(data);
+                if(jsData.bOk){
+                    document.getElementById('system_body').innerHTML = jsData.sOut;
+                    $('#system_dialog').modal('handleUpdate');
+                    $('#system_dialog').modal('show');
+                }
+                else{
+                    console.log(jsData.sErr);
+                }
+            },
+            error: function(jqXHR, status, error) {
+                console.log(status + ": " + error);
+            }
+        });
+    }
+</script>
+<div class="modal fade" id="system_dialog" role="dialog">
+    <div class="modal-dialog modal-lg" style='max-width:100%'>
+        <div class="modal-content" style='max-width:100%'>
+            <div class="modal-body" id="system_body" style='max-width:100%'>
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+    <button onclick='sendCMD("view")'>View</button>
+    <button onclick='window.open("jx.php?cmd=system-footergenerator&action=download")'>Download</button>
+    <button onclick='sendCMD("save")'>Save</button>
+</div>
+FooterOptions;
     }
     
 }

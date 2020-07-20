@@ -21,7 +21,6 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
             /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
             function ($match) {
                 $fix = strip_tags($match[0]);
-                
                 $isAssessment = False;
                 foreach (getAssessmentTypes() as $assmt){
                     $assmt = '${'.$assmt;
@@ -29,15 +28,22 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                         $isAssessment = True;
                     }
                 }
-                
+
                 if( substr($fix,0,6) == '${date' ||
                     substr($fix,0,8) == '${client' ||
                     substr($fix,0,7) == '${staff' ||
                     substr($fix,0,8) == '${clinic' ||
                     substr($fix,0,9) == '${section' ||
+                    substr($fix,0,6) == '${data' ||
+                    substr($fix,0,4) == '${if' ||
+                    substr($fix,0,7) == '${endif' ||
                     $isAssessment)
                 {
-                    return( $fix );
+                    // Close the existing <w:t> and open one which preserves spaces
+                    // This is neccessary since strip_tags can remove the preserve spaces property of the enclosing <w:t>
+                    // Thus causing spaces in the same <w:t> as the tag to be lost/not preserved
+                    // If there are no spaces to be preserved it has no effect on word or the document
+                    return( $fix.'</w:t><w:t xml:space="preserve">' );
                 } else {
                     return( $match[0] );
                 }
@@ -47,7 +53,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
 
         return $fixedDocumentPart;
     }
-    
+
     public function insertSection($tag, $section){
         $regex1 = '/<(w:[^ >]+)[^>\/]*?>(?=.*?<\/\1>)/';
         $regex2 = '/<(w:[^ >]+)[^>\/]*?>/';
@@ -64,10 +70,10 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                 preg_match('/w:[^ >]+/', $ra[$i], $match);
                 $section = "</".$match[0].">".$section.$ra[$i];
             }
-            $this->setValue($tag, $section);
+            $this->setValue($tag, $section,1);
         }
     }
-    
+
     private function arrayExclude($array1, $array2) {
         $output = array();
         foreach($array1 as $match) {
@@ -88,11 +94,11 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         }
         return $output;
     }
-    
+
     /**
      * Get the xml between the body tags. for injection into another document.
      * Use in conjunction with insertSection($tag,$section) for proper injection into document.
-     * 
+     *
      * @return String containing the xml which lies between the body tags of the document
      */
     public function getSection(){
@@ -102,14 +108,14 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         }
         return "";
     }
-    
+
 }
 
 class template_filler {
 
     //Variable to cache constants
     private static $constants = NULL;
-    
+
     private $oApp;
     private $oPeopleDB;
     private $tnrs;
@@ -121,18 +127,43 @@ class template_filler {
     private $kClient = 0;
     private $kStaff = 0;
 
-    /** Array of people ids for use with data tags
-     * @var array
+    /**
+     * Array of people ids for use with data tags
      */
     private $data = array();
-    
+
     /**
      * Assessments to include in files downloaded through this template filler
      * Since this is defined in the constructor any sections included will also have access to this.
      * This means we can have sections which report on assessments and they will filled with the correct information
      */
     private $assessments;
-    
+
+    /**
+     * Boolean controling whether tags are "skiped".
+     * Used with if and endif tags.
+     * "skiped" tags are replaced with "".
+     * if and endif tags are always replaced with "".
+     * Only toggled if evalDepth == processingDepth.
+     */
+    private $skipTags = FALSE;
+    /**
+     * Depth at which processing is occuring at.
+     * This is used when processing endif tags.
+     * if tags which evaluate to true increase this when not skiping tags.
+     * endif tags decrease this when evalDepth == processingDepth.
+     * 0 is the global scope, ie outside all if blocks.
+     */
+    private $processingDepth = 0;
+    /**
+     * Depth at which evaluation is occuring at.
+     * This is used when processing if/endif tags.
+     * if tags which evaluate to true increase this.
+     * endif tags decrease this.
+     * 0 is the global scope, ie outside all if blocks.
+     */
+    private $evalDepth = 0;
+
     // Constants for dealing with different types of resources
     /**
      * Default resource type
@@ -150,7 +181,7 @@ class template_filler {
      * It will be sent with the other files in a zip
      */
     public const RESOURCE_GROUP = 3;
-    
+
     public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array(), array $data = array() )
     {
         $this->oApp = $oApp;
@@ -159,49 +190,66 @@ class template_filler {
         $this->oPeople = new People( $oApp );
         $this->oPeopleDB = new PeopleDB( $oApp );
         $this->tnrs = new TagNameResolutionService($oApp->kfdb);
-        
+
         if(self::$constants == NULL){
             $refl = new ReflectionClass(template_filler::class);
             self::$constants = $refl->getConstants();
         }
-        
+
     }
 
     private function isResourceTypeValid($resourceType):bool{
         return in_array($resourceType, self::$constants);
     }
-    
+
     /** Replace tags in a resource with their corresponding data values
      * @param String $resourcename - Path of resource to replace tags in
+     * @param array  $raParms - parameters that can override default values
      * @param $resourceType - type of resource that is being filled, must be one of the class constants and effects the file handling
      */
-    public function fill_resource($resourcename, $resourceType = self::STANDALONE_RESOURCE)
+    public function fill_resource($resourcename, array $raParms = [], $resourceType = self::STANDALONE_RESOURCE)
     {
-        
+
         if(!$this->isResourceTypeValid($resourceType)){
             return;
         }
-        
-        ensureDirectory("*",TRUE);
-        
-        $this->kClient = SEEDInput_Int('client');
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
+
+        /* Values are generally obtained from _REQUEST and _SESSION because this method is frequently called indirectly
+         * via ajax. Optional parameters can override those.
+         */
+        $this->kClient = isset($raParms['client']) ? $raParms['client'] : SEEDInput_Int('client');  // use isset to test because the value can be 0 (which means no client)
+        // add other raParms here e.g. clinic, kStaff
+
+
+        FilingCabinet::EnsureDirectory("*",TRUE);
+
+        $this->kfrClient = $this->oPeopleDB->getKFR(ClientList::CLIENT, $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
         $this->kStaff = $this->oApp->sess->GetUID();
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
+        $manageUsers = new ManageUsers($this->oApp);
+        $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
-        foreach($templateProcessor->getVariables() as $tag){
+        $tags = $templateProcessor->getVariables();
+        while(count($tags) > 0){
+            $tag = $tags[0];
+            $isConditional = $this->processConditionalTags($tag);
+            if($isConditional || $this->skipTags){
+                $templateProcessor->setValue($tag, $this->encode(""),1);
+                goto next;
+            }
             $v = $this->expandTag($tag);
             $v = $this->tnrs->resolveTag($tag, ($v?:""));
             if(substr($tag,0,7) == 'section'){
                 $templateProcessor->insertSection($tag, $v);
             }else{
-                $templateProcessor->setValue($tag, $this->encode($v));
+                $templateProcessor->setValue($tag, $this->encode($v),1);
             }
+            next:
+            $tags = $templateProcessor->getVariables();
         }
 
         switch($resourceType){
@@ -273,9 +321,10 @@ class template_filler {
             $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
         }
         foreach ($array as $img){
-            if(in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
+            if(is_string($img) && in_array(sha1($za->getFromName("word/media/".$img)),$hashes)){
                 $clinics = new Clinics($this->oApp);
                 $str = $placeholders[array_search(sha1($za->getFromName("word/media/".$img)), $hashes)];
+                $rawData = FALSE;
                 switch(substr($str,0,strrpos($str, "_"))){
                     case "Footer":
                         $imagePath = $clinics->getImage(Clinics::FOOTER);
@@ -286,12 +335,21 @@ class template_filler {
                     case "Wide_logo":
                         $imagePath = $clinics->getImage(Clinics::LOGO_WIDE);
                         break;
+                    case "Signature":
+                        $imagePath = FALSE;
+                        if($kfrStaff){
+                            $rawData = $this->kfrStaff->Value("signature");
+                        }
+                        break;
                 }
-                if($imagePath === FALSE){
+                if($imagePath === FALSE && $rawData == FALSE){
                     $im = imagecreatefromstring($za->getFromName("word/media/".$img));
                     $data = imagecreate(imagesx($im), imagesy($im));
                     imagefill($data, 0, 0, imagecolorallocate($data, 255, 255, 255));
                     imagedestroy($im);
+                }
+                else if($imagePath === FALSE){
+                    $data = imagecreatefromstring($rawData);
                 }
                 switch(strtolower(pathinfo($img,PATHINFO_EXTENSION))){
                     case "png":
@@ -308,13 +366,95 @@ class template_filler {
         cleanup:
         $za->close();
     }
-    
+
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
-    
+
+    private function processConditionalTags($tag){
+        $raTag = explode( ':', $tag, 2 );
+        if(strtolower($raTag[0]) == "if" || strtolower($raTag[0]) == "endif"){
+            if(strtolower($raTag[0]) == "endif"){
+                $this->evalDepth--;
+                if($this->processingDepth == $this->evalDepth || $this->processingDepth == $this->evalDepth+1){
+                    if($this->processingDepth > 0){
+                        $this->processingDepth--;
+                    }
+                    $this->skipTags = FALSE;
+                }
+            }
+            else{
+                $this->evalDepth++;
+                if(!$this->skipTags){
+                    // Case Sensative Check
+                    if(strpos($raTag[1], "===") !== False){
+                        $raTag = explode( '===', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = $raTag[0] != $raTag[1];
+                    }
+                    // Negative Case Sensative Check
+                    else if(strpos($raTag[1], "!==") !== False){
+                        $raTag = explode( '!==', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = $raTag[0] == $raTag[1];
+                    }
+                    // Case InSensative Check
+                    else if(strpos($raTag[1], "==") !== False){
+                        $raTag = explode( '==', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = strtolower($raTag[0]) != strtolower($raTag[1]);
+                    }
+                    // Negative Case InSensative Check
+                    else if(strpos($raTag[1], "!=") !== False){
+                        $raTag = explode( '!=', $raTag[1], 2 );
+                        switch($raTag[0]){
+                            case 'mode':
+                                $raTag[0] = $this->kClient?"replace":"blank";
+                                break;
+                            default:
+                                $raTag[0] = $this->expandTag($raTag[0]);
+                        }
+                        $this->skipTags = strtolower($raTag[0]) == strtolower($raTag[1]);
+                    }
+                    // Negative Empty Check, (PHP evaluates to false)
+                    else if(substr($raTag[1], 0,1) == "!"){
+                        $this->skipTags = ($this->expandTag(substr($raTag[1],1))?True:False);
+                    }
+                    // Empty Check, (PHP doesn't evaluates to false)
+                    else{
+                        $this->skipTags = ($this->expandTag($raTag[1])?False:True);
+                    }
+                    if(!$this->skipTags){
+                        $this->processingDepth++;
+                    }
+                }
+            }
+            return TRUE;
+        }
+        return FALSE;
+    }
+
     private function expandTag($tag)
     {
+        $tag = trim($tag);
         $raTag = explode( ':', $tag, 2 );
         switch( count($raTag) ) {
             case 2:  // [0] is a table, [1] is a col
@@ -390,11 +530,16 @@ class template_filler {
         if($table == 'section'){
             if(strpos($col[1], "/") == 0){
                 if (file_exists(CATSDIR_RESOURCES.substr($col[1], 1)) && pathinfo(CATSDIR_RESOURCES.substr($col[1], 1),PATHINFO_EXTENSION) == "docx"){
-                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1),self::RESOURCE_SECTION);
+// $parms['client'] is necessary because if it is not specified fill_resource() will get it from _REQUEST but it could have been
+// overridden by the original caller. Given that fill_resource is recursive there should be a cleaner way to pass original arguments to it.
+// i.e. always explicitly pass the client id to fill_resource() unless it is a recursing call like this.
+                    $parms = ['client'=>$this->kClient];
+                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1), $parms, self::RESOURCE_SECTION);
                 }
             }
-            else if(file_exists($GLOBALS['directories']['sections']['directory'].$col[1])){
-                $s = $this->fill_resource($GLOBALS['directories']['sections']['directory'].$col[1],self::RESOURCE_SECTION);
+            else if(file_exists(FilingCabinet::GetDirInfo('sections')['directory'].$col[1])){
+                $parms = ['client'=>$this->kClient];
+                $s = $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$col[1], $parms, self::RESOURCE_SECTION);
             }
         }
         if(in_array($table, getAssessmentTypes())){
@@ -410,7 +555,7 @@ class template_filler {
             }
         }
         if(preg_match("/data\d+/", $table)){
-            $id = $this->data[int(str_replace("data", "", $table))-1];
+            $id = @$this->data[(intval(str_replace("data", "", $table))-1)]?:"C0";
             if(substr($id, -1) === "p"){
                 $id = substr($id, 0,-1);
                 if(ClientList::parseID($id)[0] == ClientList::CLIENT && $col[0] == "name"){
@@ -474,7 +619,7 @@ class template_filler {
                     break;
             }
         }
-        
+
         done:
         return( $s );
     }
@@ -485,7 +630,9 @@ class template_filler {
 
         switch(strtolower($tag)){
             case 'date':
-                $s = date("M d, Y");
+                if($this->kClient){
+                    $s = date("M d, Y");
+                }
                 break;
         }
         return( $s );

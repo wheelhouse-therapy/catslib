@@ -12,7 +12,7 @@ class AssessmentData_AASP extends AssessmentData
         "tactile" => array(27,28,29,30,31,32,33,34,35,36,37,38,39),
         "auditory" => array(50,51,52,53,54,55,56,57,58,59,60)
     );
-    
+
     private $items = array(
         "I leave or move to another section when I smell a strong odor in a store (for example, bath products, perfumes)",
         "I add spice to my food",
@@ -75,35 +75,35 @@ class AssessmentData_AASP extends AssessmentData
 	    "I have to ask people to repeat things.",
 	    "I find it difficult to work with background noise (eg. fan, radio)."
     );
-    
+
     function __construct( Assessments $oA, AssessmentsCommon $oAsmt, int $kAsmt )
     {
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
-    
-    function MapRaw2Score( string $item, string $raw ) : int
+
+    public function MapRaw2Score( string $item, string $raw ) : int
     /*************************************************
      Map raw -> score for basic items
      */
     {
         $score = 0;
-        
+
         if( in_array($raw, ['1','2','3','4','5']) && is_numeric($item) ) {
             $score = intval($raw);
         }
-        
+
         return( $score );
     }
-    
+
     public function ComputeScore( string $item ) : int
     {
-        
+
         $score = 0;
-        
+
         // Basic scores were computed and scored by the constructor.
         // Aggregate scores are computed below and cached here.
         if( isset($this->raScores[$item]) ) { $score = $this->raScores[$item]; goto done; }
-        
+
         // Look up aggregate / computed score
         switch( $item ) {
             case "Q1_total":
@@ -116,17 +116,17 @@ class AssessmentData_AASP extends AssessmentData
                 $score = array_sum(array_intersect_key($this->raScores, array_flip(array_filter(array_keys($this->raScores), 'is_numeric'))));
                 break;
         }
-        
+
         $this->raScores[$item] = $score;    // cache for next lookup
-        
+
         done:
         return( $score );
     }
-    
+
     /**
      * Get the items that match the specified score
      * @param string $section - section to fetch items back
-     * @param int $score - the score to match against. item must match score to be inclueded in return
+     * @param int $score - the score to match against. item must match score to be included in return
      * @param int ...$scores - aditional score to match against.
      * @return string[][]|number[][] - array of items that match the scores
      */
@@ -141,7 +141,7 @@ class AssessmentData_AASP extends AssessmentData
         }
         return $raResults;
     }
-    
+
 }
 
 class AssessmentUI_AASP extends AssessmentUIColumns
@@ -150,7 +150,7 @@ class AssessmentUI_AASP extends AssessmentUIColumns
     {
         parent::__construct( $oData, $this->initColumnsDef() );
     }
-    
+
     private function initColumnsDef()
     {
         $def = array(
@@ -163,7 +163,7 @@ class AssessmentUI_AASP extends AssessmentUIColumns
         );
         return( $def );
     }
-    
+
     function DrawScoreResults() : string
     {
         $s = "<table id='results'>
@@ -198,17 +198,7 @@ colorTable('results');
         $s = preg_replace_callback("/{{(.*?)}}/", function ($match){
             return $this->oData->ComputeScore($match[1]);
         }, $s);
+        $s .= $this->DrawColFormTable( $this->oData->GetForm(), false );
         return( $s );
     }
-    
-    public function GetColumnDef() { return( $this->raColumnDef ); }
-    
-    protected $raColumnDef = array(
-        'taste'      => [ 'label'=>"Taste /<br/>Smell Processing", 'colRange'=>"1-8"  ],
-        'movement'   => [ 'label'=>"Movement Processing",          'colRange'=>"9-16" ],
-        'visual'     => [ 'label'=>"Visual Processing",            'colRange'=>"17-26" ],
-        'touch'      => [ 'label'=>"Touch Processing",             'colRange'=>"27-39" ],
-        'activity'   => [ 'label'=>"Activity Level",               'colRange'=>"40-49" ],
-        'auditory'   => [ 'label'=>"Auditory Processing",          'colRange'=>"50-60" ],
-    );
 }

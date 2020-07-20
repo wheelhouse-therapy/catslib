@@ -4,6 +4,10 @@ require_once SEEDROOT."Keyframe/KeyframeRelation.php";
 
 define( "DBNAME", $config_KFDB['cats']['kfdbDatabase'] );
 
+//TODO Deprecate old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class ClientsDB
 {
     private $kfrel;
@@ -28,6 +32,10 @@ class ClientsDB
 
 }
 
+//TODO depricate old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class ProsDB
 {
     private $kfrel;
@@ -51,6 +59,10 @@ class ProsDB
     }
 }
 
+//TODO Depricate Old system
+/**
+ * @deprecated Use PeopleDB instead
+ */
 class Clients_ProsDB
 /*******************
     The connections between clients and professionals
@@ -197,7 +209,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 4;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 9;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -236,6 +248,39 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->SetDebug(2);
         $kfdb->Execute( "ALTER TABLE assessments_scores ADD date VARCHAR(200) NOT NULL DEFAULT ''" );
         $kfdb->Execute( "ALTER TABLE assessments_scores ADD respondent VARCHAR(200) NOT NULL DEFAULT ''" );
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 5){
+        // Add signature to staff table
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE pros_internal ADD signature longblob NOT NULL");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 6){
+        // Add code to clients table
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE clients2 ADD code VARCHAR(20) NOT NULL DEFAULT ''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 7){
+        //Add system perms
+        $kfdb->SetDebug(2);
+        $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
+            ."VALUES (NULL, NOW(), NOW(), 'system', 'RW', NULL, 4)");
+        $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
+            ."VALUES (NULL, NOW(), NOW(), 'system', 'A', NULL, 1)");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 8){
+        // Add subfolder column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE resources_files ADD subfolder VARCHAR(200) NOT NULL DEFAULT ''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 9){
+        // Add preview column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE resources_files ADD preview longblob NOT NULL");
         $kfdb->SetDebug(0);
     }
 
@@ -303,8 +348,8 @@ function createTables( KeyframeDatabase $kfdb )
             fax_number VARCHAR(200) NOT NULL DEFAULT '',
             rate INTEGER NOT NULL DEFAULT 110,
             associated_business VARCHAR(200) NOT NULL DEFAULT '',
-            fk_leader INTEGER NOT NULL DEFAULT 1
-            akaunting_company INTEGER NOT NULL DEFAULT 0 " );
+            fk_leader INTEGER NOT NULL DEFAULT 1,
+            akaunting_company INTEGER NOT NULL DEFAULT 0)" );
 
         $kfdb->Execute( "INSERT INTO ".DBNAME.".clinics (_key,clinic_name,rate,associated_business) values (null,'Core',110,'CATS')" );
         $kfdb->SetDebug(0);
@@ -431,9 +476,9 @@ function createTables( KeyframeDatabase $kfdb )
                                            ."VALUES (NULL, NOW(), NOW(), '{$ra[0]}', '{$ra[1]}')");
         }
                           //  perm              modes   uid     gid
-        foreach( array( array('SEEDSessionUGP', 'RWA',       1,  'NULL'),
-                        array('SEEDPerms',      'RWA',       1,  'NULL'),
-                        array('DocRepMgr',      'A',         1,  'NULL'),
+        foreach( array( array('SEEDSessionUGP', 'RWA',  'NULL',       1),
+                        array('SEEDPerms',      'RWA',  'NULL',       1),
+                        array('DocRepMgr',      'A',    'NULL',       1),
                         array('DocRepMgr',      'W',    'NULL',       2),
                         array('DocRepMgr',      'R',    'NULL',       3),
                         array('admin',          'RWA',  'NULL',       1),
@@ -441,10 +486,12 @@ function createTables( KeyframeDatabase $kfdb )
                         array('leader',         'RWA',  'NULL',       3),
                         array('therapist',      'RWA',  'NULL',       4),
                         array('client',         'RWA',  'NULL',       5),
-                        array('administrator',  'RWA',       1,  'NULL'),
+                        array('administrator',  'RWA',  'NULL',       1),
                         array('catsappt',       'RW',   'NULL',       4),
                         array('Calendar',       'RW',   'NULL',       5),
                         array('Calendar',       'A',    'NULL',       4),
+                        array('system',         'RW',   'NULL',       4),
+                        array('system',         'A',    'NULL',       1),
                       ) as $ra )
         {
             $bRet = $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
@@ -488,7 +535,7 @@ class CATSBaseDB extends Keyframe_NamedRelations
         $this->t[ClientList::INTERNAL_PRO] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
         $this->t[ClientList::EXTERNAL_PRO] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
         $this->t['CX']                     = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
-
+        
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
 

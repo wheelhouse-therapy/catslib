@@ -430,14 +430,16 @@ class Assessment_MABC extends Assessments
 
 // eliminate raColumnRanges
         $this->raColumnRanges = $cr;
-// deprecate this->raColumnDef and just use the one in oUI
-        $this->raColumnDef = $colDef;
 // SetAgeBand could just do everything that's in this method
         $this->oUI->SetColumnsDef( $colDef );
         $this->oData->SetAgeBand( $age, $ageBand );
     }
 
     function DrawAsmtResult()
+    /************************
+        Overrides the common DrawAsmtResult because it is necessary to
+        set the column ranges first, based on client's age, before calling the draw method
+     */
     {
         $s = "";
 //$this->oData->DebugDumpKfr();
@@ -448,7 +450,7 @@ class Assessment_MABC extends Assessments
         }
         $this->setColumnRangesByAge( $age );
 
-        $s .= $this->drawResult();
+        $s .= parent::DrawAsmtResult();
 
         done:
         return( $s );
@@ -483,7 +485,7 @@ class Assessment_MABC extends Assessments
             case "total_percentile":
                 $item = strtok($tag, "_");
                 return $this->oData->ComputePercentile($item."_pct");
-   
+
             case "zone":
                 return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2];
         }
@@ -491,13 +493,13 @@ class Assessment_MABC extends Assessments
 
     function GetProblemItems( string $section ) : string
     {}
-    function GetPercentile( string $section ) : string
+    function GetPercentile( string $section ) : float
     {}
 
     public function checkEligibility(int $kClient, $date = ""):bool{
         return $this->getClientAge($kClient, $date) >= 3 && $this->getClientAge($kClient, $date) < 17;
     }
-    
+
     protected $raColumnRanges = array();    // point this to one of the below
     // 3-6 years
     private $raColumnRanges_ageBand1 = array(
@@ -518,8 +520,8 @@ class Assessment_MABC extends Assessments
         "Bal" => ['1'=>'bal1',  '2'=>'bal2',  '3a'=>'bal3a', '3b'=>'bal3b'],
     );
 
-
-    protected $raColumnDef = array();   // point this to one of the below
+    /* One of these is put in SetColumnsDef()
+     */
     // 3-6 years
     private $raColumnDef_ageBand1 = array(
         'md'  => ['label'=>"MD",  'cols' => ['1a'=>'md1a',  '1b'=>'md1b', '2'=>'md2',   '3'=>'md3'] ],
@@ -553,6 +555,10 @@ class Assessment_MABC_Scores
         if( $age >= 4.5 && $age < 5.0 )     return( self::$scores['age4:6-4:11'] );
 
         $age = intval( $age );
+
+        if($age > 16){
+            $age = 16;
+        }
 
         return( @self::$scores["age{$age}:0-{$age}:11"] );
     }
@@ -909,9 +915,9 @@ static private $raTestTotals = array(
     ['total'=>"78-81",   'std'=>10, 'pct'=>50,   'zone'=>"green" ],
     ['total'=>"73-77",   'std'=>9,  'pct'=>37,   'zone'=>"green" ],
     ['total'=>"68-72",   'std'=>8,  'pct'=>25,   'zone'=>"green" ],
-    ['total'=>"63-67",   'std'=>7,  'pct'=>16,   'zone'=>"green" ],
+    ['total'=>"63-67",   'std'=>7,  'pct'=>16,   'zone'=>"yellow" ],
     ['total'=>"57-62",   'std'=>6,  'pct'=>9,    'zone'=>"yellow" ],
-    ['total'=>"50-56",   'std'=>5,  'pct'=>5,    'zone'=>"yellow" ],
+    ['total'=>"50-56",   'std'=>5,  'pct'=>5,    'zone'=>"red" ],
     ['total'=>"44-49",   'std'=>4,  'pct'=>2,    'zone'=>"red" ],
     ['total'=>"38-43",   'std'=>3,  'pct'=>1,    'zone'=>"red" ],
     ['total'=>"30-37",   'std'=>2,  'pct'=>0.5,  'zone'=>"red" ],
