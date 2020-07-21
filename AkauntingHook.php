@@ -9,6 +9,7 @@ require_once('email_processor.php');
  * Hook to submit journal entries to akaunting
  * @author Eric
  * @version 1.1
+ * @deprecated
  */
 class AkauntingHook {
 
@@ -27,6 +28,9 @@ class AkauntingHook {
 
     private static function dbg( $s )  { if( self::$bDebug && stripos($_SERVER['PHP_SELF'],"jx.php") == false )  echo str_replace("\n", "<br />", "$s<br/>"); }
 
+    /**
+     * @deprecated
+     */
     public static function login(String $email, String $password, String $server){
         global $email_processor;
 
@@ -46,6 +50,9 @@ class AkauntingHook {
         self::dbg("connected");
     }
 
+    /**
+     * @deprecated
+     */
     public static function logout(){
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
@@ -56,6 +63,9 @@ class AkauntingHook {
         self::$company = 0;
     }
 
+    /**
+     * @deprecated
+     */
     public static function submitJournalEntries(array $entries):array{
         if (self::$session == NULL){
             throw new Exception("Not Logged in");
@@ -73,6 +83,9 @@ class AkauntingHook {
         return array_merge($responces,array('failed' => $failedEntries));
     }
 
+    /**
+     * @deprecated
+     */
     public static function submitJournalEntry(AccountingEntry $entry):array{
         //Ensure we have connected to Akaunting before we attempt to submit entries
         if (self::$session == NULL){
@@ -178,6 +191,7 @@ class AkauntingHook {
      * @param bool $loadCach - wether or not the results of the fetch should be stored in self::$accounts
      * @throws Exception if no akaunting accounts are found. Or is we are not logged in to akaunting
      * @return array containing the results of the fetch. This is identical to self::$accounts if $loadCach is true
+     * @deprecated
      */
     public static function fetchAccounts(int $company = 0,bool $fetchOnly = false ,bool $loadCach = true){
         //Ensure we have connected to Akaunting before we attempt to fetch accounts
@@ -207,6 +221,9 @@ class AkauntingHook {
         }
     }
 
+    /**
+     * @deprecated
+     */
     private static function loadAccounts(String $data):array{
         preg_match_all('/label="(.*?)">(.*?)<\/optgroup>/',$data,$matches,PREG_SET_ORDER);
         if(!$matches){
@@ -223,6 +240,9 @@ class AkauntingHook {
         return $accounts;
     }
 
+    /**
+     * @deprecated
+     */
     private static function getAccountByName($name, $override = FALSE){
         $possible = array();
         if(!$override && list($value,$possible) = self::getAccountByKeyWord($name)){
@@ -232,6 +252,9 @@ class AkauntingHook {
         return array(NULL,$possible);
     }
 
+    /**
+     * @deprecated
+     */
     private static function getAccountByKeyWord($string){
         /**
          * The key is the account name as written in akaunting
@@ -271,6 +294,9 @@ class AkauntingHook {
 
     }
 
+    /**
+     * @deprecated
+     */
     private static function getAccountByCode($code){
         foreach(self::$accounts as $k => $account){
             if($account['code'] == $code){
@@ -280,6 +306,9 @@ class AkauntingHook {
         return array(NULL,array());
     }
 
+    /**
+     * @deprecated
+     */
     private static function switchCompany(int $company,bool $recoverable = FALSE){
         if(self::$company == $company){
             //The company hasn't changed so dont bother sending the switch request
@@ -292,10 +321,16 @@ class AkauntingHook {
         self::$session->get($email_processor['akauntingBaseUrl']."/common/companies/".$company."/set");
     }
 
+    /**
+     * @deprecated
+     */
     private static function restoreCompany(){
         self::switchCompany(self::$company);
     }
 
+    /**
+     * @deprecated
+     */
     public static function decodeErrors(array $errors):String{
         $s = "";
         foreach ($errors as $location=>$error){
@@ -304,6 +339,9 @@ class AkauntingHook {
         return $s;
     }
 
+    /**
+     * @deprecated
+     */
     public static function decodeError(String $location,array $details):String{
         $s = "[Result] Submission of Entry ".($location == "subject"?"in ":"on ").str_replace("_", " ", $location)." resulted in ";
         $error = $details[0];
@@ -344,6 +382,23 @@ class AkauntingHook {
         return $s."\n";
     }
 
+}
+
+
+/**
+ * The NEW Class to interface with the accounting software.
+ * @author Eric
+ * @version 1
+ */
+class AccountingHook {
+    
+    private static $dataService = NULL;
+    private static $OAuth2LoginHelper = NULL;
+    
+    public static function Login(SEEDAppConsole $oApp){
+        
+    }
+    
 }
 
 /**
