@@ -487,6 +487,12 @@ ExistsWarning;
         if(SEEDInput_Str("action") == "Save and Close"){
             $id = "";
         }
+        else if(SEEDInput_Str("action") == "Save and Print Consent forms"){
+            $id = "";
+            header("Location: ".CATSDIR."?screen=therapist-filing-cabinet&dir=clinic");
+            header("HTTP/1.0 205 Reset Content");
+            exit;
+        }
         
         return array("message"=>$s,"id"=>$id, "list"=>$list[0],"listId" => $list[1]);
     }
@@ -650,7 +656,8 @@ ExistsWarning;
              if($oForm->Value("_status")==0){
              $this->sForm .= "<tr class='row'>"
                 ."<td class='col-md-12'><input id='save-button' type='submit' value='Save' />"
-                ."<input id='save-close-button' type='submit' value='Save and Close' /></td>"
+                ."<input id='save-close-button' type='submit' value='Save and Close' />"
+                ."<input id='save-print-button' type='submit' value='Save and Print Consent forms' /></td>"
              ."</tr>"
              ."</table>"
              ."</form>";
