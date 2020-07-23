@@ -53,7 +53,7 @@ class Clinics {
                 $k = $clinic['Clinics__key']; // The user is the leader of this clinic
             }
             else if(count($clinicsra) == 1){
-                return $clinic['Clinics__key']; // The user only has one clinic
+                $k = $clinic['Clinics__key']; // The user only has one clinic
             }
         }
         return $k;
