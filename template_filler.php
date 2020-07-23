@@ -18,9 +18,9 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         $fixedDocumentPart = $documentPart;
 
         $fixedDocumentPart = preg_replace_callback(
-            /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
+            /*'|\$[^{]*\{[^}]*\}|U''|\$(?><.*?>)*\{.*?\}|'*/'|(?<start><(w:[^ >]+)[^>\/]*?>[^<>]*?)(?<match>\$(?><.*?>)*\{.*?\}).*?(?<end><\/(w:[^ >]+)>)|',
             function ($match) {
-                $fix = strip_tags($match[0]);
+                $fix = strip_tags($match['match']);
                 $isAssessment = False;
                 foreach (getAssessmentTypes() as $assmt){
                     $assmt = '${'.$assmt;
@@ -39,11 +39,20 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                     substr($fix,0,7) == '${endif' ||
                     $isAssessment)
                 {
+                    // Generate the close tag to fix space and other broken xml issue.
+                    $mid = "";
+                    if($match[2] != $match[5] || $match[2] == 'w:t'){
+                        $mid = "</".$match[2].">";
+                        if($match[5] == 'w:t'){
+                            $mid .= '<w:t xml:space="preserve">';
+                        }
+                    }
+                    
                     // Close the existing <w:t> and open one which preserves spaces
                     // This is neccessary since strip_tags can remove the preserve spaces property of the enclosing <w:t>
                     // Thus causing spaces in the same <w:t> as the tag to be lost/not preserved
                     // If there are no spaces to be preserved it has no effect on word or the document
-                    return( $fix.'</w:t><w:t xml:space="preserve">' );
+                    return( $match['start'].$fix.$mid.$match['end'] );
                 } else {
                     return( $match[0] );
                 }
