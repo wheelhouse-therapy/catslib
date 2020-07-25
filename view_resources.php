@@ -11,6 +11,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 {
     $s = "";
 
+    $s .= "<style>
+           .FilingCabinet_FilePreviewContainer { display:inline-block;margin-right:10px;border: solid 2px white;padding:5px;padding-bottom:0px;max-width:200px; }
+           </style>
+          ";
+
+
     if( !$dir_name ) {
         $s .= "Directory not specified";
         goto done;
@@ -288,8 +294,8 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         $sTemplate =
-            "<div class='file-preview-container'>
-                <a [[LINK]] >
+              "<div class='FilingCabinet_FilePreviewContainer'>
+                  <a style='' [[LINK]] >
                     <div>
                         <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
                     </div>
