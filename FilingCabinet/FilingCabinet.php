@@ -37,6 +37,11 @@ class FilingCabinetUI
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
+        foreach( ResourceRecord::GetRecordsWithoutPreview($this->oApp) as $oRR ) {
+            $oFCU = new FilingCabinetReview($this->oApp);   // probably want to move CreateThumbnail to FilingCabinet because it isn't necessarily related to review
+            $oFCU->CreateThumbnail( $oRR );
+        }
+
         if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
             // Show the "currently-open drawer" of the filing cabinet
             FilingCabinet::EnsureDirectory($dirbase);
@@ -881,7 +886,15 @@ class ResourceRecord {
      */
     public static function GetRecordsWithoutPreview(SEEDAppConsole $oApp){
         $query = "SELECT _key FROM resources_files WHERE preview = ''";
-        return self::getFromQuery($oApp, $query);
+        $raRec = self::getFromQuery($oApp, $query);
+
+        // always return an array to keep it simple
+        if( !$raRec ) {
+            $raRec = array();
+        } else if( !is_array($raRec) ) {
+            $raRec = [$raRec];
+        }
+        return( $raRec );
     }
 
 }

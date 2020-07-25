@@ -23,6 +23,10 @@ class FilingCabinetReview
         $ok = false;
 
         $srcfname = realpath($oRR->getPath());
+        $bPdf = strtolower(substr($srcfname,-4)) == '.pdf';
+        if( !$bPdf )  return;
+
+
         $tmpfname = tempnam("", "thumb_");
         //rename($tmpfname,$tmpfname.".jpg");
         //$tmpfname .= ".jpg";
