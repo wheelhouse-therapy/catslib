@@ -7,6 +7,9 @@
  * See FilingCabinet.php for information
  */
 
+require_once CATSLIB.'client_code_generator.php';
+require_once CATSLIB.'Clinics.php';
+
 class FilingCabinetDownload
 {
     private $oApp;
@@ -24,12 +27,6 @@ class FilingCabinetDownload
     {
         if( SEEDInput_Str('cmd') == 'download' ) {
 
-  // this makes "replace" download work; throw this away when it works by rrid
-  if( ($file = SEEDInput_Str('file')) /*&& ($dir = SEEDInput_Str('dir'))*/ ) {
-       $file = CATSDIR_RESOURCES./*$dir.'/'.*/$file;
-  } else
-
-
             if( !($rrid = SEEDInput_Int('rr')) ||
                 !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
                 !($file = $oRR->getPath()) )
@@ -40,7 +37,56 @@ class FilingCabinetDownload
 
             $resmode = SEEDInput_Str('resource-mode');
 
-            if( $resmode != "no_replace" ) {
+            if($resmode == "email"){
+                $kClient = SEEDInput_Int('client');
+                $oPeopleDB = new PeopleDB($this->oApp);
+                $manageUsers = new ManageUsers($this->oApp);
+                $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
+                $to = $kfr->Value('P_email');
+                $user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID());
+                $from = $user->Value('P_email');
+                $fromName = $user->Value('first_name')." ".$user->Value("last_name");
+                
+                // Message Content
+                $subject = "Resource from CATS";
+                $body = "Please find a therapy resource specifically for you attached, as we discussed in the session.\n\nSincerely\n[[therapist name]]";
+                
+                $body = str_replace("[[therapist name]]", $fromName, $body);
+                
+                // Brains behind message sending and Attachment
+                $headers = "From: $fromName <$from>"; // Sender info
+                $semi_rand = md5(time());
+                $mime_boundary = "==Multipart_Boundary_x{$semi_rand}x";
+                // Headers for attachment
+                $headers .= "\nMIME-Version: 1.0\nContent-Type: multipart/mixed;\n boundary=\"{$mime_boundary}\"";
+                $message = "--{$mime_boundary}\nContent-Type: text/plain; charset=\"UTF-8\"\n"
+                ."Content-Transfer-Encoding: 7bit\n\n".$body."\n\n";
+                if(!empty($file) > 0){
+                    if(is_file($file)){
+                        $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
+                        $filename = $filler->fill_resource($file, ['client'=>$kClient],template_filler::RESOURCE_GROUP);
+                        $code = (new ClientCodeGenerator($this->oApp))->getClientCode($kClient);
+                        $message .= "--{$mime_boundary}\n";
+                        $fp = @fopen($filename, "rb");
+                        $data = @fread($fp, filesize($filename));
+                        @fclose($fp);
+                        $data = chunk_split(base64_encode($data));
+                        $message .= "Content-Type: application/octet-stream; name=\"".$code.($code?"-":"").basename($file)."\"\n"
+                            ."Content-Description: ".$code.($code?"-":"").basename($file)."\n"
+                                ."Content-Disposition: attachment;\n filename=\"".$code.($code?"-":"").basename($file)."\"; size=".filesize($filename).";\n"
+                                    ."Content-Transfer-Encoding: base64\n\n".$data."\n\n";
+                    }
+                }
+                $message .= "--{$mime_boundary}--";
+                $returnpath = "-f".$from;
+                $mail = @mail($to, $subject, $message, $headers,$returnpath);
+                $_SESSION['mailResult'] = $mail;
+                $_SESSION['mailTarget'] = $to;
+                header("HTTP/1.1 303 SEE OTHER");
+                header("Location: ?dir=".SEEDInput_Str('dir'));
+                exit();
+            }
+            else if( $resmode != "no_replace" ) {
                 // mode blank is implemented by telling template_filler that client=0
                 $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
                 $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
@@ -67,8 +113,7 @@ class FilingCabinetDownload
         $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
-                //TODO UPDATE TO USE oRR instead of filename
-                return "href='javascript:void(0)' onclick=\"select_client('$dbFname')\"";
+                return "href='javascript:void(0)' onclick=\"select_client($rrid, '".addslashes($oRR->getFile())."')\"";
             case 'no_replace':
                 return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
             case 'blank':

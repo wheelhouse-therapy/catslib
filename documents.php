@@ -255,6 +255,7 @@ function DocumentManager( SEEDAppSessionAccount $oApp )
 
 function ManageResources( SEEDAppSessionAccount $oApp ) {
     $s = "<h2>Manage Resources</h2>";
+    $s .= "<div style='text-align:right'><a href='".CATSDIR."?screen=admin-resources'>Go To review resources -></a></div>";
 
     $script = <<<JavaScript
 <script>
@@ -443,7 +444,7 @@ class ResourceManager{
                     $oRR->setSubDirectory($subdir);
                     if(!$oRR->StoreRecord())
                     {
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $fromFileBase<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to update index for $fromFileBase<br /> Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
                 }
                 else{
@@ -467,7 +468,7 @@ class ResourceManager{
                     $oRR->setFile($newFileBase);
                     if( !$oRR->StoreRecord())
                     {
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to migrate tags for $oldFileBase<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to update index for $oldFileBase<br /> Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
                 }
                 else {
@@ -480,7 +481,7 @@ class ResourceManager{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$oRR->getFile()." has been deleted</div>";
                     $oRR->setStatus(1);
                     if(!$oRR->StoreRecord()){
-                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete tags for ".$oRR->getFile()."<br /> Contact system administrator to complete this operation</div>";
+                        $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete index for ".$oRR->getFile()."<br /> Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
                 }
                 else{
@@ -499,7 +500,7 @@ class ResourceManager{
                 }
                 exit;
         }
-        header("HTTP/1.1 301 Moved Permanently");
+        header("HTTP/1.1 303 SEE OTHER");
         header("Location: ?");
         exit();
     }

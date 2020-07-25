@@ -4,7 +4,7 @@ require_once 'template_filler.php';
 require_once 'share_resources.php';
 
 
-function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "snb" )
+function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
@@ -18,57 +18,25 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $download_modes = "
 
     $dir_short = trim($dir_name,'/');
 
-    $s .= <<<ResourcesTagStyle
-        <style>
-            #break {
-                display: flex;
-                justify-content: space-around;
-                align-items: flex-start;
-                min-height: 100px;
-                height: auto;
-            }
-            #ResourceMode {
-                box-sizing: border-box;
-                display: inline-flex;
-                flex-direction: column;
-                padding: 7px 10px;
-                border: 2px outset #ccc;
-                border-style: inset outset outset inset;
-                border-radius: 5px;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                background-color: #ccc;
-                flex-basis: 20%;
-                align-content: space-between;
-            }
-            #modeText {
-                display: flex;
-                height: 30px;
-                align-items: center;
-                padding: 5px;
-                margin-bottom: 5px;
-            }
-            #mode1 {
-                margin-bottom: 5px;
-            }
-            #mode2 {
-            }
-        </style>
-ResourcesTagStyle;
-
-    $s .= <<<ResourcesTagScript
-        <script>
-        </script>
-ResourcesTagScript;
+    $oFCD = new FilingCabinetDownload( $oApp );
 
 // TODO: the Filing Cabinet handles its own download cmd but this is still used by Reports (which should use DrawFilingCabinet('reports/') instead some day)
     if( SEEDInput_Str('cmd') == 'download' ) {
-        $oFCD = new FilingCabinetDownload( $oApp );
         $oFCD->DownloadFile();
         exit;
     }
 
-    $oFCD = new FilingCabinetDownload( $oApp );
+    if(isset($_SESSION['mailResult'])){
+        if($_SESSION['mailResult']){
+            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
+        }
+        else{
+            $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
+        }
+        unset($_SESSION['mailResult']);
+        unset($_SESSION['mailTarget']);
+        $s .= "<script>hideAlerts()</script>";
+    }
 
     // make sure dir_name is the full path
     if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
@@ -100,16 +68,18 @@ ResourcesTagScript;
                             <div class='row'><div class='col-sm-6'>
                                 <input type='hidden' name='cmd' value='download' />
                                 <input type='hidden' name='dir' id='dir' value='$dir_short' />
-                                <input type='hidden' name='file' id='file' value='' />
-                                <select name='client' id='fcd_clientSelector' required>
+                                <input type='hidden' name='rr' id='rr' value='' />
+                                <select name='client' id='fcd_clientSelector' required onchange='emailAvalible()'>
                                     <option selected value=''>Select a Client</option>"
                                 .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                                 ."</select>
+                                <br /><span id='filename'></span>
                             </div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked />Substitute client details into document</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'/>Save file with no substitution</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'/>Fill document tags with blanks</p>
+                                    <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' onchange='buttonUpdate(\"Email\")' />Substitute client details and email</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' onchange='buttonUpdate(\"default\")' />Substitute client details into document</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Save file with no substitution</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Fill document tags with blanks</p>
                                 </div>
                             </div></div>
                             </form>
@@ -120,12 +90,28 @@ ResourcesTagScript;
                     </div>
                 </div>
             </div>";
+    $manageUsers = new ManageUsers($oApp);
+    $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
+    if($dir_short == 'reports'){
+        // Disable Email Option on Reports screen
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled when printing reports'","disabled"], $s);
+    }
+    else if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
+        $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
+    }
+    else if(CATS_DEBUG){
+        // Developer mechines aren't configred to talk with SMTP servers.
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+    }
+    else{
+        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Your account lacks an email address'","disabled"], $s);
+    }
 
     $sFilter = SEEDInput_Str('resource-filter');
 
     $s .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
          ."<input type='text' name='resource-filter' value='".SEEDCore_HSC($sFilter)."'/>"
-         ."<input type='hidden' name='dir' id='dir' value='$dir_short' />"
+         ."<input type='hidden' name='dir' value='$dir_short' />"
          ."<input type='submit' value='Filter'/>"
          ."</form></div>";
 
@@ -149,10 +135,10 @@ ResourcesTagScript;
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
-            $s.= "<div class='folder'><div class='folder-title' data-folder='$k'><i class='far fa-folder-open'></i><strong>$k</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>$k</strong></span></div>";
         }
         else if(count($raOut) > 1 && $v){
-            $s.= "<div class='folder'><div class='folder-title' data-folder='other'><i class='far fa-folder-open'></i><strong>Loose Files</strong></div>";
+            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>Loose Files</strong></span></div>";
         }
         if($v){
             $id = "";
@@ -162,10 +148,10 @@ ResourcesTagScript;
             else{
                 $id = "other";
             }
-            $s.= "<div id='$id'>".$v."</div>";
+            $s.= "<div class='folder-contents' ontransitionend='clearHeight(event)' id='$id'>".$v."</div>";
         }
         else if($k){
-            $s .= "<div id='$k'>Empty Folder</div>";
+            $s .= "<div class='folder-contents' ontransitionend='clearHeight(event)' id='$k'>Empty Folder</div>";
         }
         if($k){
             $s .= "</div>";
@@ -178,9 +164,12 @@ ResourcesTagScript;
 
     $s .= "<script>
             const modal = document.getElementById('file_dialog').innerHTML;
-            function select_client(file){
+            const disabledByServer = document.getElementById('email').disabled;
+            const buttonValue = document.getElementById('submitVal').value;
+            function select_client(rr,name){
                 document.getElementById('file_dialog').innerHTML = modal;
-                document.getElementById('file').value = file;
+                document.getElementById('rr').value = rr;
+                document.getElementById('filename').innerHTML = name;
                 $('#file_dialog').modal('show');
             }
             function modalSubmit(e) {
@@ -221,17 +210,50 @@ ResourcesTagScript;
                     e.preventDefault();
                 }
             }
-           </script>";
-
-    $s .= <<<fcdScript
-<script>
-function fcd_clientselect_enable( bEnable )
-{
-    $('#fcd_clientSelector').prop("disabled", !bEnable);
-}
-</script>
-fcdScript;
-
+            function fcd_clientselect_enable( bEnable )
+            {
+                $('#fcd_clientSelector').prop('disabled', !bEnable);
+            }
+            function emailAvalible(){
+                if(disabledByServer){
+                    return;
+                }
+                let select = document.getElementById('fcd_clientSelector');
+                kClient = select.options[select.selectedIndex].value;
+                $.ajax({
+                    type: \"POST\",
+                    data: {cmd:'therapist-fcd-canEmail',client:kClient},
+                    url: 'jx.php',
+                    success: function(data, textStatus, jqXHR) {
+                        var jsData = JSON.parse(data);
+                        if(jsData.bOk){
+                            $('#email').prop('disabled', false);
+                            $('#emailTitle').prop('title', '');
+                        }
+                        else{
+                            $('#email').prop('disabled', true);
+                            $('#emailTitle').prop('title', 'The selected client does not have an email address stored');
+                            $('#replace').prop('checked', true);
+                        }
+                    },
+                    error: function(jqXHR, status, error) {
+                        console.log(status + \": \" + error);
+                    }
+                });
+            }
+            function buttonUpdate(value,override=false){
+                if(buttonValue == 'Download' || override){
+                    if(value == 'default'){
+                        value = buttonValue
+                    }
+                    document.getElementById('submitVal').value = value;
+                }
+                else{
+                    document.getElementById('submitVal').value = buttonValue;
+                }
+            }
+            ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").",'".ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->getFile()."');});":"")."
+            </script>";
 
     done:
     return( $s );
@@ -245,7 +267,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
 
         if(!$oRR){
             // The file does not have a record yet, create one
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()));
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()),0);
             $oRR->StoreRecord();
         }
 
@@ -266,8 +288,8 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         $sTemplate =
-            "<div style='display:inline-block;margin-right:10px;border: solid 2px;padding:5px;padding-bottom:0px;max-width:150px'>
-                <a style='white-space: wrap' [[LINK]] >
+            "<div class='file-preview-container'>
+                <a [[LINK]] >
                     <div>
                         <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
                     </div>
@@ -280,11 +302,18 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                 </div>
             </div>";
 
-        // Fallback if a Preview doesn't exist
-        $preview = "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";
-        if($oRR->getPreview()){
-            // a preview exists use it instead of the fallback
-            $preview = $oRR->getPreview();
+        //TODO Remove when previews are working
+        if(CATS_DEBUG){
+            // Fallback if a Preview doesn't exist
+            $preview = "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";
+            if($oRR->getPreview()){
+                // a preview exists use it instead of the fallback
+                $preview = $oRR->getPreview();
+            }
+        }
+        else{
+            //XXX Coming Soon Image is Temporary
+            $preview = "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";
         }
 
         $filename = SEEDCore_HSC($fileinfo->getFilename());
@@ -431,11 +460,13 @@ viewVideo;
     // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
     $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
         ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-    $listVideos = "<div style='float:right;' id='uploadForm'>"
-                    ."<form method='post' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+    $listVideos = "<div style='float:right;background:white;' id='uploadForm'>"
+                    ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                        <input type='hidden' name='cmd' value='therapist-resource-upload' />
                         Select video to upload:
                         <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
-                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>"
+                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
+                        <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div>"
                  ."</div><script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
     $listVideos .= "<h3>View Uploaded Videos</h3>";
@@ -447,7 +478,7 @@ viewVideo;
 
     $sFilter = SEEDInput_Str('resource-filter');
 
-    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;'><form method='post'>"
+    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;z-index:-10;'><form method='post'>"
         ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
         ."</form></div>";
 
@@ -480,7 +511,7 @@ viewVideo;
                 foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
                     if(pathinfo($file,PATHINFO_FILENAME) == $item){
                         // show file
-                        return str_replace("[[video]]", CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
+                        return str_replace("[[video]]", "./resources/".FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
                     }
                 }
                 $oApp->sess->VarUnSet("video_item");

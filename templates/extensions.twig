@@ -17,6 +17,7 @@
 		border-style: inset outset outset inset;
 		border-width: 3px;
 		border-radius: 50%;
+		position: relative;
 	}
 	@keyframes colorChange {
 		from {background-color: var(--color1); border-color: var(--color1);}
@@ -40,6 +41,15 @@
 		backdrop-filter: blur(8px);
 		opacity: 1!important;
 	}
+	.badge {
+      position: absolute;
+      top: 8px;
+      right: 18px;
+      padding: 5px 10px;
+      border-radius: 50%;
+      background: red;
+      color: white;
+    }
 </style>
 <script>
 function createCircle(elements, styles) {
@@ -340,6 +350,11 @@ function initPage() {
 	}
 }
 window.addEventListener("DOMContentLoaded", initPage);
+$(document).ready(function () {
+    $('#clientlist').selectize({
+        sortField: 'text'
+    });
+});
 </script>
 <style>
 td:not(.borderless),th:not(.borderless) {
@@ -597,9 +612,9 @@ debugger;
 </style>
 
 %% therapist-clientlist
-<link rel='stylesheet' href='{{ CATSDIR_CSS }}slider.css'>
+<link rel='stylesheet' href='{{ CATSDIR_CSS }}sidebar.css'>
 <link rel='stylesheet' href='{{ CATSDIR_CSS }}therapist-clientlist.css'>
-<script src='{{ CATSDIR_JS }}slider.js'></script>
+<script src='{{ CATSDIR_JS }}sidebar.js'></script>
 <script src='{{ CATSDIR_JS }}therapist-clientlist.js'></script>
 
 %% clinics
@@ -676,6 +691,8 @@ debugger;
 %% filing-cabinet
 <script src='{{ CATSDIR_JS }}fileUpload.js'></script>
 <link rel='stylesheet' href='{{ CATSDIR_CSS }}fileUpload.css'>
+<script src='{{ CATSDIR_JS }}filingCabinet.js'></script>
+<link rel='stylesheet' href='{{ CATSDIR_CSS }}filingCabinet.css'>
 <style>
     .search {
       width: 130px;
@@ -727,3 +744,5 @@ debugger;
 	});
 </script>
 
+%% reports
+<link rel='stylesheet' href='{{ CATSDIR_CSS }}filingCabinet.css'>

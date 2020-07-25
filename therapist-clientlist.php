@@ -117,7 +117,20 @@ class ClientList
              ."</div>"
              ."</div></div>";
 
-             $s .= "<div id='sidebar'></div>";
+             $s .= <<<Sidebar
+<div id='sidebar'>
+    <div id='sidebar-container'>
+        <div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>
+        <div id='sidebar-header'>Name and stuff goes here.</div>
+        <div id='tabs'>
+    		<div id='tab1' class='tab active-tab'>Tab1</div>
+    		<div id='tab2' class='tab'>Tab2</div>
+    		<div id='tab3' class='tab'>Tab3</div>
+	   </div><br/>
+	   <div id='tab-content'></div>
+    </div>
+</div>
+Sidebar;
              $s .= "<script>$( document ).ready(function() {";
              if( $this->client_key || $sNew == self::CLIENT) {
                  $s .= "getForm('".self::createID(self::CLIENT, $this->client_key)."');";
@@ -137,8 +150,8 @@ class ClientList
         return( $s );
     }
 
-    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):String{
-        $s = "";
+    public function DrawAjaxForm(int $pid, String $type = self::CLIENT):array{
+        $ra = ['header'=>'','tab1'=>'','tab2'=>'','tab3'=>''];
         $kfr = $this->oPeopleDB->GetKFR($type, $pid );
         if(!$kfr){
             $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
@@ -151,25 +164,25 @@ class ClientList
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
                 $oForm->SetKFR($kfr);
                 $myPros = ($pid?$this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'"):array());
-                $s = $this->drawClientForm($oForm, $myPros, $raPros);
+                $ra = $this->drawClientForm($oForm, $myPros, $raPros);
                 break;
             case self::INTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
                 $oForm->SetKFR($kfr);
                 $myClients = ($pid?$this->oPeopleDB->GetList('CX', "fk_pros_internal='{$pid}'"):array());
-                $s = $this->drawProForm($oForm, $myClients, $raClients, true);
+                $ra = $this->drawProForm($oForm, $myClients, $raClients, true);
                 break;
             case self::EXTERNAL_PRO:
                 $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
                 $oForm->SetKFR($kfr);
                 $myClients = ($pid?$this->oPeopleDB->GetList('CX', "fk_pros_external='{$pid}'"):array());
-                $s = $this->drawProForm($oForm, $myClients, $raClients, false);
+                $ra = $this->drawProForm($oForm, $myClients, $raClients, false);
                 break;
         }
         if(isset($_SESSION['newLinks'])){
             unset($_SESSION['newLinks']);
         }
-        return $s;
+        return $ra;
     }
     
     public function proccessCommands(String $cmd){
@@ -428,11 +441,57 @@ ExistsWarning;
                 $_SESSION['newLinks']['client_key'] = SEEDInput_Int('client_key');
                 $id = self::createID(self::EXTERNAL_PRO, 0);
                 break;
+            case 'mailPros':
+                $condClinic = $this->clinics->isCoreClinic() ? "" : (" AND clinic = ".$this->clinics->GetCurrentClinic());
+                // Get the provider keys
+                $raProKeys = array_column($this->oPeopleDB->GetList(self::EXTERNAL_PRO, 'P.address != "" AND P.city != "" AND P.province != "" AND P.postal_code != ""'.$condClinic),'_key');
+                // Convert to IDs for template filler
+                $raProKeys = array_map(function($value){return self::createID(self::EXTERNAL_PRO, $value);}, $raProKeys);
+                // Split the keys into groups of 5 (for template)
+                $chunks = array_chunk($raProKeys, 5);
+                if(count($chunks) > 1){
+                    // We need more than one file
+                    $zip = new ZipArchive();
+                    $filename = tempnam(sys_get_temp_dir(), "pro");
+                    if ($zip->open($filename, ZIPARCHIVE::CREATE )!==TRUE) {
+                        exit("cannot open zip archive\n");
+                    }
+                    foreach($chunks as $k=>$chunk)
+                    {
+                        // Create the template filler object with the proper settings (ie data)
+                        $filler = new template_filler($this->oApp,[],$chunk);
+                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".$k+1);
+                    }
+                    $zip->close();
+                    header("Content-type: application/zip");
+                    header("Content-Disposition: attachment; filename='Address Labels'");
+                    header("Content-length: " . filesize($filename));
+                    header("Pragma: no-cache");
+                    header("Expires: 0");
+                    if( ($fp = fopen( $tempfile, "rb" )) ) {
+                        fpassthru( $fp );
+                        fclose( $fp );
+                    }
+                    exit;
+                }
+                else if(count($chunks) == 1){
+                    // We can get away with one file
+                    // Create the template filler object with the proper settings (ie data)
+                    $filler = new template_filler($this->oApp,[],$chunks[0]);
+                    $filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx");
+                }
+                exit;
         }
         $list = $this->drawList((@$this->parseID($id)[0]?:""));
         
         if(SEEDInput_Str("action") == "Save and Close"){
             $id = "";
+        }
+        else if(SEEDInput_Str("action") == "Save and Print Consent forms"){
+            $id = "";
+            header("Location: ".CATSDIR."?screen=therapist-filing-cabinet&dir=clinic");
+            header("HTTP/1.0 205 Reset Content");
+            exit;
         }
         
         return array("message"=>$s,"id"=>$id, "list"=>$list[0],"listId" => $list[1]);
@@ -475,7 +534,7 @@ ExistsWarning;
             case self::EXTERNAL_PRO:
                 $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
                 $s = "<h3>External Providers</h3>"
-                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button>"
+                      ."<button onclick=\"getForm('".self::createID(self::EXTERNAL_PRO, 0)."');\">Add External Provider</button><a href='jx.php?cmd=therapist--clientlist-mailPros' style='margin-left:5px'><button>Get Address labels</button></a>"
                       .SEEDCore_ArrayExpandRows( $raPros, "<div id='pro-[[_key]]' class='pro' style='padding:5px;' data-id='".self::EXTERNAL_PRO."[[_key]]' onclick='getForm(this.dataset.id)'><div class='name'>[[P_first_name]] [[P_last_name]] is a [[pro_role]]%[[clinic]]</div><div class='slider'><div class='text'>View/edit</div></div></div>" );
                 $id = "pros";
                 break;
@@ -545,15 +604,15 @@ ExistsWarning;
         The user clicked on a client name so show their form
      */
     {
-        $s = "";
+        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1','tab2','tab3']];
 
         $sTherapists = "<div style='padding:10px;border:1px solid #888'>";
         $sPros       = "<div style='padding:10px;border:1px solid #888'>";
         foreach( $myPros as $ra ) {
-            if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( 'PI', $ra['fk_pros_internal'] )) ) {
+            if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( self::INTERNAL_PRO, $ra['fk_pros_internal'] )) ) {
                 $sTherapists .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
-            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( 'PE', $ra['fk_pros_external'] )) ) {
+            if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( self::EXTERNAL_PRO, $ra['fk_pros_external'] )) ) {
                 $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
             }
         }
@@ -575,7 +634,7 @@ ExistsWarning;
              .$oForm->HiddenKey()
              ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
                  .($oForm->Value('_key')?($this->clinics->isCoreClinic()?"<p>Client # {$oForm->Value('_key')}</p>":""):"<p>New Client</p>")
-             ."<table class='container-fluid table table-striped table-sm'>";
+             ."<table class='container-fluid table table-striped table-sm sidebar-table'>";
              $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus onchange='checkNameExists()'") ) );
              $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name' onchange='checkNameExists()'") ) );
              $this->drawPartialFormRow( "", "<span id='name-exists'>A client with this name already exists.</span>" );
@@ -596,13 +655,10 @@ ExistsWarning;
              $this->endRowDraw();
              if($oForm->Value("_status")==0){
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td>"
-                ."<td class='col-md-12'><input type='submit' value='Save and Close' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input id='save-button' type='submit' value='Save' />"
+                ."<input id='save-close-button' type='submit' value='Save and Close' />"
+                ."<input id='save-print-button' type='submit' value='Save and Print Consent forms' /></td>"
              ."</tr>"
-//              ."<tr class='row'>"
-//                  .($oForm->Value('P_email')
-//                      ?"<td class='col-md-12'><div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div></td>":"")
-//              ."</tr>"
              ."</table>"
              ."</form>";
              }
@@ -610,21 +666,19 @@ ExistsWarning;
                  $this->sForm .= "</table>";
              }
 
-        $s .= "<div class='container-fluid' style='position: relative;border:1px solid #aaa;padding:20px;margin:20px'>"
-            ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"
-             ."<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
-             ."<div class='row'>"
-                 ."<div class='col-md-8'>".$this->sForm."</div>"
-                 ."<div class='col-md-4'>".$sTherapists.$sPros
-                 ."<br /><br />"
-                 .($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
+        $raOut['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
+        $raOut['tabs']['tab1'] = $this->sForm;
+        $raOut['tabs']['tab2'] = $sTherapists.$sPros;
+        $raOut['tabs']['tab3'] = ($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
                  ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
+                 //."<br />".($oForm->Value('P_email')?"<div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div>":"")
                  ."</div>"
              ."</div>"
              ."</div>";
-         return( $s );
+         $raOut['tabNames'] = ['Client', 'Providers', 'Assessments'];
+         return( $raOut );
     }
 
     private function schoolField( $value, $oForm )
@@ -673,8 +727,7 @@ ExistsWarning;
         The user clicked on a therapist / external provider's name so show their form
      */
     {
-        $s = "";
-
+        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1', 'tab2', 'tab3']];
         $sClients = "<div style='padding:10px;border:1px solid #888'>Clients:<br/>";
         foreach( $myClients as $ra ) {
             if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $ra['fk_clients2'] )) ) {
@@ -730,7 +783,7 @@ ExistsWarning;
                            ))
              .$oForm->HiddenKey()
              .(isset($_SESSION['newLinks']['client_key'])?"<input type='hidden' name='linkClient' value='{$_SESSION['newLinks']['client_key']}' />":"")
-             ."<table class='container-fluid table table-striped table-sm'>";
+             ."<table class='container-fluid table table-striped table-sm sidebar-table'>";
              $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
              $this->drawPartialFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
              $this->drawPartialFormRow( "", "<span id='name-exists'>A provider with this name already exists.</span>" );
@@ -755,34 +808,28 @@ ExistsWarning;
              }
              $this->endRowDraw();
              $this->sForm .= "<tr class='row'>"
-                ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' /></td>"
-                ."<td class='col-md-12'><input type='submit' name='action' value='Save and Close' style='margin:auto' /></td>"
+                ."<td class='col-md-12'><input id='save-button' type='submit' name='action' value='Save' />"
+                ."<input id='save-close-button' type='submit' name='action' value='Save and Close' /></td>"
              ."</tr>"
              ."</table>"
              ."</form>";
 
-        $s .= "<div class='container-fluid' style='position:relative;border:1px solid #aaa;padding:20px;margin:20px'>"
-             ."<div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>"
-             ."<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>"
-             ."<div class='row'>"
-             ."<div class='col-md-8'>".$this->sForm."</div>"
-             ."<div class='col-md-4'>[[Sidebar]]</div>"
-             ."</div>"
-             ."</div>";
+        $raOut['header'] = "<h3>".($bTherapist ? "CATS Staff" : "External Provider")." : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
+        $raOut['tabs']['tab1'] = $this->sForm;
+        
          if(isset($_SESSION['newLinks']['client_key']) && $kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $_SESSION['newLinks']['client_key'] )){
              
              $sSidebar = "<div style='padding:10px;border:1px solid #888'>Clients that will be connected:<br/>"
                             .$kfr->Expand( "<span>[[P_first_name]] [[P_last_name]]</span><br />" )
                         ."</div>";
-             $s = str_replace("[[Sidebar]]", $sSidebar, $s);
+             $raOut['tabs']['tab2'] = $sSidebar;
          }
          if($oForm->Value("_key")){
-             $s = str_replace("[[Sidebar]]", $sClients.$this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key)), $s);
+             $raOut['tabs']['tab2'] = $sClients;
+             $raOut['tabs']['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
          }
-         
-         //Replace the sidebar if it hasn't been already. This ensures the placeholder text is never sent to the browser
-         $s = str_replace("[[Sidebar]]", "", $s);
-         return( $s );
+         $raOut['tabNames'] = ['Provider', 'Clients', 'Linked Account'];
+         return( $raOut );
     }
 
     private function getClinicList( $oForm)
@@ -862,7 +909,7 @@ ExistsWarning;
                 if( $sheetName == 'Clients' ) {
                     foreach( $raRows as $ra ) {
                         if( $ra[0] &&
-                            ($kfrC = $this->oPeopleDB->GetKFR( 'C', $ra[0])) &&
+                            ($kfrC = $this->oPeopleDB->GetKFR( self::CLIENT, $ra[0])) &&
                             ($kfrP = $this->oPeopleDB->GetKFR( 'P', $kfrC->Value('fk_people'))) )
                         {
                             $kfrP->SetValue( 'first_name', $ra[1] );
@@ -896,7 +943,8 @@ ExistsWarning;
     /**
      * Get array of clients that the user has access to see
      * This method works internally and enforces Office Access Rights
-     * @param int $status - status of the clients
+     * @param int $status - status of the clients, -1 to get all a users clients
+     * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
     private function getMyClientsInternal(int $status = 0,array $raParms = array()):array{
@@ -913,7 +961,8 @@ ExistsWarning;
     
     /**
      * Get array of clients that the user has access to see
-     * @param int $status - status of the clients
+     * @param int $status - status of the clients, -1 to get all a users clients
+     * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
      */
     public function getMyClients(int $status = 0,array $raParms = array()):array{

@@ -53,7 +53,7 @@ class Clinics {
                 $k = $clinic['Clinics__key']; // The user is the leader of this clinic
             }
             else if(count($clinicsra) == 1){
-                return $clinic['Clinics__key']; // The user only has one clinic
+                $k = $clinic['Clinics__key']; // The user only has one clinic
             }
         }
         return $k;
@@ -101,6 +101,16 @@ class Clinics {
         return array_merge($clinics,$leading);
     }
 
+    /**
+     * Get the clinic at the given position in the users clinic
+     * @param int $clinicPosition - position of clinic to fetch. ZERO BASED.
+     * @param int|NULL $user - user to get clinics of. Default NULL = currently signed it user
+     */
+    public function getUserClinic(int $clinicPosition, $user = NULL){
+        $clinics = $this->GetUserClinics($user);
+        return $clinics[$clinicPosition];
+    }
+    
     function displayUserClinics($selector = false){
         $s = "";
         foreach($this->GetUserClinics() as $ra){
@@ -204,6 +214,7 @@ class Clinics {
         return $clinicKeys;
     }
     
+    //TODO Deprecate
     public function getClinicsWithAkaunting($user=NULL){
         $accessType = $this->checkAccess($user);
         if(!$accessType == self::FULL_ACCESS && !$this->isCoreClinic()){
@@ -742,12 +753,17 @@ class ImageGenerator {
     
     private const TEMPLATE = CATSDIR_IMG."footer/footer_template.jpg";
     private const DOT = CATSDIR_IMG."footer/dot.gif";
-    private const ROW1 = 43;
-    private const ROW1_DOT = 37;
-    private const ROW2 = 70;
-    private const ROW2_DOT = 64;
-    private const FONT = 8.5;
+    private const ROW1 = 60;
+    private const ROW2 = 130;
+    private const ROW2_DOT = 100;
+    private const ROW3 = 205;
+    private const ROW3_DOT = 170;
+    private const FONT = 45;
     private const FONTFILE = CATSDIR_FONTS."arialbd.ttf";
+    private const DOT_SIZE = 30;
+    private const LINE_START1 = 700;
+    private const LINE_START2 = 500;
+    private const LINE_START3 = 260;
     
     private $oApp;
     
@@ -760,20 +776,18 @@ class ImageGenerator {
         $kfr = $ClinicsDB->GetClinic( $clinicId );
         $im = imagecreatefromjpeg(self::TEMPLATE);
         $dot = imagecreatefromgif(self::DOT);
-        $color = imagecolorallocate($im, 117, 117, 117);
-        $ra = imagettftext($im, self::FONT, 0, 208, self::ROW1, $color, realpath(self::FONTFILE), "Collaborative Approach Therapy Services");
-        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
-        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value('address'));
-        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
-        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value("city").", ON");
-        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
-        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW1, $color, realpath(self::FONTFILE), $kfr->Value('postal_code'));
-        imagecopy($im, $dot, $ra[2]+5, self::ROW1_DOT, 0, 0, 5, 5);
-        $ra = imagettftext($im, self::FONT, 0, 249, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value("phone_number"));
-        imagecopy($im, $dot, $ra[2]+5, self::ROW2_DOT, 0, 0, 5, 5);
-        $ra = imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('email'));
-        imagecopy($im, $dot, $ra[2]+5, self::ROW2_DOT, 0, 0, 5, 5);
-        imagettftext($im, self::FONT, 0, $ra[2]+15, self::ROW2, $color, realpath(self::FONTFILE), "www.catherapyservices.ca");
+        $color = imagecolorallocate($im, 0, 0, 0);
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START1, self::ROW1, $color, realpath(self::FONTFILE), "Collaborative Approach Therapy Services");
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START2, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('address'));
+        imagecopy($im, $dot, $ra[2]+100, self::ROW2_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+205, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value("city").", ON");
+        imagecopy($im, $dot, $ra[2]+100, self::ROW2_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+205, self::ROW2, $color, realpath(self::FONTFILE), $kfr->Value('postal_code'));
+        $ra = imagettftext($im, self::FONT, 0, self::LINE_START3, self::ROW3, $color, realpath(self::FONTFILE), $kfr->Value("phone_number"));
+        imagecopy($im, $dot, $ra[2]+35, self::ROW3_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        $ra = imagettftext($im, self::FONT, 0, $ra[2]+100, self::ROW3, $color, realpath(self::FONTFILE), $kfr->Value('email'));
+        imagecopy($im, $dot, $ra[2]+35, self::ROW3_DOT, 0, 0, self::DOT_SIZE, self::DOT_SIZE);
+        imagettftext($im, self::FONT, 0, $ra[2]+100, self::ROW3, $color, realpath(self::FONTFILE), "www.catherapyservices.ca");
         imagedestroy($dot);
         
         return $im;
@@ -794,7 +808,7 @@ class ImageGenerator {
                 imagejpeg($im);
                 $data = ob_get_clean();
                 imagedestroy($im);
-                return "<img src='data:image/jpeg;base64," . base64_encode( $data )."'>";
+                return "<img style='width:100%' src='data:image/jpeg;base64," . base64_encode( $data )."'>";
             case 'download':
                 $ClinicsDB = new ClinicsDB($this->oApp->kfdb);
                 $kfr = $ClinicsDB->GetClinic( $clinic_id );
@@ -867,9 +881,9 @@ class ImageGenerator {
     }
 </script>
 <div class="modal fade" id="system_dialog" role="dialog">
-    <div class="modal-dialog modal-lg" style='max-width:900px'>
-        <div class="modal-content" style='max-width:900px'>
-            <div class="modal-body" id="system_body" style='max-width:900px'>
+    <div class="modal-dialog modal-lg" style='max-width:100%'>
+        <div class="modal-content" style='max-width:100%'>
+            <div class="modal-body" id="system_body" style='max-width:100%'>
             </div>
         </div>
     </div>

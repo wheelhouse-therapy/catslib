@@ -17,7 +17,7 @@ function distributeReports($oApp) {
      *
      */
     $s = <<<Form
-        <select id="clientlist" onchange="jxCall()">
+        <select id="clientlist" placeholder='Select Client...' onchange="jxCall()">
             [[options]]
         </select>
         <div id="content">
@@ -138,9 +138,9 @@ function drawForm($oApp, $clientId) {
     foreach($prosList as $pro) {
         $type = null;
         $kfr = null;
-        $pro['fk_pros_internal'] && ($kfr = $oPeopleDB->GetKFR( 'PI', $pro['fk_pros_internal'] ));
+        $pro['fk_pros_internal'] && ($kfr = $oPeopleDB->GetKFR( ClientList::INTERNAL_PRO, $pro['fk_pros_internal'] ));
         $pro['fk_pros_internal'] && $type = ClientList::INTERNAL_PRO;
-        $pro['fk_pros_external'] && ($kfr = $oPeopleDB->GetKFR( 'PE', $pro['fk_pros_external'] ));
+        $pro['fk_pros_external'] && ($kfr = $oPeopleDB->GetKFR( ClientList::EXTERNAL_PRO, $pro['fk_pros_external'] ));
         $pro['fk_pros_external'] && $type = ClientList::EXTERNAL_PRO;
 
         if( !$type || !$kfr ) continue;

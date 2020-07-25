@@ -49,14 +49,3 @@ function return_bytes($val) {
     }
     return $val;
 }
-
-function max_file_upload_in_bytes() {
-    //select maximum upload size
-    $max_upload = return_bytes(ini_get('upload_max_filesize'));
-    //select post limit
-    $max_post = return_bytes(ini_get('post_max_size'));
-    //select memory limit
-    $memory_limit = return_bytes(ini_get('memory_limit'));
-    // return the smallest of them, this defines the real limit
-    return min($max_upload, $max_post, $memory_limit);
-}

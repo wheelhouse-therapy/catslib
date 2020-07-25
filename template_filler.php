@@ -18,9 +18,9 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         $fixedDocumentPart = $documentPart;
 
         $fixedDocumentPart = preg_replace_callback(
-            /*'|\$[^{]*\{[^}]*\}|U'*/'|\$(?><.*?>)*\{.*?\}|',
+            /*'|\$[^{]*\{[^}]*\}|U''|\$(?><.*?>)*\{.*?\}|'*/'|(?<start><(w:[^ >]+)[^>\/]*?>[^<>]*?)(?<match>\$(?><.*?>)*\{.*?\}).*?(?<end><\/(w:[^ >]+)>)|',
             function ($match) {
-                $fix = strip_tags($match[0]);
+                $fix = strip_tags($match['match']);
                 $isAssessment = False;
                 foreach (getAssessmentTypes() as $assmt){
                     $assmt = '${'.$assmt;
@@ -39,7 +39,20 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                     substr($fix,0,7) == '${endif' ||
                     $isAssessment)
                 {
-                    return( $fix );
+                    // Generate the close tag to fix space and other broken xml issue.
+                    $mid = "";
+                    if($match[2] != $match[5] || $match[2] == 'w:t'){
+                        $mid = "</".$match[2].">";
+                        if($match[5] == 'w:t'){
+                            $mid .= '<w:t xml:space="preserve">';
+                        }
+                    }
+                    
+                    // Close the existing <w:t> and open one which preserves spaces
+                    // This is neccessary since strip_tags can remove the preserve spaces property of the enclosing <w:t>
+                    // Thus causing spaces in the same <w:t> as the tag to be lost/not preserved
+                    // If there are no spaces to be preserved it has no effect on word or the document
+                    return( $match['start'].$fix.$mid.$match['end'] );
                 } else {
                     return( $match[0] );
                 }
@@ -219,13 +232,14 @@ class template_filler {
 
         FilingCabinet::EnsureDirectory("*",TRUE);
 
-        $this->kfrClient = $this->oPeopleDB->getKFR("C", $this->kClient);
+        $this->kfrClient = $this->oPeopleDB->getKFR(ClientList::CLIENT, $this->kClient);
 
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
         $this->kStaff = $this->oApp->sess->GetUID();
-        $this->kfrStaff = $this->oPeopleDB->getKFRCond("PI","P.uid='{$this->kStaff}'");
+        $manageUsers = new ManageUsers($this->oApp);
+        $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
 
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         $tags = $templateProcessor->getVariables();
@@ -625,7 +639,9 @@ class template_filler {
 
         switch(strtolower($tag)){
             case 'date':
-                $s = date("M d, Y");
+                if($this->kClient){
+                    $s = date("M d, Y");
+                }
                 break;
         }
         return( $s );

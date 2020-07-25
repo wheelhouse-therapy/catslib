@@ -461,7 +461,7 @@ class AssessmentsCommon
             if( $k == 'cmd' )       continue;   // this is 'therapist-resourcemodal', should not be encoded because the next cmd is 'download'
             $raOut['body'] .= "<input type='hidden' name='$k' value='".htmlspecialchars($v)."' />";
         }
-        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>";
+        $raOut['body'] .= "<input type='hidden' name='cmd' value='download'/>"; // Needed for reports to download
 
         foreach ($this->raAssessments as $assmt){
             $raOut['body'] .= $assmt['title'].":";
@@ -484,6 +484,10 @@ class AssessmentsCommon
             $raOut['body'] .= "</select>";
         }
         $raOut['body'] .="</form>";
+        
+        if(SEEDInput_Str("resource-mode") == 'email'){
+            $raOut['footer'] = "<input type='submit' id='submitVal' value='Email' form='assmt_form' />";
+        }
 
         return $bData ? $raOut : array();
     }
@@ -579,7 +583,7 @@ public    $bUseDataList = false;    // the data entry form uses <datalist>
 
         $oPeopleDB = new PeopleDB( $this->oAsmt->oApp );
         $oForm = $this->oData->GetForm();
-        $client = $oPeopleDB->getKFR('C', $oForm->Value("fk_clients2"));
+        $client = $oPeopleDB->getKFR(ClientList::CLIENT, $oForm->Value("fk_clients2"));
         $s .= "<h2 id='name'>".$client->Expand("[[P_first_name]] [[P_last_name]]")."</h2>
                     <span style='font-weight: bold; font-size: 15pt; display: inline-block; margin-bottom: 5px' id='asmt-type'>".$this->oAsmt->raAssessments[$this->asmtCode]['title']."</span>
                     <span style='margin-left: 10%' id='DoB'> Date of Birth: ".$client->Value("P_dob")."</span>
@@ -1276,6 +1280,7 @@ function AssessmentsScore( SEEDAppConsole $oApp )
             if( ($kUpdatedAsmt = $oAsmt->UpdateAsmt()) ) {
                 $s .= "<div class='alert alert-success'>Saved assessment</div>";
                 $p_kAsmt = $kUpdatedAsmt;    // if a new asmt was inserted show it below
+                $oApp->sess->VarSet('client_key', $oAsmt->GetData()->GetValue("fk_clients2"));
             } else {
                 $s .= "<div class='alert alert-danger'>Could not save assessment</div>";
             }
@@ -1295,7 +1300,8 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<style>.asmt_controlform { width:97%; margin:20px; padding:5% 0px 5% 5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
+                  "<script>$(document).ready(function (){\$('select').selectize({sortField: 'text'});});</script>"
+                 ."<style>.asmt_controlform { width:97%; margin:20px; padding:5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
                  ."<div class='asmt_controlform'>"
                  ."<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"

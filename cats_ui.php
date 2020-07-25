@@ -149,7 +149,7 @@ ResetPassword;
 
     function DrawHome()
     {
-        $s = "<div class='container-fluid'>"
+        $s = "<div id='bubbles' class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin()     : "")
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
@@ -174,6 +174,8 @@ ResetPassword;
             $this->oApp->sess->VarSet('resource-mode', 'replace');
             // Unset the assessement filter
             $this->oApp->sess->VarSet("client_key", 0);
+            // Unset the drawer of the filing cabinet.
+            $this->oApp->sess->VarUnSet("dir");
 
         return( $s );
     }
@@ -190,7 +192,7 @@ ResetPassword;
             //array( 'therapist-team',            "Meet the Team" ),
             //array( 'therapist-calendar',        "Calendar" ),
             //array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
-            array( 'therapist-viewVideos',      "CATS University", "Learning!" ),
+            array( 'therapist-viewVideos',      "CATS College", "Learning!" ),
             //array( 'therapist-akaunting',       "Akaunting" ),
             array( 'therapist-distributeReports', "Distribute Reports" ),
             array( 'link:https://www.catherapyservices.ca/webmail', "Access Webmail" )
@@ -200,7 +202,7 @@ ResetPassword;
         switch( $this->oHistory->getScreen() ) {
             case "therapist":
             default:
-                $s .= $this->drawCircles( $raTherapistScreens );
+                $s .= $this->drawCircles( $raTherapistScreens, "therapist" );
                 break;
 
             case 'therapist-filing-cabinet':
@@ -288,15 +290,15 @@ ResetPassword;
             case "admin":
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
-                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageresources',  "Manage Resources "),
+                    array( 'admin-resources',        "Review Resources" ),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
-                $s .= $this->drawCircles( $raScreens );
+                $s .= $this->drawCircles( $raScreens, "admin" );
                 break;
             default:
                 $raScreens = [["menu:admin","Admin Tools"]];
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "admin");
         }
         return( $s );
     }
@@ -354,11 +356,11 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                     if( CATS_DEBUG ) {
                         $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
                     }
-                    $s .= $this->drawCircles( $raScreens );
+                    $s .= $this->drawCircles( $raScreens, "developer" );
                     break;
             default:
                 $raScreens = [['menu:administrator',"Developer Tools","418 I'm a teapot"]];
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "developer");
                 break;
         }
         return( $s );
@@ -374,7 +376,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $raScreens = array(
                     array( 'leader-clinic',     "Manage Clinic")
                 );
-                $s .= $this->drawCircles( $raScreens );
+                $s .= $this->drawCircles( $raScreens, "leader" );
 
         }
         return( $s );
@@ -386,7 +388,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             case "system-documentation":
                 require_once 'Documentation.php';
                 $documentation = new Documentation();
-                $s .= $documentation->handleDocs();
+                $s .= $documentation->handleDocs($this->oApp);
                 break;
             case "system-placeholders":
                 require_once 'Documentation.php';
@@ -397,26 +399,58 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $raScreens = array(
                 array( 'system-documentation',     "View Documentation"),
                 array( 'system-placeholders' ,     "Download Placeholder Images"),
-                array( 'system-footergenerator',   "Generate Clinic Footer")
+                array( 'system-footergenerator',   "Generate Clinic Footer"),
+                array( 'system-usersettings',      "My Profile")
                 );
-                if(!CATS_DEBUG){
-                    unset($raScreens[0]);
-                }
-                $s .= $this->drawCircles($raScreens);
+                $s .= $this->drawCircles($raScreens, "system");
                 break;
             case "system-footergenerator":
                 $gen = new ImageGenerator($this->oApp);
                 $s .= $gen->footerOptions();
                 break;
+            case "system-usersettings":
+                $s .= "<h2>My Profile</h2>";
+                $clone = SEEDInput_Str("clone")?true:false;
+                $manageUsers = new ManageUsers($this->oApp);
+                $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
+                break;
             default:
-                $s .= $this->drawCircles([['menu:system',"Access System Resources"]]);
+                $s .= $this->drawCircles([['menu:system',"Access System Resources"]], "system");
         }
         return( $s );
     }
 
-    private function drawCircles( $raScreens )
+    /**
+     * Get any badges for a section/menu.
+     * Valid sections/menus have an associated draw method above.
+     * Menus should display a badge with the sum of the badges beneath it
+     * @param String $section - section to get badges for
+     * @return array with keys of screens with badges and the keys of the numbers to show
+     */
+    public function GetBadges(String $section){
+        switch($section){
+            case 'therapist':
+                return [];
+            case 'admin':
+                FilingCabinet::EnsureDirectory("pending");
+                $toReview = array_diff(scandir(CATSDIR_RESOURCES."pending/"), array('..', '.'));
+                return ['admin-resources' => count($toReview)];
+            case 'developer':
+                return [];
+            case 'leader':
+                return [];
+            case 'system':
+                $manageUsers = new ManageUsers($this->oApp);
+                return ['system-usersettings' => $manageUsers->profileValid($this->oApp->sess->GetUID())?"":"!"];
+            default:
+                return [];
+        }
+    }
+    
+    private function drawCircles( array $raScreens, String $section )
     {
         $s = "";
+        $badges = $this->GetBadges($section);
         foreach( $raScreens as $ra ) {
             $circle = "catsCircle".($this->i % 2 + 1);
 
@@ -424,14 +458,25 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             $href = "";
             $target = "";
             $title = "";
+            $id = $ra[0];
+            $badge = "";
             if (SEEDCore_StartsWith($ra[0], "link:")) {
                 $href = substr($ra[0], 5);
                 $target = " target='_blank'";
+                $id = substr($ra[0], strrpos($ra[0], "/"));
             } 
             elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
                 $href = "#";
                 $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
                 $title = " title='Open menu'";
+                $id = substr($ra[0], 5);
+                $badgeCount = array_sum($this->GetBadges($id));
+                if($badgeCount > 0 || in_array("!", $this->GetBadges($id),true)){
+                    if(in_array("!", $this->GetBadges($id),true)){
+                        $badgeCount = "!";
+                    }
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
             } else {
                 $href = "?screen=".$ra[0];
             }
@@ -440,7 +485,13 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $ra[2] = SEEDCore_HSC($ra[2]); //Allow for use of ' in title
                 $title = " title='{$ra[2]}'";
             }
-            $s .= "<div class='col-md-3'><a href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}</a></div>";
+            if(array_key_exists($ra[0], $badges)){
+                $badgeCount = $badges[$ra[0]];
+                if($badgeCount > 0 || $badgeCount === "!"){
+                    $badge = "<span class='badge'>$badgeCount</span>";
+                }
+            }
+            $s .= "<div class='col-md-3'><a id='$id' href='{$href}'{$title}{$target} class='toCircle $circle'>{$ra[1]}{$badge}</a></div>";
             if( $this->i % 4 == 3 ) $s .= "</div>";   // row
             ++$this->i;
         }
@@ -556,19 +607,20 @@ class ScreenManager{
 /**
  * Class representing the home screen tutorial
  * @author Eric
- * @version 2.0
+ * @version 4.0
  */
 class HomeTutorial extends Tutorial {
 
     protected final function getSteps(): array{
         return array(
             [self::TITLE_KEY => 'Welcome!',self::CONTENT_KEY => 'Welcome to the CATS "backend". Lets show you arround'],
-            [self::TITLE_KEY => 'Bubbles', self::CONTENT_KEY => 'These bubble will take you the different screens you have access to.', self::ELEMENT_KEY => '.container-fluid',self::PLACEMENT_KEY => Placement::TOP],
+            [self::TITLE_KEY => 'Bubbles', self::CONTENT_KEY => 'These bubble will take you the different screens you have access to.', self::ELEMENT_KEY => '#bubbles',self::PLACEMENT_KEY => Placement::TOP],
             [self::TITLE_KEY => 'Clinics', self::CONTENT_KEY => 'The current clinic you are viewing will be shown here. If you have access to multiple clinics you will also be able to switch between them here, by clicking on the clinic\'s name', self::ELEMENT_KEY => '#clinics',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'Back Button', self::CONTENT_KEY => 'Your browser back button is not garenteed to take you back to the previous screen. Please use this back button instead. In most cases the previous screen will be the home screen, however we track your screen history from the moment you log in and you can use the back button to backtrack through it.<br /><br />NOTE: the screen history is only avalible for as long as you are logged in we don\'t store it permanently',self::ELEMENT_KEY => '#backButton',self::PLACEMENT_KEY => Placement::BOTTOM],
             [self::TITLE_KEY => 'Support Button', self::CONTENT_KEY => 'The developer team can be reached from within the backend at anytime though this support button. Please use this button to contact us if you need help with the "backend". We are happy to help.<br /><br />NOTE: use of this feature requires a person with an email address linked to your account.', self::ELEMENT_KEY => '#supportButton',self::PLACEMENT_KEY => Placement::BOTTOM],
-            [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 2],
-            [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '.container-fluid', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 3],
+            [self::TITLE_KEY => 'System Resorces', self::CONTENT_KEY => 'System resources (eg. documentation and placeholder images), are now accessible under the "Access System Resources" bubble.', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 2],
+            [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '#therapist-filing-cabinet', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => 3],
+            [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'Your Profile is available under the "Access System Resources" bubble', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => 4],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }
