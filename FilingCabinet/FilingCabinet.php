@@ -73,7 +73,7 @@ class FilingCabinetUI
                 if(stripos($ra['name'], "Drawer") !== false){
                     $title = "Open {$ra['name']}";
                 }
-                
+
                 $s .= "<p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center'>"
                         ."<a style='font-size: 18pt; color: #fff' href='?dir={$k}' title='{$title}'>{$ra['name']}</a>"
                      ."</div></p>";
@@ -101,7 +101,7 @@ class FilingCabinetUI
 </div>
 SearchDialog;
     }
-    
+
     private function handleCmd()
     {
         switch( ($cmd = SEEDInput_Str('cmd')) ) {
@@ -264,7 +264,7 @@ class FilingCabinet
     static function GetFilingCabinetDirectories(){
         return array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
     }
-    
+
     /**
      * Get the accessor string to navigate a browser to the given file
      * @param ResourceRecord $oRR - file to navigate to
@@ -277,7 +277,7 @@ class FilingCabinet
             return "?screen=therapist-filing-cabinet&dir=".$directory;
         }
         elseif($directory == "reports"){
-            // File is a report, 
+            // File is a report,
             return "?screen=therapist-reports";
         }
         elseif($directory == "SOP"){
@@ -400,7 +400,7 @@ class ResourceRecord {
             $this->tags = @$raParams[self::TAGS_KEY]?:[];
         }
         $this->tags = array_values(array_filter($this->tags)); //Remove empty tags, saving to DB should keep them
-        
+
         $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
     }
 
@@ -495,7 +495,7 @@ class ResourceRecord {
         $this->file = $file;
         return !$this->committed;
     }
-    
+
     /**
      * Set the status of the record
      * 0 for normal.
@@ -529,7 +529,7 @@ class ResourceRecord {
         $this->preview = $image;
         return !$this->committed;
     }
-    
+
     /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
@@ -543,7 +543,7 @@ class ResourceRecord {
         $dbFolder = addslashes($this->dir);
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
-        $dbPreview = addslashes($this->preview);
+        $dbPreview = $this->oApp->kfdb->EscapeString($this->preview);   // better to use the mysqli function to escape binary data
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
             //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
@@ -621,7 +621,7 @@ class ResourceRecord {
         }
         return $this->preview;
     }
-    
+
     /**
      * Join a condition to the end of a condition.
      * Will add AND/OR between the conditons if nessesary
@@ -663,7 +663,7 @@ class ResourceRecord {
         }
         return $oRR;
     }
-    
+
     // These methods should allow calling files to get a record without needing to depend on the underlying database structure
     // i.e the sql to query the database should be provided by these methods and not passed in as a parameter.
 
@@ -789,5 +789,5 @@ class ResourceRecord {
         $query = self::joinCondition($query, "tags LIKE '%$dbSearch%'",true);
         return self::getFromQuery($oApp, $query);
     }
-    
+
 }

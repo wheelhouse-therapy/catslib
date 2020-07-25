@@ -381,14 +381,14 @@ class ResourceManager{
                 continue;
             }
             if($fileinfo->isDir() && $fileinfo->getFilename() == "pending") continue;
-            
+
             if(!$fileinfo->isDir()){
                 $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $fileinfo->getRealPath());
             }
             else{
                 $oRR = Null;
             }
-            
+
             if($this->selected_File && $oRR != Null && $this->selected_File == $oRR->getID()){
                 $this->processCommands($oRR);
             }
@@ -508,7 +508,10 @@ class ResourceManager{
         if(!$this->oApp->sess->CanAdmin("admin")){
             return "You don't have permission to edit files";
         }
-        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($file_path));
+        if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($file_path))) ) {
+            return( "<p>Note there is a file <pre>$file_path</pre> that is not indexed</p>" );
+        }
+
         $directory = pathinfo(substr($file_path,strlen(CATSDIR_RESOURCES)),PATHINFO_DIRNAME);
         $move = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move\")'>move</a>";
         $move .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move' style='display:none'>"
@@ -519,7 +522,7 @@ class ResourceManager{
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
             // don't allow moving files into folders where they aren't supported
             if( !in_array(pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION),$v['extensions']) ) continue;
-    
+
             $sDisabled = ($v['directory'] == $directory."/") ? " disabled" : "";
             $move .= "<option value='".$v['directory']."' $sDisabled>".$v['name']."</option>";
             foreach( FilingCabinet::GetSubfolders($k) as $sub ) {
@@ -529,7 +532,7 @@ class ResourceManager{
             }
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
-    
+
         $rename = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename\")'>rename</a>";
         $rename .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename' style='display:none'>"
                   ."<br /><form>"
@@ -544,7 +547,7 @@ class ResourceManager{
             }
         }
         $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
-    
+
         if( ($exts = @FilingCabinet::GetDirInfo($dir_key)['extensions']) ) {
             $file_ext = pathinfo($this->getPartPath($file_path,-1),PATHINFO_EXTENSION);
             foreach ($exts as $k=>$v){
@@ -554,11 +557,11 @@ class ResourceManager{
         $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"
                   ."</form>"
                   ."</div>";
-        
+
         $download = "<a href='?cmd=download&id=".$oRR->getID()."' data-tooltip='Download Resource'><i class='fa fa-download'></i></a>";
-        
+
         $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
-        
+
         $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
         return $s;
     }

@@ -18,6 +18,8 @@ if($cmd == "accept"){
         if(!$oRR->StoreRecord()){
             $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Imeadiatly (Code 504)</div>";
         }
+        $oFCU = new FilingCabinetReview($oApp);
+        $oFCU->CreateThumbnail( $oRR );
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
