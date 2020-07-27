@@ -37,9 +37,13 @@ class FilingCabinetUI
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
-        foreach( ResourceRecord::GetRecordsWithoutPreview($this->oApp) as $oRR ) {
-            $oFCU = new FilingCabinetReview($this->oApp);   // probably want to move CreateThumbnail to FilingCabinet because it isn't necessarily related to review
-            $oFCU->CreateThumbnail( $oRR );
+        if( CATS_DEBUG ) {
+// Create thumbnails for all resources that don't have them.
+// You have to have PHPWord, dompdf, and convert(ImageMagick) installed.
+// Remove CATS_DEBUG condition when thumbnails are generated correctly on the live installation.
+            foreach( ResourceRecord::GetRecordsWithoutPreview($this->oApp) as $oRR ) {
+                $oRR->CreateThumbnail( $oRR );
+            }
         }
 
         if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
@@ -902,4 +906,80 @@ class ResourceRecord {
         return( $raRec );
     }
 
+
+    function CreateThumbnail()
+    /*************************
+         Create or re-create a thumbnail image for this resource
+     */
+    {
+        $ok = false;
+
+        $fnameThumb = "";
+
+        $srcfname = realpath($this->getPath());
+
+        switch( strtolower(pathinfo($srcfname,PATHINFO_EXTENSION)) ) {
+            case 'pdf':
+                $fnameThumb = $this->createThumbFromPdf( $srcfname );
+                break;
+
+            case 'docx':
+            case 'doc':
+                $fnameThumb = $this->createThumbFromDocx( $srcfname );
+                break;
+        }
+
+        if( $fnameThumb ) {
+            if( ($img = file_get_contents( $fnameThumb )) ) {
+                $this->setPreview( $img );
+                $ok = $this->StoreRecord();
+            }
+            //rename($fnameThumb,"/home/bob/catsstuff/a.jpg");
+            unlink($fnameThumb);
+        }
+
+        return( $ok );
+    }
+
+    private function createThumbFromPdf( $fnameSrc )
+    {
+        $fnameThumb = tempnam("", "thumb_");
+
+        $raDummy = [];
+        $iRet = 0;
+        // srcfname[0] means convert the first page
+        $sExec = "convert \"{$fnameSrc}[0]\" -background white -alpha remove -resize 200x200\\> \"JPEG:$fnameThumb\"";
+        exec( $sExec, $raDummy, $iRet );
+        //var_dump($sExec,$iRet);
+
+        return( $fnameThumb );
+    }
+
+    private function createThumbFromDocx( $fnameSrc )
+    {
+        // use PHPWord and dompdf to create a tmp pdf, then convert that to a thumbnail
+        $fnameTmpPdf = tempnam("", "thumb_");
+
+        // dompdf is PHPWord's preferred pdf writer, but it supports others too
+        $domPdfPath = realpath(SEEDROOT.'vendor/dompdf/dompdf');
+        \PhpOffice\PhpWord\Settings::setPdfRendererPath($domPdfPath);
+        \PhpOffice\PhpWord\Settings::setPdfRendererName('DomPDF');
+
+        try {
+            // PHPWord tends to die with fatal errors if it has trouble understanding something in a docx/doc file
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($fnameSrc);
+            $xmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord , 'PDF');
+            $xmlWriter->save($fnameTmpPdf);
+            //rename($fnameThumb,"/home/bob/catsstuff/a.pdf");
+        } catch (Exception $e) {
+            if( CATS_DEBUG ) {
+                var_dump( 'Caught exception: '.$e->getMessage()." for $fnameSrc\n" );
+            }
+            return( "" );
+        }
+
+        $fnameThumb = $this->createThumbFromPdf( $fnameTmpPdf );
+
+        return( $fnameThumb );
+    }
 }
