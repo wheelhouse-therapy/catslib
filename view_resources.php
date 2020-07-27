@@ -27,7 +27,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     $oFCD = new FilingCabinetDownload( $oApp );
 
 // TODO: the Filing Cabinet handles its own download cmd but this is still used by Reports (which should use DrawFilingCabinet('reports/') instead some day)
-    if( SEEDInput_Str('cmd') == 'download' ) {
+    if( SEEDInput_Str('cmd') == 'download' || SEEDInput_Str('cmd') == 'view' ) {
         $oFCD->DownloadFile();
         exit;
     }
@@ -92,6 +92,23 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                         </div>
                         <div class='modal-footer'>
                             <input type='submit' id='submitVal' value='".(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('reports')['directory'] == $dir_name?"Next":"Download")."' form='client_form' />
+                        </div>
+                    </div>
+                </div>
+            </div>";
+    $s .= "<!-- the div that represents the modal dialog -->
+            <div class='modal fade' id='pdf_dialog' role='dialog'>
+                <div class='modal-dialog'>
+                    <div class='modal-content'>
+                        <div class='modal-header'>
+                            <h4 class='modal-title'>Please select an option</h4>
+                        </div>
+                        <div class='modal-body'>
+                            <span id='pdfname'></span>
+                        </div>
+                        <div class='modal-footer'>
+                            <a id='view' target='_blank' href=''><button>View</button></a>
+                            <a id='download' href=''><button>Download</button></a>
                         </div>
                     </div>
                 </div>
@@ -257,6 +274,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                 else{
                     document.getElementById('submitVal').value = buttonValue;
                 }
+            }
+            function viewPDF(rr,name){
+                document.getElementById('view').href = '?cmd=view&rr='+rr;
+                document.getElementById('download').href = '?cmd=download&rr='+rr+'&resource-mode=no_replace';
+                document.getElementById('pdfname').innerHTML = name;
+                $('#pdf_dialog').modal('show');
             }
             ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").",'".ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->getFile()."');});":"")."
             </script>";

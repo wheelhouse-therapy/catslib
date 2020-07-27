@@ -105,6 +105,23 @@ class FilingCabinetDownload
             }
             exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
         }
+        else if( SEEDInput_Str('cmd') == 'view' ){
+            if( !($rrid = SEEDInput_Int('rr')) ||
+                !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
+                !($file = $oRR->getPath()) )
+            {
+                $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
+                return;
+            }
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            header('Content-Type: '.mime_content_type($file));
+            header('Content-Length: '.filesize($file));
+            header('Content-Disposition: inline; filename="'.$oRR->getFile().'"');
+            $f=fopen($file,'r');
+            fpassthru($f);
+            fclose($f);
+            exit;
+        }
     }
 
     function GetDownloadPath( $mode, ResourceRecord $oRR, $filename = "", $dir_short = "" )
@@ -115,9 +132,9 @@ class FilingCabinetDownload
             case 'replace':
                 return "href='javascript:void(0)' onclick=\"select_client($rrid, '".addslashes($oRR->getFile())."')\"";
             case 'no_replace':
-                return "href='?cmd=download&rr=$rrid&resource-mode=no_replace'";    // &file=$dbFname
+                return "href='javascript:void(0)' onclick=\"viewPDF($rrid, '".addslashes($oRR->getFile())."')\"";
             case 'blank':
-                return "href='?cmd=download&rr=$rrid&client=0'";                    // &file=$dbFname
+                return "href='?cmd=download&rr=$rrid&client=0'";
         }
     }
 

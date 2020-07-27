@@ -118,6 +118,11 @@ SearchDialog;
                 $oFCD = new FilingCabinetDownload( $this->oApp );
                 $oFCD->DownloadFile();
                 exit;       // download doesn't return here, but this is just a good reminder of that
+            case 'view':
+                $oFCD = new FilingCabinetDownload( $this->oApp );
+                $oFCD->DownloadFile();
+                exit;       // download doesn't return here, but this is just a good reminder of that
+                
             default:
                 break;
         }
