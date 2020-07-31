@@ -623,7 +623,7 @@ ExistsWarning;
             $sPros .= "No External Providers Connected";
         }
         $sTherapists .= "</div>";
-        $sPros       .= "</div>".($oForm->Value('_key')?drawModalButton($oForm->Value('_key')):"");
+        $sPros       .= "</div>";
 
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years, %m Months");
@@ -668,7 +668,7 @@ ExistsWarning;
 
         $raOut['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
         $raOut['tabs']['tab1'] = $this->sForm;
-        $raOut['tabs']['tab2'] = $sTherapists.$sPros;
+        $raOut['tabs']['tab2'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
         $raOut['tabs']['tab3'] = ($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
                  ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                  ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
