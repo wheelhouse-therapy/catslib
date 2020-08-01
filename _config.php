@@ -100,4 +100,12 @@ checkFileSystem($oApp);
  */
 define("CATS_SYSADMIN", $oApp->sess->CanRead('administrator'));
 
+if( CATS_SYSADMIN ) {
+    /* Enable all error reporting on development dev account
+     */
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_errors', 1);
+    ini_set('html_errors', 1);
+}
+
 ?>
