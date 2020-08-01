@@ -37,12 +37,18 @@ class FilingCabinetUI
         // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
         $this->handleCmd();
 
-        if( CATS_DEBUG ) {
-// Create thumbnails for all resources that don't have them.
-// You have to have PHPWord, dompdf, and convert(ImageMagick) installed.
-// Remove CATS_DEBUG condition when thumbnails are generated correctly on the live installation.
-            foreach( ResourceRecord::GetRecordsWithoutPreview($this->oApp) as $oRR ) {
-                $oRR->CreateThumbnail( $oRR );
+        if( CATS_SYSADMIN ) {
+            if( SEEDInput_Str('adminCreateAllThumbnails') ) {
+                // Create thumbnails for all resources that don't have them.
+                // You have to have PHPWord, dompdf, and convert(ImageMagick) installed.
+                $raRR = ResourceRecord::GetRecordsWithoutPreview($this->oApp);
+                foreach( $raRR  as $oRR ) {
+                    $oRR->CreateThumbnail( $oRR );
+                }
+                $s .= "<div class='alert alert-success'>Tried to create ".count($raRR)." thumbnails</div>";
+            } else {
+                $s .= "<form><input type='hidden' name='adminCreateAllThumbnails' value='1'/>"
+                     ."<input type='submit' value='Admin: Create Thumbnails'/></form>";
             }
         }
 
@@ -126,7 +132,7 @@ SearchDialog;
                 $oFCD = new FilingCabinetDownload( $this->oApp );
                 $oFCD->DownloadFile();
                 exit;       // download doesn't return here, but this is just a good reminder of that
-                
+
             default:
                 break;
         }
@@ -950,7 +956,9 @@ class ResourceRecord {
         // srcfname[0] means convert the first page
         $sExec = "convert \"{$fnameSrc}[0]\" -background white -alpha remove -resize 200x200\\> \"JPEG:$fnameThumb\"";
         exec( $sExec, $raDummy, $iRet );
-        //var_dump($sExec,$iRet);
+        if( CATS_SYSADMIN ) {
+            var_dump($sExec,$iRet);
+        }
 
         return( $fnameThumb );
     }
