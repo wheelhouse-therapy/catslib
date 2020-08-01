@@ -956,7 +956,9 @@ class ResourceRecord {
         // srcfname[0] means convert the first page
         $sExec = "convert \"{$fnameSrc}[0]\" -background white -alpha remove -resize 200x200\\> \"JPEG:$fnameThumb\"";
         exec( $sExec, $raDummy, $iRet );
-        //var_dump($sExec,$iRet);
+        if( CATS_SYSADMIN ) {
+            var_dump($sExec,$iRet);
+        }
 
         return( $fnameThumb );
     }
