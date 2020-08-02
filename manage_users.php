@@ -97,7 +97,7 @@ class ManageUsers {
                         case "PENDING":
                             //User has been created but credentials have not been issued
                             if($kfr->Value('P_email')){
-                                $sSidebar .= "<button onclick='executeCMD(\"issueCredentials\",$uid)'>Issue Credentials</button>";
+                                $sSidebar .= "<button onclick='addSync(this);executeCMD(\"issueCredentials\",$uid)'>Issue Credentials</button>";
                             }
                             else{
                                 $sSidebar .= "A valid Email must be entered for this staff before this user can be activated";
@@ -105,13 +105,13 @@ class ManageUsers {
                             break;
                         case "ACTIVE":
                             //User has been created and credentials have been issued
-                            $sSidebar .= "<button onclick='executeCMD(\"deactivate\",$uid)'>Deactivate</button>";
+                            $sSidebar .= "<button onclick='addSync(this);executeCMD(\"deactivate\",$uid)'>Deactivate</button>";
                             break;
                         case "INACTIVE":
                             //User has been created but has been deactivated
                             //Reactivation should reissue credentials
                             if($kfr->Value('P_email')){
-                                $sSidebar .= "<button onclick='executeCMD(\"reissueCredentials\",$uid)'>Reactivate</button>";
+                                $sSidebar .= "<button onclick='addSync(this);executeCMD(\"reissueCredentials\",$uid)'>Reactivate</button>";
                             }
                             else{
                                 $sSidebar .= "A valid Email must be entered for this staff before this user can be reactivated";
