@@ -372,6 +372,7 @@ class ResourceRecord {
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
     private const PREVIEW_KEY = 'preview';
+    private const DESCRIPTION_KEY = 'description';
 
     private const TAG_SEPERATOR = "\t";
 
@@ -406,6 +407,8 @@ class ResourceRecord {
     private $file;
     private $tags = [];
     private $preview = "";
+    private $description = "";
+    
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -432,6 +435,7 @@ class ResourceRecord {
         $this->tags = array_values(array_filter($this->tags)); //Remove empty tags, saving to DB should keep them
 
         $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
+        $this->description = @$raParams[self::DESCRIPTION_KEY]?:'';
     }
 
     /**
@@ -449,6 +453,7 @@ class ResourceRecord {
             'committed' => $this->committed,
             'preview' => $this->preview,
             'created_by' => $this->created_by,
+            'description' => $this->description,
         ];
     }
 
@@ -660,6 +665,10 @@ class ResourceRecord {
     public function getPath():String{
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
+    
+    public function getDescription():String{
+        return $this->description;
+    }
 
     /**
      * Get the stored preview of the resource.
@@ -782,6 +791,7 @@ class ResourceRecord {
         $raParams += [self::TAGS_KEY=>$ra['tags']];
         $raParams += [self::PREVIEW_KEY=>$ra['preview']];
         $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
+        $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
