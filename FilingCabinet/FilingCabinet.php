@@ -572,6 +572,21 @@ class ResourceRecord {
     }
 
     /**
+     * Set the description of the resource
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
+     * @param String $description - Description to store
+     * @return boolean - true if description has changed, false otherwise
+     */
+    public function setDescription(String $description){
+        if($description != $this->description){
+            $this->committed = false;
+        }
+        $this->description = $description;
+        return !$this->committed;
+    }
+    
+    /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
      * @return bool - true if data successfully committed, false otherwise
@@ -585,6 +600,7 @@ class ResourceRecord {
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
         $dbPreview = $this->oApp->kfdb->EscapeString($this->preview);   // better to use the mysqli function to escape binary data
+        $dbDescription = addslashes($this->description);
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
             //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
@@ -609,10 +625,10 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview' WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription' WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview')"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview,description) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription')"))){
                 $this->committed = true;
             }
         }

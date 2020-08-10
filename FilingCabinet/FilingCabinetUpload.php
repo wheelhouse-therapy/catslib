@@ -13,6 +13,31 @@ class FilingCabinetUpload
     private $oApp;
     private $oFC;
     
+    private const modal = <<<Modal
+<!-- the div that represents the modal dialog -->
+<div class="modal fade" id="details_dialog" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Add Details</h4>
+            </div>
+            <div class="modal-body" id='details_body'>
+                <form id="details_form" onsubmit='event.preventDefault();' action="jx.php" method="POST" enctype="multipart/form-data">
+                    <input type='hidden' name='cmd' value='therapist-resourceDetails' />
+                    <input type='hidden' name='rrid' value='[[id]]' />
+                    <label for='description'>Description:</label><br />
+                    <textarea id='description' name='description' style='width:100%'></textarea>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick='closeDetails()' class="btn btn-default">Close</button>
+                <input type='submit' id='details_submit' form='details_form' class="btn btn-default" value='Add' onclick='submitModal(event)' />
+            </div>
+        </div>
+    </div>
+</div>
+Modal;
+    
     function __construct( SEEDAppConsole $oApp )
     {
         $this->oApp = $oApp;
@@ -70,12 +95,17 @@ class FilingCabinetUpload
         
         if (move_uploaded_file($_FILES[self::fileid]["tmp_name"], $target_file)) {
             $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file));
-            if(!$oRR->StoreRecord()){
+            $stored = $oRR->StoreRecord();
+            if(!$stored){
                 $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
             }
             $s .= "The file ". basename( $_FILES[self::fileid]["name"]). " has been uploaded and is awaiting review.";
+            if($stored){$s .= "<br /><button id='details_button' onclick='addDetails()'>Add Details</button>";}
             if($this->oApp->sess->CanWrite("admin")){
-                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
+                $s .= "<a style='margin-left:5px' href='?screen=admin-resources'><button>Review Now</button></a>";
+            }
+            if($stored){
+                $s .= str_replace("[[id]]", $oRR->getID(), self::modal);
             }
         } else {
             $s .= "Sorry, there was an error uploading your file.";
