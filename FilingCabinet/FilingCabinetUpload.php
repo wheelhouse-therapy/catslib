@@ -25,8 +25,18 @@ class FilingCabinetUpload
                 <form id="details_form" onsubmit='event.preventDefault();' action="jx.php" method="POST" enctype="multipart/form-data">
                     <input type='hidden' name='cmd' value='therapist-resourceDetails' />
                     <input type='hidden' name='rrid' value='[[id]]' />
-                    <label for='description'>Description:</label><br />
-                    <textarea id='description' name='description' style='width:100%'></textarea>
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col">
+                                <label for='description'>Description:</label><br />
+                                <textarea id='description' name='description' style='width:100%'></textarea>
+                            </div>
+                            <div class="col">
+                                <label for='created_by'>Created By:</label><br />
+                                <input type='text' id='created_by' name='created_by' />
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
