@@ -373,7 +373,13 @@ class ResourceRecord {
     private const TAGS_KEY = 'tags';
     private const PREVIEW_KEY = 'preview';
     private const DESCRIPTION_KEY = 'description';
+    private const NEWNESS_KEY = 'newness';
 
+    // Cutoff for resources to be considered "new"
+    private const NEWNESS_CUTOFF = 60;
+    // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
+    private const NEWNESS_GROUPS = 2;
+    
     private const TAG_SEPERATOR = "\t";
 
 
@@ -408,6 +414,7 @@ class ResourceRecord {
     private $tags = [];
     private $preview = "";
     private $description = "";
+    private $newness = 0; // Which newness "group" this resource belongs to
     
     /**
      * Wether or not this record has been committed to the database.
@@ -436,6 +443,7 @@ class ResourceRecord {
 
         $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
         $this->description = @$raParams[self::DESCRIPTION_KEY]?:'';
+        $this->newness = (@$raParams[self::NEWNESS_KEY]?:0);
     }
 
     /**
@@ -454,6 +462,7 @@ class ResourceRecord {
             'preview' => $this->preview,
             'created_by' => $this->created_by,
             'description' => $this->description,
+            'newness' => $this->newness
         ];
     }
 
@@ -725,6 +734,14 @@ class ResourceRecord {
         return $this->created_by;
     }
 
+    public function getNewness(){
+        return $this->newness;
+    }
+    
+    public function isNewResource(){
+        return $this->newness >= 0;
+    }
+    
     /**
      * Get if this file is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
@@ -794,7 +811,7 @@ class ResourceRecord {
      * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
      */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
-        $ra = $oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        $ra = $oApp->kfdb->QueryRA( "SELECT *,FLOOR((".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).") as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
             // No Record with that id exists
             return NULL;
@@ -808,10 +825,10 @@ class ResourceRecord {
         $raParams += [self::PREVIEW_KEY=>$ra['preview']];
         $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
         $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
+        $raParams += [self::NEWNESS_KEY=>$ra['newness']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
-
     }
 
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1):ResourceRecord{

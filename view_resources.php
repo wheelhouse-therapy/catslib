@@ -11,12 +11,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 {
     $s = "";
 
-    $s .= "<style>
-           .FilingCabinet_FilePreviewContainer { display:inline-block;margin-right:10px;border: solid 2px white;padding:5px;padding-bottom:0px;max-width:200px; }
-           </style>
-          ";
-
-
     if( !$dir_name ) {
         $s .= "Directory not specified";
         goto done;
@@ -317,7 +311,8 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         $sTemplate =
-              "<div class='FilingCabinet_FilePreviewContainer'>
+              "<div class='file-preview-container'>
+                  [[BADGE]]
                   <a style='' [[LINK]] >
                     <div>
                         <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
@@ -341,11 +336,12 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
 
         $filename = SEEDCore_HSC($fileinfo->getFilename());
 
-        $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]"],
+        $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
                                            [$link,
                                             $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR),
-                                            $preview
+                                            $preview,
+                                               $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                            ],
                                            $sTemplate);
 
