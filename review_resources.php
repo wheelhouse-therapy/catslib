@@ -29,7 +29,7 @@ if($cmd == "accept"){
                 $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
             }
         }
-        $oRR->CreateThumbnail( $oRR );
+        $oRR->CreateThumbnail();
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
