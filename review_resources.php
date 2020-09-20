@@ -15,8 +15,8 @@ if($cmd == "accept"){
     $dir = $ra[0];
     $subdir = @$ra[1]? "{$ra[1]}/" : "";
     if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
-        $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
         if(!ResourceRecord::GetRecordFromPath($oApp, $dir, $file,$subdir)){
+            $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
             $oRR->setDirectory($dir);
 
             $oRR->setSubDirectory(@$ra[1]?: "");
@@ -25,6 +25,7 @@ if($cmd == "accept"){
             }
         }
         else{
+            $s .= "<div class='alert alert-success'> Resource ".$file." has been overwritten. This CANNOT be undone</div>";
             if(!$oRR->DeleteRecord()){
                 $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
             }
@@ -87,23 +88,20 @@ foreach ($dir as $fileinfo) {
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
         foreach(FilingCabinet::GetDirectories() as $k => $v){
-            $exclude = file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()));
             if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
             }
+            if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
+                array_push($excluded, $k);
+            }
+            $options .= "<option value='".$k."'>".$v['name']."</option>";
             if(FilingCabinet::GetSubFolders($k)){
                 foreach(FilingCabinet::GetSubFolders($k) as $folder){
-                    if($exclude){
+                    if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
                         array_push($excluded, $k."/".$folder);
                     }
                     $options .= "<option value='".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
                 }
-            }
-            else{
-                if($exclude){
-                    array_push($excluded, $k);
-                }
-                $options .= "<option value='".$k."'>".$v['name']."</option>";
             }
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>

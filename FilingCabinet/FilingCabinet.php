@@ -504,6 +504,7 @@ class ResourceRecord {
      * @return bool - true if the directory has changed, false otherwise
      */
     public function setDirectory(String $dir):bool{
+        $dir = trim($dir,'/\\');
         if($dir != $this->dir){
             $this->committed = false;
             if($this->dir == 'pending'){
@@ -524,6 +525,7 @@ class ResourceRecord {
      * @return bool - true if the subdirectory has changed, false otherwise
      */
     public function setSubDirectory(String $subdir):bool{
+        $subdir = trim($subdir,'/\\');
         if($subdir != $this->subdir){
             $this->committed = false;
         }
@@ -874,6 +876,8 @@ class ResourceRecord {
 
     public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
         $cond = "";
+        $dirname = trim($dirname,'/\\');
+        $subdir = trim($subdir,'/\\');
         if($dirname != self::WILDCARD){
             $dbFolder = addslashes($dirname);
             $cond = self::joinCondition($cond,"folder='$dbFolder'");
