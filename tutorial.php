@@ -234,7 +234,7 @@ TutorialScript;
 
 /**
  * Class representing a completed / viewed tutorial.
- * Also handles parsing and from and creating the metadata strings
+ * Also handles parsing from and creating the metadata strings
  * @author Eric Wildfong
  * @version 1.0
  * @copyright Eric Wildfong 2020
