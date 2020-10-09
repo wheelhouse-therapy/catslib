@@ -4,6 +4,7 @@
 //Code in this file is Property of Eric Wildfong and Licensenced to the CATS Backend software.
 /**
  * Class responsible for handling showing users a tutorial if they havent already sceen it.
+ * This class is self initializing meaning init() does not need to be called first
  * @author Eric Wildfong
  * @version 1.0
  * @copyright Eric Wildfong 2020
@@ -216,6 +217,8 @@ TutorialScript;
             return;
         }
         
+        // Get instances of all the tutorial classes and index them by their screen.
+        // This index is used by hasTutorial() to determine if a tutorial for a screen exists
         $classes = get_declared_classes();
         foreach($classes as $klass) {
             $reflect = new ReflectionClass($klass);
