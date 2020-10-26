@@ -398,7 +398,7 @@ class ResourceManager{
                 $filename = FilingCabinet::GetDirInfo($filename)['name'];
             }
             $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."\")'>".$filename."</a><br />";
-            if(CATS_SYSADMIN){
+            if(CATS_SYSADMIN && $fileinfo->isFile()){
                 var_dump(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)));
             }
             $s .= "<div class='[style]' id='".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."' style='".(in_array(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)), $this->openTrees)?"":"display:none;")." width: [width];'>";
