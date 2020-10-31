@@ -15,8 +15,8 @@ if($cmd == "accept"){
     $dir = $ra[0];
     $subdir = @$ra[1]? "{$ra[1]}/" : "";
     if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
-        $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
         if(!ResourceRecord::GetRecordFromPath($oApp, $dir, $file,$subdir)){
+            $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
             $oRR->setDirectory($dir);
 
             $oRR->setSubDirectory(@$ra[1]?: "");
@@ -25,11 +25,12 @@ if($cmd == "accept"){
             }
         }
         else{
+            $s .= "<div class='alert alert-success'> Resource ".$file." has been overwritten. This CANNOT be undone</div>";
             if(!$oRR->DeleteRecord()){
                 $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
             }
         }
-        $oRR->CreateThumbnail( $oRR );
+        $oRR->CreateThumbnail();
     }
     else{
         $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
@@ -81,35 +82,32 @@ foreach ($dir as $fileinfo) {
             $oRR->StoreRecord();
         }
         $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
-        <form id='form".$oRR->getID()."' style='display:inline'>
+        <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()})'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
         $excluded = array();
         $options = "<option selected value=''>Select a directory</option>";
         foreach(FilingCabinet::GetDirectories() as $k => $v){
-            $exclude = file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()));
             if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                 continue;
             }
+            if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
+                array_push($excluded, $k);
+            }
+            $options .= "<option value='".$k."'>".$v['name']."</option>";
             if(FilingCabinet::GetSubFolders($k)){
                 foreach(FilingCabinet::GetSubFolders($k) as $folder){
-                    if($exclude){
+                    if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
                         array_push($excluded, $k."/".$folder);
                     }
                     $options .= "<option value='".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
                 }
             }
-            else{
-                if($exclude){
-                    array_push($excluded, $k);
-                }
-                $options .= "<option value='".$k."'>".$v['name']."</option>";
-            }
         }
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
-        <button type='submit' form='form".$oRR->getID()."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px'></button>
+        <button type='submit' form='form".$oRR->getID()."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px' class='resource{$oRR->getID()}'></button>
         </form>
-        <a href='?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
+        <a href='?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource' class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()})'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
     }
 }
@@ -128,6 +126,11 @@ function replace(event, ra) {
             $(submit).css('background-image','url(".CATSDIR_IMG."accept-resource.png)');
             submit.firstElementChild.innerHTML = 'Accept Resource';
         }
+}
+function disable(rrid){
+let className = 'resource'+rrid;
+$('a.'+className)[0].href = 0;
+$('button.'+className)[0].disabled = true;
 }
 </script>
 ";

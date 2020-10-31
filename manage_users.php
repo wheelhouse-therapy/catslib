@@ -3,15 +3,15 @@
 require_once( SEEDCORE."SEEDEmail.php" );
 
 class ManageUsers {
-    
+
     private $oApp;
     private $oPeopleDB;
     private $clinics;
     private $oClinicsDB;
     private $oAccountDB;
-    
+
     private $sForm = "";
-    
+
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
         $this->oPeopleDB = new PeopleDB($oApp);
@@ -19,12 +19,9 @@ class ManageUsers {
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
     }
-    
-    public function manageUser(int $staff_key, bool $userStatus = true, int $cloneID = 0){
-        $kfr = $this->getRecord($staff_key);
-        if(!$kfr){
-            $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
-        }
+
+    public function manageUser(int $staff_key, bool $userStatus = true, int $cloneID = 0, bool $bShowSaved = false){
+        $kfr = $this->getRecord($staff_key);    // gets empty record if staff_key is 0
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
         $oForm->SetKFR($kfr);
         $roles = ClientList::$staff_roles_name;
@@ -45,7 +42,7 @@ class ManageUsers {
         $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
         $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
-        
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm = "<form onSumbit='submitForm(event)'>"
                 ."<input type='hidden' id='staff_key' name='staff_key' value='$staff_key'/>"
@@ -71,12 +68,12 @@ class ManageUsers {
         $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");
         $this->drawPartialFormRow("", "<input type=\"file\" name=\"new_signature\" accept='.jpg' />");
         $this->endRowDraw();
-        $this->sForm .= "<tr class='row'>"
-            ."<td class='col-md-12'><input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' /></td>"
-            ."</tr>"
-            ."</table>"
+        $this->drawFormRow( "<input type='submit' name='action' value='Save' style='margin:auto' onclick='clinicHack(event);submitForm(event);' />",
+                            $bShowSaved ? "<div style='width:6em;text-align:center' class='alert alert-success'>Saved</div>" : "" );
+        $this->sForm .=
+             "</table>"
             ."</form>";
-        
+
         $kfrClone = $this->getClinicRecord($cloneID); // Get the record of the user we are cloning
         $s = "<div class='container-fluid'>"
             ."<h3>".($staff_key?"CATS Staff: ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name'):($cloneID?"Cloning: ".$kfrClone->Value('P_first_name')." ".$kfrClone->Value('P_last_name'):"New Staff"))."</h3>"
@@ -132,10 +129,10 @@ class ManageUsers {
             $sSidebar = str_replace("[[onClick]]", "onclick='cloneRecord(event,$uid)'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
-        
+
         return $s;
     }
-    
+
     public function userSettings(int $uid, bool $clone = false){
         $this->processUserCommands();
         $kfr = $this->getClinicRecord($uid);
@@ -162,7 +159,7 @@ class ManageUsers {
         $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
         $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
-                
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $this->sForm = "<form>"
             ."<input type='hidden' id='staff_key' name='staff_key' value='{$kfr->Value('_key')}'/>"
@@ -207,7 +204,7 @@ class ManageUsers {
             $sSidebar = str_replace("[[onClick]]", "onclick='window.location = \"?clone=true\"'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
-        
+
         $s .= "<script>
                     function doUpdateForm() {
                         var sel = document.getElementById('mySelect').value;
@@ -223,10 +220,10 @@ class ManageUsers {
 	                   $(\"select\",e.currentTarget.form).prop(\"disabled\", false);
                     }
                </script>";
-        
+
         return $s;
     }
-    
+
     public function drawList($raw = false){
         $s = "";
         $condStaff = "P.uid in (SELECT fk_SEEDSession_users FROM users_clinics WHERE fk_clinics = {$this->clinics->GetCurrentClinic()})";
@@ -254,46 +251,47 @@ class ManageUsers {
         }
         return $s;
     }
-    
+
     public function saveForm($clone = false){
-        
-        $staff_key = SEEDInput_Int('staff_key');
+        $staff_key = SEEDInput_Int('staff_key'); // Get the staff Key from the form
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
-        
         $clinic = 0;
         if($staff_key){
+            // Get the clinic in the db (to detect changes)
             $clinic = $this->oApp->kfdb->Query1("SELECT clinic FROM pros_internal WHERE _key = $staff_key");
         }
-        
-        $oForm->Update();
-        $this->updatePeople( $oForm );
-        
-        $staff_key = $oForm->GetKey();
-        
+
+        $oForm->Update(); // Update the db (save changes)
+        $this->updatePeople( $oForm ); // Save changes to the people fields
+
+        $staff_key = $oForm->GetKey(); // Update the staff key
+
         //Handle Signature Upload
         if(@$_FILES["new_signature"]["tmp_name"]){
-            $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE pros_internal._key = ".$oForm->GetKey());
+            $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name"]))."' WHERE pros_internal._key = ".$staff_key);
         }
-        if($this->clinics->getUserClinic(0)['Clinics__key'] == $clinic){
+
+        if($oForm->Value('P_uid') && $this->clinics->getUserClinic(0,$oForm->Value('P_uid'))['Clinics__key'] == $clinic){
+            // The user is changing their primary info change their user info to match
             $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
             $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
-            if(($uid = $oForm->Value('P_uid'))){
-                $userInfo = $this->oAccountDB->GetUserInfo($this->oApp->sess->GetUID())[1];
-                @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
-                $lname = $lname?:"";
-                if($userInfo['email'] == strtolower(substr($fname, 0,1).$lname) && $userInfo['email'] != $username){
-                    $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},email='$username' WHERE seedsession_users._key = $uid");
-                }
-                if($realname != $userInfo['realname']){
-                    $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
-                }
+            $userInfo = $this->oAccountDB->GetUserInfo($oForm->Value('P_uid'))[1];
+            @list($fname,$lname) = explode(" ", $userInfo['realname']);
+            $lname = $lname?:"";
+            $uid = $oForm->Value('P_uid');
+            if($userInfo['email'] == strtolower(substr($fname, 0,1).$lname) && $userInfo['email'] != $username){
+                $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},email='$username' WHERE seedsession_users._key = $uid");
             }
-            else{
-                $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
-                $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->Value('P__key'));
+            if($realname != $userInfo['realname']){
+                $this->oApp->kfdb->Execute("UPDATE seedsession_users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
             }
         }
-        
+        else if(!$oForm->Value("P_uid")){
+            $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
+            $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
+            $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
+            $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('P__key'));
+        }
         if($clinic != $oForm->Value('clinic') && !in_array($oForm->Value('clinic'),array_column($this->clinics->GetUserClinics(), 'Clinics__key'))){
             if($clinic){
                 $this->oApp->kfdb->Execute("UPDATE users_clinics SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},fk_clinics={$oForm->Value('clinic')} WHERE fk_SEEDSession_users = {$oForm->Value('P_uid')} AND fk_clinics = $clinic");
@@ -302,11 +300,12 @@ class ManageUsers {
                 $this->oApp->kfdb->Execute("INSERT INTO users_clinics( _created, _created_by, _updated, _updated_by, _status, fk_SEEDSession_Users, fk_clinics) VALUES (NOW(),{$this->oApp->sess->GetUID()},NOW(),{$this->oApp->sess->GetUID()},0,{$oForm->Value('P_uid')},{$oForm->Value('clinic')})");
             }
         }
-        
-        return ["list"=>$this->drawList(true),"form"=>$this->manageUser($staff_key)];
-        
+
+
+        return ["list"=>$this->drawList(true),"form"=>$this->manageUser($staff_key, true, 0, true)];
+
     }
-    
+
     public function processCommands(String $cmd,int $uid = 0){
         if($uid == 0){
             $uid = $this->oApp->sess->GetUID();
@@ -326,7 +325,7 @@ Username: [[username]]
 Password: cats
 3.	You will then be prompted to change your password. You will not be able to get off this screen until you change your password from cats. Other than that there are no requirements for your password.
 
-Please let us know if you don’t have permission to do something that you should have permission to do.
+Please let us know if you donï¿½t have permission to do something that you should have permission to do.
  
 Welcome to the CATS Team
  
@@ -355,7 +354,7 @@ As a reminder, to access your account:
 Username: [[username]]
 Password: Same as before (use the reset password link on the login page if you don't remember it)
 
-Please let us know if you don’t have permission to do something that you should have permission to do.
+Please let us know if you donï¿½t have permission to do something that you should have permission to do.
 
 Welcome back to the CATS Team
 
@@ -371,7 +370,7 @@ body;
         }
         return $this->manageUser($uid,false);
     }
-    
+
     public function processUserCommands(){
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
@@ -382,7 +381,7 @@ body;
                 $this->saveForm(true);
         }
     }
-    
+
     public function getClinicRecord(int $uid):KeyframeRecord{
         if($uid){
             $ra = $this->oPeopleDB->GetList(ClientList::INTERNAL_PRO, "P.uid = $uid");
@@ -406,7 +405,7 @@ body;
             return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
         }
     }
-    
+
     /**
      * Check if the clinic profile for the given user is valid.
      * A valid profile should not be limited in functionality
@@ -414,7 +413,7 @@ body;
      * First Name
      * Last Name
      * Email
-     * 
+     *
      * @param int $uid - uid of user to check
      * @return bool - true if the profile is filled out where all features are unlocked. False otherwise
      */
@@ -435,7 +434,7 @@ body;
         }
         return $valid;
     }
-    
+
     private function getRecord(int $staff_key):KeyframeRecord{
         if($staff_key){
             return $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $staff_key);
@@ -444,7 +443,7 @@ body;
             return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
         }
     }
-    
+
     private function drawFormRow( $label, $control )
     {
         $this->endRowDraw();
@@ -452,7 +451,7 @@ body;
         $this->sForm = str_replace(array("[[label]]","[[control]]"), array($label,$control), $this->sForm);
         $this->endRowDraw();
     }
-    
+
     private function drawPartialFormRow( $label, $control ){
         if(strpos($this->sForm, "[[label]]") === false){
             $this->beginRowDraw();
@@ -462,20 +461,20 @@ body;
         }
         $this->sForm = str_replace(array("[[label]]","[[control]]"), array($label."[[label]]",$control."[[control]]"), $this->sForm);
     }
-    
+
     private function beginRowDraw(){
         $this->sForm .= "<tr class='row' [[style]]>"
-            ."<td class='col-md-5'><span>[[label]]</span></td>"
-                ."<td class='col-md-7'>[[control]]</td>"
-                    ."</tr>";
+                       ."<td class='col-md-5'><span>[[label]]</span></td>"
+                       ."<td class='col-md-7'>[[control]]</td>"
+                       ."</tr>";
     }
-    
+
     private function endRowDraw(){
         $this->sForm = str_replace(array("[[label]]","[[control]]", "[[style]]"), "", $this->sForm);
     }
-    
+
     private function getPronounList(KeyframeForm $oForm){
-        
+
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
         $s = "<select name='".$oForm->Name("P_pronouns")."' required ".($oForm->Value('_status')==0?"":"disabled").">";
         $s .= "<option value=''>Select Pronouns</option>";
@@ -490,7 +489,7 @@ body;
         $s .= "</select>";
         return $s;
     }
-    
+
     private function getClinicList( $oForm)
     {
         $clinicId = $oForm->Value("clinic");
@@ -503,14 +502,14 @@ body;
         $s .= "</select>";
         return $s;
     }
-    
+
     private function updatePeople( SEEDCoreForm $oForm )
     /***************************************************
      The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
         $peopleFields = array('pronouns','first_name','last_name','address','city','province','postal_code','dob','phone_number','email' );
-        
+
         $kP = $oForm->Value('P__key');
         if(!$kP){
             $sCond = "";
@@ -538,5 +537,5 @@ body;
             $oForm->Store();
         }
     }
-    
+
 }

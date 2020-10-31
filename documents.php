@@ -397,8 +397,8 @@ class ResourceManager{
             if(FilingCabinet::GetDirInfo($filename)){
                 $filename = FilingCabinet::GetDirInfo($filename)['name'];
             }
-            $s .= "<a href='javascript:void(0)' onclick='toggleDisplay(\"".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."\")'>".$filename."</a><br />";
-            $s .= "<div class='[style]' id='".$this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)."' style='".(in_array($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES), $this->openTrees)?"":"display:none;")." width: [width];'>";
+            $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."')\">".$filename."</a><br />";
+            $s .= "<div class='[style]' id=\"".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."\" style='".(in_array(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)), $this->openTrees)?"":"display:none;")." width: [width];'>";
             if($fileinfo->isDir()){
                 $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
                 $s .= $this->listResources($fileinfo->getRealPath());
@@ -514,8 +514,8 @@ class ResourceManager{
         }
 
         $directory = pathinfo(substr($file_path,strlen(CATSDIR_RESOURCES)),PATHINFO_DIRNAME);
-        $move = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move\")'>move</a>";
-        $move .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_move' style='display:none'>"
+        $move = "<a href='javascript:void(0)' onclick=\"setContents('".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_command','".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_move')\">move</a>";
+        $move .= "<div id=\"".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_move\" style='display:none'>"
                 ."<br /><form>
                   <input type='hidden' name='cmd' value='move' />
                   <input type='hidden' name='id' value='".$oRR->getID()."' />
@@ -534,8 +534,8 @@ class ResourceManager{
         }
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
 
-        $rename = "<a href='javascript:void(0)' onclick='setContents(\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command\",\"".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename\")'>rename</a>";
-        $rename .= "<div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_rename' style='display:none'>"
+        $rename = "<a href='javascript:void(0)' onclick=\"setContents('".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_command','".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_rename')\">rename</a>";
+        $rename .= "<div id=\"".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_rename\" style='display:none'>"
                   ."<br /><form>"
                   ."<input type='hidden' name='cmd' value='rename' />"
                   ."<input type='hidden' name='id' value='".$oRR->getID()."' />"
@@ -563,7 +563,7 @@ class ResourceManager{
 
         $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
 
-        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".$this->getPathRelativeTo($file_path,CATSDIR_RESOURCES)."_command' style='display:none'></div>";
+        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_command' style='display:none'></div>";
         return $s;
     }
 

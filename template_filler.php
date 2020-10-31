@@ -13,14 +13,157 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
         parent::__construct( $resourcename );
     }
 
+    static private $level = 0;              // just used for debug messages
+    static public $bDebug = false;          // turn this on to see what's happening
+    static private $state = 0;              // 0 = outside of tag; 1=found $, 2=found {, (state 2 goes to 0 when } found)
+    static private $currTagTextNode = null; // in states 1-2 we are assembling the tag in this text node
+
+    function fixTagsInXML( DOMNode $node )
+    /*************************************
+        Our tags e.g. ${client:firstname) wind up in complicated places
+        e.g. <w:r><w:t>some text. ${</w:t><w:proofErr...</w:r>
+             <w:r><w:Pr>...</w:Pr><w:t>client</w:t><w:proofErr...</w:r>
+             <w:r><w:Pr>...</w:Pr><w:t>:firstname</w:t><w:proofErr...</w:r>
+             <w:r><w:Pr>...</w:Pr><w:t>} more text ${</w:t>...
+
+        1) it is difficult to locate the tags, particularly in the last line where an end-} and start-${ occur in the same w:t
+        2) it is error-prone to strip-tags between { } without knowing the structure within.
+           e.g. track-changes elements can span portions of w:t apparently
+        3) some w:t have preserve-space and some don't : we had a bug caused by stripping a <w:t preserve-space='true'>
+
+        So we have found no simple text-parsing or regex solution that works generally.
+        Instead we load the xml into a dom, use a state machine to walk through the text nodes to search for the pieces of our tags,
+        and reassemble each tag in its canonical form in its first w:t (the one containing the $).
+
+        Theoretically, w:t elements that are thereafter left empty could be deleted but we don't bother.
+     */
+    {
+        ++self::$level;
+
+        $isTextNode = ($node->nodeName == '#text');
+
+        if( self::$bDebug ) {
+            echo SEEDCore_NBSP("",self::$level*4)
+                .($isTextNode ? "<b>{$node->nodeValue}</b>" : "{$node->nodeName}")
+                ."<br>";
+        }
+
+        if( $isTextNode ) {
+            // scan this text node for the next part of the ${tag}
+
+            $bChanged = false;      // tell whether one or more characters were copied from this node
+
+            // chars are copied to currTagTextNode as needed, or put back into nodeValue if they should stay here
+            $raNodeChars = str_split($node->nodeValue);
+            $node->nodeValue = "";
+
+            foreach( $raNodeChars as $c ) {
+                $bCopyChar = false;     // copy $c to currTagTextNode
+
+                switch( self::$state ) {
+                    case 0:     // haven't found a tag yet
+                        if( $c == '$' ) {
+                            // Found the start of a tag (maybe). If it spans multiple nodes we're going to move the rest of it here.
+                            self::$state = 1;
+                            self::$currTagTextNode = $node;
+                        }
+                        break;
+                    case 1:     // found a $, expecting { to be the next character
+                        if( $c == '{' ) {
+                            // looks like one of our tags
+                            self::$state = 2;
+                            $bCopyChar = true;
+                        } else {
+                            // this isn't one of our tags after all.
+                            self::$state = 0;
+                        }
+                        break;
+                    case 2:     // found ${ so collect contents
+                        if( $c == '$' || $c == '{' ) {
+                            // uh oh, that shouldn't be here
+                            self::$state = 0;
+                        } else if( $c == '}' ) {
+                            // found the end of the tag
+                            $bCopyChar = true;
+                            self::$state = 0;       // finalize the tag below and continue in state 0
+                        } else {
+                            $bCopyChar = true;
+                        }
+                        break;
+                }
+
+                if( $bCopyChar && $node !== self::$currTagTextNode ) {
+                    // The current char is part of the tag we're collecting, and we're in a different node than where we found the $.
+                    self::$currTagTextNode->nodeValue .= $c;
+                    $bChanged = true;
+                } else {
+                    // The current char is not part of a tag, or if it is we're in the same node as the $ anyway.
+                    $node->nodeValue .= $c;
+                }
+            }
+
+            if( self::$bDebug && $bChanged ) {
+                echo SEEDCore_NBSP("",self::$level*4)."<b style='color:orange'>{$node->nodeValue}</b><br/>";
+                echo SEEDCore_NBSP("",self::$level*4)."<b style='color:green'>".self::$currTagTextNode->nodeValue."</b><br/>";
+            }
+
+            // If chars have been copied out of this node, set the w:t xml:space='preserve' attribute.
+            // The reason is that we might leave a leading space (e.g. after the }) that wouldn't be considered significant otherwise.
+            //
+            // N.B. Here (and in other places) it is not enough to test that node!==currTagTextNode to tell whether chars have been
+            // copied. It is possible for the nodeValue to be "tag} ...text... ${" in which case the first part of the node will have
+            // been copied to a previous w:t but by the time we get here currTagTextNode will have been updated to refer to this node.
+            // Use bChanged to tell whether chars have been copied.
+            if( $bChanged && $node->parentNode->nodeName == 'w:t' )
+            {
+                $node->parentNode->setAttribute( 'xml:space', 'preserve' );
+            }
+        }
+
+        // walk through the document looking for text nodes
+        if( ($children = $node->childNodes) ) {
+            foreach( $children as $child ) {
+                $this->fixTagsInXML($child);
+            }
+        }
+        self::$level--;
+    }
+
     protected function fixBrokenMacros($documentPart)
     {
         $fixedDocumentPart = $documentPart;
 
+        /* old pattern: '|\$[^{]*\{[^}]*\}|U'  '|\$(?><.*?>)*\{.*?\}|' */
+/*
+        $patternStartMatch = '|(<w:[^>]+[^>\/]*?>[^<>]*?\$(?><.*?>)*\{.*?\})|'; // '.*?(?<end><\/(w:[^ >]+)>)|'
+$matches = [];
+        $raPass1 = preg_match_all( $patternStartMatch, $documentPart, $matches, PREG_OFFSET_CAPTURE | PREG_PATTERN_ORDER );
+        var_dump($matches[0]);
+*/
+        $oDom = new DOMDocument();
+        if( $oDom->loadXML($documentPart, LIBXML_NOENT | LIBXML_XINCLUDE | LIBXML_NOERROR | LIBXML_NOWARNING) ) {
+
+            if( MyPhpWordTemplateProcessor::$bDebug ) {
+                // this shows whether the oDom can rewrite the xml exactly the same, modulo line ends
+                $testOutput = $oDom->saveXML();
+                $testOutput = str_replace(["\r","\n"],["".""],$testOutput);
+                $orig       = str_replace(["\r","\n"],["".""],$documentPart);
+                echo "<div style='margin:30px 0'>saveXML output is"
+                    .($orig==$testOutput ? " <span style='color:green'>identical</span>":" <span style='color:red'>NOT identical</span>")
+                    ." to the input: ".strlen($orig)."/".strlen($testOutput)."</div>";
+            }
+
+            self::$state = 0;
+            self::$currTagTextNode = null;
+            $this->fixTagsInXML($oDom->documentElement);
+        }
+return( $oDom->saveXML() );
+
         $fixedDocumentPart = preg_replace_callback(
-            /*'|\$[^{]*\{[^}]*\}|U''|\$(?><.*?>)*\{.*?\}|'*/'|(?<start><(w:[^ >]+)[^>\/]*?>[^<>]*?)(?<match>\$(?><.*?>)*\{.*?\}).*?(?<end><\/(w:[^ >]+)>)|',
+            '|(?<start><(w:[^ >]+)[^>\/]*?>[^<>]*?)(?<match>\$(?><.*?>)*\{.*?\}).*?(?<end><\/(w:[^ >]+)>)|',
             function ($match) {
                 $fix = strip_tags($match['match']);
+                //var_dump($match); var_dump($fix);
                 $isAssessment = False;
                 foreach (getAssessmentTypes() as $assmt){
                     $assmt = '${'.$assmt;
@@ -47,7 +190,7 @@ class MyPhpWordTemplateProcessor extends \PhpOffice\PhpWord\TemplateProcessor
                             $mid .= '<w:t xml:space="preserve">';
                         }
                     }
-                    
+//var_dump( $match['start'].$fix.$mid.$match['end'] );
                     // Close the existing <w:t> and open one which preserves spaces
                     // This is neccessary since strip_tags can remove the preserve spaces property of the enclosing <w:t>
                     // Thus causing spaces in the same <w:t> as the tag to be lost/not preserved
@@ -260,6 +403,9 @@ class template_filler {
             next:
             $tags = $templateProcessor->getVariables();
         }
+
+        // the template processor writes debug info if this variable is set so stop here and let us look at it
+        if( MyPhpWordTemplateProcessor::$bDebug ) { exit; }
 
         switch($resourceType){
             case self::STANDALONE_RESOURCE:

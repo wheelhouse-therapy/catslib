@@ -372,7 +372,14 @@ class ResourceRecord {
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
     private const PREVIEW_KEY = 'preview';
+    private const DESCRIPTION_KEY = 'description';
+    private const NEWNESS_KEY = 'newness';
 
+    // Cutoff for resources to be considered "new"
+    private const NEWNESS_CUTOFF = 60;
+    // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
+    private const NEWNESS_GROUPS = 2;
+    
     private const TAG_SEPERATOR = "\t";
 
 
@@ -406,6 +413,9 @@ class ResourceRecord {
     private $file;
     private $tags = [];
     private $preview = "";
+    private $description = "";
+    private $newness = 0; // Which newness "group" this resource belongs to
+    
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -432,6 +442,8 @@ class ResourceRecord {
         $this->tags = array_values(array_filter($this->tags)); //Remove empty tags, saving to DB should keep them
 
         $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
+        $this->description = @$raParams[self::DESCRIPTION_KEY]?:'';
+        $this->newness = (@$raParams[self::NEWNESS_KEY]?:0);
     }
 
     /**
@@ -449,6 +461,8 @@ class ResourceRecord {
             'committed' => $this->committed,
             'preview' => $this->preview,
             'created_by' => $this->created_by,
+            'description' => $this->description,
+            'newness' => $this->newness
         ];
     }
 
@@ -490,6 +504,7 @@ class ResourceRecord {
      * @return bool - true if the directory has changed, false otherwise
      */
     public function setDirectory(String $dir):bool{
+        $dir = trim($dir,'/\\');
         if($dir != $this->dir){
             $this->committed = false;
             if($this->dir == 'pending'){
@@ -510,6 +525,7 @@ class ResourceRecord {
      * @return bool - true if the subdirectory has changed, false otherwise
      */
     public function setSubDirectory(String $subdir):bool{
+        $subdir = trim($subdir,'/\\');
         if($subdir != $this->subdir){
             $this->committed = false;
         }
@@ -567,6 +583,21 @@ class ResourceRecord {
     }
 
     /**
+     * Set the description of the resource
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
+     * @param String $description - Description to store
+     * @return boolean - true if description has changed, false otherwise
+     */
+    public function setDescription(String $description){
+        if($description != $this->description){
+            $this->committed = false;
+        }
+        $this->description = $description;
+        return !$this->committed;
+    }
+    
+    /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
      * @return bool - true if data successfully committed, false otherwise
@@ -580,6 +611,7 @@ class ResourceRecord {
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
         $dbPreview = $this->oApp->kfdb->EscapeString($this->preview);   // better to use the mysqli function to escape binary data
+        $dbDescription = addslashes($this->description);
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
             //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
@@ -604,10 +636,10 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview' WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription' WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview')"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview,description) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription')"))){
                 $this->committed = true;
             }
         }
@@ -660,6 +692,10 @@ class ResourceRecord {
     public function getPath():String{
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
+    
+    public function getDescription():String{
+        return $this->description;
+    }
 
     /**
      * Get the stored preview of the resource.
@@ -700,6 +736,14 @@ class ResourceRecord {
         return $this->created_by;
     }
 
+    public function getNewness(){
+        return $this->newness;
+    }
+    
+    public function isNewResource(){
+        return $this->newness >= 0;
+    }
+    
     /**
      * Get if this file is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
@@ -769,7 +813,7 @@ class ResourceRecord {
      * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
      */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
-        $ra = $oApp->kfdb->QueryRA( "SELECT * FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        $ra = $oApp->kfdb->QueryRA( "SELECT *,FLOOR((".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).") as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
             // No Record with that id exists
             return NULL;
@@ -782,10 +826,11 @@ class ResourceRecord {
         $raParams += [self::TAGS_KEY=>$ra['tags']];
         $raParams += [self::PREVIEW_KEY=>$ra['preview']];
         $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
+        $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
+        $raParams += [self::NEWNESS_KEY=>$ra['newness']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
-
     }
 
     public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1):ResourceRecord{
@@ -831,6 +876,8 @@ class ResourceRecord {
 
     public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
         $cond = "";
+        $dirname = trim($dirname,'/\\');
+        $subdir = trim($subdir,'/\\');
         if($dirname != self::WILDCARD){
             $dbFolder = addslashes($dirname);
             $cond = self::joinCondition($cond,"folder='$dbFolder'");
