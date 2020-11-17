@@ -492,7 +492,7 @@ class template_filler {
                         break;
                     case "Signature":
                         $imagePath = FALSE;
-                        if($kfrStaff){
+                        if($this->kfrStaff){
                             $rawData = $this->kfrStaff->Value("signature");
                         }
                         break;
