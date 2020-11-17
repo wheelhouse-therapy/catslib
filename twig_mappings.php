@@ -15,6 +15,7 @@ $mappings = array(
     "home" => "home",
     "developer-clinics" => "clinics",
     "leader-clinic" => "clinics",
+    "administrator-clinics" => "clinics",
     "therapist-distributeReports" => "distributeReports",
     "admin-users" => "manage-users",
     "therapist-filing-cabinet" => "filing-cabinet",
