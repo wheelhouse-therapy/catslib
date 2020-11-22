@@ -15,10 +15,10 @@ if($cmd == "accept"){
     $dir = $ra[0];
     $subdir = @$ra[1]? "{$ra[1]}/" : "";
     if(rename($dir_name.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
-        if(!ResourceRecord::GetRecordFromPath($oApp, $dir, $file,$subdir)){
+        if(!ResourceRecord::GetRecordFromPath($oApp, 'general', $dir, $file,$subdir)){
             $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
+            $oRR->setCabinet( $dir=='videos' ? 'videos' : 'general' );
             $oRR->setDirectory($dir);
-
             $oRR->setSubDirectory(@$ra[1]?: "");
             if(!$oRR->StoreRecord()){
                 $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
@@ -76,9 +76,9 @@ if(iterator_count($dir) == 2){
 }
 foreach ($dir as $fileinfo) {
     if (!$fileinfo->isDot()) {
-        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, $fileinfo->getRealPath());
+        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, 'general', $fileinfo->getRealPath());   // use general for files in pending folder
         if(!$oRR){
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, $fileinfo->getRealPath(),0);
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, $fileinfo->getRealPath(), ['cabinet'=>'general'], 0);
             $oRR->StoreRecord();
         }
         $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>

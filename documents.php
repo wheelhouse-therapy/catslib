@@ -384,7 +384,7 @@ class ResourceManager{
             if($fileinfo->isDir() && $fileinfo->getFilename() == "pending") continue;
 
             if(!$fileinfo->isDir()){
-                $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $fileinfo->getRealPath());
+                $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', $fileinfo->getRealPath());
             }
             else{
                 $oRR = Null;
@@ -509,7 +509,7 @@ class ResourceManager{
         if(!$this->oApp->sess->CanAdmin("admin")){
             return "You don't have permission to edit files";
         }
-        if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($file_path))) ) {
+        if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', realpath($file_path))) ) {
             return( "<p>Note there is a file <pre>$file_path</pre> that is not indexed</p>" );
         }
 

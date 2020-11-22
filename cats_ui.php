@@ -206,7 +206,7 @@ ResetPassword;
                 break;
 
             case 'therapist-filing-cabinet':
-                $oFC = new FilingCabinetUI( $this->oApp );
+                $oFC = new FilingCabinetUI( $this->oApp, 'general' );
                 $s .= $oFC->DrawFilingCabinet();
                 break;
             case 'therapist-reports':
@@ -446,7 +446,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 return [];
         }
     }
-    
+
     private function drawCircles( array $raScreens, String $section )
     {
         $s = "";
@@ -464,7 +464,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $href = substr($ra[0], 5);
                 $target = " target='_blank'";
                 $id = substr($ra[0], strrpos($ra[0], "/"));
-            } 
+            }
             elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
                 $href = "#";
                 $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";
