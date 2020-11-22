@@ -14,137 +14,6 @@
  * FilingCabinetTools    provides the UI to move, rename, and delete files
  */
 
-class FilingCabinetUI
-/********************
-    Top-level UI for the filing cabinet.
- */
-{
-    private $oApp;
-    private $sCabinet;  // the value of resources_files.cabinet that defines which filing cabinet to use
-
-    function __construct( SEEDAppConsole $oApp, String $sCabinet = 'general' )
-    {
-        $this->oApp = $oApp;
-        $this->sCabinet = $sCabinet;
-    }
-
-    function DrawFilingCabinet()
-    /***************************
-        Show the UI for a FilingCabinet
-     */
-    {
-        $s = "";
-
-        if($this->oApp->sess->SmartGPC('dir') == 'main'){
-            $this->oApp->sess->VarUnSet('dir');
-        }
-
-        // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
-        $this->handleCmd();
-
-        if( CATS_SYSADMIN ) {
-            if( SEEDInput_Str('adminCreateAllThumbnails') ) {
-                // Create thumbnails for all resources that don't have them.
-                // You have to have PHPWord, dompdf, convert(ImageMagick), ffmpeg installed.
-                $raRR = ResourceRecord::GetRecordsWithoutPreview($this->oApp);
-                foreach( $raRR  as $oRR ) {
-                    $oRR->CreateThumbnail( $oRR );
-                }
-                $s .= "<div class='alert alert-success'>Tried to create ".count($raRR)." thumbnails</div>";
-            } else {
-                $s .= "<form><input type='hidden' name='adminCreateAllThumbnails' value='1'/>"
-                     ."<input type='submit' value='Admin: Create Thumbnails'/></form>";
-            }
-        }
-
-        if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
-            // Show the "currently-open drawer" of the filing cabinet
-            FilingCabinet::EnsureDirectory($dirbase);
-            $title = "Close {$raDirInfo['name']} Drawer";
-            if(stripos($raDirInfo['name'], "Drawer") !== false){
-                $title = "Close {$raDirInfo['name']}";
-            }
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
-                 .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
-                 //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                    ."Back to Filing Cabinet"
-                 ."</div></p></a>";
-            if($dir == 'papers'){
-                include(CATSLIB."papers.php");
-            }
-            else{
-                $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
-            }
-            $s .= $this->getSearchDialog();
-        } else {
-            FilingCabinet::EnsureDirectory("*");
-            $s .= "<div style='float:right;' id='uploadForm'>"
-                    .FilingCabinetUpload::DrawUploadForm()
-                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-
-            // Show the "closed drawers" of the filing cabinet
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>";
-
-            // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = FilingCabinet::GetFilingCabinetDirectories();
-            foreach( $ras as $k => $ra ) {
-                $bgcolor = "background-color: grey;";
-                if (array_key_exists("color", $ra)) {
-                    $bgcolor = "background-color: {$ra['color']};";
-                }
-                $title = "Open {$ra['name']} Drawer";
-                if(stripos($ra['name'], "Drawer") !== false){
-                    $title = "Open {$ra['name']}";
-                }
-
-                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                        ."{$ra['name']}"
-                     ."</div></a></p>";
-            }
-            $s .= $this->getSearchDialog();
-        }
-        return( $s );
-    }
-
-    private function getSearchDialog(){
-        return <<<SearchDialog
-<div class='modal fade' id='search_dialog' role='dialog'>
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <input type='text' class='search' id='search' name='search' placeholder='Search..' onkeyup='searchFiles(event)' role='search'>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class='modal-body' id='searchResults'>
-            </div>
-        </div>
-    </div>
-</div>
-SearchDialog;
-    }
-
-    private function handleCmd()
-    {
-        switch( ($cmd = SEEDInput_Str('cmd')) ) {
-            case 'download':
-                $oFCD = new FilingCabinetDownload( $this->oApp );
-                $oFCD->DownloadFile();
-                exit;       // download doesn't return here, but this is just a good reminder of that
-            case 'view':
-                $oFCD = new FilingCabinetDownload( $this->oApp );
-                $oFCD->DownloadFile();
-                exit;       // download doesn't return here, but this is just a good reminder of that
-
-            default:
-                break;
-        }
-    }
-}
-
-
 class FilingCabinet
 /******************
     Base filesystem class for the filing cabinet.
@@ -362,6 +231,34 @@ class FilingCabinet
         'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"]
     ];
+
+
+    static function checkFileSystem(SEEDAppConsole $oApp)
+    {
+        $FileSystemVersion = 2;
+        $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
+        $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
+        if( $currFileSystemVersion != $FileSystemVersion ) {
+            $oBucket->PutStr( 'cats', 'FileSystemVersion', $FileSystemVersion );
+        }
+        if ($currFileSystemVersion < 2) {
+            FilingCabinet::EnsureDirectory('old');
+            foreach(array('handouts/','forms/','marketing/','clinic/') as $folder){
+                $directory_iterator = new DirectoryIterator(CATSDIR_RESOURCES.$folder);
+                foreach ($directory_iterator as $fileinfo){
+                    if($fileinfo->isDot()){
+                        continue;
+                    }
+                    rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('old')['directory'].$fileinfo->getFilename());
+                    //TODO Use ResourceRecord instead.
+                    // This is legacy update code for updating a legacy filesystem.
+                    // All (or most) of the file systems should be updated now.
+                    $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(FilingCabinet::GetDirInfo('old')['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
+                }
+                rmdir(realpath(CATSDIR_RESOURCES.$folder));
+            }
+        }
+    }
 }
 
 /**

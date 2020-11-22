@@ -2,7 +2,6 @@
 
 require_once 'client_code_generator.php';
 require_once 'assessments.php';
-require_once 'share_resources.php';
 require_once 'Clinics.php';
 require_once 'handle_images.php';
 

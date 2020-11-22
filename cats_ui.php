@@ -1,7 +1,6 @@
 <?php
 include_once('twig_mappings.php');
 include_once('view_resources.php');
-include_once('share_resources.php');
 include_once('Clinics.php');
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 include_once( SEEDLIB."SEEDUGP.php" );

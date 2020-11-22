@@ -1,7 +1,5 @@
 <?php
 
-require_once 'share_resources.php';
-
 FilingCabinet::EnsureDirectory("*");
 
 $dir_name = CATSDIR_RESOURCES."pending/";

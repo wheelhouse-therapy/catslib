@@ -1,8 +1,6 @@
 <?php
 
 require_once 'template_filler.php';
-require_once 'share_resources.php';
-
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 /************************************************************

@@ -1,7 +1,6 @@
 <?php
 
 require_once SEEDROOT."DocRep/DocRepUI.php";
-include_once "share_resources.php";
 
 class CATSDocTabSet extends Console02TabSet
 {
