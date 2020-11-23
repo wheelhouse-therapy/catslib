@@ -632,8 +632,10 @@ class template_filler {
                 case 'full_address':
                     $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
                     break;
+                case 'name':
+                    $s = $this->kfrClinic->Value("clinic_name");
+                    break;
                 default:
-                    $s = $col[0];
                     $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
