@@ -379,7 +379,7 @@ class ResourceRecord {
     private const NEWNESS_CUTOFF = 60;
     // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
     private const NEWNESS_GROUPS = 2;
-    
+
     private const TAG_SEPERATOR = "\t";
 
 
@@ -415,7 +415,7 @@ class ResourceRecord {
     private $preview = "";
     private $description = "";
     private $newness = 0; // Which newness "group" this resource belongs to
-    
+
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -596,7 +596,7 @@ class ResourceRecord {
         $this->description = $description;
         return !$this->committed;
     }
-    
+
     /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
@@ -692,7 +692,7 @@ class ResourceRecord {
     public function getPath():String{
         return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
     }
-    
+
     public function getDescription():String{
         return $this->description;
     }
@@ -739,11 +739,11 @@ class ResourceRecord {
     public function getNewness(){
         return $this->newness;
     }
-    
+
     public function isNewResource(){
         return $this->newness >= 0;
     }
-    
+
     /**
      * Get if this file is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
@@ -980,6 +980,11 @@ class ResourceRecord {
             case 'doc':
                 $fnameThumb = $this->createThumbFromDocx( $srcfname );
                 break;
+
+            case 'mp4':
+            // and every other video format
+                $fnameThumb = $this->createThumbFromVideo( $srcfname );
+                break;
         }
 
         if( $fnameThumb ) {
@@ -1037,4 +1042,21 @@ class ResourceRecord {
 
         return( $fnameThumb );
     }
+
+    private function createThumbFromVideo( $fnameSrc )
+    {
+        $fnameThumb = tempnam("", "thumb_").".jpg";
+
+        $raDummy = [];
+        $iRet = 0;
+        // srcfname[0] means convert the first page
+        $sExec = "ffmpeg -i \"{$fnameSrc}\" -vf  \"thumbnail,scale=480:-1\" -frames:v 1 \"$fnameThumb\"";
+        exec( $sExec, $raDummy, $iRet );
+        if( CATS_SYSADMIN ) {
+            var_dump($sExec,$iRet);
+        }
+
+        return( $fnameThumb );
+    }
+
 }

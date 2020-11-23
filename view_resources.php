@@ -454,6 +454,13 @@ viewSOP;
 }
 
 function viewVideos(SEEDAppConsole $oApp){
+
+    if( SEEDInput_Str('cmd') == 'view' ) {
+        $oFCD = new FilingCabinetDownload( $oApp );
+        $oFCD->DownloadFile();
+        exit;
+    }
+
     $viewVideo = <<<viewVideo
     <style>
         html, body {
@@ -509,13 +516,11 @@ viewVideo;
                 if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
             }
 
-            $listVideos .= "<tr>"
-                ."<td valign='top'>"
-                    ."<a style='white-space: nowrap' href='?video_view=item&video_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
-                        .$fileinfo->getFilename()
-                        ."</a>"
-                            ."</td>"
-                                ."</tr>";
+            $listVideos .= "<tr><td valign='top'>"
+                ."<a style='white-space: nowrap' href='?video_view=item&video_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
+                    .$fileinfo->getFilename()
+                ."</a>"
+                ."</td></tr>";
         }
         $listVideos .= "</table>";
 
@@ -529,15 +534,19 @@ viewVideo;
                 //Complicated method to ensure the file is in the directory
                 foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
                     if(pathinfo($file,PATHINFO_FILENAME) == $item){
-                        // show file
-                        return str_replace("[[video]]", "./resources/".FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
+                        // use FilingCabinetDownload to show file
+                        if( ($oRR = ResourceRecord::GetRecordFromPath($oApp, "videos", pathinfo($file,PATHINFO_BASENAME), "*" )) &&
+                            ($oRR->getID()) )
+                        {
+                            return str_replace("[[video]]", "?cmd=view&rr={$oRR->getID()}", $viewVideo);
+                        }
                     }
                 }
                 $oApp->sess->VarUnSet("video_item");
             case "list":
                 return $listVideos;
         }
-
+        return( "" );
 }
 
 class ResourcesFiles
