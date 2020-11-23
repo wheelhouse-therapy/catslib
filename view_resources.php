@@ -116,11 +116,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     else if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
-    else if(CATS_DEBUG){
-        // Developer mechines aren't configred to talk with SMTP servers.
-        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
-    }
-    else{
+// yeah but what if I want to see how it composes the email? Instead I just put CATS_DEBUG around the mail() function
+//    else if(CATS_DEBUG){
+//        // Developer mechines aren't configured to talk with SMTP servers.
+//        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+//    }
+    else if(!CATS_DEBUG) {
         $s = str_replace(["[[title]]","[[disabled]]"], ["title='Your account lacks an email address'","disabled"], $s);
     }
 

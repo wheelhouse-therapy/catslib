@@ -277,7 +277,8 @@ ResetPassword;
                 $s .= $this->drawAdminUsers();
                 break;
             case 'admin-resources':
-                include('review_resources.php');
+                $oF = new FilingCabinetReview($oApp);
+                $s .= $oF->DrawReviewUI();
                 break;
             case 'admin-manageresources':
                 $s .= ManageResources($oApp);
