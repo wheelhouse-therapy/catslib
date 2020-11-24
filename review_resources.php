@@ -127,10 +127,14 @@ function replace(event, ra) {
             submit.firstElementChild.innerHTML = 'Accept Resource';
         }
 }
-function disable(rrid){
-let className = 'resource'+rrid;
-$('a.'+className)[0].href = 0;
-$('button.'+className)[0].disabled = true;
+function disable(rrid,event){
+    let className = 'resource'+rrid;
+    if($('a.'+className)[0] != event.currentTarget){
+        $('a.'+className)[0].href = '';
+    }
+    if($('button.'+className)[0] != event.currentTarget){
+        $('button.'+className)[0].disabled = true;
+    }
 }
 </script>
 ";
