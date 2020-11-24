@@ -81,7 +81,7 @@ foreach ($dir as $fileinfo) {
             $oRR = ResourceRecord::CreateFromRealPath($oApp, $fileinfo->getRealPath(),0);
             $oRR->StoreRecord();
         }
-        $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
+        $s .= "<div><a href='".CATSDIR_URL."?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
         <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()})'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
@@ -107,7 +107,7 @@ foreach ($dir as $fileinfo) {
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
         <button type='submit' form='form".$oRR->getID()."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px' class='resource{$oRR->getID()}'></button>
         </form>
-        <a href='?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource' class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()})'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
+        <a href='".CATSDIR_URL."?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource' class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()})'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
     }
 }
