@@ -82,7 +82,7 @@ foreach ($dir as $fileinfo) {
             $oRR->StoreRecord();
         }
         $s .= "<div><a href='".CATSDIR_URL."?cmd=download&rrID={$oRR->getID()}'>".$fileinfo->getFilename()."</a>
-        <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()})'>
+        <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()},event)'>
         <input type='hidden' name='cmd' value='accept' />
         <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
         $excluded = array();
@@ -107,7 +107,7 @@ foreach ($dir as $fileinfo) {
         $s .= "<select name='dir' onchange='".js($excluded)."' required>".$options."</select>
         <button type='submit' form='form".$oRR->getID()."' data-tooltip='Accept Resource' value='' style='background: url(".CATSDIR_IMG."accept-resource.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; position: relative; top: 5px; margin-left: 5px' class='resource{$oRR->getID()}'></button>
         </form>
-        <a href='".CATSDIR_URL."?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource' class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()})'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
+        <a href='".CATSDIR_URL."?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource' class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()},event)'><img src='".CATSDIR_IMG."reject-resource.png' style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/></a>
         <br />Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
     }
 }
@@ -132,9 +132,7 @@ function disable(rrid,event){
     if($('a.'+className)[0] != event.currentTarget){
         $('a.'+className)[0].href = '';
     }
-    if($('button.'+className)[0] != event.currentTarget){
-        $('button.'+className)[0].disabled = true;
-    }
+    $('button.'+className)[0].disabled = true;
 }
 </script>
 ";
