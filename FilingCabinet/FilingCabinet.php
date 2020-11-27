@@ -45,6 +45,9 @@ class FilingCabinet
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
+            foreach( self::$raDrawersVideos as $k=>$v ) {
+                self::EnsureDirectory('videos/'.$k,$silent);
+            }
         }
         else if(is_array($dirs)){
             // ensure the given array of directories are created
@@ -64,8 +67,12 @@ class FilingCabinet
         }
         else {
             // ensure the specified single directory is created, and its subdirectories
-            if( ($dirinfo = self::GetDirInfo($dirs)) ) {
-                $dir_name = CATSDIR_RESOURCES.$dirinfo["directory"];
+            if( ($bVideos = SEEDCore_StartsWith( $dirs, 'videos/')) ) {
+                $dirs = substr($dirs,strlen('videos/'));
+            }
+            $sCabinet = $bVideos ? 'videos' : 'general';
+            if( ($dirinfo = self::GetDirInfo($dirs, $sCabinet)) ) {
+                $dir_name = CATSDIR_RESOURCES.($bVideos ? 'videos/' : '').$dirinfo["directory"];
 
                 if( !file_exists($dir_name) ) {
                     $r = @mkdir($dir_name, $perm, true);
@@ -73,7 +80,7 @@ class FilingCabinet
                         echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
                     }
                 }
-                foreach( self::GetSubFolders($dirs) as $d ) {
+                foreach( self::GetSubFolders($dirs,$sCabinet) as $d ) {
                     $subdirname = $dir_name.$d;
                     if( !file_exists($subdirname) ) {
                         $r = @mkdir($subdirname, $perm, true);
@@ -132,28 +139,38 @@ class FilingCabinet
      * Get the list of directories in the Resource Subsystem
      * @return array - containing directory information
      */
-    static function GetDirectories() { return( self::$raDirectories ); }
+    static function GetDirectories($sCabinet = 'general') { return( $sCabinet=='videos' ? self::$raDrawersVideos : self::$raDirectories ); }
     /**
      * Get Directory information (eg. allowed extensions, display name, etc.) for a directory
      * @param string $dir - directory to get information of
      * @return NULL|array - array containing the info for the given directory, or Null if its not part of the Resource Subsystem
      */
-    static function GetDirInfo(String $dir) { return( @self::$raDirectories[$dir] ?: null ); }
+    static function GetDirInfo(String $dir, $sCabinet = 'general')
+    {
+        return( $sCabinet=='videos' ? (@self::$raDrawersVideos[$dir] ?: null)
+                                    : (@self::$raDirectories[$dir] ?: null) );
+    }
+
     /**
      * Get Subdirectories in the given directory
      * @param string $dir - directory to get subdirs of
      * @return array - list of defined subdirectories if defined
      */
-    static function GetSubFolders(String $dir){ return( @self::$raSubFolders[$dir] ?: []); }
+    static function GetSubFolders(String $dir, $sCabinet = 'general' )
+    {
+        return( $sCabinet=='videos' ? (@self::$raSubfoldersVideos[$dir] ?: [])
+                                    : (@self::$raSubFolders[$dir] ?: []) );
+    }
 
     /**
      * Get the extensions supported by the Resource Subsystem.
      * NOTE: the extensions do not contain dots
      * @return array - array of supported extensions
      */
-    static function GetSupportedExtensions(){
+    static function GetSupportedExtensions( $sCabinet = 'general' )
+    {
         $exts = [];
-        foreach(self::GetDirectories() as $ra) {
+        foreach(self::GetDirectories($sCabinet) as $ra) {
             $exts = array_merge($exts,$ra['extensions']);
         }
         return( array_unique($exts) );
@@ -163,8 +180,10 @@ class FilingCabinet
      * Get directories which are part of the filing cabinet
      * @return array - array containing directory information of the directories which are part of the filing cabinet
      */
-    static function GetFilingCabinetDirectories(){
-        return array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
+    static function GetFilingCabinetDirectories( $sCabinet = 'general' )
+    {
+        return $sCabinet=='videos' ? self::$raDrawersVideos
+                                   : array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
     }
 
     /**
@@ -232,6 +251,28 @@ class FilingCabinet
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"]
     ];
 
+
+    private static $raDrawersVideos = [
+        // Drawers for the videos filing cabinet. (what we call 'directories' in the code, and 'folders' in the db).
+        // On the filesystem these are directories under 'videos/'
+        'reg'         => ['directory'=>"reg/",         'color'=>"#06962d", 'name'=>"Self Regulation",            'extensions'=>['mp4','webm']],
+        'autism'      => ['directory'=>"autism/",      'color'=>"#06962d", 'name'=>"Early Autism Intervention",  'extensions'=>['mp4','webm']],
+        'visualmotor' => ['directory'=>"visualmotor/", 'color'=>"#ff0000", 'name'=>"Visual Motor",               'extensions'=>['mp4','webm']],
+        'othermotor'  => ['directory'=>"othermotor/",  'color'=>"#ff8400", 'name'=>"Other Motor (fine, gross, oral, ocular)", 'extensions'=>['mp4','webm']],
+        'anxiety'     => ['directory'=>"anxiety/",                         'name'=>"Anxiety",                    'extensions'=>['mp4','webm']],
+        'cog'         => ['directory'=>"cog/",         'color'=>"#000000", 'name'=>"Cognitive",                  'extensions'=>['mp4','webm']],
+        'adl'         => ['directory'=>"adl/",         'color'=>"#ebcf00", 'name'=>"ADL's",                      'extensions'=>['mp4','webm']],
+        'teens'       => ['directory'=>"teens/",       'color'=>"#ebcf00", 'name'=>"Teens",                      'extensions'=>['mp4','webm']],
+        'assmt'       => ['directory'=>"assmt/",       'color'=>"#0000ff", 'name'=>"Assessments",                'extensions'=>['mp4','webm']],
+        'backdrawer'  => ['directory'=>"backdrawer/",  'color'=>"#0000ff", 'name'=>"Back Drawer",                'extensions'=>['mp4','webm']],
+    ];
+
+    private static $raSubfoldersVideos = [
+        // Subfolders for the videos filing cabinet
+        'reg'     => ["Psycho Education","Strategies"],
+        'cog'     => ["Executive Function","Literacy","Writing"],
+        'adl'     => ["Picky Eating","Fasteners"],
+    ];
 
     static function checkFileSystem(SEEDAppConsole $oApp)
     {

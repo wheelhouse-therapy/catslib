@@ -2,7 +2,7 @@
 
 require_once 'template_filler.php';
 
-function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
+function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'general' )
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
@@ -14,9 +14,9 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
         goto done;
     }
 
-    $dir_short = trim($dir_name,'/');
+    if( $sCabinet == 'videos' )  $dir_name = 'videos/'.$dir_name;
 
-    $sCabinet = 'general';      // this code is for the general FilingCabinet but this will have to vary if others use it too
+    $dir_short = trim($dir_name,'/');
 
     $oFCD = new FilingCabinetDownload( $oApp );
 
@@ -316,7 +316,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                   [[BADGE]]
                   <a style='' [[LINK]] >
                     <div>
-                        <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
+                        <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                     </div>
                     <div>
                         [[FILENAME]]
@@ -342,7 +342,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                                             $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR),
                                             $preview,
-                                               $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                            $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                            ],
                                            $sTemplate);
 
@@ -483,20 +483,8 @@ function viewVideos(SEEDAppConsole $oApp){
         </video>
     </div>
 viewVideo;
-    FilingCabinet::EnsureDirectory("videos");
-    // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-    $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
-        ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-    $listVideos = "<div style='float:right;background:white;' id='uploadForm'>"
-                    ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
-                        <input type='hidden' name='cmd' value='therapist-resource-upload' />
-                        Select video to upload:
-                        <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
-                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
-                        <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div>"
-                 ."</div><script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
 
-    $listVideos .= "<h3>View Uploaded Videos</h3>";
+    $listVideos = "<h3>View Uploaded Videos</h3>";
     $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
     if(iterator_count($dirIterator) == 2){
         $listVideos .= "<h2> No files in directory</h2>";

@@ -28,6 +28,8 @@ class FilingCabinetUI
     {
         $s = "";
 
+        FilingCabinet::EnsureDirectory("*");
+
         if($this->oApp->sess->SmartGPC('dir') == 'main'){
             $this->oApp->sess->VarUnSet('dir');
         }
@@ -50,37 +52,69 @@ class FilingCabinetUI
             }
         }
 
-        if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
+        if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase, $this->sCabinet)) ) {
             // Show the "currently-open drawer" of the filing cabinet
-            FilingCabinet::EnsureDirectory($dirbase);
             $title = "Close {$raDirInfo['name']} Drawer";
             if(stripos($raDirInfo['name'], "Drawer") !== false){
                 $title = "Close {$raDirInfo['name']}";
             }
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
-                 .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
-                 //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                    ."Back to Filing Cabinet"
-                 ."</div></p></a>";
+            if( $this->sCabinet == 'videos' ) {
+                $s .= "<div><h3 style='display:inline;padding-right:50px'>Video Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Videos'></i></div>"
+                     .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
+                     //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
+                     ."<a title='{$title}' href='?screen=therapist-viewVideos&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                        ."Back to Video Filing Cabinet"
+                     ."</div></p></a>";
+            } else {
+                $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
+                     .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
+                     //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
+                     ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                        ."Back to Filing Cabinet"
+                     ."</div></p></a>";
+            }
             if($dir == 'papers'){
                 include(CATSLIB."papers.php");
             }
             else{
-                $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
+                $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'], $this->sCabinet );
             }
             $s .= $this->getSearchDialog();
         } else {
-            FilingCabinet::EnsureDirectory("*");
-            $s .= "<div style='float:right;' id='uploadForm'>"
-                    .FilingCabinetUpload::DrawUploadForm()
-                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+            if( $this->sCabinet=='videos' ) {
+                // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
+/*
+                $s .= "<div style='float:right;' id='uploadForm'>"
+                        .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
+                     ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+
+//                $s .= "<script src='".CATSDIR_JS."fileUpload.js'></script>
+//                       <link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'>";
+*/
+
+    // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
+    $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
+        ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
+$s .= "<div style='float:right;background:white;' id='uploadForm'>"
+    .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
+    ."</div>";
+
+
+$s .= "<script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+            } else {
+                $s .= "<div style='float:right;' id='uploadForm'>"
+                        .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
+                     ."</div>"
+                     ."<script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+            }
 
             // Show the "closed drawers" of the filing cabinet
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>";
+            $s .= $this->sCabinet=='videos'
+                    ? "<div><h3 style='display:inline;padding-right:50px'>Videos</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Videos'></i></div>"
+                    : "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>";
 
             // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = FilingCabinet::GetFilingCabinetDirectories();
+            $ras = FilingCabinet::GetFilingCabinetDirectories( $this->sCabinet );
             foreach( $ras as $k => $ra ) {
                 $bgcolor = "background-color: grey;";
                 if (array_key_exists("color", $ra)) {

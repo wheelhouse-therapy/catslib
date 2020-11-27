@@ -242,7 +242,9 @@ ResetPassword;
                 $s .= viewSOPs($this->oApp);
                 break;
             case "therapist-viewVideos":
+                $oFC = new FilingCabinetUI( $this->oApp, 'videos' );
                 $s .= viewVideos($this->oApp);
+                $s .= $oFC->DrawFilingCabinet();
                 break;
             case "therapist-akaunting":
                 require_once CATSLIB."AkauntingReports.php";

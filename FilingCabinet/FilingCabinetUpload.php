@@ -55,17 +55,29 @@ Modal;
         $this->oFC = new FilingCabinet( $oApp );
     }
 
-    static function DrawUploadForm()
+    static function DrawUploadForm( $sCabinet )
     {
+        $label = $sCabinet=='videos' ? 'Video' : 'File';
+
         // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-        $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions(),
+        $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions($sCabinet),  // not $this->sCabinet because static
             ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-        return( "<div><form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
-                 <input type='hidden' name='cmd' value='therapist-resource-upload' />
-                 Select file to upload:
-                 <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required><br />
-                 <span><input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
-                 <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div></div>" );
+        $s = "<div>
+                <form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                    <input type='hidden' name='cmd' value='therapist-resource-upload' />
+                    Select $label to upload:
+
+                    <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required /><br />"
+                    // <span> is necessary to make the required attribute change the button's colour
+                  ."<span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span>
+                    Max Upload size:".ini_get('upload_max_filesize')."b
+                </form>
+                <div id='upload-bar'>
+                    <div id='progress-bar'><div id='filled-bar'></div></div>
+                    <span id='progress-percentage'>0%</span>
+                </div>
+              </div>";
+        return( $s );
     }
 
     function UploadToPending()
