@@ -52,7 +52,7 @@ class FilingCabinetReview
                 $oRR->StoreRecord();
             }
             $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}' target='_blank'>".$fileinfo->getFilename()."</a>
-                   <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()})'>
+                   <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()},event)'>
                    <input type='hidden' name='cmd' value='accept' />
                    <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
             $excluded = [];
@@ -80,7 +80,7 @@ class FilingCabinetReview
                            class='resource{$oRR->getID()}'></button>
                    </form>
                    <a href='?cmd=reject&rrID=".$oRR->getID()."' data-tooltip='Reject Resource'
-                      class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()})'>
+                      class='resource{$oRR->getID()}' onclick='disable({$oRR->getID()},event)'>
                        <img src='".CATSDIR_IMG."reject-resource.png'
                             style='max-width:22px; position: relative; bottom: 2px; margin-left: 2px'/>
                    </a><br />
@@ -102,9 +102,11 @@ function replace(event, ra) {
         submit.firstElementChild.innerHTML = 'Accept Resource';
     }
 }
-function disable(rrid){
+function disable(rrid,event){
     let className = 'resource'+rrid;
-    $('a.'+className)[0].href = 0;
+    if($('a.'+className)[0] != event.currentTarget){
+        $('a.'+className)[0].href = '';
+    }
     $('button.'+className)[0].disabled = true;
 }
 </script>

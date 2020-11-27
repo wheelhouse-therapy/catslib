@@ -129,7 +129,7 @@ class ManageUsers {
             $sSidebar = str_replace("[[onClick]]", "onclick='cloneRecord(event,$uid)'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
-
+        
         return $s;
     }
 
@@ -290,7 +290,7 @@ class ManageUsers {
             $username = strtolower(substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name'));
             $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
             $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
-            $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('P__key'));
+            $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('fk_people'));
         }
         if($clinic != $oForm->Value('clinic') && !in_array($oForm->Value('clinic'),array_column($this->clinics->GetUserClinics(), 'Clinics__key'))){
             if($clinic){
@@ -430,6 +430,9 @@ body;
             $valid = false;
         }
         else if(!$kfr->Value("P_email")){
+            $valid = false;
+        }
+        else if(!$kfr->Value("pro_role")){
             $valid = false;
         }
         return $valid;
