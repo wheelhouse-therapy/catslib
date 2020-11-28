@@ -58,19 +58,40 @@ class FilingCabinetReview
             $excluded = [];
             $options = "<option selected value=''>Select a directory</option>";
             foreach(FilingCabinet::GetDirectories() as $k => $v){
+                if( $k == 'videos' ) continue;  // videos handled below
+
                 if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                     continue;
                 }
                 if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
                     array_push($excluded, $k);
                 }
-                $options .= "<option value='".$k."'>".$v['name']."</option>";
+                $options .= "<option value='general/".$k."'>".$v['name']."</option>";
                 if(FilingCabinet::GetSubFolders($k)){
                     foreach(FilingCabinet::GetSubFolders($k) as $folder){
                         if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
                             array_push($excluded, $k."/".$folder);
                         }
-                        $options .= "<option value='".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
+                        $options .= "<option value='general/".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
+                    }
+                }
+            }
+            foreach(FilingCabinet::GetDirectories('videos') as $k => $v){
+                if(!in_array($fileinfo->getExtension(), $v['extensions'])){
+                    continue;
+                }
+// not how videos work anymore
+if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
+    array_push($excluded, $k);
+}
+                $options .= "<option value='videos/".$k."'>Videos/".$v['name']."</option>";
+                if(FilingCabinet::GetSubFolders($k,'videos')){
+                    foreach(FilingCabinet::GetSubFolders($k,'videos') as $folder){
+// not how videos work anymore
+if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
+    array_push($excluded, $k."/".$folder);
+}
+                        $options .= "<option value='videos/".$k."/".$folder."'>Videos/".$v['name']."/".$folder."</option>";
                     }
                 }
             }
@@ -125,35 +146,55 @@ function disable(rrid,event){
         if( !($rrID = SEEDInput_Str( 'rrID' )) ||
             !($oRR = ResourceRecord::GetRecordByID($this->oApp, $rrID)) )  goto done;
 
-        // (dir) contains dir/subdir
-        $ra = explode("/",SEEDInput_Str( 'dir' ));
-        $dir = $ra[0];
-        $subdir = @$ra[1]? "{$ra[1]}/" : "";
-        if( !FilingCabinet::GetDirInfo($dir) )  goto done;
+        // (dir) contains cabinet/dir/subdir
+        $ra = explode("/",SEEDInput_Str('dir'));
+        $cabinet = $ra[0];
+        $dir = $ra[1];
+        $subdir = @$ra[2]? "{$ra[2]}/" : "";
+
+        if( !FilingCabinet::GetDirInfo($dir, 'cabinet') )  goto done;
 
         $file = $oRR->getFile();
         if( !file_exists($this->dirPending.$file) )  goto done;
 
-        $sCabinet = $dir=='videos' ? 'videos' : 'general';
+        if( $cabinet == 'videos' ) {
+            // move the file to 'videos/' directory with the _key as prefix
+            $oldFname = $oRR->getPath();
+            $newFname = CATSDIR_RESOURCES."videos/{$oRR->getId()} {$oRR->getFile()}";
 
-        if( rename($this->dirPending.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
-            if(!ResourceRecord::GetRecordFromPath($this->oApp, $sCabinet, $dir, $file, $subdir)){
-                $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
-                $oRR->setCabinet( $sCabinet );
+            if( rename($oldFname, $newFname) ) {
+                $oRR->setCabinet( $cabinet );
                 $oRR->setDirectory($dir);
-                $oRR->setSubDirectory(@$ra[1]?: "");
-                if(!$oRR->StoreRecord()){
+                $oRR->setSubDirectory($subdir);
+                if($oRR->StoreRecord()) {
+                    $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
+                } else {
                     $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                 }
             } else {
-                $s .= "<div class='alert alert-success'> Resource ".$file." has been overwritten. This CANNOT be undone</div>";
-                if(!$oRR->DeleteRecord()){
-                    $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
-                }
-                $oRR->CreateThumbnail();
+                $s .= "<div class='alert alert-danger'>An error occurred while accepting File ".$file."</div>";
             }
+
         } else {
-            $s .= "<div class='alert alert-danger'>An error occured while accepting File ".$file."</div>";
+            if( rename($this->dirPending.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
+                if(!ResourceRecord::GetRecordFromPath($this->oApp, $sCabinet, $dir, $file, $subdir)){
+                    $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
+                    $oRR->setCabinet( $sCabinet );
+                    $oRR->setDirectory($dir);
+                    $oRR->setSubDirectory(@$ra[1]?: "");
+                    if(!$oRR->StoreRecord()){
+                        $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
+                    }
+                } else {
+                    $s .= "<div class='alert alert-success'> Resource ".$file." has been overwritten. This CANNOT be undone</div>";
+                    if(!$oRR->DeleteRecord()){
+                        $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
+                    }
+                    $oRR->CreateThumbnail();
+                }
+            } else {
+                $s .= "<div class='alert alert-danger'>An error occurred while accepting File ".$file."</div>";
+            }
         }
 
         done:

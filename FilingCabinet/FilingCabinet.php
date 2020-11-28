@@ -45,9 +45,9 @@ class FilingCabinet
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
-            foreach( self::$raDrawersVideos as $k=>$v ) {
-                self::EnsureDirectory('videos/'.$k,$silent);
-            }
+//            foreach( self::$raDrawersVideos as $k=>$v ) {
+//                self::EnsureDirectory('videos/'.$k,$silent);
+//            }
         }
         else if(is_array($dirs)){
             // ensure the given array of directories are created
@@ -67,9 +67,10 @@ class FilingCabinet
         }
         else {
             // ensure the specified single directory is created, and its subdirectories
-            if( ($bVideos = SEEDCore_StartsWith( $dirs, 'videos/')) ) {
-                $dirs = substr($dirs,strlen('videos/'));
-            }
+//            if( ($bVideos = SEEDCore_StartsWith( $dirs, 'videos/')) ) {
+//                $dirs = substr($dirs,strlen('videos/'));
+//            }
+$bVideos = false;
             $sCabinet = $bVideos ? 'videos' : 'general';
             if( ($dirinfo = self::GetDirInfo($dirs, $sCabinet)) ) {
                 $dir_name = CATSDIR_RESOURCES.($bVideos ? 'videos/' : '').$dirinfo["directory"];
@@ -261,7 +262,7 @@ class FilingCabinet
         'othermotor'  => ['directory'=>"othermotor/",  'color'=>"#ff8400", 'name'=>"Other Motor (fine, gross, oral, ocular)", 'extensions'=>['mp4','webm']],
         'anxiety'     => ['directory'=>"anxiety/",                         'name'=>"Anxiety",                    'extensions'=>['mp4','webm']],
         'cog'         => ['directory'=>"cog/",         'color'=>"#000000", 'name'=>"Cognitive",                  'extensions'=>['mp4','webm']],
-        'adl'         => ['directory'=>"adl/",         'color'=>"#ebcf00", 'name'=>"ADL's",                      'extensions'=>['mp4','webm']],
+        'adl'         => ['directory'=>"adl/",         'color'=>"#ebcf00", 'name'=>"ADLs",                       'extensions'=>['mp4','webm']],
         'teens'       => ['directory'=>"teens/",       'color'=>"#ebcf00", 'name'=>"Teens",                      'extensions'=>['mp4','webm']],
         'assmt'       => ['directory'=>"assmt/",       'color'=>"#0000ff", 'name'=>"Assessments",                'extensions'=>['mp4','webm']],
         'backdrawer'  => ['directory'=>"backdrawer/",  'color'=>"#0000ff", 'name'=>"Back Drawer",                'extensions'=>['mp4','webm']],
@@ -640,7 +641,7 @@ class ResourceRecord {
          */
         return $this->cabinet == 'videos'
                 ? (CATSDIR_RESOURCES."videos/{$this->id} {$this->file}")
-                : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file);
+                : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : "").$this->file);
     }
 
     /**
