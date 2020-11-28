@@ -29,7 +29,7 @@ class Clinics {
     }
 
     function isCoreClinic(){
-        return $this->GetCurrentClinic() == 1;
+        return $this->GetCurrentClinic() == self::CORE;
     }
 
     /**
