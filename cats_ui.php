@@ -1,7 +1,6 @@
 <?php
 include_once('twig_mappings.php');
 include_once('view_resources.php');
-include_once('share_resources.php');
 include_once('Clinics.php');
 include_once( SEEDCORE."SEEDTemplateMaker.php" );
 include_once( SEEDLIB."SEEDUGP.php" );
@@ -206,7 +205,7 @@ ResetPassword;
                 break;
 
             case 'therapist-filing-cabinet':
-                $oFC = new FilingCabinetUI( $this->oApp );
+                $oFC = new FilingCabinetUI( $this->oApp, 'general' );
                 $s .= $oFC->DrawFilingCabinet();
                 break;
             case 'therapist-reports':
@@ -278,7 +277,8 @@ ResetPassword;
                 $s .= $this->drawAdminUsers();
                 break;
             case 'admin-resources':
-                include('review_resources.php');
+                $oF = new FilingCabinetReview($oApp);
+                $s .= $oF->DrawReviewUI();
                 break;
             case 'admin-manageresources':
                 $s .= ManageResources($oApp);
@@ -446,7 +446,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 return [];
         }
     }
-    
+
     private function drawCircles( array $raScreens, String $section )
     {
         $s = "";
@@ -464,7 +464,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $href = substr($ra[0], 5);
                 $target = " target='_blank'";
                 $id = substr($ra[0], strrpos($ra[0], "/"));
-            } 
+            }
             elseif (SEEDCore_StartsWith($ra[0], "menu:")) {
                 $href = "#";
                 $target = " onclick='loadMenu(\"".substr($ra[0], 5)."\");return false;'";

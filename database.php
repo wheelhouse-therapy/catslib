@@ -209,7 +209,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 10;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 11;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -289,6 +289,16 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->Execute("ALTER TABLE resources_files ADD description text NOT NULL");
         $kfdb->SetDebug(0);
     }
+    if( $currDBVersion < 11){
+        // Implement multiple filing cabinets
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE resources_files ADD cabinet VARCHAR(200) NOT NULL DEFAULT ''");
+        $kfdb->Execute("ALTER TABLE resources_files ADD iOrder INTEGER NOT NULL DEFAULT 0");
+        $kfdb->Execute("UPDATE resources_files SET cabinet=folder WHERE folder in ('reports','SOP','videos')");
+        $kfdb->Execute("UPDATE resources_files SET cabinet='general' WHERE cabinet=''");
+        $kfdb->SetDebug(0);
+    }
+
 
     /* Old createTables code.
      * This should be updated to reflect dbVersion, but it's also nice to just create tables based on existence so they can be dropped
@@ -541,7 +551,7 @@ class CATSBaseDB extends Keyframe_NamedRelations
         $this->t[ClientList::INTERNAL_PRO] = array( "Table" => DBNAME.".pros_internal", "Fields" => 'Auto' );
         $this->t[ClientList::EXTERNAL_PRO] = array( "Table" => DBNAME.".pros_external", "Fields" => 'Auto' );
         $this->t['CX']                     = array( "Table" => DBNAME.".clientsxpros",  "Fields" => 'Auto' );
-        
+
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
 
@@ -949,8 +959,13 @@ const resources_files_create =
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-        folder            TEXT NOT NULL,
-        filename          TEXT NOT NULL,
+        cabinet           VARCHAR(200) NOT NULL DEFAULT '', -- allow multiple filing cabinets
+        folder            TEXT NOT NULL,                    -- drawer in cabinet
+        subfolder         VARCHAR(200) NOT NULL DEFAULT '', -- folder in drawer ('' means main folder in drawer)
+        filename          TEXT NOT NULL,                    -- file in folder
+        iOrder            INTEGER NOT NULL DEFAULT 0,       -- sort files within this subfolder
+        preview           LONGBLOB NOT NULL,
+        description       TEXT NOT NULL,
         tags              TEXT NOT NULL)
     ";
 

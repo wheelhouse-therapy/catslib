@@ -25,104 +25,138 @@ class FilingCabinetDownload
 
     function DownloadFile()
     {
-        if( SEEDInput_Str('cmd') == 'download' ) {
+        $rrid = SEEDInput_Int('rr');
 
-            if( !($rrid = SEEDInput_Int('rr')) ||
-                !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
+        if( SEEDInput_Str('cmd') == 'view' ){
+            $this->OutputResource( $rrid, false );
+            // OutputResource() only returns if it can't serve the file
+            return;
+
+        } else { // if( SEEDInput_Str('cmd') == 'download' ) {
+            if( !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
                 !($file = $oRR->getPath()) )
             {
                 $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
                 return;
             }
 
-            $resmode = SEEDInput_Str('resource-mode');
-
-            if($resmode == "email"){
-                $kClient = SEEDInput_Int('client');
-                $oPeopleDB = new PeopleDB($this->oApp);
-                $manageUsers = new ManageUsers($this->oApp);
-                $kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient);
-                $to = $kfr->Value('P_email');
-                $user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID());
-                $from = $user->Value('P_email');
-                $fromName = $user->Value('first_name')." ".$user->Value("last_name");
-                
-                // Message Content
-                $subject = "Resource from CATS";
-                $body = "Please find a therapy resource specifically for you attached, as we discussed in the session.\n\nSincerely\n[[therapist name]]";
-                
-                $body = str_replace("[[therapist name]]", $fromName, $body);
-                
-                // Brains behind message sending and Attachment
-                $headers = "From: $fromName <$from>"; // Sender info
-                $semi_rand = md5(time());
-                $mime_boundary = "==Multipart_Boundary_x{$semi_rand}x";
-                // Headers for attachment
-                $headers .= "\nMIME-Version: 1.0\nContent-Type: multipart/mixed;\n boundary=\"{$mime_boundary}\"";
-                $message = "--{$mime_boundary}\nContent-Type: text/plain; charset=\"UTF-8\"\n"
-                ."Content-Transfer-Encoding: 7bit\n\n".$body."\n\n";
-                if(!empty($file) > 0){
-                    if(is_file($file)){
-                        $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
-                        $filename = $filler->fill_resource($file, ['client'=>$kClient],template_filler::RESOURCE_GROUP);
-                        $code = (new ClientCodeGenerator($this->oApp))->getClientCode($kClient);
-                        $message .= "--{$mime_boundary}\n";
-                        $fp = @fopen($filename, "rb");
-                        $data = @fread($fp, filesize($filename));
-                        @fclose($fp);
-                        $data = chunk_split(base64_encode($data));
-                        $message .= "Content-Type: application/octet-stream; name=\"".$code.($code?"-":"").basename($file)."\"\n"
-                            ."Content-Description: ".$code.($code?"-":"").basename($file)."\n"
-                                ."Content-Disposition: attachment;\n filename=\"".$code.($code?"-":"").basename($file)."\"; size=".filesize($filename).";\n"
-                                    ."Content-Transfer-Encoding: base64\n\n".$data."\n\n";
-                    }
-                }
-                $message .= "--{$mime_boundary}--";
-                $returnpath = "-f".$from;
-                $mail = @mail($to, $subject, $message, $headers,$returnpath);
-                $_SESSION['mailResult'] = $mail;
-                $_SESSION['mailTarget'] = $to;
-                header("HTTP/1.1 303 SEE OTHER");
-                header("Location: ?dir=".SEEDInput_Str('dir'));
-                exit();
+            switch( SEEDInput_Str('resource-mode') ) {
+                case 'email':
+                    $this->sendByEmail( $oRR );
+                    exit;
+                case 'no_replace':
+                    $this->OutputResource( $rrid, true );
+                    // OutputResource() only returns if it can't serve the file
+                    return;
+                case 'blank':
+                    $bBlank = true;
+                    // fall through
+                default:
+                    // mode blank is implemented by telling template_filler that client=0
+                    $kClient = @$bBlank ? 0 : SEEDInput_Int('client');
+                    $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
+                    $filler->fill_resource($file, ['client'=>$kClient]);
+                    exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
             }
-            else if( $resmode != "no_replace" ) {
-                // mode blank is implemented by telling template_filler that client=0
-                $kClient = ($resmode == 'blank' ) ? 0 : SEEDInput_Int('client');
-                $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
-                $filler->fill_resource($file, ['client'=>$kClient]);
-            }
-            else{
-                 header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
-                 header('Content-Description: File Transfer');
-                 header('Content-Disposition: attachment; filename="' . basename($file) . '"');
-                 header('Content-Transfer-Encoding: binary');
-                 if( ($fp = fopen( $file, "rb" )) ) {
-                     fpassthru( $fp );
-                     fclose( $fp );
-                 }
-                 exit;
-            }
-            exit;   // actually fill_resource exits, but it's nice to have a reminder of that here
-        }
-        else if( SEEDInput_Str('cmd') == 'view' ){
-            if( !($rrid = SEEDInput_Int('rr')) ||
-                !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
-                !($file = $oRR->getPath()) )
-            {
-                $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
-                return;
-            }
-            header('Cache-Control: no-store, no-cache, must-revalidate');
-            header('Content-Type: '.mime_content_type($file));
-            header('Content-Length: '.filesize($file));
-            header('Content-Disposition: inline; filename="'.$oRR->getFile().'"');
-            $f=fopen($file,'r');
-            fpassthru($f);
-            fclose($f);
-            exit;
         }
     }
+
+    function OutputResource( int $rrid, $bDownload )
+    /***********************************************
+        Serve the content of the given resource file to the browser.
+
+         $bDownload = tell the browser to save the file (browser dependent anyway)
+        !$bDownload = tell the browser to show the file (browser dependent anyway)
+     */
+    {
+        if( !($rrid) ||
+            !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
+            !($file = $oRR->getPath()) )
+        {
+            $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
+            return;
+        }
+
+        header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+        header('Content-Length: '.filesize($file));
+        header('Content-Disposition: '.($bDownload ? 'attachment' : 'inline').'; filename="'.basename($file).'"');
+        header('Content-Transfer-Encoding: binary');
+        if( $bDownload ) {
+            header('Content-Description: File Transfer');
+        } else {
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+        }
+        if( ($fp = fopen( $file, "rb" )) ) {
+            fpassthru( $fp );
+            fclose( $fp );
+        }
+        exit;
+    }
+
+    private function sendByEmail( ResourceRecord $oRR )
+    {
+        $oPeopleDB = new PeopleDB($this->oApp);
+        $manageUsers = new ManageUsers($this->oApp);
+
+        if( !($kClient = SEEDInput_Int('client')) ||
+            !($kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient)) ||
+            !($user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID()))
+          )  goto done;
+
+        $to = $kfr->Value('P_email');
+        $from = $user->Value('P_email');
+        $fromName = $user->Value('first_name')." ".$user->Value("last_name");
+
+        // Message Content
+        $subject = "Resource from CATS";
+        $body = "Please find a therapy resource specifically for you attached, as we discussed in the session.\n\nSincerely\n[[therapist name]]";
+
+        $body = str_replace("[[therapist name]]", $fromName, $body);
+
+        // Brains behind message sending and Attachment
+        $headers = "From: $fromName <$from>"; // Sender info
+        $semi_rand = md5(time());
+        $mime_boundary = "==Multipart_Boundary_x{$semi_rand}x";
+        // Headers for attachment
+        $headers .= "\nMIME-Version: 1.0\nContent-Type: multipart/mixed;\n boundary=\"{$mime_boundary}\"";
+        $message = "--{$mime_boundary}\nContent-Type: text/plain; charset=\"UTF-8\"\n"
+                  ."Content-Transfer-Encoding: 7bit\n\n".$body."\n\n";
+
+        $file = $oRR->getPath();
+
+        $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
+        $filename = $filler->fill_resource($file, ['client'=>$kClient],template_filler::RESOURCE_GROUP);
+        $code = (new ClientCodeGenerator($this->oApp))->getClientCode($kClient);
+        $filecodename = $code.($code?"-":"").basename($file);
+        $message .= "--{$mime_boundary}\n";
+        if( ($fp = @fopen($filename, "rb")) ) {
+            $data = fread($fp, filesize($filename));
+            fclose($fp);
+            $data = chunk_split(base64_encode($data));
+            $message .= "Content-Type: application/octet-stream; name=\"$filecodename\"\n"
+                       ."Content-Description: $filecodename\n"
+                       ."Content-Disposition: attachment;\n filename=\"$filecodename\"; size=".filesize($filename).";\n"
+                       ."Content-Transfer-Encoding: base64\n\n".$data."\n\n";
+        }
+        $message .= "--{$mime_boundary}--";
+        $returnpath = "-f".$from;
+        if( CATS_DEBUG ) {
+            // dev machines are typically not set up for smtp
+            echo "<pre style='background-color:#ccc'>To: $to<br/>Reply-to: $returnpath<br/>Subject: $subject<br/>"
+                ."<br/>----- HEADERS -----<br/><br/>".$headers."<br/>"
+                ."<br/>----- MESSAGE -----<br/><br/>".substr($message,0,1000)."...<br/></pre>";
+            return;
+        } else {
+            $mail = @mail($to, $subject, $message, $headers,$returnpath);
+            $_SESSION['mailResult'] = $mail;
+            $_SESSION['mailTarget'] = $to;
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ?dir=".SEEDInput_Str('dir'));
+        }
+        done:
+        exit();
+    }
+
 
     function GetDownloadPath( $mode, ResourceRecord $oRR, $filename = "", $dir_short = "" )
     {

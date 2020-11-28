@@ -2,7 +2,6 @@
 
 require_once(CATSLIB.'vendor/autoload.php');
 require_once( SEEDCORE."SEEDEmail.php" );
-require_once 'share_resources.php';
 require_once 'AkauntingHook.php';
 
 use Ddeboer\Imap\Server;
@@ -60,12 +59,12 @@ class ReceiptsProcessor {
     const INCOME = "Income";
     const NORMAL_PAYMENT = "Normal";
     const SCHEDULED_PAYMENT = "Scheduled";
-    
+
     //Account Constants
     const COMPANY_ACCOUNT = "CA";
     const COMPANY_CREDIT_CARD_ACCOUNT = "CCC";
     const UNPAID_ACCOUNT = "UNPAID";
-    
+
     //Paterns used to pull information out of emails
     private $PATTERNS = array(
         "amount" => '/\$-?[0-9]+\.?[0-9]*[HG]?($|[, ])/',
@@ -81,7 +80,7 @@ class ReceiptsProcessor {
         "unpaid" => "/(?<=^|[^\\w])".self::UNPAID_ACCOUNT."(?=$|[^\\w])/i",
         "forward" => "/Fwd:/i",
         "reply" => "/Re:/i",
-        "escapedSequence" => '/(?:"|“).*?(?:"|“)/'
+        "escapedSequence" => '/(?:"|ï¿½).*?(?:"|ï¿½)/'
     );
 
     private $connection;
@@ -100,7 +99,7 @@ class ReceiptsProcessor {
     public function __destruct(){
         $this->connection->close();
     }
-    
+
     public function processEmails($box = 'INBOX'){
         $mailbox = $this->connection->getMailbox($box);
         $search = new SearchExpression();
@@ -186,15 +185,15 @@ class ReceiptsProcessor {
                 // The subject is not a potential entry. do not report the error
                 unset($errors['subject']);
             }
-            
+
             // Send the entries to Akaunting and record the results
             $results = AkauntingHook::submitJournalEntries($entries);
-            
+
             //AkauntingHook will return all entries that result in successfull communication as well as unsuccessful
             //However we need to sort out the different types of entries
             $failures = $results['failed'];
             $results = array_diff_key($results, array('failed' => TRUE));
-            
+
             // Mark the message as processed so we dont make duplicate entries
             if($results || $errors){
                 if(CATS_DEBUG){
@@ -227,7 +226,7 @@ class ReceiptsProcessor {
                     SEEDEmailSend($message->getFrom()->getAddress(), $to, $topic, $body, "", array('attachments' => TempAttachment::createRAOfPaths($raAttachments)));
                 }
             }
-            
+
             if(!CATS_DEBUG && array_intersect(range(200,299), array_column($results,0)) && $attachment){
                 if($oAttachment = $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                     $attachmentFile = fopen(self::FOLDER.$attachment.".".pathinfo($oAttachment->getFilename(), PATHINFO_EXTENSION), "w");
@@ -235,17 +234,17 @@ class ReceiptsProcessor {
                     fclose($attachmentFile);
                 }
             }
-            
+
             /* Compile the responce to send to the sender which reports the results of their entries.
              * This includes all errors raised by the email proccessor as well as errors raised by the Akaunting Hook.
              * It Also notes entries which were submitted successfully.
              */
             $responce = $this->handleErrors($errors).AkauntingHook::decodeErrors($results);
-            
+
             if(count($message->getAttachments()) > 1 && $this->getValidAttachment(new ArrayOfAttachment($message->getAttachments()))){
                 $responce .= "\nNOTE: Only the first valid (not used in our system) was stored\n";
             }
-            
+
             done:
             // Add a closing message
             $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
@@ -259,14 +258,14 @@ class ReceiptsProcessor {
                          ."\nSubject: ".$message->getSubject()
                          .str_repeat("\n", 2)
                          .$message->getBodyText();
-            
+
             $tempFile = NULL;
             //Send the results
             if($attachment){
                 $tempFile = new TempAttachment($this->getValidAttachment(new ArrayOfAttachment($message->getAttachments())));
             }
             SEEDEmailSend($message->getTo()[0]->getAddress(), $from->getAddress(), $subject, $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFile?array($tempFile->path):"")));
-            
+
         }
     }
 
@@ -297,12 +296,12 @@ class ReceiptsProcessor {
         elseif ($amount > 0){
             $incomeOrExpense = self::EXPENSE;
         }
-        
+
         $typeOfPayment = self::NORMAL_PAYMENT; // Start as normal payment
         if(preg_match($this->PATTERNS["scheduled"], $value)){
             $typeOfPayment = self::SCHEDULED_PAYMENT;
         }
-        
+
         if(preg_match($this->PATTERNS['companyCreditCard'], $value) == 0 && !(SEEDCore_StartsWith($from->getAddress(), "sue") || SEEDCore_StartsWith($from->getAddress(), "alison"))){
             return self::DISCARDED_UNKNOWN_SENDER;
         }
@@ -316,11 +315,11 @@ class ReceiptsProcessor {
                 $caOrUnpaid = self::UNPAID_ACCOUNT;
             }
         }
-        
+
         if(!$caOrUnpaid){
             return self::DISCARDED_UNKNOWN_ACCOUNT;
         }
-        
+
         if($incomeOrExpense){
             $date = $this->processDate($value);
             if($date == false){
@@ -334,7 +333,7 @@ class ReceiptsProcessor {
                     return self::DISCARDED_FUTURE_DATE;
                 }
             }
-            
+
             preg_match('|\w.*\w|',$this->preg_replace_array($this->PATTERNS, "", $value), $matches);
             $category = $matches[0];
             preg_match("/\w+(?=@)/i", $from->getAddress(), $matches);
@@ -359,7 +358,7 @@ class ReceiptsProcessor {
             $day = $matches['day'];
             $month = $matches['month'];
             $year = $matches['year'];
-            
+
             // Attempt to convert textual months to numarical month
             // and check numarical months are in valid range
             // sets $found to false if its not valid
@@ -420,9 +419,9 @@ class ReceiptsProcessor {
             }
         }
         return ($found?$month."/".$day."/".$year:"");
-        
+
     }
-    
+
     private function handleErrors(array $errors){
         $responce = "";
         foreach($errors as $k => $v){
@@ -457,7 +456,7 @@ class ReceiptsProcessor {
         }
         return $responce;
     }
-    
+
     /**
      * Check if a string is a potential entry
      * It must match at least 2 of the regex strings used for parsing to be considered a potential entry
@@ -481,7 +480,7 @@ class ReceiptsProcessor {
         }
         return $matches >= 2;
     }
-    
+
     /** Return attachment object of the first valid attachment
      * Or NULL if there is none
      * @param array $attachments - array of attachments included in the message
@@ -499,7 +498,7 @@ class ReceiptsProcessor {
         notfound:
         return NULL;
     }
-    
+
     private function preg_replace_array($pattern, $replacement, $subject, $limit=-1) {
         if (is_array($pattern)) {
             foreach ($pattern as $value) $subject=$this->preg_replace_array($value, $replacement, $subject, $limit);
@@ -508,25 +507,25 @@ class ReceiptsProcessor {
             return preg_replace($pattern, $replacement, $subject, $limit);
         }
     }
-    
+
 }
 
 class ResourcesProcessor {
-    
+
     private $connection;
-    
+
     public function __construct($server,$email, $psw){
         $server = new Server($server);
         $this->connection = $server->authenticate($email,$psw);
     }
-    
+
     public function processEmails($box = 'INBOX'){
         $mailbox = $this->connection->getMailbox($box);
         $search = new SearchExpression();
         $search->addCondition(new Unseen());
         $this->processMessages($mailbox->getMessages($search));
     }
-    
+
     private function processMessages($messages){
         echo "Processing ".count($messages)." messages<br/>";
         foreach($messages as $message){
@@ -539,15 +538,15 @@ class ResourcesProcessor {
                     array_push($successfulEntries,$attachment->getFilename());
                 }
             }
-            
+
             $message->markAsSeen();
-            
+
             $responce = "Success: ".count($successfulEntries)."\n"
                        ."Error:".(count($message->getAttachments())-count($successfulEntries))."\n"
                        .str_repeat("\n", 3)
                        ."The following files were entered successfully:\n"
                        .SEEDCore_ArrayExpandSeries($successfulEntries, "[[]]\n");
-                        
+
             $responce .= "\nOur Dev Team is happy to help with any problems you encounter while using this system.\n"
                         ."You can reach them at developer@catherapyservices.ca\n"
                         ."\nCATS Automatic Resource Entry System"
@@ -570,10 +569,10 @@ class ResourcesProcessor {
                 $recipient = "developer@catherapyservices.ca";
             }
             SEEDEmailSend($message->getTo()[0]->getAddress(), $recipient, $message->getSubject(), $responce, "", array('reply-to' => "developer@catherapyservices.ca", 'attachments' =>($tempFiles?TempAttachment::createRAOfPaths($tempFiles):"")));
-                                        
+
         }
     }
-    
+
     /** Returns array of attachment objects of all valid attachments
      * Or empty array if there are none
      * @param array $attachments - array of attachments included in the message
@@ -589,13 +588,13 @@ class ResourcesProcessor {
         }
         return $valid;
     }
-    
+
 }
 
 class TempAttachment {
-    
+
     public $path;
-    
+
     public function __construct(Attachment $oAttachment)
     {
         $this->path = sys_get_temp_dir().$oAttachment->getFilename();
@@ -604,12 +603,12 @@ class TempAttachment {
             fclose($file);
         }
     }
-    
+
     public function __destruct()
     {
         unlink($this->path);
     }
-    
+
     static function createRA(ArrayOfAttachment $attachments){
         $tempAttachments = new ArrayOfTempAttachment();
         foreach($attachments as $attachment){
@@ -617,7 +616,7 @@ class TempAttachment {
         }
         return $tempAttachments;
     }
-    
+
     static function createRAOfPaths(ArrayOfTempAttachment $attachments){
         $ra = array();
         foreach ($attachments as $attachment){
@@ -625,7 +624,7 @@ class TempAttachment {
         }
         return $ra;
     }
-    
+
 }
 
 //Array Hack Classes

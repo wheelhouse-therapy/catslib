@@ -38,7 +38,6 @@ if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 // deprecate W_ROOT: SEEDGoogleService uses W_ROOT, but it should use W_CORE instead
 if( !defined("W_ROOT") )   define( "W_ROOT", "./w/" );
 
-
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
 require_once SEEDCORE."SEEDCoreForm.php";
@@ -54,9 +53,14 @@ require_once "cats_ui.php";
 require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
-require_once 'share_resources.php';
 require_once 'manage_users.php';
 
+require_once "FilingCabinet/FilingCabinet.php";
+require_once "FilingCabinet/FilingCabinetUI.php";
+require_once "FilingCabinet/FilingCabinetDownload.php";
+require_once "FilingCabinet/FilingCabinetUpload.php";
+require_once "FilingCabinet/FilingCabinetReview.php";
+require_once "FilingCabinet/FilingCabinetTools.php";
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
 if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
@@ -96,11 +100,6 @@ $oApp = new SEEDAppConsole(
                            )
 );
 
-if( CATS_DEBUG ) {
-    $oApp->kfdb->SetDebug(1);
-}
-
-checkFileSystem($oApp);
 
 /**
  * CATS_SYSADMIN is true IF AND ONLY IF the user can read the administrator permission.
@@ -114,6 +113,10 @@ if( CATS_SYSADMIN ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
+    $oApp->kfdb->SetDebug(1);
+}
+if( CATS_DEBUG ) {
+    $oApp->kfdb->SetDebug(1);
 }
 
-?>
+FilingCabinet::checkFileSystem($oApp);

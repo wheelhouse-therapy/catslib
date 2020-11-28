@@ -1,8 +1,6 @@
 <?php
 
 require_once 'template_filler.php';
-require_once 'share_resources.php';
-
 
 function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
 /************************************************************
@@ -17,6 +15,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     }
 
     $dir_short = trim($dir_name,'/');
+
+    $sCabinet = 'general';      // this code is for the general FilingCabinet but this will have to vary if others use it too
 
     $oFCD = new FilingCabinetDownload( $oApp );
 
@@ -116,11 +116,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     else if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
-    else if(CATS_DEBUG){
-        // Developer mechines aren't configred to talk with SMTP servers.
-        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
-    }
-    else{
+// yeah but what if I want to see how it composes the email? Instead I just put CATS_DEBUG around the mail() function
+//    else if(CATS_DEBUG){
+//        // Developer mechines aren't configured to talk with SMTP servers.
+//        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+//    }
+    else if(!CATS_DEBUG) {
         $s = str_replace(["[[title]]","[[disabled]]"], ["title='Your account lacks an email address'","disabled"], $s);
     }
 
@@ -139,14 +140,14 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     $raOut += [''=>""];
 
     foreach ($dirIterator as $fileinfo) {
-        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD );
+        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
     }
 
     foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
         if(!file_exists($dir_name.$subfolder)) continue;
         $subdir = new DirectoryIterator($dir_name.$subfolder);
         foreach( $subdir as $fileinfo ) {
-            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD );
+            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
         }
     }
     $s .= "<div>";
@@ -282,15 +283,15 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD, $sCabinet )
 {
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
 
-        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
+        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, $sCabinet, realpath($fileinfo->getPathname()));
 
         if(!$oRR){
             // The file does not have a record yet, create one
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()),0);
+            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()), ['cabinet'=>$sCabinet], 0);
             $oRR->StoreRecord();
         }
 
@@ -535,7 +536,7 @@ viewVideo;
                 foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
                     if(pathinfo($file,PATHINFO_FILENAME) == $item){
                         // use FilingCabinetDownload to show file
-                        if( ($oRR = ResourceRecord::GetRecordFromPath($oApp, "videos", pathinfo($file,PATHINFO_BASENAME), "*" )) &&
+                        if( ($oRR = ResourceRecord::GetRecordFromPath($oApp, 'videos', "videos", pathinfo($file,PATHINFO_BASENAME), "*" )) &&
                             ($oRR->getID()) )
                         {
                             return str_replace("[[video]]", "?cmd=view&rr={$oRR->getID()}", $viewVideo);
