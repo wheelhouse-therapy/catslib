@@ -82,25 +82,12 @@ class FilingCabinetUI
             $s .= $this->getSearchDialog();
         } else {
             if( $this->sCabinet=='videos' ) {
-                // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-/*
-                $s .= "<div style='float:right;' id='uploadForm'>"
-                        .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
-                     ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-
-//                $s .= "<script src='".CATSDIR_JS."fileUpload.js'></script>
-//                       <link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'>";
-*/
-
-    // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-    $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
-        ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-$s .= "<div style='float:right;background:white;' id='uploadForm'>"
-    .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
-    ."</div>";
-
-
-$s .= "<script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+                $s .= "<div style='float:right;background:white;' id='uploadForm'>"
+                     .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
+                     ."</div>"
+                     ."<script src='".CATSDIR_JS."fileUpload.js'></script>
+                       <link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'>
+                       <script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
             } else {
                 $s .= "<div style='float:right;' id='uploadForm'>"
                         .FilingCabinetUpload::DrawUploadForm($this->sCabinet)

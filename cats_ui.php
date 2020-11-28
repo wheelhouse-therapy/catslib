@@ -243,7 +243,6 @@ ResetPassword;
                 break;
             case "therapist-viewVideos":
                 $oFC = new FilingCabinetUI( $this->oApp, 'videos' );
-                $s .= viewVideos($this->oApp);
                 $s .= $oFC->DrawFilingCabinet();
                 break;
             case "therapist-akaunting":

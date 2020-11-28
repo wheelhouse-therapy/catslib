@@ -14,8 +14,6 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         goto done;
     }
 
-    if( $sCabinet == 'videos' )  $dir_name = 'videos/'.$dir_name;
-
     $dir_short = trim($dir_name,'/');
 
     $oFCD = new FilingCabinetDownload( $oApp );
@@ -26,32 +24,35 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         exit;
     }
 
-    if(isset($_SESSION['mailResult'])){
-        if($_SESSION['mailResult']){
-            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
+    if( $sCabinet != 'videos' ) {
+        if(isset($_SESSION['mailResult'])){
+            if($_SESSION['mailResult']){
+                $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
+            }
+            else{
+                $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
+            }
+            unset($_SESSION['mailResult']);
+            unset($_SESSION['mailTarget']);
+            $s .= "<script>hideAlerts()</script>";
         }
-        else{
-            $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
+
+        // make sure dir_name is the full path
+        if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
+            $dir_name = CATSDIR_RESOURCES.$dir_name;
         }
-        unset($_SESSION['mailResult']);
-        unset($_SESSION['mailTarget']);
-        $s .= "<script>hideAlerts()</script>";
+        if(!file_exists($dir_name)){
+            $s .= "<h2>Unknown directory $dir_name</h2>";
+            return $s;
+        }
+
+        $dirIterator = new DirectoryIterator($dir_name);
+        if(iterator_count($dirIterator) == 2){
+            $s .= "<h2> No files in directory</h2>";
+            return $s;
+        }
     }
 
-    // make sure dir_name is the full path
-    if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
-        $dir_name = CATSDIR_RESOURCES.$dir_name;
-    }
-    if(!file_exists($dir_name)){
-        $s .= "<h2>Unknown directory $dir_name</h2>";
-        return $s;
-    }
-
-    $dirIterator = new DirectoryIterator($dir_name);
-    if(iterator_count($dirIterator) == 2){
-        $s .= "<h2> No files in directory</h2>";
-        return $s;
-    }
     if( !($oClinics = new Clinics($oApp)) || !($oClinics->GetCurrentClinic()) ) {
         return;
     }
@@ -107,6 +108,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                     </div>
                 </div>
             </div>";
+
     $manageUsers = new ManageUsers($oApp);
     $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
     if($dir_short == 'reports'){
@@ -134,22 +136,38 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
          ."</form></div>";
 
     $raOut = [];
-    foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
+    foreach(FilingCabinet::GetSubFolders($dir_short, $sCabinet) as $folder){
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
 
-    foreach ($dirIterator as $fileinfo) {
-        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
-    }
+    if( $sCabinet == 'videos' ) {
+        // videos are stored by _key in the videos directory, so look up folders/subfolders via database
+        $raRR = ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $dir_short, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD);
+        if( is_array($raRR) ) {
+            foreach( $raRR as $oRR ) {
+                $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+            }
+        } else if( $raRR ) {
+            $oRR = $raRR;
+            $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+        }
 
-    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
-        if(!file_exists($dir_name.$subfolder)) continue;
-        $subdir = new DirectoryIterator($dir_name.$subfolder);
-        foreach( $subdir as $fileinfo ) {
-            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+    } else {
+        // non-videos are stored as a filesystem
+        foreach ($dirIterator as $fileinfo) {
+            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
+        }
+
+        foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+            if(!file_exists($dir_name.$subfolder)) continue;
+            $subdir = new DirectoryIterator($dir_name.$subfolder);
+            foreach( $subdir as $fileinfo ) {
+                $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+            }
         }
     }
+
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
@@ -350,6 +368,56 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         return( $raOut );
 }
 
+function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $sFilter, $raOut, FilingCabinetDownload $oFCD, $sCabinet )
+{
+    if( $sFilter ) {
+        // list this file if sFilter matches part of its filename, or part of one of its tags
+        if( stripos( $oRR->getFilename(), $sFilter ) === false &&
+            !in_array($sFilter, $oRR->getTags()))
+        {
+            goto done;
+        }
+    }
+
+    // docx files get a link to the modal dialog; other files get a link for simple download
+    $link = $oFCD->GetDownloadPath( $oRR->getExtension() == "docx" ? 'replace' : "no_replace", $oRR );
+
+    $sTemplate =
+          "<div class='file-preview-container'>
+              [[BADGE]]
+              <a style='' [[LINK]] >
+                <div>
+                    <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
+                </div>
+                <div>
+                    [[FILENAME]]
+                </div>
+            </a>
+            <div data-id='".$oRR->getID()."'>
+                [[TAGS]]
+            </div>
+        </div>";
+
+    $preview = $oRR->getPreview() ?:
+                // Fallback if a Preview doesn't exist
+                "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";
+
+    //XXX Coming Soon Image is Temporary
+    //$preview = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAB3RJTUUH5AUdDiImVLMd0QAAClNJREFUeNrtnHtsi98fx99tt3bdZh2NZjOXzjCGbuYW90vEJeK6uYQE8ccWQlxHECH+kJkQibhtTFwiiNswEhHGGCYSIrYQMpIxa2Ns3bpu6Pv7z+95otptbdl+tZ130n/Oc87zOc7rec45z/m8TQGAEPIbKcUQCCBCjSjg9wJSzGAtKYVCId4QMWUJCSACiJAAIoAICSACiJAAIiSACCBCAogAIiSACCBCAogA8q9LoVC4JH5aLRDpHyv92rVrh9GjR+P69evi8f4bDxN+c500lcJt7MnLycnB9OnTxah6+YD/lSmLJEiitLQUc+bMAQDs3LlTjPBfEH/9NSV39crLywmAWq3WbV2bzcYVK1bQYDBQpVI51Tl16hTHjBlDnU5HtVrNmJgYpqWl8du3byRJi8VCjUZDlUrFsrIyl/5UV1dTp9PRYDCwvr6+wT56Eoska2trqVarqVQqabVa5fL4+HgCYEJCglxmtVqpVCqp0WhYW1tLkrTZbNy6dStjY2MZHBzMsLAwTpgwgdeuXWt0PH/5NT+QpKQklxgOh4MLFixw1yECYN++fVlZWUmSnD9/PgFw7969Lv05evQoAXD9+vUN9tGbWCQ5YsQIAuDdu3dJkhUVFVQqlQRApVIpA8zLyyMAjhw5Um67ePHiBuO0CJCPHz/KAzZ06FC3daOiopibm+v0xGVlZREAO3fuzPPnz9NisdBms7GgoICDBw8mAG7cuJEkeefOHQJgYmKiS38GDRpEACwuLm6wj97EIslNmzYRADMyMkiSOTk5BMDu3bsTAK9fv06S3L17NwFw8+bNctvw8HAC4J49e1hRUcG6ujo+efKEs2fPbl4g7n5XrlxxW/fSpUsu9xk6dCgBMD8/3+Xau3fvCIA9e/aUy3r27EkALCoqksuePXtGABw+fHijD423sW7cuEEATE5OJkmuWbOGAHjmzBkC4IYNG0iSc+fOJQDevHnTpZ9Tp07l9u3bee/ePf78+dOb8fwzICEhIRw5cqTbOVKqU1FR4XItODi4UbgAGBgYKNfPyMggAG7ZskUuS0lJIQAePXq0USDexqqsrKRKpWK3bt1IkomJiezUqRMdDgcjIyPlmaB79+5UqVSsqqqS296+fZsGg8Hp3j169ODz589bbg3xpa5Wq21ykH5tazabqVarGR0dTYfDwaqqKoaGhjI0NNRpKnQX19tYEgQAfPPmDZVKJRcvXkySXLRoEQMDA/nhw4cGp1Gbzcbc3FyuXr2anTp1IgCOGjXKv4FIc39hYSE9lTRF5Ofn89ChQwTApUuXNhnXl1irVq0iAKamphIAT58+Le/UpE0EAK5evbrR+3z69IkAGBwc7N9AsrOzCYARERHMyspiSUkJbTYb7XY7X79+zczMTA4bNsypze3bt+VBSkhIIAA+fPiwybi+xLp48SIBMCgoiAqFguXl5STJz58/U6FQUKfTuV0fJ0+ezFu3brG6uppWq5UHDx6U7+PXQEhy5cqVXk0jDoeDPXr0oEajIQD27t3b47jexjKbzXJ5fHy80zWTySRfM5vNHm16FixY4P9ApKc+OTmZUVFRDAwMpFarZd++fbl27Vq3C2F6erp8X2lb6mlcb2P17t2bAJiWluZULk1Xffr0cWlz9+5dJiUlUa/XU6vVMjY2ljt27KDNZvMIiNdnWUJ+epYlJPIhAoiQACKAiCEQQITaGpA2ZXIAgB8/fuDEiROYMmUKIiIioFarERoaiv79+2PZsmV4/PixeNR9fZi8/TAsKyvDzJkzUVhY2HheWHxgNv+H4ffv3zFt2jQUFhaic+fOOHz4MEpKSlBfX4+amhoUFRUhMzMTw4cPFyP9B/L4LCszM5MAaDQa5dNPT1RXV8f09HTGx8dTq9VSq9UyPj6eGRkZsjHh97Mdq9XKJUuWMCwsjBEREdy3bx9J8suXL1y4cCHDw8Op1+u5efNmOhyOJs+ypLKamhouXbqUYWFh1Ov13Lhxo0v7t2/fctq0aQwJCaFer2dqaipramq8OsfzVPiTw8Xx48cTAE+ePOlxQLvdztGjRzd4Cjpu3DgnKFL5rFmzXOrm5ORwyJAhLuW/96cxIMnJyS7t9+/fL9ezWCyMjIx0qTN79mz/A6LX6wmAnz9/9jigdDobHh7O7Oxsms1mms1mHjt2jGFhYS6ntlI/EhIS+OLFC1ZWVnL58uUEQJ1O57Z8xIgRHgNJTEzky5cv+e3bNzkFPGjQIJeTXKPRyLy8PFqtVubl5bFbt27+ByQgIIAA+P37d48DSrmD48ePN2jh+dXrJPXj0aNHLlm3hsoNBoPHQB4/fuzkmMH/fAGSYmNjCcDFI3D16tXW8YYEBQURAC0Wi8s1KQn0q59L6ofdbndKTDVWrlAoPAbS0H0lScmvr1+/OrWvqKhoESBe7bJMJhMA4NatW82+09BoNG63hu7KvdliN3Tff/LDcP78+QCAbdu2wWKxeNSmV69eAIAbN264XJMc87GxsX4zIEajEQDw4MEDp/KHDx/637a3rq6OAwYMIAB26dKFR44c4fv371lfX0+bzcbi4mJmZmY6GdekRb19+/Y8ceIELRYLLRYLjx8/Lrv83C3qnqZlG5uefGm/bt06AmB0dDTv37/P6upq3r9/n9HR0f63hpBkaWkpBw4c6LFhwG63c9SoUQ3WGzt2LOvq6vwGSHl5OSMiIlz6OWPGDAJgQECAfwEhyfr6emZnZ3PixIk0GAwMCAhgSEgI+/Xrx2XLljnthCQo6enpNJlMDAoKolarpclk4q5du5xg+AMQknzz5g2nTp3K4OBgdujQgSkpKSwqKiIAduzY0f+AtEXt379ffqP9ZpfVVjRz5kzk5+ejqqoKZWVlyMrKwpYtWwAASUlJ/nXa2xZPYCUNHDgQBQUFUKvV/nHa21aUm5uLSZMmITIyEmq1GjExMUhLS8OdO3f+KgzxhrS2fIiQn6ZwhQQQAaQhFRYWYsaMGejatSs0Gg2MRiOWLFnSomc9rXpN8WZRv3z5MpKTk+FwONwfiokNQcsu6lu3boXD4cCkSZPw/Plz1NbWwmw249y5cxgzZowY3ZY+7ZWSN54mqLwxN/hihPDEsODv+qOzrD59+hAAd+zY4TYD6Ku5wVcjRFOGhVYP5OzZs051Y2JiOG/ePJ4+fdrlKfbG3OCrEaIpw0KrByL9mQvJs/Rru4SEBKe3xhtzg69GiKYMC20CiKQfP37w1atXPHDgAI1Go/zflX0xN/xtI8S/DCTA152ASqVCXFwc4uLiMG7cOMTFxbnNmzen/N2w8H/7UtfpdACA8vJyucwbc8O/ZoTwm23vkCFDePDgQRYXF9Nut9NqtbKgoEDeIcXFxflkbmhuI0SrXUPQiKlBqVTywoULPpkbmtsI0WqBPH36lKtWraLJZKJWq2VgYCCjoqKYlJTk9m9ReWNuaE4jxL8ERCSoRIJKSORDBBAhAUQAERJABBAhAUQAERJAhAQQAURIABFAhAQQAURIABFAhAQQIfdyyakLiTdESAARQIQ81H+Z+XH0PR1quQAAAABJRU5ErkJggg==";
+
+    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+                                       [$link,
+                                        SEEDCore_HSC($oRR->getFile()),
+                                        $oFCD->oResourcesFiles->DrawTags($oRR),
+                                        $preview,
+                                        $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                       ],
+                                       $sTemplate);
+
+    done:
+    return( $raOut );
+}
+
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
 {
     $MODES = array('s' => array("code" => "replace"   , "title" => "Substitute Tags"    ),
@@ -455,6 +523,9 @@ viewSOP;
 }
 
 function viewVideos(SEEDAppConsole $oApp){
+
+// some of this is useful in the video filing cabinet
+
 
     if( SEEDInput_Str('cmd') == 'view' ) {
         $oFCD = new FilingCabinetDownload( $oApp );

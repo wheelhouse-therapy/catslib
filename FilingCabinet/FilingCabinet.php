@@ -629,9 +629,18 @@ class ResourceRecord {
     public function getCabinet()      : String { return $this->cabinet; }
     public function getDirectory()    : String { return $this->dir; }
     public function getSubDirectory() : String { return $this->subdir; }
+    public function getExtension()    : String { return (($p = pathinfo($this->file)) ? $p['extension'] : '' ); }
     public function getDescription()  : String { return $this->description; }
-    public function getPath() : String {
-        return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
+    public function getPath() : String
+    {
+        /* (for videos) Files are stored in a directory named after their cabinet, as "id file.ext".
+         * 1) id differentiates all files because it's unique, so two files with the same filename (in different folders) are okay.
+         * 2) file.ext is redundant because id uniquely identifies the file, but it makes the directory human-readable for us
+         * 3) folder and subfolder are only used in the UI to group files meaningfully, not used for storage location
+         */
+        return $this->cabinet == 'videos'
+                ? (CATSDIR_RESOURCES."videos/{$this->id} {$this->file}")
+                : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file);
     }
 
     /**
@@ -816,6 +825,10 @@ class ResourceRecord {
         $cond = "";
         $dirname = trim($dirname,'/\\');
         $subdir = trim($subdir,'/\\');
+        if($cabinet != self::WILDCARD){
+            $dbCabinet = addslashes($cabinet);
+            $cond = self::joinCondition($cond,"cabinet='$dbCabinet'");
+        }
         if($dirname != self::WILDCARD){
             $dbFolder = addslashes($dirname);
             $cond = self::joinCondition($cond,"folder='$dbFolder'");

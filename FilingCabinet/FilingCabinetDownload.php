@@ -71,7 +71,8 @@ class FilingCabinetDownload
     {
         if( !($rrid) ||
             !($oRR = ResourceRecord::GetRecordByID($this->oApp,$rrid)) ||
-            !($file = $oRR->getPath()) )
+            !($file = $oRR->getPath()) ||
+            !(file_exists($file)) )
         {
             $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
             return;
@@ -79,7 +80,7 @@ class FilingCabinetDownload
 
         header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
         header('Content-Length: '.filesize($file));
-        header('Content-Disposition: '.($bDownload ? 'attachment' : 'inline').'; filename="'.basename($file).'"');
+        header('Content-Disposition: '.($bDownload ? 'attachment' : 'inline').'; filename="'.$oRR->getFile().'"');  // the user-friendly name, not with _key prefix
         header('Content-Transfer-Encoding: binary');
         if( $bDownload ) {
             header('Content-Description: File Transfer');
