@@ -256,6 +256,7 @@ $bVideos = false;
     private static $raDrawersVideos = [
         // Drawers for the videos filing cabinet. (what we call 'directories' in the code, and 'folders' in the db).
         // On the filesystem these are directories under 'videos/'
+        'onboard'     => ['directory'=>"onboard/",     'color'=>"#06962d", 'name'=>"CATS Onboarding",            'extensions'=>['mp4','webm']],
         'reg'         => ['directory'=>"reg/",         'color'=>"#06962d", 'name'=>"Self Regulation",            'extensions'=>['mp4','webm']],
         'autism'      => ['directory'=>"autism/",      'color'=>"#06962d", 'name'=>"Early Autism Intervention",  'extensions'=>['mp4','webm']],
         'visualmotor' => ['directory'=>"visualmotor/", 'color'=>"#ff0000", 'name'=>"Visual Motor",               'extensions'=>['mp4','webm']],
