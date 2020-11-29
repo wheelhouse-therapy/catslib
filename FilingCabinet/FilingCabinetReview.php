@@ -46,7 +46,10 @@ class FilingCabinetReview
         foreach ($dir as $fileinfo) {
             if( $fileinfo->isDot() ) continue;
 
-            // use general cabinet for files in pending folder
+            /* If a file was uploaded it will have a ResourceRecord.
+             * This also allows a file to be dropped (e.g. by ftp) into the pending directory and ResourceRecord created on demand here.
+             * Use general cabinet for files in pending folder
+             */
             if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', $fileinfo->getRealPath())) ) {
                 $oRR = ResourceRecord::CreateFromRealPath($this->oApp, $fileinfo->getRealPath(), ['cabinet'=>'general'], 0);
                 $oRR->StoreRecord();
