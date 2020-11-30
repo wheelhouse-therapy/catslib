@@ -51,7 +51,7 @@ class FilingCabinetReview
              * Use general cabinet for files in pending folder
              */
             if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', $fileinfo->getRealPath())) ) {
-                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, $fileinfo->getRealPath(), ['cabinet'=>'general'], 0);
+                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, $fileinfo->getRealPath(),'general', 0);
                 $oRR->StoreRecord();
             }
             $s .= "<div><a href='?cmd=download&rrID={$oRR->getID()}' target='_blank'>".$fileinfo->getFilename()."</a>

@@ -117,7 +117,7 @@ Modal;
         }
 
         if (move_uploaded_file($_FILES[self::fileid]["tmp_name"], $target_file)) {
-            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file), ['cabinet'=>$this->sCabinet]);
+            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file), $this->sCabinet);
             $stored = $oRR->StoreRecord();
             if(!$stored){
                 $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";

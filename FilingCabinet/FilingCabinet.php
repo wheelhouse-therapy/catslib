@@ -113,7 +113,7 @@ $bVideos = false;
                     if( CATS_SYSADMIN ) {
                         echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                     }
-                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),['cabinet'=>$sCabinet],0);
+                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
                     $oRR->StoreRecord();
                 }
             }
@@ -128,7 +128,7 @@ $bVideos = false;
                         if( CATS_SYSADMIN ) {
                             echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                         }
-                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),['cabinet'=>$sCabinet],0);
+                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
                         $oRR->StoreRecord();
                     }
                 }
@@ -449,6 +449,12 @@ class ResourceRecord {
         return !$this->committed;
     }
 
+    /**
+     * Set the cabinet of the record.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param String $cabinet - cabinet to set
+     * @return bool - true if the cabinet has changed, false otherwise
+     */
     public function setCabinet(String $cabinet):bool{
         if($cabinet != $this->cabinet){
             $this->committed = false;
@@ -688,6 +694,10 @@ class ResourceRecord {
         return $this->newness;
     }
 
+    /**
+     * Get if the resource is "new"
+     * @return true if it's a "new" resource, false otherwise
+     */
     public function isNewResource(){
         return $this->newness >= 0;
     }
@@ -782,14 +792,14 @@ class ResourceRecord {
         return $oRR;
     }
 
-    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1, array $raParms = []):ResourceRecord{
+    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1, String $cabinet="general"):ResourceRecord{
         if($created_by == -1){
             $created_by = $oApp->sess->getUID();
         }
-        return new ResourceRecord($oApp, $dirname, $filename,array_merge($raParms, [self::CREATED_BY_KEY=>$created_by]));
+        return new ResourceRecord($oApp, $dirname, $filename,[self::CABINET_KEY=>$cabinet,self::CREATED_BY_KEY=>$created_by]);
     }
 
-    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath, array $raParms = [],int $created_by=-1){
+    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath, String $cabinet="general",int $created_by=-1){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
         $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
@@ -818,7 +828,7 @@ class ResourceRecord {
                 return NULL;
                 break;
         }
-        $oRR =  self::CreateNewRecord($oApp, $dir, $filename,$created_by, $raParms);
+        $oRR =  self::CreateNewRecord($oApp, $dir, $filename,$created_by, $cabinet);
         $oRR->subdir = $subdir;
         return $oRR;
     }
