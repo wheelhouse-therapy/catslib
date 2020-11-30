@@ -177,8 +177,10 @@ SearchDialog;
     $s = <<<viewVideo
     <style>
         html, body {
-            height: 100vh;
-            overflow:hidden;
+          /*  not sure why these were here but they cut off the bottom of the video
+              height: 100vh;
+              overflow:hidden; 
+           */
         }
         .videoView {
             height: 88%;
@@ -196,13 +198,14 @@ SearchDialog;
     </div>
 viewVideo;
     if( $rrid && ($oRR = ResourceRecord::GetRecordById($this->oApp, $rrid)) ) {
-        if( true ) {
-            $s = str_replace("[[video]]", "?cmd=view&rr={$oRR->getID()}", $s);  // use fpassthru
+        if( SEED_isLocal ) {
+            // use fpassthru because ./resources/videos is not necessarily in the web root
+            $s = str_replace("[[video]]", "?cmd=view&rr={$oRR->getID()}", $s);
         } else {
-            $s = str_replace("[[video]]", $oRR->getPath(), $s);                 // use direct link
+            // use direct link because hostupon and/or php are buffering output so the download takes a very long time
+            $s = str_replace("[[video]]", "./resources/videos/{$oRR->getId()} {$oRR->getFile()}", $s);
         }
     }
-
 
 
 /*
