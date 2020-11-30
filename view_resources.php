@@ -381,6 +381,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
 
     // docx files get a link to the modal dialog; other files get a link for simple download
     $link = $oFCD->GetDownloadPath( $oRR->getExtension() == "docx" ? 'replace' : "no_replace", $oRR );
+    $link = "href='?cmd=viewVideo&rr={$oRR->getId()}'";
 
     $sTemplate =
           "<div class='file-preview-container'>
@@ -524,89 +525,6 @@ viewSOP;
 
 function viewVideos(SEEDAppConsole $oApp){
 
-// some of this is useful in the video filing cabinet
-
-
-    if( SEEDInput_Str('cmd') == 'view' ) {
-        $oFCD = new FilingCabinetDownload( $oApp );
-        $oFCD->DownloadFile();
-        exit;
-    }
-
-    $viewVideo = <<<viewVideo
-    <style>
-        html, body {
-            height: 100vh;
-            overflow:hidden;
-        }
-        .videoView {
-            height: 88%;
-        }
-        .catsToolbar {
-            margin-bottom:2px
-        }
-    </style>
-    <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a></div>
-    <div class='videoView'>
-        <video width="100%" height="100%" controls>
-            <source src="[[video]]" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-    </div>
-viewVideo;
-
-    $listVideos = "<h3>View Uploaded Videos</h3>";
-    $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
-    if(iterator_count($dirIterator) == 2){
-        $listVideos .= "<h2> No files in directory</h2>";
-        goto brains;
-    }
-
-    $sFilter = SEEDInput_Str('resource-filter');
-
-    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;z-index:-10;'><form method='post'>"
-        ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
-        ."</form></div>";
-
-        $listVideos .= "<table border='0'>";
-        foreach ($dirIterator as $fileinfo) {
-            if( $fileinfo->isDot() ) continue;
-
-            if( $sFilter ) {
-                if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
-            }
-
-            $listVideos .= "<tr><td valign='top'>"
-                ."<a style='white-space: nowrap' href='?video_view=item&video_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
-                    .$fileinfo->getFilename()
-                ."</a>"
-                ."</td></tr>";
-        }
-        $listVideos .= "</table>";
-
-        //Brains of operations
-        brains:
-        $view = $oApp->sess->SmartGPC("video_view",array("list","item"));
-        $item = $oApp->sess->SmartGPC("video_item", array(""));
-
-        switch ($view){
-            case "item":
-                //Complicated method to ensure the file is in the directory
-                foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
-                    if(pathinfo($file,PATHINFO_FILENAME) == $item){
-                        // use FilingCabinetDownload to show file
-                        if( ($oRR = ResourceRecord::GetRecordFromPath($oApp, 'videos', "videos", pathinfo($file,PATHINFO_BASENAME), "*" )) &&
-                            ($oRR->getID()) )
-                        {
-                            return str_replace("[[video]]", "?cmd=view&rr={$oRR->getID()}", $viewVideo);
-                        }
-                    }
-                }
-                $oApp->sess->VarUnSet("video_item");
-            case "list":
-                return $listVideos;
-        }
-        return( "" );
 }
 
 class ResourcesFiles
