@@ -69,7 +69,7 @@ Modal;
 
                     <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required /><br />"
                     // <span> is necessary to make the required attribute change the button's colour
-                  ."<span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span>
+                  ."<span><input type='submit' id='upload-file-button' value='Upload $label' name='submit' onclick='submitForm(event)'></span>
                     Max Upload size:".ini_get('upload_max_filesize')."b
                 </form>
                 <div id='upload-bar'>
