@@ -154,9 +154,9 @@ function disable(rrid,event){
         $cabinet = $ra[0];
         $dir = $ra[1];
         $subdir = @$ra[2]? "{$ra[2]}/" : "";
-
-        if( !FilingCabinet::GetDirInfo($dir, 'cabinet') )  goto done;
-
+        
+        if( !FilingCabinet::GetDirInfo($dir, $cabinet) )  goto done;
+        
         $file = $oRR->getFile();
         if( !file_exists($this->dirPending.$file) )  goto done;
 
