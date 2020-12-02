@@ -855,7 +855,7 @@ class ResourceRecord {
         }
         $query = "SELECT _key FROM resources_files";
         if($cond){
-            $query .= " WHERE $cond";
+            $query .= " WHERE $cond ORDER BY cabinet,folder,subfolder";
         }
         return self::getFromQuery($oApp,$query);
     }

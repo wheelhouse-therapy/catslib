@@ -450,7 +450,8 @@ class ResourceManager{
 
                     // start of new dir (and subdir if defined)
                     $d = SEEDCore_HSC("videos/$currDir");
-                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">Videos: ".$currDir."</a><br />";
+                    $dirLabel = @FilingCabinet::GetDirInfo($currDir, 'videos')['name'] ?: "[no name]";
+                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">Videos: $dirLabel</a><br />";
                     $s .= "<div class='cats_doctree_level' id='$d'
                                 style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 100%;'>";
 
