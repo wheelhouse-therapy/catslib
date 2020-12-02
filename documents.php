@@ -463,7 +463,9 @@ class ResourceManager{
                     }
                 } else if( $currSubdir != $oRR->getSubDirectory() ) {
                     // same dir but end of previous subdir
-                    $s .= "</div>";      // end the previous subdir
+                    if( $currSubdir ) {
+                        $s .= "</div>";      // end the previous subdir
+                    }
 
                     $currSubdir = $oRR->getSubDirectory();
 
