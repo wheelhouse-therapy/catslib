@@ -324,6 +324,7 @@ class ResourceRecord {
     private const PREVIEW_KEY = 'preview';
     private const DESCRIPTION_KEY = 'description';
     private const NEWNESS_KEY = 'newness';
+    private const ORDER_KEY = 'order';
 
     // Cutoff for resources to be considered "new"
     private const NEWNESS_CUTOFF = 60;
@@ -354,7 +355,18 @@ class ResourceRecord {
      * READ ONLY
      */
     private $created = 0;
+    /**
+     * User id of the person who uploaded the file
+     * value of 0 represents a new file (accompanied by an id of 0) or an unknown uploader
+     * READ ONLY
+     */
     private $created_by = 0;
+    /**
+     * Status of the record
+     * value of 1 means the record is deleted and can be overwritten
+     * value of 0 is the default value and represents a "normal" record
+     * any other value may be ignored by search methods
+     */
     private $status = 0;
 
     // File info
@@ -366,6 +378,11 @@ class ResourceRecord {
     private $preview = "";
     private $description = "";
     private $newness = 0; // Which newness "group" this resource belongs to
+    /**
+     * Sort order.
+     * @var integer
+     */
+    private $order = 0;
 
     /**
      * Wether or not this record has been committed to the database.
@@ -415,7 +432,8 @@ class ResourceRecord {
             'preview' => $this->preview,
             'created_by' => $this->created_by,
             'description' => $this->description,
-            'newness' => $this->newness
+            'newness' => $this->newness,
+            'order' => $this->order,
         ];
     }
 
@@ -552,7 +570,7 @@ class ResourceRecord {
     /**
      * Set the description of the resource
      * NOTE: This DOES NOT STORE THE CHANGE
-     * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
+     * NOTE 2: Slashes are added automatically when stored and SHOULD NOT be added by caller.
      * @param String $description - Description to store
      * @return boolean - true if description has changed, false otherwise
      */
@@ -564,6 +582,34 @@ class ResourceRecord {
         return !$this->committed;
     }
 
+    /**
+     * Move the resource toward the top left of the filing cabinet
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param int $steps - Number of steps to move left. Default: 1
+     * @return boolean - true if the position has changed, false otherwise
+     */
+    public function moveLeft(int $steps=1){
+        if($steps != 0){
+            $this->committed = false;
+        }
+        $this->order -= $steps;
+        return !$this->committed;
+    }
+    
+    /**
+     * Move the resource toward the bottom right of the filing cabinet
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param int $steps - Number of steps to move right. Default: 1
+     * @return boolean - true if the position has changed, false otherwise
+     */
+    public function moveRight(int $steps=1){
+        if($steps != 0){
+            $this->committed = false;
+        }
+        $this->order += $steps;
+        return !$this->committed;
+    }
+    
     /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
@@ -690,6 +736,10 @@ class ResourceRecord {
         return $this->created_by;
     }
 
+    public function getOrder(){
+        return $this->order;
+    }
+    
     public function getNewness(){
         return $this->newness;
     }
@@ -787,6 +837,7 @@ class ResourceRecord {
         $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
         $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
         $raParams += [self::NEWNESS_KEY=>$ra['newness']];
+        $raParams += [self::ORDER_KEY=>$ra['iOrder']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
@@ -922,6 +973,25 @@ class ResourceRecord {
         return( $raRec );
     }
 
+    public static function GetResources(SeedAppConsole $oApp,String $cabinet,String $dirname,String $subdir=""){
+        $cond = "";
+        $dirname = trim($dirname,'/\\');
+        $subdir = trim($subdir,'/\\');
+        $dbCabinet = addslashes($cabinet);
+        $cond = self::joinCondition($cond,"cabinet='$dbCabinet'");
+        $dbFolder = addslashes($dirname);
+        $cond = self::joinCondition($cond,"folder='$dbFolder'");
+        $dbSubFolder = addslashes($subdir);
+        $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
+        $query = "SELECT _key FROM resources_files WHERE $cond ORDER BY iOrder";
+        // always return an array to keep it simple
+        if( !$raRec ) {
+            $raRec = array();
+        } else if( !is_array($raRec) ) {
+            $raRec = [$raRec];
+        }
+        return( $raRec );
+    }
 
     function CreateThumbnail()
     /*************************
