@@ -941,7 +941,6 @@ ExistsWarning;
     
     /**
      * Get array of clients that the user has access to see
-     * This method works internally and enforces Office Access Rights
      * @param int $status - status of the clients, -1 to get all a users clients
      * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
@@ -966,12 +965,7 @@ ExistsWarning;
      */
     public function getMyClients(int $status = 0,array $raParms = array()):array{
         $access = ClientsAccess::getAccess();
-        if(ClientsAccess::QueryAccess() == ClientsAccess::OFFICE){
-            ClientsAccess::getAccess(true,ClientsAccess::LIMITED);
-        }
-        else {
-            ClientsAccess::getAccess(true);
-        }
+        ClientsAccess::getAccess(true);
         $ra = $this->getMyClientsInternal($status,$raParms);
         ClientsAccess::getAccess(true,$access);
         return $ra;
@@ -1040,7 +1034,7 @@ class ClientsAccess {
     /**
      * User is the clinic leader and can see all clients in the clinic
      * Note: Users who lead a clinic are granted this level for the clinics they lead. Otherwise they revert to Limited access
-     * Note 2: This level unlockes the toggle for the therapist view.
+     * Note 2: This level unlocks the toggle for the therapist view.
      */
     public const LEADER = 2;
     
