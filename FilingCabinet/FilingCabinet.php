@@ -380,7 +380,6 @@ class ResourceRecord {
     private $newness = 0; // Which newness "group" this resource belongs to
     /**
      * Sort order.
-     * @var integer
      */
     private $order = 0;
 
