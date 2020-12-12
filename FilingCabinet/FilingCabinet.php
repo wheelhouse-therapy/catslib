@@ -329,7 +329,7 @@ class ResourceRecord {
     // Cutoff for resources to be considered "new"
     private const NEWNESS_CUTOFF = 60;
     // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
-    private const NEWNESS_GROUPS = 2;
+    private const NEWNESS_GROUPS = 4;
 
     private const TAG_SEPERATOR = "\t";
 
@@ -820,7 +820,7 @@ class ResourceRecord {
      * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
      */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
-        $ra = $oApp->kfdb->QueryRA( "SELECT *,FLOOR((".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).") as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        $ra = $oApp->kfdb->QueryRA( "SELECT *,-FLOOR(-(".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).")-1 as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
             // No Record with that id exists
             return NULL;
