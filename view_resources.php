@@ -46,9 +46,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
             return $s;
         }
 
-        $dirIterator = new DirectoryIterator($dir_name);
-        if(iterator_count($dirIterator) == 2){
-            $s .= "<h2> No files in directory</h2>";
+        if(ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $dir_short, ResourceRecord::WILDCARD,ResourceRecord::WILDCARD) == NULL){
+            $s .= "<h2> No files in drawer</h2>";
             return $s;
         }
     }
@@ -155,15 +154,16 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
 
     } else {
         // non-videos are stored as a filesystem
-        foreach ($dirIterator as $fileinfo) {
-            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
+        $raRR = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short);
+        foreach ($raRR as $oRR) {
+            $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
         }
 
         foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
             if(!file_exists($dir_name.$subfolder)) continue;
-            $subdir = new DirectoryIterator($dir_name.$subfolder);
-            foreach( $subdir as $fileinfo ) {
-                $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+            $raRRSub = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short,$subfolder);
+            foreach( $raRRSub as $oRR ) {
+                $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
             }
         }
     }
@@ -301,21 +301,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
+function addFileToSubfolder(Resourcerecord $oRR, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
 {
-        if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
-
-        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, $sCabinet, realpath($fileinfo->getPathname()));
-
-        if(!$oRR){
-            // The file does not have a record yet, create one
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()),$sCabinet, 0);
-            $oRR->StoreRecord();
-        }
 
         if( $sFilter ) {
             // list this file if sFilter matches part of its filename, or part of one of its tags
-            if( stripos( $fileinfo->getFilename(), $sFilter ) === false &&
+            if( stripos( $oRR->getFile(), $sFilter ) === false &&
                 !in_array($sFilter, $oRR->getTags()))
             {
                 goto done;
@@ -324,7 +315,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
 
         // docx files get a link to the modal dialog; other files get a link for simple download
         if( $oRR->templateFillerSupported() ) {
-            $link = $oFCD->GetDownloadPath('replace', $oRR, $fileinfo->getFilename(), $dir_short );
+            $link = $oFCD->GetDownloadPath('replace', $oRR, $oRR->getFile(), $dir_short );
         } else {
             $link = $oFCD->GetDownloadPath("no_replace", $oRR );
         }
@@ -351,7 +342,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
             $preview = $oRR->getPreview();
         }
 
-        $filename = SEEDCore_HSC($fileinfo->getFilename());
+        $filename = SEEDCore_HSC($oRR->getFile());
 
         $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
                                            [$link,
