@@ -301,7 +301,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD, $sCabinet )
+function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
 {
         if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
 
@@ -323,7 +323,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         // docx files get a link to the modal dialog; other files get a link for simple download
-        if( $fileinfo->getExtension() == "docx" ) {
+        if( $oRR->templateFillerSupported() ) {
             $link = $oFCD->GetDownloadPath('replace', $oRR, $fileinfo->getFilename(), $dir_short );
         } else {
             $link = $oFCD->GetDownloadPath("no_replace", $oRR );
