@@ -301,7 +301,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     return( $s );
 }
 
-function addFileToSubfolder(Resourcerecord $oRR, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
+function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
 {
 
         if( $sFilter ) {

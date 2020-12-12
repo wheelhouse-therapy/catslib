@@ -50,6 +50,53 @@ class FilingCabinetUI
                 $s .= "<form><input type='hidden' name='adminCreateAllThumbnails' value='1'/>"
                      ."<input type='submit' value='Admin: Create Thumbnails'/></form>";
             }
+            if(SEEDInput_Str('adminIndexAllFiles')){
+                // Force create records of all resources in the file system.
+                // The filing cabinet is now database driven so this can be used as a "sync" forcing the database to match the filesystem
+                foreach(FilingCabinet::GetDirectories() as $dir_short=>$dirInfo) {
+                    if($dir_short == "videos") {continue;}
+                    $dir_name = CATSDIR_RESOURCES.$dirInfo['directory'];
+                    $dirIterator = new DirectoryIterator($dir_name);
+                    foreach ($dirIterator as $fileinfo) {
+                        if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
+                        
+                        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
+                        
+                        if(!$oRR){
+                            // The file does not have a record yet, create one
+                            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                            if($oRR->StoreRecord()){
+                                $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
+                            }
+                            else{
+                                echo "<div class='alert alert-danger'>Could not create record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
+                            }
+                        }
+                    }
+                    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+                        if(!file_exists($dir_name.$subfolder)) continue;
+                        $subdir = new DirectoryIterator($dir_name.$subfolder);
+                        foreach( $subdir as $fileinfo ) {
+                            if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
+                            $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
+                            if(!$oRR){
+                                // The file does not have a record yet, create one
+                                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                                if($oRR->StoreRecord()){
+                                    $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
+                                }
+                                else{
+                                    echo "<div class='alert alert-danger'>Could not create record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            } else {
+                $s .= "<form><input type='hidden' name='adminIndexAllFiles' value='1'/>"
+                    ."<input type='submit' value='Admin: Index Files'/></form>";
+            }
         }
 
         if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase, $this->sCabinet)) ) {
