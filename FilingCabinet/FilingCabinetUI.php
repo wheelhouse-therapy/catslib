@@ -66,7 +66,7 @@ class FilingCabinetUI
                             // The file does not have a record yet, create one
                             $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
                             if($oRR->StoreRecord()){
-                                $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
+                                $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$fileinfo->getFilename())."</div>";
                             }
                             else{
                                 echo "<div class='alert alert-danger'>Could not create record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
