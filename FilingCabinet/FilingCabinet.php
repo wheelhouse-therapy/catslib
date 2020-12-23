@@ -652,7 +652,7 @@ class ResourceRecord {
             $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order} WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order}"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order})"))){
                 $this->committed = true;
             }
         }
