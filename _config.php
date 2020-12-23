@@ -17,11 +17,17 @@ if( CATS_DEBUG ) {
     ini_set('html_errors', 1);
 }
 
-/* CATSDIR is the location of the cats root directory. If you're doing something weird like running cats from
+/* CATSDIR is the location of the cats root directory. If you're doing something weird like running cats
  * by including cats/index.php from another directory, define CATSDIR relative to that place before your include.
+ *
+ * CATSDIR_URL is used for <a href>, <img src>, <script src>, etc links i.e. where the browser will fetch a file.
+ * Often this is the same as CATSDIR but you could configure CATSDIR with an absolute filesystem dir which wouldn't work for http links.
+ * Hint: if you set an absolute CATSDIR you probably want "./" for CATSDIR_URL
+ *
  * Otherwise, this default will make things work for the normal case.
  */
-if( !defined("CATSDIR") ) { define( "CATSDIR", "./" ); }
+if( !defined("CATSDIR") )     { define( "CATSDIR", "./" ); }            // filesystem location of root dir
+if( !defined("CATSDIR_URL") ) { define( "CATSDIR_URL", CATSDIR ); }     // http link location of root dir
 
 // SEEDROOT has to be configured; seedConfig.php should be able to find everything from there. If not, predefine what it can't find.
 if( !file_exists(SEEDROOT."seedConfig.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );
@@ -31,7 +37,6 @@ if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
 
 // deprecate W_ROOT: SEEDGoogleService uses W_ROOT, but it should use W_CORE instead
 if( !defined("W_ROOT") )   define( "W_ROOT", "./w/" );
-
 
 require_once SEEDCORE."SEEDCore.php";
 require_once SEEDCORE."SEEDApp.php" ;
@@ -48,14 +53,21 @@ require_once "cats_ui.php";
 require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
-require_once 'share_resources.php';
 require_once 'manage_users.php';
 
+require_once "FilingCabinet/FilingCabinet.php";
+require_once "FilingCabinet/FilingCabinetUI.php";
+require_once "FilingCabinet/FilingCabinetDownload.php";
+require_once "FilingCabinet/FilingCabinetUpload.php";
+require_once "FilingCabinet/FilingCabinetReview.php";
+require_once "FilingCabinet/FilingCabinetTools.php";
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
 if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
 if( !defined("CATSDIR_CSS") ) { define( "CATSDIR_CSS", CATSDIR."w/css/" ); }
-if( !defined("CATSDIR_RESOURCES") ) { define( "CATSDIR_RESOURCES", CATSDIR."resources/" ); }
+if( !defined("CATSDIR_RESOURCES") )     { define( "CATSDIR_RESOURCES", CATSDIR."resources/" ); }            // filesystem
+if( !defined("CATSDIR_URL_RESOURCES") ) { define( "CATSDIR_URL_RESOURCES", CATSDIR_URL."resources/" ); }    // http
+
 if( !defined("CATSDIR_DOCUMENTATION")){ define( "CATSDIR_DOCUMENTATION", CATSDIR."w/documentation/");}
 if( !defined("CATSDIR_AKAUNTING")){ define( "CATSDIR_AKAUNTING", CATSDIR."w/akaunting/");}
 if( !defined("CATSDIR_FONTS")){ define( "CATSDIR_FONTS", CATSDIR."w/fonts/");}
@@ -88,11 +100,6 @@ $oApp = new SEEDAppConsole(
                            )
 );
 
-if( CATS_DEBUG ) {
-    $oApp->kfdb->SetDebug(1);
-}
-
-checkFileSystem($oApp);
 
 /**
  * CATS_SYSADMIN is true IF AND ONLY IF the user can read the administrator permission.
@@ -106,6 +113,10 @@ if( CATS_SYSADMIN ) {
     error_reporting(E_ALL | E_STRICT);
     ini_set('display_errors', 1);
     ini_set('html_errors', 1);
+    $oApp->kfdb->SetDebug(1);
+}
+if( CATS_DEBUG ) {
+    $oApp->kfdb->SetDebug(1);
 }
 
-?>
+FilingCabinet::checkFileSystem($oApp);

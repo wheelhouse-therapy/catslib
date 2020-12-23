@@ -5,14 +5,23 @@ class Clinics {
     private $oApp;
     private $clinicsDB;
 
-    //Access Rights
+    // Access Rights
     private const NO_ACCESS     = 0;
     private const LEADER_ACCESS = 1;
     private const FULL_ACCESS   = 2;
     
+    // Image indexes
     public const LOGO_SQUARE    = 10;
     public const LOGO_WIDE      = 11;
     public const FOOTER         = 12;
+   
+    /**
+     * The Core Clinic.
+     * This clinic serves as the failsafe for all clinic specific features.
+     * Members of this clinic can see everything in every clinic.
+     * It is lead by Dev
+     */
+    public const CORE = 1;
     
     function __construct( SEEDAppSessionAccount $oApp ) {
         $this->oApp = $oApp;
@@ -20,7 +29,7 @@ class Clinics {
     }
 
     function isCoreClinic(){
-        return $this->GetCurrentClinic() == 1;
+        return $this->GetCurrentClinic() == self::CORE;
     }
 
     /**

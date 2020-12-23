@@ -1,7 +1,6 @@
 <?php
 
 require_once SEEDROOT."DocRep/DocRepUI.php";
-include_once "share_resources.php";
 
 class CATSDocTabSet extends Console02TabSet
 {
@@ -340,7 +339,7 @@ CSS;
 class ResourceManager{
 
     private $oApp;
-    private $selected_File = 0;
+//    private $selected_File = 0;
     private $openTrees;
 
     public function __construct(SEEDAppSessionAccount $oApp){
@@ -348,7 +347,16 @@ class ResourceManager{
     }
 
     public function ManageResources(){
-        $this->selected_File = SEEDInput_Str("id");
+        if( ($id = SEEDInput_Int("id")) ) {   // $this->selected_File = SEEDInput_Str("id");
+            if( ($oRR = ResourceRecord::GetRecordById($this->oApp, $id)) ) {
+                if( $oRR->getCabinet()=='videos' ) {
+                    $this->processCommandsVideos( $oRR );
+                } else {
+                    $this->processCommands( $oRR );
+                }
+            }
+        }
+
         if(isset($_SESSION['ResourceCMDResult'])){
             $cmdResult = $_SESSION['ResourceCMDResult'];
             unset($_SESSION['ResourceCMDResult']);
@@ -359,6 +367,8 @@ class ResourceManager{
         $this->openTrees = $this->oApp->sess->SmartGPC("open", array(array()));
 
         foreach ($this->openTrees as $file){
+            if( SEEDCore_StartsWith( $file, 'videos') )  continue;
+
             if(!file_exists(CATSDIR_RESOURCES.$file)){
                 unset($this->openTrees[array_search($file, $this->openTrees)]);
             }
@@ -368,51 +378,124 @@ class ResourceManager{
         return $script.$cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
 
-    private function listResources($dir){
+    private function listResources($dir, $bRecursing = false ){
         FilingCabinet::EnsureDirectory("*",true);
         $s = "";
+
+        if( !$bRecursing )  $s .= "<h4>Filing Cabinet</h4>";
+
+        // General cabinet
         $directory_iterator = new DirectoryIterator($dir);
-
-        if(iterator_count($directory_iterator) == 2){
+        if(iterator_count($directory_iterator) <= 2){
             $s .= "No Resources<br />";
-            return $s;
-        }
-        foreach ($directory_iterator as $fileinfo){
-            if($fileinfo->isDot()){
-                continue;
-            }
-            if($fileinfo->isDir() && $fileinfo->getFilename() == "pending") continue;
+        } else {
+            foreach ($directory_iterator as $fileinfo){
+                if($fileinfo->isDot()){
+                    continue;
+                }
+                if($fileinfo->isDir() && $fileinfo->getFilename() == "pending") continue;
+                if($fileinfo->isDir() && $fileinfo->getFilename() == "videos") continue;
 
-            if(!$fileinfo->isDir()){
-                $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $fileinfo->getRealPath());
-            }
-            else{
-                $oRR = Null;
-            }
+                if(!$fileinfo->isDir()){
+                    $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', $fileinfo->getRealPath());
+                }
+                else{
+                    $oRR = Null;
+                }
 
-            if($this->selected_File && $oRR != Null && $this->selected_File == $oRR->getID()){
-                $this->processCommands($oRR);
+//                if($this->selected_File && $oRR != Null && $this->selected_File == $oRR->getID()){
+//                    $this->processCommands($oRR);
+//                }
+                $filename = $fileinfo->getFilename();
+                if(FilingCabinet::GetDirInfo($filename)){
+                    $filename = FilingCabinet::GetDirInfo($filename)['name'];
+                }
+                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."')\">".$filename."</a><br />";
+                $s .= "<div class='[style]' id=\"".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."\" style='".(in_array(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)), $this->openTrees)?"":"display:none;")." width: [width];'>";
+                if($fileinfo->isDir()){
+                    $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
+                    $s .= $this->listResources($fileinfo->getRealPath(), true);
+                }
+                elseif($fileinfo->isFile()){
+                    $s = str_replace(array("[style]","[width]"), array("cats_docform","50%"), $s);
+                    $s .= $this->drawCommands($fileinfo->getRealPath());
+                }
+                $s .= "</div>";
             }
-            $filename = $fileinfo->getFilename();
-            if(FilingCabinet::GetDirInfo($filename)){
-                $filename = FilingCabinet::GetDirInfo($filename)['name'];
-            }
-            $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."')\">".$filename."</a><br />";
-            $s .= "<div class='[style]' id=\"".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."\" style='".(in_array(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)), $this->openTrees)?"":"display:none;")." width: [width];'>";
-            if($fileinfo->isDir()){
-                $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
-                $s .= $this->listResources($fileinfo->getRealPath());
-            }
-            elseif($fileinfo->isFile()){
-                $s = str_replace(array("[style]","[width]"), array("cats_docform","50%"), $s);
-                $s .= $this->drawCommands($fileinfo->getRealPath());
-            }
-            $s .= "</div>";
         }
+
+        if( $bRecursing ) goto done;    // only process the videos in the top level
+
+        $s .= "<h4>Videos</h4>";
+
+        // Video cabinet
+        if( ($raRR = ResourceRecord::GetRecordFromPath( $this->oApp, 'videos',
+                                                        ResourceRecord::WILDCARD, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD )) ) {
+            if( !is_array($raRR) )  $raRR = array($raRR);
+            $currDir = $currSubdir = "";
+            foreach( $raRR as $oRR ) {
+//                if( $this->selected_File && $this->selected_File == $oRR->getID() ) {
+//                    $this->processCommands($oRR);
+//                }
+
+                if( $currDir != $oRR->getDirectory() ) {
+                    // end of previous dir (if any), start of a new one
+                    if( $currDir ) {
+                        if( $currSubdir ) $s .= "</div>";   // end the previous subdir
+                        $s .= "</div>";                      // end the previous dir
+                    }
+
+                    $currDir = $oRR->getDirectory();
+                    $currSubdir = $oRR->getSubDirectory();
+
+                    // start of new dir (and subdir if defined)
+                    $d = SEEDCore_HSC("videos/$currDir");
+                    $dirLabel = @FilingCabinet::GetDirInfo($currDir, 'videos')['name'] ?: "[no name]";
+                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">Videos: $dirLabel</a><br />";
+                    $s .= "<div class='cats_doctree_level' id='$d'
+                                style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 100%;'>";
+
+                    if( $currSubdir ) {
+                        $d = SEEDCore_HSC("videos/$currDir/$currSubdir");
+                        $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">".$currSubdir."</a><br />";
+                        $s .= "<div class='cats_doctree_level' id='$d'
+                                    style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 100%;'>";
+                    }
+                } else if( $currSubdir != $oRR->getSubDirectory() ) {
+                    // same dir but end of previous subdir
+                    if( $currSubdir ) {
+                        $s .= "</div>";      // end the previous subdir
+                    }
+
+                    $currSubdir = $oRR->getSubDirectory();
+
+                    if( $currSubdir ) {
+                        // start of new subdir
+                        $d = SEEDCore_HSC("videos/$currDir/$currSubdir");
+                        $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">".$currSubdir."</a><br />";
+                        $s .= "<div class='cats_doctree_level' id='$d'
+                                    style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 100%;'>";
+                    }
+                }
+
+                // filename
+                $d = SEEDCore_HSC("videos/$currDir/$currSubdir/{$oRR->getFile()}");
+                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">".$oRR->getFile()."</a><br />"
+                     ."<div class='cats_docform' id='$d'
+                            style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 50%;'>"
+                     .$this->drawCommandsVideos($oRR)
+                     ."</div>";
+            }
+            if( $currSubdir )  $s .= "</div>";
+            if( $currDir )     $s .= "</div>";
+        }
+
+        done:
         return $s;
     }
 
-    private function processCommands(ResourceRecord $oRR){
+    private function processCommands( ResourceRecord $oRR )
+    {
         $cmd = SEEDInput_Str("cmd");
         switch($cmd){
             case "move":
@@ -439,7 +522,6 @@ class ResourceManager{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved $fromFileBase to $toDirRel</div>";
                     $dir = explode("/", rtrim($toDirRel,"/"))[0];
                     $subdir = @explode("/", rtrim($toDirRel,"/"))[1]?:"";
-                    var_dump($dir,$subdir);
                     $oRR->setDirectory($dir);
                     $oRR->setSubDirectory($subdir);
                     if(!$oRR->StoreRecord())
@@ -505,11 +587,76 @@ class ResourceManager{
         exit();
     }
 
+    private function processCommandsVideos( ResourceRecord $oRR )
+    {
+        switch( SEEDInput_Str('cmd') ) {
+            case "move":
+                // videos are all stored in 'videos/' so moving just means changing the folder/subfolder in the db
+                $ra = explode('/', SEEDInput_Str('folder'), 2);
+                $newDir = @$ra[0] ?: "";
+                $newSubdir = @$ra[1] ?: "";
+                $oRR->setDirectory($newDir);
+                $oRR->setSubDirectory($newSubdir);
+                if($oRR->StoreRecord()) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>Successfully Moved {$oRR->getFile()}</div>";
+                } else {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error Moving file {$oRR->getFile()}</div>";
+                }
+                break;
+
+            case "rename":
+                // videos are stored as 'videos/id filebase' so renaming means changing db-filename and renaming filesystem filebase
+                if( ($name = SEEDInput_Str("name")) && ($ext = SEEDInput_Str("ext")) ) {
+                    $newFileBase = $name.'.'.$ext;                                // base name of new file
+                } else {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>New file name not given</div>";
+                    break;
+                }
+
+                $oldFileBase = $oRR->getFile();
+                $oldFile = realpath($oRR->getPath());
+                $newFile = CATSDIR_RESOURCES."videos/{$oRR->getId()} $newFileBase";
+
+                $oRR->setFile($newFileBase);
+                if( $oRR->StoreRecord() && rename($oldFile, $newFile) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File $oldFileBase renamed to $newFileBase</div>";
+                } else {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error renaming file $oldFileBase to $newFileBase</div>";
+                }
+                break;
+            case "delete":
+                // delete file from videos/ and delete the resource record
+                $file = $oRR->getFile();
+                $oRR->setStatus(1);
+                if( $oRR->StoreRecord() && unlink(realpath($oRR->getPath())) ) {
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File $file has been deleted</div>";
+                } else{
+                    $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file $file</div>";
+                }
+                break;
+            case "download":
+                // use FilingCabinetDownload instead
+                $file = $oRR->getPath();
+                header('Content-Type: '.(@mime_content_type($file)?:"application/octet-stream"));
+                header('Content-Description: File Transfer');
+                header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+                header('Content-Transfer-Encoding: binary');
+                if( ($fp = fopen( $file, "rb" )) ) {
+                    fpassthru( $fp );
+                    fclose( $fp );
+                }
+                exit;
+        }
+        header("HTTP/1.1 303 SEE OTHER");
+        header("Location: ?");
+        exit();
+    }
+
     private function drawCommands($file_path){
         if(!$this->oApp->sess->CanAdmin("admin")){
             return "You don't have permission to edit files";
         }
-        if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($file_path))) ) {
+        if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, 'general', realpath($file_path))) ) {
             return( "<p>Note there is a file <pre>$file_path</pre> that is not indexed</p>" );
         }
 
@@ -564,6 +711,63 @@ class ResourceManager{
         $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
 
         $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".addslashes($this->getPathRelativeTo($file_path,CATSDIR_RESOURCES))."_command' style='display:none'></div>";
+        return $s;
+    }
+
+    private function drawCommandsVideos( ResourceRecord $oRR )
+    {
+        if(!$this->oApp->sess->CanAdmin("admin")){
+            return "You don't have permission to edit files";
+        }
+
+        // Move form
+        $move = "<a href='javascript:void(0)' onclick=\"setContents('cmd-{$oRR->getId()}','cmd-move-{$oRR->getId()}')\">move</a>";
+        $move .= "<div id='cmd-move-{$oRR->getId()}' style='display:none'>"
+                ."<br /><form>
+                  <input type='hidden' name='cmd' value='move' />
+                  <input type='hidden' name='id' value='{$oRR->getID()}' />
+                  <select name='folder' class='cats_form' required><option value='' selected>-- Select Folder --</option>";
+        foreach (FilingCabinet::GetDirectories('videos') as $k=>$v){
+            // don't allow moving files into folders where they aren't supported
+            if( !in_array($oRR->getExtension(),$v['extensions']) ) continue;
+
+            $sDisabled = ($oRR->getDirectory() == $k && !$oRR->getSubDirectory()) ? " disabled" : "";
+            $move .= "<option value='$k' $sDisabled>".$v['name']."</option>";
+            foreach( FilingCabinet::GetSubfolders($k,'videos') as $sub ) {
+                $sDisabled = ($oRR->getDirectory() == $k && $oRR->getSubDirectory()==$sub) ? " disabled" : "";
+                $subfolder = SEEDCore_HSC($v['directory'].$sub);
+                $move .= "<option value='$subfolder' $sDisabled> -- $sub</option>";
+            }
+        }
+        $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
+
+        // Rename form
+        $file_path='';
+        $rename = "<a href='javascript:void(0)' onclick=\"setContents('cmd-{$oRR->getId()}','cmd-rename-{$oRR->getId()}')\">rename</a>";
+        $rename .= "<div id='cmd-rename-{$oRR->getId()}' style='display:none'>"
+                  ."<br /><form>"
+                  ."<input type='hidden' name='cmd' value='rename' />"
+                  // PATHINFO_FILENAME is a poorly-named arg that gets the part of the name before the '.'
+                  ."<input type='hidden' name='id' value='".$oRR->getID()."' />"
+                  ."<input type='text' class='cats_form' name='name' required value='".pathinfo($oRR->getFile(),PATHINFO_FILENAME)."' />.";
+        $rename .= "<select name='ext' required><option value=''>Select Extension</option>";
+
+        if( ($exts = @FilingCabinet::GetDirInfo($oRR->getDirectory(),'videos')['extensions']) ) {
+            foreach ($exts as $v){
+                $rename .= "<option ".($oRR->getExtension() == $v ? "selected":"").">$v</option>";
+            }
+        }
+        $rename .= "</select>&nbsp&nbsp<input type='submit' value='rename' />"
+                  ."</form>"
+                  ."</div>";
+
+        $download = "<a href='?cmd=download&id=".$oRR->getID()."' data-tooltip='Download Resource'><i class='fa fa-download'></i></a>";
+
+        $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
+
+        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div>"
+            ."<div id='cmd-{$oRR->getId()}' style='display:none'></div>";
+
         return $s;
     }
 

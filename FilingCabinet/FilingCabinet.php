@@ -14,132 +14,6 @@
  * FilingCabinetTools    provides the UI to move, rename, and delete files
  */
 
-class FilingCabinetUI
-/********************
-    Top-level UI for the filing cabinet.
- */
-{
-    private $oApp;
-
-    function __construct( SEEDAppConsole $oApp )
-    {
-        $this->oApp = $oApp;
-    }
-
-    function DrawFilingCabinet( /* take a dir argument for Reports and other special drawers */ )
-    {
-        $s = "";
-
-        if($this->oApp->sess->SmartGPC('dir') == 'main'){
-            $this->oApp->sess->VarUnSet('dir');
-        }
-
-        // Handle cmds: download (does not return), and other cmds (return here then draw the filing cabinet)
-        $this->handleCmd();
-
-        if( CATS_SYSADMIN ) {
-            if( SEEDInput_Str('adminCreateAllThumbnails') ) {
-                // Create thumbnails for all resources that don't have them.
-                // You have to have PHPWord, dompdf, and convert(ImageMagick) installed.
-                $raRR = ResourceRecord::GetRecordsWithoutPreview($this->oApp);
-                foreach( $raRR  as $oRR ) {
-                    $oRR->CreateThumbnail( $oRR );
-                }
-                $s .= "<div class='alert alert-success'>Tried to create ".count($raRR)." thumbnails</div>";
-            } else {
-                $s .= "<form><input type='hidden' name='adminCreateAllThumbnails' value='1'/>"
-                     ."<input type='submit' value='Admin: Create Thumbnails'/></form>";
-            }
-        }
-
-        if( ($dir = $this->oApp->sess->SmartGPC('dir')) && ($dirbase = strtok($dir,"/")) && ($raDirInfo = FilingCabinet::GetDirInfo($dirbase)) ) {
-            // Show the "currently-open drawer" of the filing cabinet
-            FilingCabinet::EnsureDirectory($dirbase);
-            $title = "Close {$raDirInfo['name']} Drawer";
-            if(stripos($raDirInfo['name'], "Drawer") !== false){
-                $title = "Close {$raDirInfo['name']}";
-            }
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
-                 .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
-                 //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                 ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                    ."Back to Filing Cabinet"
-                 ."</div></p></a>";
-            if($dir == 'papers'){
-                include(CATSLIB."papers.php");
-            }
-            else{
-                $s .= ResourcesDownload( $this->oApp, $raDirInfo['directory'] );
-            }
-            $s .= $this->getSearchDialog();
-        } else {
-            FilingCabinet::EnsureDirectory("*");
-            $s .= "<div style='float:right;' id='uploadForm'>"
-                    .FilingCabinetUpload::DrawUploadForm()
-                 ."</div><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-
-            // Show the "closed drawers" of the filing cabinet
-            $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>";
-
-            // Some of the directories in the array are not part of the filing cabinet. Remove them here.
-            $ras = FilingCabinet::GetFilingCabinetDirectories();
-            foreach( $ras as $k => $ra ) {
-                $bgcolor = "background-color: grey;";
-                if (array_key_exists("color", $ra)) {
-                    $bgcolor = "background-color: {$ra['color']};";
-                }
-                $title = "Open {$ra['name']} Drawer";
-                if(stripos($ra['name'], "Drawer") !== false){
-                    $title = "Open {$ra['name']}";
-                }
-
-                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
-                        ."{$ra['name']}"
-                     ."</div></a></p>";
-            }
-            $s .= $this->getSearchDialog();
-        }
-        return( $s );
-    }
-
-    private function getSearchDialog(){
-        return <<<SearchDialog
-<div class='modal fade' id='search_dialog' role='dialog'>
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <input type='text' class='search' id='search' name='search' placeholder='Search..' onkeyup='searchFiles(event)' role='search'>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class='modal-body' id='searchResults'>
-            </div>
-        </div>
-    </div>
-</div>
-SearchDialog;
-    }
-
-    private function handleCmd()
-    {
-        switch( ($cmd = SEEDInput_Str('cmd')) ) {
-            case 'download':
-                $oFCD = new FilingCabinetDownload( $this->oApp );
-                $oFCD->DownloadFile();
-                exit;       // download doesn't return here, but this is just a good reminder of that
-            case 'view':
-                $oFCD = new FilingCabinetDownload( $this->oApp );
-                $oFCD->DownloadFile();
-                exit;       // download doesn't return here, but this is just a good reminder of that
-
-            default:
-                break;
-        }
-    }
-}
-
-
 class FilingCabinet
 /******************
     Base filesystem class for the filing cabinet.
@@ -171,6 +45,9 @@ class FilingCabinet
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
+//            foreach( self::$raDrawersVideos as $k=>$v ) {
+//                self::EnsureDirectory('videos/'.$k,$silent);
+//            }
         }
         else if(is_array($dirs)){
             // ensure the given array of directories are created
@@ -190,8 +67,13 @@ class FilingCabinet
         }
         else {
             // ensure the specified single directory is created, and its subdirectories
-            if( ($dirinfo = self::GetDirInfo($dirs)) ) {
-                $dir_name = CATSDIR_RESOURCES.$dirinfo["directory"];
+//            if( ($bVideos = SEEDCore_StartsWith( $dirs, 'videos/')) ) {
+//                $dirs = substr($dirs,strlen('videos/'));
+//            }
+$bVideos = false;
+            $sCabinet = $bVideos ? 'videos' : 'general';
+            if( ($dirinfo = self::GetDirInfo($dirs, $sCabinet)) ) {
+                $dir_name = CATSDIR_RESOURCES.($bVideos ? 'videos/' : '').$dirinfo["directory"];
 
                 if( !file_exists($dir_name) ) {
                     $r = @mkdir($dir_name, $perm, true);
@@ -199,7 +81,7 @@ class FilingCabinet
                         echo $dirinfo["name"]." Resources Directory ".($r ? "" : "Could Not Be")." Created<br />";
                     }
                 }
-                foreach( self::GetSubFolders($dirs) as $d ) {
+                foreach( self::GetSubFolders($dirs,$sCabinet) as $d ) {
                     $subdirname = $dir_name.$d;
                     if( !file_exists($subdirname) ) {
                         $r = @mkdir($subdirname, $perm, true);
@@ -214,6 +96,10 @@ class FilingCabinet
 
     function tmpEnsureResourceRecords()
     {
+        return;     // should be good now; note the code below does not set the new cabinet field
+
+        $sCabinet = 'not defined';
+
         /* This is a temporary measure to make sure that a ResourceRecord exists for every file in the Filing Cabinet, except for "pending"
          * Remove this method when ResourceRecords are naturally created for all files.
          */
@@ -223,11 +109,11 @@ class FilingCabinet
             foreach( $dirIterator as $fileinfo ) {
                 if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
 
-                if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
+                if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $sCabinet, realpath($fileinfo->getPathname()))) ) {
                     if( CATS_SYSADMIN ) {
                         echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                     }
-                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),0);
+                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
                     $oRR->StoreRecord();
                 }
             }
@@ -238,11 +124,11 @@ class FilingCabinet
                 foreach( $subdir as $fileinfo ) {
                     if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
 
-                    if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, realpath($fileinfo->getPathname()))) ) {
+                    if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $sCabinet, realpath($fileinfo->getPathname()))) ) {
                         if( CATS_SYSADMIN ) {
                             echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
                         }
-                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),0);
+                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
                         $oRR->StoreRecord();
                     }
                 }
@@ -254,28 +140,38 @@ class FilingCabinet
      * Get the list of directories in the Resource Subsystem
      * @return array - containing directory information
      */
-    static function GetDirectories() { return( self::$raDirectories ); }
+    static function GetDirectories($sCabinet = 'general') { return( $sCabinet=='videos' ? self::$raDrawersVideos : self::$raDirectories ); }
     /**
      * Get Directory information (eg. allowed extensions, display name, etc.) for a directory
      * @param string $dir - directory to get information of
      * @return NULL|array - array containing the info for the given directory, or Null if its not part of the Resource Subsystem
      */
-    static function GetDirInfo(String $dir) { return( @self::$raDirectories[$dir] ?: null ); }
+    static function GetDirInfo(String $dir, $sCabinet = 'general')
+    {
+        return( $sCabinet=='videos' ? (@self::$raDrawersVideos[$dir] ?: null)
+                                    : (@self::$raDirectories[$dir] ?: null) );
+    }
+
     /**
      * Get Subdirectories in the given directory
      * @param string $dir - directory to get subdirs of
      * @return array - list of defined subdirectories if defined
      */
-    static function GetSubFolders(String $dir){ return( @self::$raSubFolders[$dir] ?: []); }
+    static function GetSubFolders(String $dir, $sCabinet = 'general' )
+    {
+        return( $sCabinet=='videos' ? (@self::$raSubfoldersVideos[$dir] ?: [])
+                                    : (@self::$raSubFolders[$dir] ?: []) );
+    }
 
     /**
      * Get the extensions supported by the Resource Subsystem.
      * NOTE: the extensions do not contain dots
      * @return array - array of supported extensions
      */
-    static function GetSupportedExtensions(){
+    static function GetSupportedExtensions( $sCabinet = 'general' )
+    {
         $exts = [];
-        foreach(self::GetDirectories() as $ra) {
+        foreach(self::GetDirectories($sCabinet) as $ra) {
             $exts = array_merge($exts,$ra['extensions']);
         }
         return( array_unique($exts) );
@@ -285,8 +181,10 @@ class FilingCabinet
      * Get directories which are part of the filing cabinet
      * @return array - array containing directory information of the directories which are part of the filing cabinet
      */
-    static function GetFilingCabinetDirectories(){
-        return array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
+    static function GetFilingCabinetDirectories( $sCabinet = 'general' )
+    {
+        return $sCabinet=='videos' ? self::$raDrawersVideos
+                                   : array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
     }
 
     /**
@@ -354,6 +252,57 @@ class FilingCabinet
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"],
         'videos'  => ["CATS Orientation", "Private Therapist Hints", "Self-Regulation", "Visual Motor", "Other Motor", "Anxiety", "Cognitive", "ADLs", "Assessments", "Back Drawer"]
     ];
+
+
+    private static $raDrawersVideos = [
+        // Drawers for the videos filing cabinet. (what we call 'directories' in the code, and 'folders' in the db).
+        // On the filesystem these are directories under 'videos/'
+        'onboard'     => ['directory'=>"onboard/",     'color'=>"#06962d", 'name'=>"CATS Onboarding",            'extensions'=>['mp4','webm']],
+        'reg'         => ['directory'=>"reg/",         'color'=>"#06962d", 'name'=>"Self Regulation",            'extensions'=>['mp4','webm']],
+        'autism'      => ['directory'=>"autism/",      'color'=>"#06962d", 'name'=>"Early Autism Intervention",  'extensions'=>['mp4','webm']],
+        'visualmotor' => ['directory'=>"visualmotor/", 'color'=>"#ff0000", 'name'=>"Visual Motor",               'extensions'=>['mp4','webm']],
+        'othermotor'  => ['directory'=>"othermotor/",  'color'=>"#ff8400", 'name'=>"Other Motor (fine, gross, oral, ocular)", 'extensions'=>['mp4','webm']],
+        'anxiety'     => ['directory'=>"anxiety/",                         'name'=>"Anxiety",                    'extensions'=>['mp4','webm']],
+        'cog'         => ['directory'=>"cog/",         'color'=>"#000000", 'name'=>"Cognitive",                  'extensions'=>['mp4','webm']],
+        'adl'         => ['directory'=>"adl/",         'color'=>"#ebcf00", 'name'=>"ADLs",                       'extensions'=>['mp4','webm']],
+        'teens'       => ['directory'=>"teens/",       'color'=>"#ebcf00", 'name'=>"Teens",                      'extensions'=>['mp4','webm']],
+        'assmt'       => ['directory'=>"assmt/",       'color'=>"#0000ff", 'name'=>"Assessments",                'extensions'=>['mp4','webm']],
+        'backdrawer'  => ['directory'=>"backdrawer/",  'color'=>"#0000ff", 'name'=>"Back Drawer",                'extensions'=>['mp4','webm']],
+    ];
+
+    private static $raSubfoldersVideos = [
+        // Subfolders for the videos filing cabinet
+        'reg'     => ["Psycho Education","Strategies"],
+        'cog'     => ["Executive Function","Literacy","Writing"],
+        'adl'     => ["Picky Eating","Fasteners"],
+    ];
+
+    static function checkFileSystem(SEEDAppConsole $oApp)
+    {
+        $FileSystemVersion = 2;
+        $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
+        $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
+        if( $currFileSystemVersion != $FileSystemVersion ) {
+            $oBucket->PutStr( 'cats', 'FileSystemVersion', $FileSystemVersion );
+        }
+        if ($currFileSystemVersion < 2) {
+            FilingCabinet::EnsureDirectory('old');
+            foreach(array('handouts/','forms/','marketing/','clinic/') as $folder){
+                $directory_iterator = new DirectoryIterator(CATSDIR_RESOURCES.$folder);
+                foreach ($directory_iterator as $fileinfo){
+                    if($fileinfo->isDot()){
+                        continue;
+                    }
+                    rename(CATSDIR_RESOURCES.$folder."/".$fileinfo->getFilename(), CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('old')['directory'].$fileinfo->getFilename());
+                    //TODO Use ResourceRecord instead.
+                    // This is legacy update code for updating a legacy filesystem.
+                    // All (or most) of the file systems should be updated now.
+                    $oApp->kfdb->Execute("UPDATE resources_files SET folder = '".addslashes(rtrim(FilingCabinet::GetDirInfo('old')['directory'],"/"))."' WHERE folder='".addslashes(rtrim($folder,"/\\"))."' AND filename='".addslashes($fileinfo->getFilename())."'");
+                }
+                rmdir(realpath(CATSDIR_RESOURCES.$folder));
+            }
+        }
+    }
 }
 
 /**
@@ -370,17 +319,19 @@ class ResourceRecord {
     private const CREATED_KEY = 'created';
     private const CREATED_BY_KEY = 'created_by';
     private const STATUS_KEY = 'status';
+    private const CABINET_KEY = 'cabinet';
     private const SUBDIRECTORY_KEY = 'subdir';
     private const TAGS_KEY = 'tags';
     private const PREVIEW_KEY = 'preview';
     private const DESCRIPTION_KEY = 'description';
     private const NEWNESS_KEY = 'newness';
+    private const ORDER_KEY = 'order';
 
     // Cutoff for resources to be considered "new"
     private const NEWNESS_CUTOFF = 60;
     // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
-    private const NEWNESS_GROUPS = 2;
-    
+    private const NEWNESS_GROUPS = 4;
+
     private const TAG_SEPERATOR = "\t";
 
 
@@ -405,10 +356,22 @@ class ResourceRecord {
      * READ ONLY
      */
     private $created = 0;
+    /**
+     * User id of the person who uploaded the file
+     * value of 0 represents a new file (accompanied by an id of 0) or an unknown uploader
+     * READ ONLY
+     */
     private $created_by = 0;
+    /**
+     * Status of the record
+     * value of 1 means the record is deleted and can be overwritten
+     * value of 0 is the default value and represents a "normal" record
+     * any other value may be ignored by search methods
+     */
     private $status = 0;
 
     // File info
+    private $cabinet;
     private $dir;
     private $subdir = '';
     private $file;
@@ -416,7 +379,11 @@ class ResourceRecord {
     private $preview = "";
     private $description = "";
     private $newness = 0; // Which newness "group" this resource belongs to
-    
+    /**
+     * Sort order.
+     */
+    private $order = 0;
+
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -429,6 +396,7 @@ class ResourceRecord {
 
         $this->file = $filename;
         $this->dir = $dirname;
+        $this->cabinet = @$raParams['cabinet'] ?: 'general';
         $this->id = intval(@$raParams[self::ID_KEY]?:0);
         $this->created = @$raParams[self::CREATED_KEY]?:0;
         $this->created_by = intval(isset($raParams[self::CREATED_BY_KEY])?$raParams[self::CREATED_BY_KEY]:$oApp->sess->getUID());
@@ -455,6 +423,7 @@ class ResourceRecord {
             'id' => $this->id,
             'created' => $this->created,
             'status' => $this->status,
+            'cabinet' => $this->cabinet,
             'dir' => $this->dir,
             'subdir' => $this->subdir,
             'file' => $this->file,
@@ -463,7 +432,8 @@ class ResourceRecord {
             'preview' => $this->preview,
             'created_by' => $this->created_by,
             'description' => $this->description,
-            'newness' => $this->newness
+            'newness' => $this->newness,
+            'order' => $this->order,
         ];
     }
 
@@ -494,6 +464,20 @@ class ResourceRecord {
             $this->committed = false;
         }
         $this->tags = $ra;
+        return !$this->committed;
+    }
+
+    /**
+     * Set the cabinet of the record.
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param String $cabinet - cabinet to set
+     * @return bool - true if the cabinet has changed, false otherwise
+     */
+    public function setCabinet(String $cabinet):bool{
+        if($cabinet != $this->cabinet){
+            $this->committed = false;
+        }
+        $this->cabinet = $cabinet;
         return !$this->committed;
     }
 
@@ -586,7 +570,7 @@ class ResourceRecord {
     /**
      * Set the description of the resource
      * NOTE: This DOES NOT STORE THE CHANGE
-     * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
+     * NOTE 2: Slashes are added automatically when stored and SHOULD NOT be added by caller.
      * @param String $description - Description to store
      * @return boolean - true if description has changed, false otherwise
      */
@@ -595,6 +579,34 @@ class ResourceRecord {
             $this->committed = false;
         }
         $this->description = $description;
+        return !$this->committed;
+    }
+
+    /**
+     * Move the resource toward the top left of the filing cabinet
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param int $steps - Number of steps to move left. Default: 1
+     * @return boolean - true if the position has changed, false otherwise
+     */
+    public function moveLeft(int $steps=1){
+        if($steps != 0){
+            $this->committed = false;
+        }
+        $this->order -= $steps;
+        return !$this->committed;
+    }
+    
+    /**
+     * Move the resource toward the bottom right of the filing cabinet
+     * NOTE: This DOES NOT STORE THE CHANGE
+     * @param int $steps - Number of steps to move right. Default: 1
+     * @return boolean - true if the position has changed, false otherwise
+     */
+    public function moveRight(int $steps=1){
+        if($steps != 0){
+            $this->committed = false;
+        }
+        $this->order += $steps;
         return !$this->committed;
     }
     
@@ -608,6 +620,7 @@ class ResourceRecord {
             //The data has not changed since the last store
             return false;
         }
+        $dbCabinet = addslashes($this->cabinet);
         $dbFolder = addslashes($this->dir);
         $dbSubFolder = addslashes($this->subdir);
         $dbFilename = addslashes($this->file);
@@ -616,11 +629,11 @@ class ResourceRecord {
         $uid = $this->oApp->sess->getUID();
         if($this->id == 0){
             //Check if db already contains a record, update key if it does, to prevent duplicate records for the SAME file
-            $cond = "_status={$this->status} AND subfolder='{$dbSubFolder}' AND folder='{$dbFolder}' AND filename='{$dbFilename}'";
+            $cond = "_status={$this->status} AND cabinet='{$dbCabinet}' AND subfolder='{$dbSubFolder}' AND folder='{$dbFolder}' AND filename='{$dbFilename}'";
             $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE $cond" )?:0;
         }
         if($this->id == 0){
-            // Could not find an existing record, overwrite an deleted record
+            // Could not find an existing record, overwrite a deleted record
             $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE _status=1" )?:0;
             if($this->id){
                 $this->status = 0;
@@ -637,10 +650,10 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription' WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order} WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, folder, filename, tags, subfolder,preview,description) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription')"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order})"))){
                 $this->committed = true;
             }
         }
@@ -662,40 +675,26 @@ class ResourceRecord {
         return $result1 && $result2;
     }
 
-    public function getID():int{
-        return $this->id;
-    }
-
-    public function getCreated(){
-        return $this->created;
-    }
-
-    public function getStatus():int{
-        return $this->status;
-    }
-
-    public function getTags():array{
-        return $this->tags;
-    }
-
-    public function getFile():String{
-        return $this->file;
-    }
-
-    public function getDirectory():String{
-        return $this->dir;
-    }
-
-    public function getSubDirectory():String{
-        return $this->subdir;
-    }
-
-    public function getPath():String{
-        return CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.$this->subdir.DIRECTORY_SEPARATOR.$this->file;
-    }
-    
-    public function getDescription():String{
-        return $this->description;
+    public function getID()           : int    { return $this->id; }
+    public function getCreated()               { return $this->created; }
+    public function getStatus()       : int    { return $this->status; }
+    public function getTags()         : array  { return $this->tags; }
+    public function getFile()         : String { return $this->file; }
+    public function getCabinet()      : String { return $this->cabinet; }
+    public function getDirectory()    : String { return $this->dir; }
+    public function getSubDirectory() : String { return $this->subdir; }
+    public function getExtension()    : String { return (($p = pathinfo($this->file)) ? $p['extension'] : '' ); }
+    public function getDescription()  : String { return $this->description; }
+    public function getPath() : String
+    {
+        /* (for videos) Files are stored in a directory named after their cabinet, as "id file.ext".
+         * 1) id differentiates all files because it's unique, so two files with the same filename (in different folders) are okay.
+         * 2) file.ext is redundant because id uniquely identifies the file, but it makes the directory human-readable for us
+         * 3) folder and subfolder are only used in the UI to group files meaningfully, not used for storage location
+         */
+        return $this->cabinet == 'videos'
+                ? (CATSDIR_RESOURCES."videos/{$this->id} {$this->file}")
+                : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : "").$this->file);
     }
 
     /**
@@ -737,14 +736,22 @@ class ResourceRecord {
         return $this->created_by;
     }
 
+    public function getOrder(){
+        return $this->order;
+    }
+    
     public function getNewness(){
         return $this->newness;
     }
-    
+
+    /**
+     * Get if the resource is "new"
+     * @return true if it's a "new" resource, false otherwise
+     */
     public function isNewResource(){
         return $this->newness >= 0;
     }
-    
+
     /**
      * Get if this file is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
@@ -814,7 +821,7 @@ class ResourceRecord {
      * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
      */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
-        $ra = $oApp->kfdb->QueryRA( "SELECT *,FLOOR((".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).") as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        $ra = $oApp->kfdb->QueryRA( "SELECT *,-FLOOR(-(".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).")-1 as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
             // No Record with that id exists
             return NULL;
@@ -823,25 +830,27 @@ class ResourceRecord {
         $raParams += [self::ID_KEY=>$ra['_key']];
         $raParams += [self::CREATED_KEY=>$ra['_created']];
         $raParams += [self::STATUS_KEY=>$ra['_status']];
+        $raParams += [self::CABINET_KEY=>$ra['cabinet']];
         $raParams += [self::SUBDIRECTORY_KEY=>$ra['subfolder']];
         $raParams += [self::TAGS_KEY=>$ra['tags']];
         $raParams += [self::PREVIEW_KEY=>$ra['preview']];
         $raParams += [self::CREATED_BY_KEY=>$ra['_created_by']];
         $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
         $raParams += [self::NEWNESS_KEY=>$ra['newness']];
+        $raParams += [self::ORDER_KEY=>$ra['iOrder']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;
     }
 
-    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1):ResourceRecord{
+    public static function CreateNewRecord(SEEDAppConsole $oApp, String $dirname,String $filename,int $created_by=-1, String $cabinet="general"):ResourceRecord{
         if($created_by == -1){
             $created_by = $oApp->sess->getUID();
         }
-        return new ResourceRecord($oApp, $dirname, $filename,[self::CREATED_BY_KEY=>$created_by]);
+        return new ResourceRecord($oApp, $dirname, $filename,[self::CABINET_KEY=>$cabinet,self::CREATED_BY_KEY=>$created_by]);
     }
 
-    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath,int $created_by=-1){
+    public static function CreateFromRealPath(SEEDAppConsole $oApp, String $realpath, String $cabinet="general",int $created_by=-1){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
         $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
@@ -870,15 +879,19 @@ class ResourceRecord {
                 return NULL;
                 break;
         }
-        $oRR =  self::CreateNewRecord($oApp, $dir, $filename,$created_by);
+        $oRR =  self::CreateNewRecord($oApp, $dir, $filename,$created_by, $cabinet);
         $oRR->subdir = $subdir;
         return $oRR;
     }
 
-    public static function GetRecordFromPath(SEEDAppConsole $oApp, String $dirname,String $filename, String $subdir = self::WILDCARD){
+    public static function GetRecordFromPath(SEEDAppConsole $oApp, String $cabinet, String $dirname,String $filename, String $subdir = self::WILDCARD){
         $cond = "";
         $dirname = trim($dirname,'/\\');
         $subdir = trim($subdir,'/\\');
+        if($cabinet != self::WILDCARD){
+            $dbCabinet = addslashes($cabinet);
+            $cond = self::joinCondition($cond,"cabinet='$dbCabinet'");
+        }
         if($dirname != self::WILDCARD){
             $dbFolder = addslashes($dirname);
             $cond = self::joinCondition($cond,"folder='$dbFolder'");
@@ -893,12 +906,12 @@ class ResourceRecord {
         }
         $query = "SELECT _key FROM resources_files";
         if($cond){
-            $query .= " WHERE $cond";
+            $query .= " WHERE $cond ORDER BY cabinet,folder,subfolder";
         }
         return self::getFromQuery($oApp,$query);
     }
 
-    public static function GetRecordFromRealPath(SEEDAppConsole $oApp, String $realpath){
+    public static function GetRecordFromRealPath(SEEDAppConsole $oApp, String $cabinet, String $realpath){
         $resourcesPath = str_replace(['\\'], DIRECTORY_SEPARATOR, realpath(CATSDIR_RESOURCES));
         $realpath = str_replace(['\\'], DIRECTORY_SEPARATOR, $realpath);
         $realpath = str_replace($resourcesPath.DIRECTORY_SEPARATOR, "", $realpath); // Remove the start of the resources path
@@ -927,7 +940,7 @@ class ResourceRecord {
                 return NULL;
                 break;
         }
-        return self::GetRecordFromPath($oApp, $dir, $filename,$subdir);
+        return self::GetRecordFromPath($oApp, $cabinet, $dir, $filename,$subdir);
     }
 
     public static function GetRecordFromGlobalSearch(SEEDAppConsole $oApp,String $search){
@@ -960,6 +973,26 @@ class ResourceRecord {
         return( $raRec );
     }
 
+    public static function GetResources(SeedAppConsole $oApp,String $cabinet,String $dirname,String $subdir=""){
+        $cond = "";
+        $dirname = trim($dirname,'/\\');
+        $subdir = trim($subdir,'/\\');
+        $dbCabinet = addslashes($cabinet);
+        $cond = self::joinCondition($cond,"cabinet='$dbCabinet'");
+        $dbFolder = addslashes($dirname);
+        $cond = self::joinCondition($cond,"folder='$dbFolder'");
+        $dbSubFolder = addslashes($subdir);
+        $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
+        $query = "SELECT _key FROM resources_files WHERE $cond ORDER BY iOrder";
+        $raRec = self::getFromQuery($oApp, $query);
+        // always return an array to keep it simple
+        if( !$raRec ) {
+            $raRec = array();
+        } else if( !is_array($raRec) ) {
+            $raRec = [$raRec];
+        }
+        return( $raRec );
+    }
 
     function CreateThumbnail()
     /*************************
@@ -980,6 +1013,11 @@ class ResourceRecord {
             case 'docx':
             case 'doc':
                 $fnameThumb = $this->createThumbFromDocx( $srcfname );
+                break;
+
+            case 'mp4':
+            // and every other video format
+                $fnameThumb = $this->createThumbFromVideo( $srcfname );
                 break;
         }
 
@@ -1038,4 +1076,21 @@ class ResourceRecord {
 
         return( $fnameThumb );
     }
+
+    private function createThumbFromVideo( $fnameSrc )
+    {
+        $fnameThumb = tempnam("", "thumb_").".jpg";
+
+        $raDummy = [];
+        $iRet = 0;
+        // srcfname[0] means convert the first page
+        $sExec = "ffmpeg -i \"{$fnameSrc}\" -vf  \"thumbnail,scale=480:-1\" -frames:v 1 \"$fnameThumb\"";
+        exec( $sExec, $raDummy, $iRet );
+        if( CATS_SYSADMIN ) {
+            var_dump($sExec,$iRet);
+        }
+
+        return( $fnameThumb );
+    }
+
 }

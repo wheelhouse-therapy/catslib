@@ -59,7 +59,6 @@ class ClientList
         else{
             ClientsAccess::getAccess(true,ClientsAccess::QUERY);
         }
-        
         $s = "<div style='clear:both;float:right; border:1px solid #aaa;border-radius:5px;padding:10px'>"
                  ."<a href='jx.php?cmd=therapist-clientlistxls'><button>Download</button></a>"
                  ."&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -942,7 +941,6 @@ ExistsWarning;
     
     /**
      * Get array of clients that the user has access to see
-     * This method works internally and enforces Office Access Rights
      * @param int $status - status of the clients, -1 to get all a users clients
      * @param array $raParms - additional params to pass to oPeopleDB->GetList
      * @return array containing client data (Similar to oPeopleDB->GetList())
@@ -967,12 +965,7 @@ ExistsWarning;
      */
     public function getMyClients(int $status = 0,array $raParms = array()):array{
         $access = ClientsAccess::getAccess();
-        if(ClientsAccess::QueryAccess() == ClientsAccess::OFFICE){
-            ClientsAccess::getAccess(true,ClientsAccess::LIMITED);
-        }
-        else {
-            ClientsAccess::getAccess(true);
-        }
+        ClientsAccess::getAccess(true);
         $ra = $this->getMyClientsInternal($status,$raParms);
         ClientsAccess::getAccess(true,$access);
         return $ra;
@@ -1041,7 +1034,7 @@ class ClientsAccess {
     /**
      * User is the clinic leader and can see all clients in the clinic
      * Note: Users who lead a clinic are granted this level for the clinics they lead. Otherwise they revert to Limited access
-     * Note 2: This level unlockes the toggle for the therapist view.
+     * Note 2: This level unlocks the toggle for the therapist view.
      */
     public const LEADER = 2;
     
@@ -1052,21 +1045,23 @@ class ClientsAccess {
      */
     public const FULL = 3;
     
+    // Cache of user access
     private static $access = null;
     
     public static function QueryAccess(){
         global $oApp;
         self::init();
         $clinics = new Clinics($oApp);
-        $oPeopleDB = new PeopleDB($oApp);
+        $manageUsers = new ManageUsers($oApp);
         $access = self::LIMITED;
-        if(in_array(1, array_column($clinics->GetUserClinics(),'Clinics__key'))){
+        if(in_array(Clinics::CORE, array_column($clinics->GetUserClinics(),'Clinics__key'))){
+            // User can see Core, give them full access
             $access = self::FULL;
         }
         else if(in_array($clinics->GetCurrentClinic(), $clinics->getClinicsILead())){
             $access = self::LEADER;
         }
-        else if($oPeopleDB->GetKFRC(ClientList::INTERNAL_PRO,"P.uid = ".$oApp->sess->GetUID())->Value('pro_role') == ClientList::$staff_roles_name['Office_Staff']){
+        else if($manageUsers->getClinicRecord($oApp->sess->GetUID())->Value('pro_role') == ClientList::$staff_roles_name['Office_Staff']){
             $access = self::OFFICE;
         }
         return $access;

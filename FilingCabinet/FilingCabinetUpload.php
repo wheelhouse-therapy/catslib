@@ -12,7 +12,7 @@ class FilingCabinetUpload
     const   fileid = "fileToUpload";     // the key for $_FILES
     private $oApp;
     private $oFC;
-    
+
     private const modal = <<<Modal
 <!-- the div that represents the modal dialog -->
 <div class="modal fade" id="details_dialog" role="dialog">
@@ -47,47 +47,60 @@ class FilingCabinetUpload
     </div>
 </div>
 Modal;
-    
-    function __construct( SEEDAppConsole $oApp )
+
+    function __construct( SEEDAppConsole $oApp, String $sCabinet )
     {
         $this->oApp = $oApp;
+        $this->sCabinet = $sCabinet;
         $this->oFC = new FilingCabinet( $oApp );
     }
-    
-    static function DrawUploadForm()
+
+    static function DrawUploadForm( $sCabinet )
     {
+        $label = $sCabinet=='videos' ? 'Video' : 'File';
+
         // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-        $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions(),
+        $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetSupportedExtensions($sCabinet),  // not $this->sCabinet because static
             ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-        return( "<div><form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
-                 <input type='hidden' name='cmd' value='therapist-resource-upload' />
-                 Select file to upload:
-                 <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required><br />
-                 <span><input type='submit' id='upload-file-button' value='Upload File' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
-                 <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div></div>" );
+        $s = "<div>
+                <form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
+                    <input type='hidden' name='cmd' value='therapist-resource-upload' />
+                    Select $label to upload:
+
+                    <input type='file' name='".self::fileid."' id='".self::fileid."' accept='$acceptedExts' required /><br />"
+                    // <span> is necessary to make the required attribute change the button's colour
+                  ."<span><input type='submit' id='upload-file-button' value='Upload $label' name='submit' onclick='submitForm(event)'></span>
+                    Max Upload size:".ini_get('upload_max_filesize')."b
+                </form>
+                <div id='upload-bar'>
+                    <div id='progress-bar'><div id='filled-bar'></div></div>
+                    <span id='progress-percentage'>0%</span>
+                </div>
+              </div>";
+        return( $s );
     }
-    
+
     function UploadToPending()
     /*************************
      Following a _FILES upload, put the file in the "pending" folder.
      */
     {
         $s = "";
-        
+
         FilingCabinet::EnsureDirectory("pending");
-        
+
         $s .= "<button onclick='resetForm()'>Reset</button><br />";
-        
+
         // check if a file was uploaded
         if( !$_FILES[self::fileid]["name"] || !$_FILES[self::fileid]['size'] ) {
             $s .= "Sorry, nothing was uploaded.<br/>";
             goto done;
         }
-        
+
         $target_dir = CATSDIR_RESOURCES."pending/";
         $target_file = $target_dir . basename($_FILES[self::fileid]["name"]);
         $documentFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-        
+
         // Check if file already exists
         if (file_exists($target_file)) {
             $s .= "Sorry, file is already awaiting review";
@@ -96,15 +109,15 @@ Modal;
             }
             goto done;
         }
-        
+
         // Allow certain file formats
         if(!in_array($documentFileType, FilingCabinet::GetSupportedExtensions())) {
             $s .= "Sorry, only ".implode(", ", FilingCabinet::GetSupportedExtensions())." files are allowed. (Code 415)<br />";
             goto done;
         }
-        
+
         if (move_uploaded_file($_FILES[self::fileid]["tmp_name"], $target_file)) {
-            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file));
+            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($target_file), $this->sCabinet);
             $stored = $oRR->StoreRecord();
             if(!$stored){
                 $s .= "<div class='alert alert-danger'>Unable to index the file. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
@@ -120,7 +133,7 @@ Modal;
         } else {
             $s .= "Sorry, there was an error uploading your file.";
         }
-        
+
         done:
         return( $s );
     }

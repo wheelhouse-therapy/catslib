@@ -1,10 +1,8 @@
 <?php
 
 require_once 'template_filler.php';
-require_once 'share_resources.php';
 
-
-function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
+function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'general' )
 /************************************************************
     Show the documents from the given directory, and if one is clicked download it through the template_filler
  */
@@ -26,32 +24,34 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
         exit;
     }
 
-    if(isset($_SESSION['mailResult'])){
-        if($_SESSION['mailResult']){
-            $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
+    if( $sCabinet != 'videos' ) {
+        if(isset($_SESSION['mailResult'])){
+            if($_SESSION['mailResult']){
+                $s .= "<div class='alert alert-success alert-dismissible'>Email Sent Successfully to {$_SESSION['mailTarget']}!</div>";
+            }
+            else{
+                $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
+            }
+            unset($_SESSION['mailResult']);
+            unset($_SESSION['mailTarget']);
+            $s .= "<script>hideAlerts()</script>";
         }
-        else{
-            $s .= "<div class='alert alert-danger alert-dismissible'>Could Not Send Email</div>";
+
+        // make sure dir_name is the full path
+        if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
+            $dir_name = CATSDIR_RESOURCES.$dir_name;
         }
-        unset($_SESSION['mailResult']);
-        unset($_SESSION['mailTarget']);
-        $s .= "<script>hideAlerts()</script>";
+        if(!file_exists($dir_name)){
+            $s .= "<h2>Unknown directory $dir_name</h2>";
+            return $s;
+        }
+
+        if(ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $dir_short, ResourceRecord::WILDCARD,ResourceRecord::WILDCARD) == NULL){
+            $s .= "<h2> No files in drawer</h2>";
+            return $s;
+        }
     }
 
-    // make sure dir_name is the full path
-    if(substr_count($dir_name, CATSDIR_RESOURCES) == 0){
-        $dir_name = CATSDIR_RESOURCES.$dir_name;
-    }
-    if(!file_exists($dir_name)){
-        $s .= "<h2>Unknown directory $dir_name</h2>";
-        return $s;
-    }
-
-    $dirIterator = new DirectoryIterator($dir_name);
-    if(iterator_count($dirIterator) == 2){
-        $s .= "<h2> No files in directory</h2>";
-        return $s;
-    }
     if( !($oClinics = new Clinics($oApp)) || !($oClinics->GetCurrentClinic()) ) {
         return;
     }
@@ -107,6 +107,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
                     </div>
                 </div>
             </div>";
+
     $manageUsers = new ManageUsers($oApp);
     $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
     if($dir_short == 'reports'){
@@ -116,11 +117,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     else if(!CATS_DEBUG && $kfr && $kfr->Value('P_email')){
         $s = str_replace(["[[title]]","[[disabled]]"], "", $s);
     }
-    else if(CATS_DEBUG){
-        // Developer mechines aren't configred to talk with SMTP servers.
-        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
-    }
-    else{
+// yeah but what if I want to see how it composes the email? Instead I just put CATS_DEBUG around the mail() function
+//    else if(CATS_DEBUG){
+//        // Developer mechines aren't configured to talk with SMTP servers.
+//        $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled on dev machines'","disabled"], $s);
+//    }
+    else if(!CATS_DEBUG) {
         $s = str_replace(["[[title]]","[[disabled]]"], ["title='Your account lacks an email address'","disabled"], $s);
     }
 
@@ -133,22 +135,39 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
          ."</form></div>";
 
     $raOut = [];
-    foreach(FilingCabinet::GetSubFolders($dir_short) as $folder){
+    foreach(FilingCabinet::GetSubFolders($dir_short, $sCabinet) as $folder){
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
 
-    foreach ($dirIterator as $fileinfo) {
-        $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD );
-    }
+    if( $sCabinet == 'videos' ) {
+        // videos are stored by _key in the videos directory, so look up folders/subfolders via database
+        $raRR = ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $dir_short, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD);
+        if( is_array($raRR) ) {
+            foreach( $raRR as $oRR ) {
+                $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+            }
+        } else if( $raRR ) {
+            $oRR = $raRR;
+            $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+        }
 
-    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
-        if(!file_exists($dir_name.$subfolder)) continue;
-        $subdir = new DirectoryIterator($dir_name.$subfolder);
-        foreach( $subdir as $fileinfo ) {
-            $raOut = addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD );
+    } else {
+        // non-videos are stored as a filesystem
+        $raRR = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short);
+        foreach ($raRR as $oRR) {
+            $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
+        }
+
+        foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+            if(!file_exists($dir_name.$subfolder)) continue;
+            $raRRSub = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short,$subfolder);
+            foreach( $raRRSub as $oRR ) {
+                $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+            }
         }
     }
+
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
@@ -282,21 +301,12 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name)
     return( $s );
 }
 
-function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder, $oFCD )
+function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
 {
-        if( $fileinfo->isDot() || $fileinfo->isDir() ) goto done;
-
-        $oRR = ResourceRecord::GetRecordFromRealPath($oApp, realpath($fileinfo->getPathname()));
-
-        if(!$oRR){
-            // The file does not have a record yet, create one
-            $oRR = ResourceRecord::CreateFromRealPath($oApp, realpath($fileinfo->getPathname()),0);
-            $oRR->StoreRecord();
-        }
 
         if( $sFilter ) {
             // list this file if sFilter matches part of its filename, or part of one of its tags
-            if( stripos( $fileinfo->getFilename(), $sFilter ) === false &&
+            if( stripos( $oRR->getFile(), $sFilter ) === false &&
                 !in_array($sFilter, $oRR->getTags()))
             {
                 goto done;
@@ -304,8 +314,8 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
         }
 
         // docx files get a link to the modal dialog; other files get a link for simple download
-        if( $fileinfo->getExtension() == "docx" ) {
-            $link = $oFCD->GetDownloadPath('replace', $oRR, $fileinfo->getFilename(), $dir_short );
+        if( $oRR->templateFillerSupported() ) {
+            $link = $oFCD->GetDownloadPath('replace', $oRR, $oRR->getFile(), $dir_short );
         } else {
             $link = $oFCD->GetDownloadPath("no_replace", $oRR );
         }
@@ -315,7 +325,7 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                   [[BADGE]]
                   <a style='' [[LINK]] >
                     <div>
-                        <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;padding-bottom:2px' />
+                        <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                     </div>
                     <div>
                         [[FILENAME]]
@@ -326,27 +336,76 @@ function addFileToSubfolder( $fileinfo, $sFilter, $raOut, $oApp, $dir_short, $kS
                 </div>
             </div>";
             // Fallback if a Preview doesn't exist
-        $preview = "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";
+        $preview = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAB3RJTUUH5AseAS4F/Lh1HQAAAsdJREFUeNrtnOtyhCAMRtHS93/gtmt/OWOzIoSEi/Z8M53p7CKXHBMQsi4hhC2gabRiAoCgC0X5wbYRwXpqWRY8hJCFAAIQBBCAIIAABAEEAQQgCCAAQQB5nOT2+ysH6bhdfLZVn/se6TzkR3Ox3MtHvkC2EMIXJrk5kFovwbvyc8hLG7KOxi2ZLyQE5pv8HPLq1bAEgMe8A1lCCB+1Rs0Z9Mwb8ApnIDVGleWBkgayhhA+LZURdvznkOgxH6DBQCxehFddA6m2Ts5L5AJg/8PLroG4LmVLvwfGX4/YMM5AAOT2/qOQhQACEAQQgCCAIIAABAEEIAggz5L6/CN3fjHT5uQdt/fXlkZAHTwk5Q1HEKV5Wq11x6OEdcTgr7xIniT2CGszeXXsNegd2v6/9KLUWXuqTCrRTlu+5nptW9OuslJ3ohxMi4F6tSdDs3eYjC0MfNWp0u+O3pRqey9fG3I07d12ldV6Iq2F3XL16AkyzmT8moFZjFFyrcZzPOwRw0TSDsg6v9S2dwyV3mFu6q2T1IBbhaYZlsDqH32OWIWNbq8kbHndJNL4Qx5tayZquUK6w8Kg6CYREL63bZtqXnm6cpmL7Aw+7TkE+QIB0GRACFmELAQQgCCAAAQBBCCotcz7Vr2T0c7as/RBc22Psa5exkGTeIgENPJMnTmkYVjy9D5tfZbXFlr7HS2DPN61ZwlwlsS2kjKamJ+qL1U+V9bSTlMP8Tp9K01ea12f9tWD3v3ulttbkvEnB2Ttj7Y+y6sHLUfKZiA171fUQBw9h4xcPLg+h1jKey+hZ81gcQdS2vDZErjEc6wxuHV9rT3KPZU0NT/c7SHS2t/alVb0viOsxh8ZuixZkl79XlsaKxWizgZZ+pnlhmmRIOddJ6/4myw0sv0+mQACEAQQgCCAAAQBBCAIIABBAEEAuYvednsRHoIAAhBUqF9Nt5gKDugLygAAAABJRU5ErkJggg==";
         if($oRR->getPreview()){
             // a preview exists use it instead of the fallback
             $preview = $oRR->getPreview();
         }
-        //XXX Coming Soon Image is Temporary
-        //$preview = "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";
 
-        $filename = SEEDCore_HSC($fileinfo->getFilename());
+        $filename = SEEDCore_HSC($oRR->getFile());
 
         $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
                                            [$link,
                                             $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR),
                                             $preview,
-                                               $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                            $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                            ],
                                            $sTemplate);
 
         done:
         return( $raOut );
+}
+
+function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $sFilter, $raOut, FilingCabinetDownload $oFCD, $sCabinet )
+{
+    if( $sFilter ) {
+        // list this file if sFilter matches part of its filename, or part of one of its tags
+        if( stripos( $oRR->getFilename(), $sFilter ) === false &&
+            !in_array($sFilter, $oRR->getTags()))
+        {
+            goto done;
+        }
+    }
+
+    // docx files get a link to the modal dialog; other files get a link for simple download
+    $link = $oFCD->GetDownloadPath( $oRR->templateFillerSupported() ? 'replace' : "no_replace", $oRR );
+    $link = "href='?cmd=viewVideo&rr={$oRR->getId()}'";
+
+    $sTemplate =
+          "<div class='file-preview-container'>
+              [[BADGE]]
+              <a style='' [[LINK]] >
+                <div>
+                    <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
+                </div>
+                <div>
+                    [[FILENAME]]
+                </div>
+            </a>
+            <div data-id='".$oRR->getID()."'>
+                [[TAGS]]
+            </div>
+        </div>";
+
+    // Fallback if a Preview doesn't exist
+    $preview = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAB3RJTUUH5AseAS4F/Lh1HQAAAsdJREFUeNrtnOtyhCAMRtHS93/gtmt/OWOzIoSEi/Z8M53p7CKXHBMQsi4hhC2gabRiAoCgC0X5wbYRwXpqWRY8hJCFAAIQBBCAIIAABAEEAQQgCCAAQQB5nOT2+ysH6bhdfLZVn/se6TzkR3Ox3MtHvkC2EMIXJrk5kFovwbvyc8hLG7KOxi2ZLyQE5pv8HPLq1bAEgMe8A1lCCB+1Rs0Z9Mwb8ApnIDVGleWBkgayhhA+LZURdvznkOgxH6DBQCxehFddA6m2Ts5L5AJg/8PLroG4LmVLvwfGX4/YMM5AAOT2/qOQhQACEAQQgCCAIIAABAEEIAggz5L6/CN3fjHT5uQdt/fXlkZAHTwk5Q1HEKV5Wq11x6OEdcTgr7xIniT2CGszeXXsNegd2v6/9KLUWXuqTCrRTlu+5nptW9OuslJ3ohxMi4F6tSdDs3eYjC0MfNWp0u+O3pRqey9fG3I07d12ldV6Iq2F3XL16AkyzmT8moFZjFFyrcZzPOwRw0TSDsg6v9S2dwyV3mFu6q2T1IBbhaYZlsDqH32OWIWNbq8kbHndJNL4Qx5tayZquUK6w8Kg6CYREL63bZtqXnm6cpmL7Aw+7TkE+QIB0GRACFmELAQQgCCAAAQBBCCotcz7Vr2T0c7as/RBc22Psa5exkGTeIgENPJMnTmkYVjy9D5tfZbXFlr7HS2DPN61ZwlwlsS2kjKamJ+qL1U+V9bSTlMP8Tp9K01ea12f9tWD3v3ulttbkvEnB2Ttj7Y+y6sHLUfKZiA171fUQBw9h4xcPLg+h1jKey+hZ81gcQdS2vDZErjEc6wxuHV9rT3KPZU0NT/c7SHS2t/alVb0viOsxh8ZuixZkl79XlsaKxWizgZZ+pnlhmmRIOddJ6/4myw0sv0+mQACEAQQgCCAAAQBBCAIIABBAEEAuYvednsRHoIAAhBUqF9Nt5gKDugLygAAAABJRU5ErkJggg==";
+    if($oRR->getPreview()){
+        // a preview exists use it instead of the fallback
+        $preview = $oRR->getPreview();
+    }
+
+    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+                                       [$link,
+                                        SEEDCore_HSC($oRR->getFile()),
+                                        $oFCD->oResourcesFiles->DrawTags($oRR),
+                                        $preview,
+                                        $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                       ],
+                                       $sTemplate);
+
+    done:
+    return( $raOut );
 }
 
 function getModeOptions($resourcesMode, $downloadModes, $mode, $dir)
@@ -454,89 +513,6 @@ viewSOP;
 }
 
 function viewVideos(SEEDAppConsole $oApp){
-    $viewVideo = <<<viewVideo
-    <style>
-        html, body {
-            height: 100vh;
-            overflow:hidden;
-        }
-        .videoView {
-            height: 88%;
-        }
-        .catsToolbar {
-            margin-bottom:2px
-        }
-    </style>
-    <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a></div>
-    <div class='videoView'>
-        <video width="100%" height="100%" controls>
-            <source src="[[video]]" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-    </div>
-viewVideo;
-    FilingCabinet::EnsureDirectory("videos");
-    // put a dot in front of each ext and commas in between them e.g. ".docx,.pdf,.mp4"
-    $acceptedExts = SEEDCore_ArrayExpandSeries( FilingCabinet::GetDirInfo('videos')['extensions'],
-        ".[[]],", true, ["sTemplateLast"=>".[[]]"] );
-    $listVideos = "<div style='float:right;background:white;' id='uploadForm'>"
-                    ."<form method='post' id='upload-file-form' onsubmit='event.preventDefault();' enctype='multipart/form-data'>
-                        <input type='hidden' name='cmd' value='therapist-resource-upload' />
-                        Select video to upload:
-                        <input type='file' name='".FilingCabinetUpload::fileid."' id='".FilingCabinetUpload::fileid."' accept='$acceptedExts'><br />
-                        <span><input type='submit' id='upload-file-button' value='Upload Video' name='submit' onclick='submitForm(event)'></span> Max Upload size:".ini_get('upload_max_filesize')."b</form>
-                        <div id='upload-bar'><div id='progress-bar'><div id='filled-bar'></div></div><span id='progress-percentage'>0%</span></div>"
-                 ."</div><script src='".CATSDIR_JS."fileUpload.js'></script><link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'><script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
-
-    $listVideos .= "<h3>View Uploaded Videos</h3>";
-    $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']);
-    if(iterator_count($dirIterator) == 2){
-        $listVideos .= "<h2> No files in directory</h2>";
-        goto brains;
-    }
-
-    $sFilter = SEEDInput_Str('resource-filter');
-
-    $listVideos .= "<div style='background-color:#def;margin:auto;padding:10px;position:relative;z-index:-10;'><form method='post'>"
-        ."<input type='text' name='resource-filter' value='$sFilter'/> <input type='submit' value='Filter'/>"
-        ."</form></div>";
-
-        $listVideos .= "<table border='0'>";
-        foreach ($dirIterator as $fileinfo) {
-            if( $fileinfo->isDot() ) continue;
-
-            if( $sFilter ) {
-                if( stripos( $fileinfo->getFilename(), $sFilter ) === false )  continue;
-            }
-
-            $listVideos .= "<tr>"
-                ."<td valign='top'>"
-                    ."<a style='white-space: nowrap' href='?video_view=item&video_item=".pathinfo($fileinfo->getFilename(),PATHINFO_FILENAME)."' >"
-                        .$fileinfo->getFilename()
-                        ."</a>"
-                            ."</td>"
-                                ."</tr>";
-        }
-        $listVideos .= "</table>";
-
-        //Brains of operations
-        brains:
-        $view = $oApp->sess->SmartGPC("video_view",array("list","item"));
-        $item = $oApp->sess->SmartGPC("video_item", array(""));
-
-        switch ($view){
-            case "item":
-                //Complicated method to ensure the file is in the directory
-                foreach (array_diff(scandir(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('videos')['directory']), array('..', '.')) as $file){
-                    if(pathinfo($file,PATHINFO_FILENAME) == $item){
-                        // show file
-                        return str_replace("[[video]]", "./resources/".FilingCabinet::GetDirInfo('videos')['directory'].$file, $viewVideo);
-                    }
-                }
-                $oApp->sess->VarUnSet("video_item");
-            case "list":
-                return $listVideos;
-        }
 
 }
 

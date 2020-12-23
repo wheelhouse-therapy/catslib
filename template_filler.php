@@ -2,7 +2,6 @@
 
 require_once 'client_code_generator.php';
 require_once 'assessments.php';
-require_once 'share_resources.php';
 require_once 'Clinics.php';
 require_once 'handle_images.php';
 
@@ -492,7 +491,7 @@ class template_filler {
                         break;
                     case "Signature":
                         $imagePath = FALSE;
-                        if($kfrStaff){
+                        if($this->kfrStaff){
                             $rawData = $this->kfrStaff->Value("signature");
                         }
                         break;
@@ -632,8 +631,10 @@ class template_filler {
                 case 'full_address':
                     $s = $this->kfrClinic->Expand("[[address]]\n[[city]] [[province]] [[postal_code]]");
                     break;
+                case 'name':
+                    $s = $this->kfrClinic->Value("clinic_name");
+                    break;
                 default:
-                    $s = $col[0];
                     $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
