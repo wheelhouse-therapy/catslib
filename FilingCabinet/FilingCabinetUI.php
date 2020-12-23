@@ -136,9 +136,7 @@ class FilingCabinetUI
                 $s .= "<div style='float:right;background:white;' id='uploadForm'>"
                      .FilingCabinetUpload::DrawUploadForm($this->sCabinet)
                      ."</div>"
-                     ."<script src='".CATSDIR_JS."fileUpload.js'></script>
-                       <link rel='stylesheet' href='".CATSDIR_CSS."fileUpload.css'>
-                       <script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
+                     ."<script>const upload = document.getElementById('uploadForm').innerHTML;</script>";
             } else {
                 $s .= "<div style='float:right;' id='uploadForm'>"
                         .FilingCabinetUpload::DrawUploadForm($this->sCabinet)

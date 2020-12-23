@@ -20,4 +20,5 @@ $mappings = array(
     "admin-users" => "manage-users",
     "therapist-filing-cabinet" => "filing-cabinet",
     "therapist-reports" => "reports",
+    "therapist-viewVideos" => "filing-cabinet",
 );
