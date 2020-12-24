@@ -250,7 +250,6 @@ $bVideos = false;
         'cog'     => ["literacy","writing","problem-solving","organization"],
         'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"],
-        'videos'  => ["CATS Orientation", "Private Therapist Hints", "Self-Regulation", "Visual Motor", "Other Motor", "Anxiety", "Cognitive", "ADLs", "Assessments", "Back Drawer"]
     ];
 
 
