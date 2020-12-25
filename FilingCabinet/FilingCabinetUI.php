@@ -233,10 +233,15 @@ SearchDialog;
         .catsToolbar {
             margin-bottom:2px
         }
+        .catsVideo {
+            height: 50%;
+            margin: auto;
+            display: block;
+        }
     </style>
     <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a></div>
     <div class='videoView'>
-        <video width="100%" height="100%" controls>
+        <video class='catsVideo' controls>
             <source src="[[video]]" type="video/mp4">
             Your browser does not support the video tag.
         </video>
