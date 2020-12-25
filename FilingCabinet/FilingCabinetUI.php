@@ -27,7 +27,7 @@ class FilingCabinetUI
      */
     {
         $s = "";
-
+        
         FilingCabinet::EnsureDirectory("*");
 
         if($this->oApp->sess->SmartGPC('dir') == 'main'){

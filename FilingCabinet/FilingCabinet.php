@@ -250,7 +250,6 @@ $bVideos = false;
         'cog'     => ["literacy","writing","problem-solving","organization"],
         'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"],
-        'videos'  => ["CATS Orientation", "Private Therapist Hints", "Self-Regulation", "Visual Motor", "Other Motor", "Anxiety", "Cognitive", "ADLs", "Assessments", "Back Drawer"]
     ];
 
 
@@ -418,7 +417,7 @@ class ResourceRecord {
     /**
      * Print all properties except oApp to clean up the screen when printing object
      */
-    public function __debugInfo() {
+    public function __debugInfo():array {
         return [
             'id' => $this->id,
             'created' => $this->created,
@@ -557,9 +556,9 @@ class ResourceRecord {
      * NOTE 2: The image data SHOULD NOT be base 64 encoded
      * NOTE 3: Slashes are added automatically when stored and SHOULD NOT be added by caller.
      * @param String $image - Image data to store as preview
-     * @return boolean - true if preview has changed, false otherwise
+     * @return bool - true if preview has changed, false otherwise
      */
-    public function setPreview(String $image){
+    public function setPreview(String $image):bool{
         if($image != $this->preview){
             $this->committed = false;
         }
@@ -572,9 +571,9 @@ class ResourceRecord {
      * NOTE: This DOES NOT STORE THE CHANGE
      * NOTE 2: Slashes are added automatically when stored and SHOULD NOT be added by caller.
      * @param String $description - Description to store
-     * @return boolean - true if description has changed, false otherwise
+     * @return bool - true if description has changed, false otherwise
      */
-    public function setDescription(String $description){
+    public function setDescription(String $description):bool{
         if($description != $this->description){
             $this->committed = false;
         }
@@ -586,9 +585,9 @@ class ResourceRecord {
      * Move the resource toward the top left of the filing cabinet
      * NOTE: This DOES NOT STORE THE CHANGE
      * @param int $steps - Number of steps to move left. Default: 1
-     * @return boolean - true if the position has changed, false otherwise
+     * @return bool - true if the position has changed, false otherwise
      */
-    public function moveLeft(int $steps=1){
+    public function moveLeft(int $steps=1):bool{
         if($steps != 0){
             $this->committed = false;
         }
@@ -600,9 +599,9 @@ class ResourceRecord {
      * Move the resource toward the bottom right of the filing cabinet
      * NOTE: This DOES NOT STORE THE CHANGE
      * @param int $steps - Number of steps to move right. Default: 1
-     * @return boolean - true if the position has changed, false otherwise
+     * @return bool - true if the position has changed, false otherwise
      */
-    public function moveRight(int $steps=1){
+    public function moveRight(int $steps=1):bool{
         if($steps != 0){
             $this->committed = false;
         }
@@ -666,7 +665,7 @@ class ResourceRecord {
      * NOTE2: once deleted the record is only retrieveable by its ID. As search methods ignore records with non-zero statuses
      * NOTE3: The record can be recovered by setting the status to 0.
      * NOTE4: New records will overwrite deleted records if availible instead of creating new records.
-     * @return boolean - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
+     * @return bool - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
      * Check the status of the record to ensure it was deleted.
      */
     public function DeleteRecord(){
@@ -700,9 +699,9 @@ class ResourceRecord {
     /**
      * Get the stored preview of the resource.
      * @param bool $encode - Wether or not to base 64 encode the image data for output. Default true.
-     * @return string containing the encoded or raw image data. Or empty string if there is no image stored
+     * @return String containing the encoded or raw image data. Or empty string if there is no image stored
      */
-    public function getPreview(bool $encode = true){
+    public function getPreview(bool $encode = true):String{
         if($encode){
             return base64_encode($this->preview);
         }
@@ -740,15 +739,15 @@ class ResourceRecord {
         return $this->order;
     }
     
-    public function getNewness(){
+    public function getNewness():int{
         return $this->newness;
     }
 
     /**
      * Get if the resource is "new"
-     * @return true if it's a "new" resource, false otherwise
+     * @return bool true if it's a "new" resource, false otherwise
      */
-    public function isNewResource(){
+    public function isNewResource():bool{
         return $this->newness >= 0;
     }
 
@@ -821,7 +820,7 @@ class ResourceRecord {
      * @return NULL|ResourceRecord - Resource Record containing the data from the db or null if the key is invalid
      */
     public static function GetRecordByID(SEEDAppConsole $oApp,int $id){
-        $ra = $oApp->kfdb->QueryRA( "SELECT *,-FLOOR(-(".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).")-1 as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
+        $ra = $oApp->kfdb->QueryRA( "SELECT *,".self::newnessFunction()." as newness FROM resources_files WHERE _key=".$id, KEYFRAMEDB_RESULT_ASSOC );
         if(!$ra){
             // No Record with that id exists
             return NULL;
@@ -960,7 +959,7 @@ class ResourceRecord {
      * @param SEEDAppConsole $oApp - Connection to DB to fetch from
      * @return array|NULL|ResourceRecord - Resource Records containing data or Null of there are no results
      */
-    public static function GetRecordsWithoutPreview(SEEDAppConsole $oApp){
+    public static function GetRecordsWithoutPreview(SEEDAppConsole $oApp):array{
         $query = "SELECT _key FROM resources_files WHERE preview = ''";
         $raRec = self::getFromQuery($oApp, $query);
 
@@ -973,7 +972,7 @@ class ResourceRecord {
         return( $raRec );
     }
 
-    public static function GetResources(SeedAppConsole $oApp,String $cabinet,String $dirname,String $subdir=""){
+    public static function GetResources(SeedAppConsole $oApp,String $cabinet,String $dirname,String $subdir=""):array{
         $cond = "";
         $dirname = trim($dirname,'/\\');
         $subdir = trim($subdir,'/\\');
@@ -994,7 +993,30 @@ class ResourceRecord {
         return( $raRec );
     }
 
-    function CreateThumbnail()
+    public static function GetResourcesByNewness(SEEDAppConsole $oApp,int $newness = self::NEWNESS_GROUPS-1):array{
+        if($newness >= self::NEWNESS_GROUPS){
+            $newness = self::NEWNESS_GROUPS-1;
+        }
+        $query = "SELECT _key FROM resources_files WHERE ".self::newnessFunction()."= $newness ORDER BY iOrder";
+        $raRec = self::getFromQuery($oApp, $query);
+        // always return an array to keep it simple
+        if( !$raRec ) {
+            $raRec = array();
+        } else if( !is_array($raRec) ) {
+            $raRec = [$raRec];
+        }
+        return( $raRec );
+    }
+    
+    /**
+     * Get the SQL of the function used to calculate newness
+     * @return String
+     */
+    private static function newnessFunction():String{
+        return "-FLOOR(-(".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).")-1";
+    }
+    
+    function CreateThumbnail(): bool
     /*************************
          Create or re-create a thumbnail image for this resource
      */

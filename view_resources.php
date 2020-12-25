@@ -139,6 +139,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         $raOut += [$folder=>""];
     }
     $raOut += [''=>""];
+    $raOut += ["#desc" => []];
 
     if( $sCabinet == 'videos' ) {
         // videos are stored by _key in the videos directory, so look up folders/subfolders via database
@@ -169,6 +170,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     }
 
     $s .= "<div>";
+    $raDescriptions = $raOut["#desc"];
+    unset($raOut["#desc"]);
     foreach($raOut as $k=>$v){
         if($k){
             $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>$k</strong></span></div>";
@@ -294,7 +297,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                 document.getElementById('pdfname').innerHTML = name;
                 $('#pdf_dialog').modal('show');
             }
-            ".((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").",'".ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->getFile()."');});":"")."
+            var descriptions = ".json_encode($raDescriptions).";"
+            .((SEEDInput_Int("rr")&&ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->templateFillerSupported())?"$(document).ready(function() {select_client(".SEEDInput_Int("rr").",'".ResourceRecord::GetRecordByID($oApp, SEEDInput_Int('rr'))->getFile()."');});":"")."
             </script>";
 
     done:
@@ -321,7 +325,7 @@ function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_s
         }
 
         $sTemplate =
-              "<div class='file-preview-container'>
+              "<div class='file-preview-container' id='[[ID]]'>
                   [[BADGE]]
                   <a style='' [[LINK]] >
                     <div>
@@ -344,14 +348,16 @@ function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_s
 
         $filename = SEEDCore_HSC($oRR->getFile());
 
-        $raOut[$kSubfolder] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
-                                           [$link,
+        $raOut[$kSubfolder] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+                                           [$oRR->getID(),
+                                            $link,
                                             $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR),
                                             $preview,
                                             $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                            ],
                                            $sTemplate);
+        $raOut["#desc"] += ["{$oRR->getID()}" => $oRR->getDescription()];
 
         done:
         return( $raOut );
@@ -373,7 +379,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
     $link = "href='?cmd=viewVideo&rr={$oRR->getId()}'";
 
     $sTemplate =
-          "<div class='file-preview-container'>
+          "<div class='file-preview-container' id='[[ID]]'>
               [[BADGE]]
               <a style='' [[LINK]] >
                 <div>
@@ -395,14 +401,16 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
         $preview = $oRR->getPreview();
     }
 
-    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
-                                       [$link,
+    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+                                       [$oRR->getID(),
+                                        $link,
                                         SEEDCore_HSC($oRR->getFile()),
                                         $oFCD->oResourcesFiles->DrawTags($oRR),
                                         $preview,
                                         $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                        ],
                                        $sTemplate);
+    $raOut["#desc"] += ["{$oRR->getID()}" => $oRR->getDescription()];
 
     done:
     return( $raOut );
