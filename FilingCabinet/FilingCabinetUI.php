@@ -171,7 +171,8 @@ class FilingCabinetUI
                     }
                 }
                 $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
-                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>{$sBadge}"
+                $sStyle = "{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff;".($new?"position:relative":"");
+                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$sStyle}'>{$sBadge}"
                         ."{$ra['name']}"
                      ."</div></a></p>";
             }
@@ -243,10 +244,15 @@ SearchDialog;
         .catsToolbar {
             margin-bottom:2px
         }
+        .catsVideo {
+            height: 50%;
+            margin: auto;
+            display: block;
+        }
     </style>
     <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a></div>
     <div class='videoView'>
-        <video width="100%" height="100%" controls>
+        <video class='catsVideo' controls>
             <source src="[[video]]" type="video/mp4">
             Your browser does not support the video tag.
         </video>
