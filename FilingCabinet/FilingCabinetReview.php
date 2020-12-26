@@ -182,7 +182,7 @@ function disable(rrid,event){
 
         } else {
             if( rename($this->dirPending.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
-                if(!ResourceRecord::GetRecordFromPath($this->oApp, $sCabinet, $dir, $file, $subdir)){
+                if(!ResourceRecord::GetRecordFromPath($this->oApp, $cabinet, $dir, $file, $subdir)){
                     $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
                     $oRR->setCabinet( $sCabinet );
                     $oRR->setDirectory($dir);
