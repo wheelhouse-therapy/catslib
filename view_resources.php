@@ -171,10 +171,32 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     $s .= "<div>";
     foreach($raOut as $k=>$v){
         if($k){
-            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>$k</strong></span></div>";
+            $new = FALSE;
+            $newness = 0;
+            foreach( ResourceRecord::GetResources($oApp, $sCabinet, $dir_short, $k) as $rr){
+                if($rr->isNewResource()){
+                    $new = TRUE;
+                }
+                if($rr->getNewness() > $newness){
+                    $newness = $rr->getNewness();
+                }
+            }
+            $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+            $s.= "<div class='folder' style='position:relative;'>{$sBadge}<div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>$k</strong></span></div>";
         }
         else if(count($raOut) > 1 && $v){
-            $s.= "<div class='folder'><div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>Loose Files</strong></span></div>";
+            $new = FALSE;
+            $newness = 0;
+            foreach( ResourceRecord::GetResources($oApp, $sCabinet, $dir_short,"") as $rr){
+                if($rr->isNewResource()){
+                    $new = TRUE;
+                }
+                if($rr->getNewness() > $newness){
+                    $newness = $rr->getNewness();
+                }
+            }
+            $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+            $s.= "<div class='folder' style='position:relative;'>{$sBadge}<div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>Loose Files</strong></span></div>";
         }
         if($v){
             $id = "";
