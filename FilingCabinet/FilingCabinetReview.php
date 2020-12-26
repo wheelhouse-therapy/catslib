@@ -184,9 +184,9 @@ function disable(rrid,event){
             if( rename($this->dirPending.$file, CATSDIR_RESOURCES.FilingCabinet::GetDirInfo($dir)['directory'].$subdir.$file)){
                 if(!ResourceRecord::GetRecordFromPath($this->oApp, $cabinet, $dir, $file, $subdir)){
                     $s .= "<div class='alert alert-success'> File ".$file." has been accepted as a resource</div>";
-                    $oRR->setCabinet( $sCabinet );
+                    $oRR->setCabinet( $cabinet );
                     $oRR->setDirectory($dir);
-                    $oRR->setSubDirectory(@$ra[1]?: "");
+                    $oRR->setSubDirectory($subdir);
                     if(!$oRR->StoreRecord()){
                         $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
