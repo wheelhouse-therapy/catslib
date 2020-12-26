@@ -978,10 +978,14 @@ class ResourceRecord {
         $subdir = trim($subdir,'/\\');
         $dbCabinet = addslashes($cabinet);
         $cond = self::joinCondition($cond,"cabinet='$dbCabinet'");
-        $dbFolder = addslashes($dirname);
-        $cond = self::joinCondition($cond,"folder='$dbFolder'");
-        $dbSubFolder = addslashes($subdir);
-        $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
+        if($dirname != self::WILDCARD){
+            $dbFolder = addslashes($dirname);
+            $cond = self::joinCondition($cond,"folder='$dbFolder'");
+        }
+        if($subdir != self::WILDCARD){
+            $dbSubFolder = addslashes($subdir);
+            $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
+        }
         $query = "SELECT _key FROM resources_files WHERE $cond ORDER BY iOrder";
         $raRec = self::getFromQuery($oApp, $query);
         // always return an array to keep it simple

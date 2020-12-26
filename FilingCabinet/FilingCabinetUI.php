@@ -160,8 +160,18 @@ class FilingCabinetUI
                 if(stripos($ra['name'], "Drawer") !== false){
                     $title = "Open {$ra['name']}";
                 }
-
-                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                $new = FALSE;
+                $newness = 0;
+                foreach( ResourceRecord::GetResources($this->oApp, $this->sCabinet, $k,ResourceRecord::WILDCARD) as $rr){
+                    if($rr->isNewResource()){
+                        $new = TRUE;
+                    }
+                    if($rr->getNewness() > $newness){
+                        $newness = $rr->getNewness();
+                    }
+                }
+                $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>{$sBadge}"
                         ."{$ra['name']}"
                      ."</div></a></p>";
             }
