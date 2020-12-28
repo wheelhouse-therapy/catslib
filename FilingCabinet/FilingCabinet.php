@@ -986,6 +986,7 @@ class ResourceRecord {
             $dbSubFolder = addslashes($subdir);
             $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
         }
+        $cond = self::joinCondition($cond, "_status=0");
         $query = "SELECT _key FROM resources_files WHERE $cond ORDER BY iOrder";
         $raRec = self::getFromQuery($oApp, $query);
         // always return an array to keep it simple
