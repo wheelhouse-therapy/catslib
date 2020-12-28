@@ -55,16 +55,28 @@ class FilingCabinetUI
                 // The filing cabinet is now database driven so this can be used as a "sync" forcing the database to match the filesystem
                 foreach(FilingCabinet::GetDirectories() as $dir_short=>$dirInfo) {
                     if($dir_short == "videos") {continue;}
+                    $cabinet = "general";
+                    switch(strtolower($dir_short)){
+                        case "sop":
+                            $cabinet = "SOP";
+                            break;
+                        case "reports":
+                            $cabinet = "reports";
+                            break;
+                        default:
+                            $cabinet = "general";
+                            break;
+                    }
                     $dir_name = CATSDIR_RESOURCES.$dirInfo['directory'];
                     $dirIterator = new DirectoryIterator($dir_name);
                     foreach ($dirIterator as $fileinfo) {
                         if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
                         
-                        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
+                        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $cabinet, realpath($fileinfo->getPathname()));
                         
                         if(!$oRR){
                             // The file does not have a record yet, create one
-                            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$cabinet, 0);
                             if($oRR->StoreRecord()){
                                 $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$fileinfo->getFilename())."</div>";
                             }
