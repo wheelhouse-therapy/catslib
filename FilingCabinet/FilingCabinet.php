@@ -746,7 +746,6 @@ class ResourceRecord {
     public function getUploader(bool $userdata = false){
         if($userdata){
             $acctDB = new SEEDSessionAccountDBRead($this->oApp->kfdb);
-            $clinics = new Clinics($this->oApp);
             $result = $acctDB->GetUserInfo($this->created_by,false,true);
             if(!$result[0]){
                 $result[1] = ['realname' => 'Anonymous'];
