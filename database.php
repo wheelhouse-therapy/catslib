@@ -125,7 +125,7 @@ class AppointmentsDB
 
     function GetList( $sCond )
     {
-        return( $this->kfrel->GetRecordSetRA( $sCond, $raKFParms = array() ) );
+        return( $this->kfrel->GetRecordSetRA( $sCond ) );
     }
 
     function GetKFR( $k )
@@ -478,7 +478,7 @@ function createTables( KeyframeDatabase $kfdb )
                         4 => 'Therapists Group',
                         5 => 'Clients Group' )  as $uid => $sGroup )
         {
-            $bRet = $kfdb->Execute( "INSERT INTO SEEDSession_Groups (_key,_created,_updated,groupname) "
+            $kfdb->Execute( "INSERT INTO SEEDSession_Groups (_key,_created,_updated,groupname) "
                                            ."VALUES ($uid, NOW(), NOW(), '$sGroup')");
         }
 
@@ -488,7 +488,7 @@ function createTables( KeyframeDatabase $kfdb )
                         array(4,5)
                       ) as $ra )
         {
-            $bRet = $kfdb->Execute( "INSERT INTO SEEDSession_UsersXGroups (_key,_created,_updated,uid,gid) "
+            $kfdb->Execute( "INSERT INTO SEEDSession_UsersXGroups (_key,_created,_updated,uid,gid) "
                                            ."VALUES (NULL, NOW(), NOW(), '{$ra[0]}', '{$ra[1]}')");
         }
                           //  perm              modes   uid     gid
@@ -510,7 +510,7 @@ function createTables( KeyframeDatabase $kfdb )
                         array('system',         'A',    'NULL',       1),
                       ) as $ra )
         {
-            $bRet = $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
+            $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
                                            ."VALUES (NULL, NOW(), NOW(), '{$ra[0]}', '{$ra[1]}', {$ra[2]}, {$ra[3]})");
         }
     }
