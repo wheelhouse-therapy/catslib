@@ -17,4 +17,31 @@ class FilingCabinetTools
         $this->oApp = $oApp;
         $this->oFC = new FilingCabinet( $oApp );
     }
+
+
+
+
+    /* Manage the open-closed status of trees in the Manage Resources screen
+     */
+    function TreeListGet()
+    {
+        return( $this->oApp->sess->VarGet("open") );
+    }
+
+    function TreeListSet( $p )
+    {
+        $this->oApp->sess->VarSet('open', $p);
+    }
+
+    function TreeClose( $id )
+    {var_dump($id);
+        $ra = $this->TreeListGet();
+        $ra = SEEDCore_ArrayRemoveValue($ra, $id);
+        $this->TreeListSet( $ra );
+    }
+
+    function TreeCloseAll()
+    {
+        $this->oApp->sess->VarUnSet("open");
+    }
 }

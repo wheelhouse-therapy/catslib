@@ -339,11 +339,13 @@ CSS;
 class ResourceManager{
 
     private $oApp;
+    private $oFCT;
 //    private $selected_File = 0;
     private $openTrees;
 
     public function __construct(SEEDAppSessionAccount $oApp){
         $this->oApp = $oApp;
+        $this->oFCT = new FilingCabinetTools($oApp);
     }
 
     public function ManageResources(){
@@ -364,16 +366,9 @@ class ResourceManager{
         else{
             $cmdResult = "";
         }
-        $this->openTrees = $this->oApp->sess->SmartGPC("open", array(array()));
-
-        foreach ($this->openTrees as $file){
-            if( SEEDCore_StartsWith( $file, 'videos') )  continue;
-
-            if(!file_exists(CATSDIR_RESOURCES.$file)){
-                unset($this->openTrees[array_search($file, $this->openTrees)]);
-            }
-        }
-
+        $this->openTrees = $this->oFCT->TreeListGet();
+        if( !$this->openTrees || !is_array($this->openTrees) ) $this->openTrees = [];
+//var_dump($this->openTrees);
         $script = "<script>displayed = Object.values(JSON.parse('".json_encode($this->openTrees)."'));</script>";
         return $script.$cmdResult."<div class='cats_doctree'>".$this->listResources(CATSDIR_RESOURCES)."</div>";
     }
@@ -410,8 +405,11 @@ class ResourceManager{
                 if(FilingCabinet::GetDirInfo($filename)){
                     $filename = FilingCabinet::GetDirInfo($filename)['name'];
                 }
-                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."')\">".$filename."</a><br />";
-                $s .= "<div class='[style]' id=\"".addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES))."\" style='".(in_array(addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES)), $this->openTrees)?"":"display:none;")." width: [width];'>";
+
+                // open/close divs using resourceId for files and folder/subdir for folders
+                $toggleId = $oRR ? "toggle-{$oRR->getId()}" : addslashes($this->getPathRelativeTo($fileinfo->getRealPath(),CATSDIR_RESOURCES));
+                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$toggleId')\">$filename</a><br />";
+                $s .= "<div class='[style]' id=\"$toggleId\" style='".(in_array($toggleId, $this->openTrees)?"":"display:none;")." width: [width];'>";
                 if($fileinfo->isDir()){
                     $s = str_replace(array("[style]","[width]"), array("cats_doctree_level","100%"), $s);
                     $s .= $this->listResources($fileinfo->getRealPath(), true);
@@ -426,7 +424,7 @@ class ResourceManager{
 
         if( $bRecursing ) goto done;    // only process the videos in the top level
 
-        $s .= "<h4>Videos</h4>";
+        $s .= "<h4 style='margin-top:30px'>Videos</h4>";
 
         // Video cabinet
         if( ($raRR = ResourceRecord::GetRecordFromPath( $this->oApp, 'videos',
@@ -451,7 +449,7 @@ class ResourceManager{
                     // start of new dir (and subdir if defined)
                     $d = SEEDCore_HSC("videos/$currDir");
                     $dirLabel = @FilingCabinet::GetDirInfo($currDir, 'videos')['name'] ?: "[no name]";
-                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">Videos: $dirLabel</a><br />";
+                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">$dirLabel</a><br />";
                     $s .= "<div class='cats_doctree_level' id='$d'
                                 style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 100%;'>";
 
@@ -479,10 +477,10 @@ class ResourceManager{
                 }
 
                 // filename
-                $d = SEEDCore_HSC("videos/$currDir/$currSubdir/{$oRR->getFile()}");
-                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$d')\">".$oRR->getFile()."</a><br />"
-                     ."<div class='cats_docform' id='$d'
-                            style='".(in_array($d, $this->openTrees)?"":"display:none;")." width: 50%;'>"
+                $toggleId = "toggle-{$oRR->getId()}";
+                $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$toggleId')\">".$oRR->getFile()."</a><br />"
+                     ."<div class='cats_docform' id='$toggleId'
+                            style='".(in_array($toggleId, $this->openTrees)?"":"display:none;")." width: 50%;'>"
                      .$this->drawCommandsVideos($oRR)
                      ."</div>";
             }
@@ -633,6 +631,7 @@ class ResourceManager{
                 } else{
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Error deleting file $file</div>";
                 }
+                $this->oFCT->TreeClose("toggle-{$oRR->getId()}");
                 break;
             case "download":
                 // use FilingCabinetDownload instead
