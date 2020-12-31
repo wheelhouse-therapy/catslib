@@ -274,6 +274,7 @@ $bVideos = false;
         'reg'     => ["Psycho Education","Strategies"],
         'cog'     => ["Executive Function","Literacy","Writing"],
         'adl'     => ["Picky Eating","Fasteners"],
+        'othermotor' => ["Hand Skills","Gross Motor","Oculomotor"],
     ];
 
     static function checkFileSystem(SEEDAppConsole $oApp)
