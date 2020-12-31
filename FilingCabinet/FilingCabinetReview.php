@@ -54,13 +54,16 @@ class FilingCabinetReview
                 $oRR = ResourceRecord::CreateFromRealPath($this->oApp, $fileinfo->getRealPath(),'general', 0);
                 $oRR->StoreRecord();
             }
+
+// Since this is a UI for moving files from pending to somewhere else, this should be able to use the same code as Manage Resources
+
             $s .= "<div style='position: relative'><a href='?cmd=download&rrID={$oRR->getID()}' target='_blank'>".$fileinfo->getFilename()."</a>
                    <form id='form".$oRR->getID()."' style='display:inline' onsubmit='disable({$oRR->getID()},event)'>
                    <input type='hidden' name='cmd' value='accept' />
                    <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
             $excluded = [];
             $options = "<option selected value=''>Select a directory</option>";
-            foreach(FilingCabinet::GetDirectories() as $k => $v){
+            foreach(FilingCabinet::GetDirectories('general') as $k => $v){
                 if( $k == 'videos' ) continue;  // videos handled below
 
                 if(!in_array($fileinfo->getExtension(), $v['extensions'])){
@@ -71,7 +74,7 @@ class FilingCabinetReview
                 }
                 $options .= "<option value='general/".$k."'>".$v['name']."</option>";
                 if(FilingCabinet::GetSubFolders($k)){
-                    foreach(FilingCabinet::GetSubFolders($k) as $folder){
+                    foreach(FilingCabinet::GetSubFolders($k,'general') as $folder){
                         if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
                             array_push($excluded, $k."/".$folder);
                         }
@@ -83,7 +86,7 @@ class FilingCabinetReview
                 if(!in_array($fileinfo->getExtension(), $v['extensions'])){
                     continue;
                 }
-// not how videos work anymore
+// not how videos work anymore - instead determine existence using ResourceRecord::GetFromPath
 if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
     array_push($excluded, $k);
 }
@@ -146,6 +149,8 @@ function disable(rrid,event){
 
     private function cmdAccept()
     {
+// Since this is just a move from pending to somewhere else, this should be able to use the same code as Manage Resources
+
         $s = "";
 
         if( !($rrID = SEEDInput_Str( 'rrID' )) ||
@@ -156,9 +161,9 @@ function disable(rrid,event){
         $cabinet = $ra[0];
         $dir = $ra[1];
         $subdir = @$ra[2]? "{$ra[2]}/" : "";
-        
+
         if( !FilingCabinet::GetDirInfo($dir, $cabinet) )  goto done;
-        
+
         $file = $oRR->getFile();
         if( !file_exists($this->dirPending.$file) )  goto done;
 
