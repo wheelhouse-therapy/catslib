@@ -140,7 +140,18 @@ $bVideos = false;
      * Get the list of directories in the Resource Subsystem
      * @return array - containing directory information
      */
-    static function GetDirectories($sCabinet = 'general') { return( $sCabinet=='videos' ? self::$raDrawersVideos : self::$raDirectories ); }
+    static function GetDirectories($sCabinet = 'general')
+    {
+        switch($sCabinet) {
+            case 'reports':
+            case 'SOP':     return([]);
+
+            case 'videos':  return(self::$raDrawersVideos);
+
+            case 'general':
+            default:        return(self::$raDirectories);
+        }
+    }
     /**
      * Get Directory information (eg. allowed extensions, display name, etc.) for a directory
      * @param string $dir - directory to get information of
@@ -148,8 +159,7 @@ $bVideos = false;
      */
     static function GetDirInfo(String $dir, $sCabinet = 'general')
     {
-        return( $sCabinet=='videos' ? (@self::$raDrawersVideos[$dir] ?: null)
-                                    : (@self::$raDirectories[$dir] ?: null) );
+        return( @self::GetDirectories($sCabinet)[$dir] ?: null );
     }
 
     /**
@@ -159,8 +169,15 @@ $bVideos = false;
      */
     static function GetSubFolders(String $dir, $sCabinet = 'general' )
     {
-        return( $sCabinet=='videos' ? (@self::$raSubfoldersVideos[$dir] ?: [])
-                                    : (@self::$raSubFolders[$dir] ?: []) );
+        switch($sCabinet) {
+            case 'reports':
+            case 'SOP':     return([]);
+
+            case 'videos':  return(@self::$raSubfoldersVideos[$dir] ?: []);
+
+            case 'general':
+            default:        return(@self::$raSubFolders[$dir] ?: []);
+        }
     }
 
     /**
@@ -183,8 +200,15 @@ $bVideos = false;
      */
     static function GetFilingCabinetDirectories( $sCabinet = 'general' )
     {
-        return $sCabinet=='videos' ? self::$raDrawersVideos
-                                   : array_diff_key(self::GetDirectories(), array_flip(array('reports','SOP','sections','videos')));
+        switch($sCabinet) {
+            case 'reports':
+            case 'SOP':     return([]);
+
+            case 'videos':  return(self::$raDrawersVideos);
+
+            case 'general':
+            default:        return(array_diff_key(self::GetDirectories(), array_flip(['reports','SOP','sections','videos'])));
+        }
     }
 
     /**
@@ -595,7 +619,7 @@ class ResourceRecord {
         $this->order -= $steps;
         return !$this->committed;
     }
-    
+
     /**
      * Move the resource toward the bottom right of the filing cabinet
      * NOTE: This DOES NOT STORE THE CHANGE
@@ -609,7 +633,7 @@ class ResourceRecord {
         $this->order += $steps;
         return !$this->committed;
     }
-    
+
     /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
@@ -739,7 +763,7 @@ class ResourceRecord {
     public function getOrder(){
         return $this->order;
     }
-    
+
     public function getNewness():int{
         return $this->newness;
     }
@@ -1013,7 +1037,7 @@ class ResourceRecord {
         }
         return( $raRec );
     }
-    
+
     /**
      * Get the SQL of the function used to calculate newness
      * @return String
@@ -1021,7 +1045,7 @@ class ResourceRecord {
     private static function newnessFunction():String{
         return "-FLOOR(-(".self::NEWNESS_CUTOFF."-DATEDIFF(NOW(),_created))/".(floor(self::NEWNESS_CUTOFF/self::NEWNESS_GROUPS)).")-1";
     }
-    
+
     function CreateThumbnail(): bool
     /*************************
          Create or re-create a thumbnail image for this resource

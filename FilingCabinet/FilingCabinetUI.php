@@ -27,7 +27,7 @@ class FilingCabinetUI
      */
     {
         $s = "";
-        
+
         FilingCabinet::EnsureDirectory("*");
 
         if($this->oApp->sess->SmartGPC('dir') == 'main'){
@@ -71,9 +71,9 @@ class FilingCabinetUI
                     $dirIterator = new DirectoryIterator($dir_name);
                     foreach ($dirIterator as $fileinfo) {
                         if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-                        
+
                         $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $cabinet, realpath($fileinfo->getPathname()));
-                        
+
                         if(!$oRR){
                             // The file does not have a record yet, create one
                             $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$cabinet, 0);
@@ -85,15 +85,15 @@ class FilingCabinetUI
                             }
                         }
                     }
-                    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+                    foreach(FilingCabinet::GetSubFolders($dir_short,$cabinet) as $subfolder) {
                         if(!file_exists($dir_name.$subfolder)) continue;
                         $subdir = new DirectoryIterator($dir_name.$subfolder);
                         foreach( $subdir as $fileinfo ) {
                             if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-                            $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
+                            $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $cabinet, realpath($fileinfo->getPathname()));
                             if(!$oRR){
                                 // The file does not have a record yet, create one
-                                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$cabinet, 0);
                                 if($oRR->StoreRecord()){
                                     $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
                                 }
@@ -104,7 +104,7 @@ class FilingCabinetUI
                         }
                     }
                 }
-                
+
             } else {
                 $s .= "<form><input type='hidden' name='adminIndexAllFiles' value='1'/>"
                     ."<input type='submit' value='Admin: Index Files'/></form>";
