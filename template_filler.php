@@ -446,7 +446,7 @@ class template_filler {
     private function handleImages(String $fileName){
         $za = new ZipArchive();
         $za->open($fileName);
-        $Tree = $pathArray = array(); //empty arrays
+        $Tree = array(); //empty arrays
         for ($i = 0; $i < $za->numFiles; $i++) {
             $path = $za->getNameIndex($i);
             $pathBySlash = array_values(explode('/', $path));
