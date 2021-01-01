@@ -119,7 +119,7 @@ $s .= "
 function replace(event, ra) {
     var index = event.target.selectedIndex;
     var options = event.target.options;
-    var submit = event.target.nextElementSibling;
+    var submit = event.target.parentElement.nextElementSibling.firstElementChild;
     if($.inArray(options[index].value,ra) !== -1){
         $(submit).css('background-image','url(".CATSDIR_IMG."overwrite-resource.png)');
         submit.firstElementChild.innerHTML = 'Overwrite Resource';
