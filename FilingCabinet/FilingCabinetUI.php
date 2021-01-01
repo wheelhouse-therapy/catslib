@@ -27,7 +27,7 @@ class FilingCabinetUI
      */
     {
         $s = "";
-        
+
         FilingCabinet::EnsureDirectory("*");
 
         if($this->oApp->sess->SmartGPC('dir') == 'main'){
@@ -55,16 +55,28 @@ class FilingCabinetUI
                 // The filing cabinet is now database driven so this can be used as a "sync" forcing the database to match the filesystem
                 foreach(FilingCabinet::GetDirectories() as $dir_short=>$dirInfo) {
                     if($dir_short == "videos") {continue;}
+                    $cabinet = "general";
+                    switch(strtolower($dir_short)){
+                        case "sop":
+                            $cabinet = "SOP";
+                            break;
+                        case "reports":
+                            $cabinet = "reports";
+                            break;
+                        default:
+                            $cabinet = "general";
+                            break;
+                    }
                     $dir_name = CATSDIR_RESOURCES.$dirInfo['directory'];
                     $dirIterator = new DirectoryIterator($dir_name);
                     foreach ($dirIterator as $fileinfo) {
                         if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-                        
-                        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
-                        
+
+                        $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $cabinet, realpath($fileinfo->getPathname()));
+
                         if(!$oRR){
                             // The file does not have a record yet, create one
-                            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                            $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$cabinet, 0);
                             if($oRR->StoreRecord()){
                                 $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$fileinfo->getFilename())."</div>";
                             }
@@ -73,15 +85,15 @@ class FilingCabinetUI
                             }
                         }
                     }
-                    foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
+                    foreach(FilingCabinet::GetSubFolders($dir_short,$cabinet) as $subfolder) {
                         if(!file_exists($dir_name.$subfolder)) continue;
                         $subdir = new DirectoryIterator($dir_name.$subfolder);
                         foreach( $subdir as $fileinfo ) {
                             if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-                            $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, "general", realpath($fileinfo->getPathname()));
+                            $oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $cabinet, realpath($fileinfo->getPathname()));
                             if(!$oRR){
                                 // The file does not have a record yet, create one
-                                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),"general", 0);
+                                $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$cabinet, 0);
                                 if($oRR->StoreRecord()){
                                     $s .= "<div class='alert alert-success'>Created Record for ".SEEDCore_HSC($dir_short."/".$subdir.$fileinfo->getFilename())."</div>";
                                 }
@@ -92,7 +104,7 @@ class FilingCabinetUI
                         }
                     }
                 }
-                
+
             } else {
                 $s .= "<form><input type='hidden' name='adminIndexAllFiles' value='1'/>"
                     ."<input type='submit' value='Admin: Index Files'/></form>";
@@ -160,8 +172,19 @@ class FilingCabinetUI
                 if(stripos($ra['name'], "Drawer") !== false){
                     $title = "Open {$ra['name']}";
                 }
-
-                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                $new = FALSE;
+                $newness = 0;
+                foreach( ResourceRecord::GetResources($this->oApp, $this->sCabinet, $k,ResourceRecord::WILDCARD) as $rr){
+                    if($rr->isNewResource()){
+                        $new = TRUE;
+                    }
+                    if($rr->getNewness() > $newness){
+                        $newness = $rr->getNewness();
+                    }
+                }
+                $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+                $sStyle = "{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff;".($new?"position:relative":"");
+                $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$sStyle}'>{$sBadge}"
                         ."{$ra['name']}"
                      ."</div></a></p>";
             }
