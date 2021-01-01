@@ -748,7 +748,7 @@ class ResourceRecord {
             $acctDB = new SEEDSessionAccountDBRead($this->oApp->kfdb);
             $result = $acctDB->GetUserInfo($this->created_by,false,true);
             if(!$result[0]){
-                $result[1] = ['realname' => 'Anonymous'];
+                $result[1] = ['realname' => 'Unknown'];
             }
             else if($result[0] == $this->oApp->sess->getUID()){
                 $result[1]['realname'] = 'Self';
