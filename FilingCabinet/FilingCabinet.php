@@ -354,7 +354,7 @@ class ResourceRecord {
     // Cutoff for resources to be considered "new"
     private const NEWNESS_CUTOFF = 60;
     // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
-    private const NEWNESS_GROUPS = 4;
+    private const NEWNESS_GROUPS = 8;
 
     private const TAG_SEPERATOR = "\t";
 
