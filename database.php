@@ -652,7 +652,7 @@ class TagNameResolutionService {
 
         if($kfr){
             $v = $kfr->Value("value");
-            $ra = preg_split("/[\s-]/", $v, null, PREG_OFFSET_CAPTURE);
+            $ra = preg_split("/[\s-]/", $v, -1, PREG_SPLIT_OFFSET_CAPTURE);
             for ($i = 0; $i < count($ra) && $i < strlen($value); $i++) {
                 if(ctype_upper($value[$i])){
                     $ra[$i][0] = ucwords($ra[$i][0]);
@@ -661,7 +661,7 @@ class TagNameResolutionService {
             $sResult = "";
             foreach($ra as $raResult){
                 if($raResult[1] != 0){
-                    $sResult .= $v[$raResult-1];
+                    $sResult .= $v[$raResult[1]-1];
                 }
                 $sResult .= $raResult[0];
             }
