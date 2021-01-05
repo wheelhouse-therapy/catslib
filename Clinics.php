@@ -187,7 +187,7 @@ class Clinics {
     public function getClinicsByEmail(String $email){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -196,7 +196,7 @@ class Clinics {
     public function getClinicsByName(String $name){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.clinic_name='".$name."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -205,7 +205,7 @@ class Clinics {
     public function getClinicsByCity(String $city){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.city'".$city."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -217,7 +217,7 @@ class Clinics {
         }
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
