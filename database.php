@@ -209,7 +209,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 12;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 13;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -302,6 +302,12 @@ function createTables( KeyframeDatabase $kfdb )
         // Add organization column
         $kfdb->SetDebug(2);
         $kfdb->Execute("ALTER TABLE pros_external ADD organization VARCHAR(200) NOT NULL DEFAULT ''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 13){
+        // Add nickname column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE clinics ADD nickname VARCHAR(200) NOT NULL DEFAULT ''");
         $kfdb->SetDebug(0);
     }
 
@@ -653,7 +659,7 @@ class TagNameResolutionService {
      * @return String - Replacement value or original value if resolution faills
      */
     function resolveTag(String $tag, String $value):String{
-
+        //TODO Handle Tag Aliases
         $kfr = $this->kfrel->GetRecordFromDB("tag='".addslashes(strtolower($tag))."' AND name='".addslashes(strtolower($value))."'");
 
         if($kfr){
