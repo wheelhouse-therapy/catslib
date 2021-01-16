@@ -41,7 +41,7 @@ class FilingCabinet
         }
         if($dirs == "*"){
             // ensure that all directories are created
-            foreach( self::$raDirectories as $k=>$v ) {
+            foreach( array_keys(self::$raDirectories) as $k ) {
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
@@ -103,7 +103,7 @@ $bVideos = false;
         /* This is a temporary measure to make sure that a ResourceRecord exists for every file in the Filing Cabinet, except for "pending"
          * Remove this method when ResourceRecords are naturally created for all files.
          */
-        foreach( self::$raDirectories as $dir=>$raD ) {
+        foreach( array_keys(self::$raDirectories) as $dir ) {
 
             $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.$dir);
             foreach( $dirIterator as $fileinfo ) {

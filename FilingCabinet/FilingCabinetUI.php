@@ -215,7 +215,8 @@ SearchDialog;
 
     private function handleCmd()
     {
-        switch( ($cmd = SEEDInput_Str('cmd')) ) {
+        $cmd = SEEDInput_Str('cmd');
+        switch( $cmd ) {
             case 'download':
                 $oFCD = new FilingCabinetDownload( $this->oApp );
                 $oFCD->DownloadFile();

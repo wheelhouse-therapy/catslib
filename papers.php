@@ -171,4 +171,4 @@ $template = str_replace("[[CATSDIR_IMG]]", "w/img/", $template);
 $template = str_replace("[[obj]]", json_encode($ra), $template);
 
 $s .= $template;
-?>
+$s;

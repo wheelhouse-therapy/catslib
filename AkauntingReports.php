@@ -473,9 +473,9 @@ Overlays;
         $s .= "<table class='AkReportTable'>"
              ."<tr><td>&nbsp;</td>".str_replace("!", "<br />", SEEDCore_ArrayExpandSeries( $raMonths, "<td><strong>[[]]</strong></td>" ))."</tr>";
 
-        foreach( $raAccts as $acct => $dummy ) {
+        foreach( array_keys($raAccts) as $acct) {
             $s .= "<tr><td><strong>$acct</strong></td>";
-            foreach( $raMonths as $month => $dummy ) {
+            foreach( array_keys($raMonths) as $month) {
                 $s .= "<td>".(@$raM[$month][$acct] ?: "")."</td>";
             }
             $s .= "</tr>";

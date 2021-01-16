@@ -115,7 +115,6 @@ if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinf
                    </div><br />
                    Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
         }
-        $url = "/cats" . substr(CATSDIR_IMG, 1);
 
 $s .= "
 <script>
@@ -234,7 +233,6 @@ function disable(rrid,event){
 
     private function cmdDownload()
     {
-        $s = "";
 
         $oFCD = new FilingCabinetDownload( $this->oApp );
         $oFCD->OutputResource( SEEDInput_Int('rrID'), false );

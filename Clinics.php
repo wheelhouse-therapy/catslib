@@ -147,7 +147,7 @@ class Clinics {
             $name = $needle['Clinics_clinic_name'];
         }
         if(!$name) return NULL; // Not a valid clinic array
-        foreach($haystack as $k => $v){
+        foreach(array_keys($haystack) as $k){
             if($haystack[$k]['Clinics_clinic_name'] == $name){
                 return TRUE;
             }

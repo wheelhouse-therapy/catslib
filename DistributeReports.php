@@ -1,9 +1,6 @@
 <?php
 
 function distributeReports($oApp) {
-    $oPeopleDB = new PeopleDB( $oApp );
-    $clinics = new Clinics($oApp);
-    $condClinic = $clinics->isCoreClinic() ? "" : ("clinic = ".$clinics->GetCurrentClinic());
     /* $s here makes a template with a dropdown list (with HTML id="clientlist")
      * to select a client, which makes an AJAX call (calling this function) back to the server whenever
      * it changes. This function also calls drawForm and sticks the return from that in a div.

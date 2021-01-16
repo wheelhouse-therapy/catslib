@@ -7,7 +7,6 @@
  * 
  * Mapping format: "Screen_Name" => "Template_Name",
  */
-global $mappings;
 $mappings = array(
 	"admin-manageTNRS" => "tnrs",
     "therapist-akaunting" => "akaunting",
@@ -22,3 +21,4 @@ $mappings = array(
     "therapist-reports" => "reports",
     "therapist-viewVideos" => "filing-cabinet",
 );
+$mappings;

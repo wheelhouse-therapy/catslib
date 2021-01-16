@@ -162,7 +162,6 @@ class FilingCabinetDownload
     function GetDownloadPath( $mode, ResourceRecord $oRR, $filename = "", $dir_short = "" )
     {
         $rrid = $oRR->getID();
-        $dbFname = addslashes($dir_short.'/'.$filename);
         switch( $mode ) {
             case 'replace':
                 return "href='javascript:void(0)' onclick=\"select_client($rrid, '".addslashes($oRR->getFile())."')\"";

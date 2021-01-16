@@ -34,6 +34,7 @@ class CATS_UI
 
     function OutputPage( $body )
     {
+        global $mappings;
         if( !$this->oApp->sess->IsLogin() ) {
             echo "<head><meta http-equiv=\"refresh\" content=\"0; URL=".CATSDIR."\"></head><body>You have Been Logged out<br /><a href=".CATSDIR."\"\">Back to Login</a></body>";
             exit;
@@ -58,7 +59,7 @@ class CATS_UI
                 'ConsoleUserMsg'=>$this->oApp->oC->GetUserMsg(),
                 'ConsoleErrMsg'=>$this->oApp->oC->GetErrMsg(),
 
-                'ExtensionTmpl'=>@$GLOBALS["mappings"][$this->oHistory->getScreen()],
+                'ExtensionTmpl'=>@$mappings[$this->oHistory->getScreen()],
                 'screen_name'=>$this->oHistory->getScreen(),
                 'user_name'=>$this->oApp->sess->GetName(),
                 'clinics'=>$clinics->displayUserClinics(), 'body' => $body
