@@ -161,7 +161,7 @@ class AssessmentUI_MABC extends AssessmentUIColumns
     function __construct( AssessmentData_MABC $oData )
     {
         if( ($age = $oData->GetRaw('metaClientAge')) ) {
-
+            $age;
         }
 
         // Other methods have to set columnsDef before they do anything
