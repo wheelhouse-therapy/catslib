@@ -187,7 +187,6 @@ ResetPassword;
             array( 'therapist-filing-cabinet',  "Filing Cabinet"),
             array( 'therapist-reports',         "Print Client Reports"),
             array( 'therapist-assessments',     "Score Assessments"),
-            //array( 'therapist-documents',       "Documents" ),
             //array( 'therapist-team',            "Meet the Team" ),
             //array( 'therapist-calendar',        "Calendar" ),
             //array( 'therapist-viewSOPs',        "View Standard Operating Procedures" ),
@@ -218,9 +217,6 @@ ResetPassword;
                 break;
             case "therapist-materials":
                 $s .= "DOWNLOAD MATERIALS";
-                break;
-            case "therapist-documents":
-                $s .= DocumentManager( $this->oApp );
                 break;
             case "therapist-team":
                 $s .= "MEET THE TEAM";
