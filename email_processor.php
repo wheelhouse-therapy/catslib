@@ -134,7 +134,6 @@ class ReceiptsProcessor {
             $i = $options?$options['i']:0;
             $from = $message->getFrom();
             $subject = $message->getSubject();
-            $date = $message->getDate();
             $body = $message->getBodyText();
 
             //Pull the information out of subject

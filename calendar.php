@@ -88,6 +88,7 @@ class Appointments
          */
     }
         list($ok,$dummy,$sErr) = $this->oApp->sess->IsAllowed( $cmd );
+        $dummy;
         if( !$ok ) {
             $rQ['sErr'] = $sErr;
             goto done;
@@ -800,7 +801,7 @@ class CATS_GoogleCalendar
         if( file_exists( $this->accounts_file ) &&
             ($json = json_decode( file_get_contents( $this->accounts_file ), true )) )
         {
-            foreach( $json as $name => $fname ) {
+            foreach( array_keys($json) as $name ) {
                 if( $s )  $s .= ",";
                     $s .= ($name == $gAccount ? $name : "<a href='?gAccount=$name'>$name</a>");
             }

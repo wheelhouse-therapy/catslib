@@ -72,7 +72,7 @@ if( !defined("CATSDIR_DOCUMENTATION")){ define( "CATSDIR_DOCUMENTATION", CATSDIR
 if( !defined("CATSDIR_AKAUNTING")){ define( "CATSDIR_AKAUNTING", CATSDIR."w/akaunting/");}
 if( !defined("CATSDIR_FONTS")){ define( "CATSDIR_FONTS", CATSDIR."w/fonts/");}
 
-$dirImg = CATSDIR_IMG;
+//$dirImg = CATSDIR_IMG;
 //Directory to the logo used on the CATS server
 define("CATS_LOGO", CATSDIR_IMG."cats_wide.png");
 

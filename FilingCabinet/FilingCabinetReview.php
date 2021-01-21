@@ -115,7 +115,6 @@ if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinf
                    </div><br />
                    Uploaded By: {$oRR->getUploader(true)['realname']}</div>";
         }
-        $url = "/cats" . substr(CATSDIR_IMG, 1);
 
 $s .= "
 <script>
@@ -196,12 +195,17 @@ function disable(rrid,event){
                         $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
                 } else {
+                    $oRRExisting = ResourceRecord::GetRecordFromPath($this->oApp, $cabinet, $dir, $file, $subdir);
+                    if(is_array($oRRExisting)){
+                        $oRRExisting = $oRRExisting[0]; // Take the first record
+                    }
                     $s .= "<div class='alert alert-success'> Resource ".$file." has been overwritten. This CANNOT be undone</div>";
-                    if(!$oRR->DeleteRecord()){
+                    if(!$oRRExisting->merge($oRR)){
                         $s .= "<div class='alert alert-danger'>Unable to update the index. Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
-                    $oRR->CreateThumbnail();
+                    $oRR = $oRRExisting; // The new record should be deleted reassign with the old record for thumbnail creating
                 }
+                $oRR->CreateThumbnail();
             } else {
                 $s .= "<div class='alert alert-danger'>An error occurred while accepting File ".$file."</div>";
             }
@@ -234,7 +238,6 @@ function disable(rrid,event){
 
     private function cmdDownload()
     {
-        $s = "";
 
         $oFCD = new FilingCabinetDownload( $this->oApp );
         $oFCD->OutputResource( SEEDInput_Int('rrID'), false );

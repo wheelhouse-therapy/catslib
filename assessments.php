@@ -305,7 +305,7 @@ class AssessmentUIColumns extends AssessmentUI
 
         $total = 0;
         foreach( SEEDCore_ParseRangeStrToRA( $sRange ) as $item ) {
-            list($v,$score) = $this->itemVal( $oForm, $item );
+            $score = $this->itemVal( $oForm, $item )[1];
             $total += $score;
         }
         $s .= "<div class='sectionTotal'>".($bEditable ? "" : "<br/>Total: $total")."</div>";

@@ -634,6 +634,10 @@ class template_filler {
                 case 'name':
                     $s = $this->kfrClinic->Value("clinic_name");
                     break;
+                case 'nickname':
+                    // The nickname is only for displaying on screen
+                    $s = $this->kfrClinic->Value("clinic_name");
+                    break;
                 default:
                     $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }

@@ -81,7 +81,7 @@ class AssessmentData_MABC extends AssessmentData
                 case 'ac_std':
                 case 'bal_std':
                     $component = strtok($item,"_"); // md, ac, bal
-                    list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
+                    $std = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") )[0];
                     $ret = $std;
                     break;
 
@@ -90,7 +90,7 @@ class AssessmentData_MABC extends AssessmentData
                     $ret = $this->ComputeScore('md_cmp') + $this->ComputeScore('ac_cmp') + $this->ComputeScore('bal_cmp');
                     break;
                 case 'total_std':
-                    list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') );
+                    $std = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') )[0];
                     $ret = $std;
                     break;
             }
@@ -108,12 +108,12 @@ class AssessmentData_MABC extends AssessmentData
             case 'ac_pct':
             case 'bal_pct':
                 $component = strtok($item,"_"); // md, ac, bal
-                list($std,$pct) = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") );
+                $pct = Assessment_MABC_Scores::GetComponentTotalScore( $component, $this->ComputeScore("{$component}_cmp") )[1];
                 $ret = $pct;
                 break;
 
             case 'total_pct':
-                list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') );
+                $pct = Assessment_MABC_Scores::GetTotalScore( $this->ComputeScore('total_score') )[1];
                 $ret = $pct;
                 break;
         }
@@ -161,7 +161,7 @@ class AssessmentUI_MABC extends AssessmentUIColumns
     function __construct( AssessmentData_MABC $oData )
     {
         if( ($age = $oData->GetRaw('metaClientAge')) ) {
-
+            $age;
         }
 
         // Other methods have to set columnsDef before they do anything
@@ -236,7 +236,7 @@ class AssessmentUI_MABC extends AssessmentUIColumns
 
 
         // oops, can't get zone directly from ComputeScore because it only returns int
-        list($std,$pct,$zone) = Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') );
+        $zone = Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2];
         switch( $zone ) {
             case 'green':
                 $zone = "<span style='color:green;background-color:#aaddaa'>&nbsp; Green &nbsp;</span>";

@@ -11,7 +11,7 @@ unset($_POST['client_key']);
 unset($_POST['cmd']);
 //Convert post key-value array to value array ignoring blank
 $ra = array();
-foreach ($_POST as $role=>$v){
+foreach (array_keys($_POST) as $role){
     if($_POST[$role] != "0"){
         array_push($ra, $_POST[$role]);
     }

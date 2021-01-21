@@ -78,7 +78,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
                                     <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' onchange='buttonUpdate(\"Email\")' />Substitute client details and email</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' onchange='buttonUpdate(\"default\")' />Substitute client details into document</p>
-                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Save file with no substitution</p>
+                                    <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='no_replace' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Save file with no substitution (with tags)</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='blank' onclick='fcd_clientselect_enable(false);'  onchange='buttonUpdate(\"Download\",true)' />Fill document tags with blanks</p>
                                 </div>
                             </div></div>

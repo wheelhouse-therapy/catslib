@@ -247,8 +247,8 @@ class ResourceManager{
             case "move":
                 $fromFileBase = $oRR->getFile();                                          // base file name
                 $fromFileFull = realpath($oRR->getPath());                                // full file path with ".." removed
-                $fromFileRel = $this->getPathRelativeTo($fromFileFull,CATSDIR_RESOURCES); // path relative to CATSDIR_RESOURCES
-                $fromDirRel = pathinfo($fromFileRel, PATHINFO_DIRNAME);                   // dir of relative path
+                //$fromFileRel = $this->getPathRelativeTo($fromFileFull,CATSDIR_RESOURCES); // path relative to CATSDIR_RESOURCES
+                //$fromDirRel = pathinfo($fromFileRel, PATHINFO_DIRNAME);                   // dir of relative path
                 $toDirRel = SEEDInput_Str('folder');                                      // destination relative dir
                 $toDirFull = realpath(CATSDIR_RESOURCES.$toDirRel);                       // destination full dir with ".." removed
                 $toFileFull = $toDirFull.'/'.$fromFileBase;                               // destination full filename
@@ -305,10 +305,9 @@ class ResourceManager{
                 break;
             case "delete":
                 if(unlink(realpath($oRR->getPath()))){
-                    $directory = $this->getPartPath(realpath($oRR->getPath()),-2);
+                    //$directory = $this->getPartPath(realpath($oRR->getPath()),-2);
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-success alert-dismissible'>File ".$oRR->getFile()." has been deleted</div>";
-                    $oRR->setStatus(1);
-                    if(!$oRR->StoreRecord()){
+                    if(!$oRR->DeleteRecord()){
                         $_SESSION['ResourceCMDResult'] .= "<div class='alert alert-danger alert-dismissible'>Unable to delete index for ".$oRR->getFile()."<br /> Contact a System Administrator Immediately (Code 504-{$oRR->getID()})</div>";
                     }
                 }
@@ -489,7 +488,7 @@ class ResourceManager{
         $move .= "</select>&nbsp&nbsp<input type='submit' value='move' /></form></div>";
 
         // Rename form
-        $file_path='';
+        //$file_path='';
         $rename = "<a href='javascript:void(0)' onclick=\"setContents('cmd-{$oRR->getId()}','cmd-rename-{$oRR->getId()}')\">rename</a>";
         $rename .= "<div id='cmd-rename-{$oRR->getId()}' style='display:none'>"
                   ."<br /><form>"

@@ -126,11 +126,12 @@ class Clinics {
             if($s){
                 $s .=", ";
             }
+            $name = $ra["Clinics_nickname"]?:$ra['Clinics_clinic_name'];
             if($ra['Clinics__key'] == $this->GetCurrentClinic()){
-                $s .= "<span class='selectedClinic'> ".$ra['Clinics_clinic_name']."</span>";
+                $s .= "<span class='selectedClinic'> {$name}</span>";
             }
             else {
-                $s .= "<a href='?clinic=".$ra['Clinics__key']."'".($selector?" class='selectedClinic'":"").">".$ra['Clinics_clinic_name']."</a>";
+                $s .= "<a href='?clinic=".$ra['Clinics__key']."'".($selector?" class='selectedClinic'":"").">{$name}</a>";
             }
         }
         return($s);
@@ -146,7 +147,7 @@ class Clinics {
             $name = $needle['Clinics_clinic_name'];
         }
         if(!$name) return NULL; // Not a valid clinic array
-        foreach($haystack as $k => $v){
+        foreach(array_keys($haystack) as $k){
             if($haystack[$k]['Clinics_clinic_name'] == $name){
                 return TRUE;
             }
@@ -187,7 +188,7 @@ class Clinics {
     public function getClinicsByEmail(String $email){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.email='".$email."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -196,7 +197,7 @@ class Clinics {
     public function getClinicsByName(String $name){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.clinic_name='".$name."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -205,7 +206,7 @@ class Clinics {
     public function getClinicsByCity(String $city){
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.city'".$city."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -217,7 +218,7 @@ class Clinics {
         }
         $clinics = $this->clinicsDB->KFRel()->GetRecordSetRA("Clinics.fk_leader='".$user."'");
         $clinicKeys = array();
-        foreach($clinics as $k => $v){
+        foreach($clinics as $v){
             array_push($clinicKeys, $v["_key"]);
         }
         return $clinicKeys;
@@ -388,6 +389,9 @@ class Clinics {
                     }
                     elseif($field['alias'] == 'mailing_address' && SEEDInput_Str('mailing_address') == 'add%91ress'){
                         $kfr->SetValue( $field['alias'], SEEDInput_Str('address') );
+                    }
+                    elseif($field['alias'] == 'nickname' && SEEDInput_Str('nickname') == 'clinic%91name'){
+                        $kfr->SetValue( $field['alias'], SEEDInput_Str('clinic_name') );
                     }else{
                         $kfr->SetValue( $field['alias'], SEEDInput_Str($field['alias']) );
                     }
@@ -583,9 +587,9 @@ class Clinics {
         die();
     }
     
-    private function drawFormRow( $label, $control )
+    private function drawFormRow( $label, $control, $tooltip="" )
     {
-        return( "<tr>"
+        return( "<tr".($tooltip?" title='{$tooltip}'":"").">"
             ."<td class='col-md-4'><p>$label</p></td>"
             ."<td class='col-md-8'>$control</td>"
             ."</tr>" );
@@ -606,7 +610,8 @@ class Clinics {
                 ."<table class='container-fluid table table-striped table-sm'>"
                     // The first clinic must be called core and cannot have the name changed
                     // Disable the name box so it cant be changed
-                .$this->drawFormRow( "Clinic Name", "<input type='text' name='clinic_name' required maxlength='200' value='".htmlspecialchars($ra['clinic_name'])."' placeholder='Name'".($ra['clinic_name'] == 'Core'?" readonly":"")."autofocus />")
+                .$this->drawFormRow( "Clinic Name", "<input type='text' name='clinic_name' required maxlength='200' value='".htmlspecialchars($ra['clinic_name'])."' placeholder='Name'".($ra['clinic_name'] == 'Core'?" readonly":"")."autofocus />", "Name to print on reports and other documents")
+                .$this->drawFormRow( "Display Name", $this->getNickname($ra),"Name to show on screen")
                 .$this->drawFormRow( "Address", "<input type='text' name='address' maxlength='200' value='".htmlspecialchars($ra['address'])."' placeholder='Address' />")
                 .$this->drawFormRow( "City", "<input type='text' name='city' maxlength='200' value='".htmlspecialchars($ra['city'])."' placeholder='City' />")
                 .$this->drawFormRow( "Postal Code", "<input type='text' name='postal_code' maxlength='200' value='".htmlspecialchars($ra['postal_code'])."' placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$' />")
@@ -633,7 +638,7 @@ class Clinics {
         }
         return($s);
     }
-
+    
     private function getClinicImageModal(){
         return <<<Modal
 <!-- the div that represents the modal dialog -->
@@ -683,8 +688,29 @@ Modal;
         return $s;
     }
     
+    private function getNickname($ra){
+        $isClinicName = $ra['clinic_name'] == $ra['nickname'];
+        $s = "<input type='checkbox' value='clinic%91name' id='nickname' name='nickname' onclick='notClinicName()' ".($isClinicName?"checked":"").">Same as Clinic Name</input>"
+            ."<input type='text' id='nicknameText' name='nickname' ".($isClinicName?"style='display:none' disabled ":"")
+            .(!$isClinicName?"value='".$ra['nickname']."' ":"")." maxlenght='200' required placeholder='Nickname' />"
+                ."<script>
+                function notClinicName() {
+                    var checkBox = document.getElementById('nickname');
+                    var text = document.getElementById('nicknameText');
+                    if (checkBox.checked == false){
+                        text.style.display = 'block';
+                        text.disabled = false;
+                    } else {
+                        text.style.display = 'none';
+                        text.disabled = true;
+                    }
+                }
+              </script>";
+        return $s;
+    }
+    
     private function getEmail($ra){
-        $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']);
+        $useDefault = !$ra['email'] || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['clinic_name']))) === strtolower($ra['clinic_name']) || substr(strtolower($ra['email']), 0, strlen(strtolower($ra['nickname']))) === strtolower($ra['nickname']);
         $s = "<input type='checkbox' value='default' id='clinicEmail' name='email' onclick='notDefault()' ".($useDefault?"checked ":"").">Use Default Email</input>"
             ."<input type='email' id='email' name='email' ".($useDefault?"style='display:none' disabled ":"")
                 .(!$useDefault?"value='".$ra['email']."' ":"")."required placeholder='Email' />"
