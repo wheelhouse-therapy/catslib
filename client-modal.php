@@ -52,6 +52,22 @@ ModalButton;
 
 function drawStaffModal($ra, $oPeopleDB, SEEDAppConsole $oApp){
     $clinics = new Clinics($oApp);
+    $clinicsDB = new ClinicsDB($oApp->kfdb);
+    $condStaff = "P.uid in (SELECT fk_SEEDSession_users FROM users_clinics WHERE fk_clinics = {$clinics->GetCurrentClinic()}) AND clinic = {$clinics->GetCurrentClinic()}";
+    if($clinics->isCoreClinic()){
+        $condStaff = "";
+    }
+    $raStaff = $oPeopleDB->GetList(ClientList::INTERNAL_PRO, $condStaff, array("sSortCol" => "P.first_name,_key"));
+    
+    foreach(array_keys($raStaff) as $k){
+        if($clinics->isCoreClinic()){
+            $raStaff[$k]['clinic'] = " (".$clinicsDB->GetClinic($raStaff[$k]['clinic'])->Value('clinic_name').")";
+        }
+        else{
+            $raStaff[$k]['clinic'] = "";
+        }
+    }
+    
     $s = "
         <!-- the div that represents the modal dialog -->
         <div class=\"modal fade\" id=\"staff_dialog\" role=\"dialog\">
@@ -65,7 +81,7 @@ function drawStaffModal($ra, $oPeopleDB, SEEDAppConsole $oApp){
                             <input type='hidden' name='cmd' value='therapist--clientlist-link' id='cmd' />
                             <input type='hidden' name='add_client_key' value='{$ra['_key']}' />";
                     $s .= "<select class='searchable' name='add_internal_key'><option selected value='0'>Select Staff"
-                        .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->GetRecordSetRA($clinics->isCoreClinic() ? "" : ("clinic = ".$clinics->GetCurrentClinic())),"<option value='[[_key]]' />[[P_first_name]] [[P_last_name]] ([[pro_role]])")
+                        .SEEDCore_ArrayExpandRows($raStaff,"<option value='[[_key]]' />[[P_first_name]] [[P_last_name]] ([[pro_role]])[[clinic]]")
                         ."</select>";
                     $s .= "</form>
                     </div>
