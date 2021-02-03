@@ -633,6 +633,26 @@ class ResourceRecord {
         $this->order += $steps;
         return !$this->committed;
     }
+    
+    /**
+     * Renames a file represented by a ResourceRecord, updating the ResourceRecord to match the new filename.
+     * Always keeps a file in the same directory, can't be used to move resources to another directory.
+     * Returns true, but does nothing if the given filename is identical to the old filename.
+     * NOTE: This does NOT commit changes to the database. Use StoreRecord to commit changes.
+     * @return bool - true on success, false on failure.
+     */
+    public function rename(String $newName) : bool {
+        if ($newName == $this->file) {
+            return True; // succeed, but do nothing if the name is the same
+        }
+        if (rename($this->getPath(), $this->getPathToDir().$newName)) {
+            // if renaming is successful, update the record
+            $this->setFile($newName); // this takes care of the "committed" flag
+            return True;
+        }
+        // renaming failed
+        return False;
+    }
 
     /**
      * Commit any record changes to the database, and update the id if needed.
@@ -719,6 +739,17 @@ class ResourceRecord {
         return $this->cabinet == 'videos'
                 ? (CATSDIR_RESOURCES."videos/{$this->id} {$this->file}")
                 : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : "").$this->file);
+    }
+    public function getPathToDir() : String
+    {
+        /**
+         * Gets the file path to the directory the resource is stored in.
+         * Similar to getPath(), but does not include the filename.
+         * @return String - path to the directory containing the resource.
+         */
+        return $this->cabinet == 'videos'
+            ? (CATSDIR_RESOURCES."videos/")
+            : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : ""));
     }
 
     /**

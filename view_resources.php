@@ -219,8 +219,29 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         }
     }
     $s .= "</div>";
-
-    $s .= "<script>
+    
+    $s .= <<<ContextMenu
+<nav id="context-menu" class="context-menu">
+    <ul class="context-menu__items">
+        <li class="context-menu__item">
+            <a href="#" class="context-menu__button" data-action="rename">Rename</a>
+        </li>
+        <li class="context-menu__item">
+            <a href="#" class="context-menu__button" data-action="delete">Delete</a>
+        </li>
+        <li class="context-menu__item">
+            <a href="#" class="context-menu__button" data-action="reorder-left">Reorder Left</a>
+        </li>
+        <li class="context-menu__item">
+            <a href="#" class="context-menu__button" data-action="reorder-right">Reorder Right</a>
+        </li>
+    </ul>
+</nav>
+ContextMenu;
+    
+    $s .= "<script src='".CATSDIR_JS."rightClickMenu.js'></script>
+            <link rel='stylesheet' href='".CATSDIR_CSS."rightClickMenu.css'>
+            <script>
             const modal = document.getElementById('file_dialog').innerHTML;
             const disabledByServer = document.getElementById('email').disabled;
             const buttonValue = document.getElementById('submitVal').value;
@@ -343,7 +364,7 @@ function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_s
         }
 
         $sTemplate =
-              "<div class='file-preview-container' id='[[ID]]' data-tooltip='".addslashes($oRR->getDescription())."'>
+              "<div class='file-preview-container contextable' id='[[ID]]' data-tooltip='".addslashes($oRR->getDescription())."'>
                   [[BADGE]]
                   <a style='' [[LINK]] >
                     <div>
@@ -396,7 +417,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
     $link = "href='?cmd=viewVideo&rr={$oRR->getId()}'";
 
     $sTemplate =
-          "<div class='file-preview-container' id='[[ID]]' data-tooltip='".addslashes($oRR->getDescription())."'>
+          "<div class='file-preview-container contextable' id='[[ID]]' data-tooltip='".addslashes($oRR->getDescription())."'>
               [[BADGE]]
               <a style='' [[LINK]] >
                 <div>
