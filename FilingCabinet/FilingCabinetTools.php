@@ -34,7 +34,7 @@ class FilingCabinetTools
     }
 
     function TreeClose( $id )
-    {var_dump($id);
+    {//var_dump($id);
         $ra = $this->TreeListGet();
         $ra = SEEDCore_ArrayRemoveValue($ra, $id);
         $this->TreeListSet( $ra );

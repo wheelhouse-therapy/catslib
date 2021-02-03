@@ -209,7 +209,7 @@ function createTables( KeyframeDatabase $kfdb )
      * That way, the first time anybody loads a page with an out-of-date database, the necessary create/alter commands will run
      * and stringbucket will be updated (so it doesn't happen twice).
      */
-    $dbVersion = 11;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
+    $dbVersion = 13;     // update all tables to this version if the SEEDMetaTable_StringBucket:cats:dbVersion is less
 
     if( !tableExists( $kfdb, "SEEDMetaTable_StringBucket") ) {
         $kfdb->SetDebug(2);
@@ -296,6 +296,18 @@ function createTables( KeyframeDatabase $kfdb )
         $kfdb->Execute("ALTER TABLE resources_files ADD iOrder INTEGER NOT NULL DEFAULT 0");
         $kfdb->Execute("UPDATE resources_files SET cabinet=folder WHERE folder in ('reports','SOP','videos')");
         $kfdb->Execute("UPDATE resources_files SET cabinet='general' WHERE cabinet=''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 12){
+        // Add organization column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE pros_external ADD organization VARCHAR(200) NOT NULL DEFAULT ''");
+        $kfdb->SetDebug(0);
+    }
+    if( $currDBVersion < 13){
+        // Add nickname column
+        $kfdb->SetDebug(2);
+        $kfdb->Execute("ALTER TABLE clinics ADD nickname VARCHAR(200) NOT NULL DEFAULT ''");
         $kfdb->SetDebug(0);
     }
 
@@ -647,12 +659,12 @@ class TagNameResolutionService {
      * @return String - Replacement value or original value if resolution faills
      */
     function resolveTag(String $tag, String $value):String{
-
+        //TODO Handle Tag Aliases
         $kfr = $this->kfrel->GetRecordFromDB("tag='".addslashes(strtolower($tag))."' AND name='".addslashes(strtolower($value))."'");
 
         if($kfr){
             $v = $kfr->Value("value");
-            $ra = preg_split("/[\s-]/", $v, null, PREG_OFFSET_CAPTURE);
+            $ra = preg_split("/[\s-]/", $v, -1, PREG_SPLIT_OFFSET_CAPTURE);
             for ($i = 0; $i < count($ra) && $i < strlen($value); $i++) {
                 if(ctype_upper($value[$i])){
                     $ra[$i][0] = ucwords($ra[$i][0]);
@@ -661,7 +673,7 @@ class TagNameResolutionService {
             $sResult = "";
             foreach($ra as $raResult){
                 if($raResult[1] != 0){
-                    $sResult .= $v[$raResult-1];
+                    $sResult .= $v[$raResult[1]-1];
                 }
                 $sResult .= $raResult[0];
             }
@@ -908,11 +920,12 @@ const pros_external_create =
         _updated_by INTEGER,
         _status     INTEGER DEFAULT 0,
 
-        fk_people  INTEGER NOT NULL DEFAULT 0,
-        pro_role   VARCHAR(200) NOT NULL DEFAULT '',
-        fax_number VARCHAR(200) NOT NULL DEFAULT '',
-        rate       INTEGER NOT NULL DEFAULT 0,
-        clinic     INTEGER NOT NULL DEFAULT 1)
+        fk_people    INTEGER NOT NULL DEFAULT 0,
+        pro_role     VARCHAR(200) NOT NULL DEFAULT '',
+        organization VARCHAR(200) NOT NULL DEFAULT '',
+        fax_number   VARCHAR(200) NOT NULL DEFAULT '',
+        rate         INTEGER NOT NULL DEFAULT 0,
+        clinic       INTEGER NOT NULL DEFAULT 1)
     ";
 
 const clientsxpros_create =

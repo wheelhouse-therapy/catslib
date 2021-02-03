@@ -609,10 +609,22 @@ ExistsWarning;
         $sPros       = "<div style='padding:10px;border:1px solid #888'>";
         foreach( $myPros as $ra ) {
             if( $ra['fk_pros_internal'] && ($kfr = $this->oPeopleDB->GetKFR( self::INTERNAL_PRO, $ra['fk_pros_internal'] )) ) {
-                $sTherapists .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
+                if($this->clinics->isCoreClinic()){
+                    $kfr->setValue("clinic_name"," (".$this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('clinic_name').")");
+                }
+                else{
+                    $kfr->setValue("clinic_name","");
+                }
+                $sTherapists .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]][[clinic_name]]<br />" );
             }
             if( $ra['fk_pros_external'] && ($kfr = $this->oPeopleDB->GetKFR( self::EXTERNAL_PRO, $ra['fk_pros_external'] )) ) {
-                $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]]<br />" );
+                if($this->clinics->isCoreClinic()){
+                    $kfr->setValue("clinic_name"," (".$this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('clinic_name').")");
+                }
+                else{
+                    $kfr->setValue("clinic_name","");
+                }
+                $sPros .= $kfr->Expand( "[[P_first_name]] [[P_last_name]] is my [[pro_role]][[clinic_name]]<br />" );
             }
         }
         if($sTherapists == "<div style='padding:10px;border:1px solid #888'>"){
@@ -800,6 +812,7 @@ ExistsWarning;
                 $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
                 $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
              }
+             $this->drawFormRow("Organization", $oForm->Text("organization","",array("attrs"=>"placeholder='Organization'")));
              $this->drawFormRow( "Clinic", $this->getClinicList($oForm) );
              if($bTherapist){
                  $this->drawPartialFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' />");

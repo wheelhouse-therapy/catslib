@@ -277,6 +277,7 @@ class TutorialComplete {
 /**
  * All Screen Tutorials Extend this class.
  * This is automatically intitialized when the TutorialManager is initialized
+ * @version 2
  * @author Eric Wildfong
  * @copyright Eric Wildfong 2020
  */
@@ -288,6 +289,20 @@ abstract class Tutorial{
     public const VERSION_KEY = 'version';
     public const ELEMENT_KEY = 'element';
     public const PLACEMENT_KEY = 'placement';
+    
+    // Step version identifiers
+    /**
+     * Show this version of the step if the user is seeing the tutorial for the first time.
+     * Usually accompanied by a version marked with VERSION_UPDATE, for if the user has seen a pervious version of the tutorial.
+     * @see Tutorial::VERSION_UPDATE
+     */
+    public const VERSION_FIRST = 'a';
+    /**
+     * Show this version of the step if the user is has seen a previous version of the tutorial.
+     * Usually accompanied by a version marked with VERSION_FIRST, for if the user is seeing the tutorial for the first time.
+     * @see Tutorial::VERSION_FIRST
+     */
+    public const VERSION_UPDATE= 'b';
     
     /**
      * All steps must include these keys in order to be considered as a step and retured by getNewSteps
@@ -309,8 +324,20 @@ abstract class Tutorial{
         $steps = array();
         foreach ($this->getSteps() as $step){
             if(array_intersect_key($step, array_flip(self::$REQUIRED_PARAMS))){
+                $subVersion = substr(@$step[self::VERSION_KEY],-1);
+                if($subVersion == self::VERSION_FIRST || $subVersion == self::VERSION_UPDATE){
+                    $step[self::VERSION_KEY] = intval(substr($step[self::VERSION_KEY], 0, -1));
+                }
                 if($last_version < (@$step[self::VERSION_KEY]?:0)){
-                    $steps[] = $step;
+                    if($subVersion == self::VERSION_FIRST && $last_version == -1){
+                        $steps[] = $step;
+                    }
+                    else if($subVersion == self::VERSION_UPDATE && $last_version != -1){
+                        $steps[] = $step;
+                    }
+                    else if($subVersion != self::VERSION_FIRST && $subVersion != self::VERSION_UPDATE){
+                        $steps[] = $step;
+                    }
                 }
             }
         }
@@ -326,6 +353,10 @@ abstract class Tutorial{
         $version = 1;
         foreach ($this->getSteps() as $step){
             if(array_intersect_key($step, array_flip(self::$REQUIRED_PARAMS))){
+                $subVersion = substr(@$step[self::VERSION_KEY],-1);
+                if($subVersion == self::VERSION_FIRST || $subVersion == self::VERSION_UPDATE){
+                    $step[self::VERSION_KEY] = intval(substr($step[self::VERSION_KEY], 0, -1));
+                }
                 if($version < (@$step[self::VERSION_KEY]?:0)){
                     $version = $step[self::VERSION_KEY];
                 }

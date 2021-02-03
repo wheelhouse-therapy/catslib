@@ -234,7 +234,7 @@ class AkauntingHook {
             $type = $match[1];
             preg_match_all('/<option value="(\d*?)">(\d*?) - (.*?)<\/option>/', $match[2],$accountData,PREG_SET_ORDER);
             foreach($accountData as $account){
-                $accounts[] = array( "id" => $account[1], "code" => $account[2], "name" => $account[3]);
+                $accounts[] = array( "id" => $account[1], "code" => $account[2], "name" => $account[3],"type"=>$type);
             }
         }
         return $accounts;

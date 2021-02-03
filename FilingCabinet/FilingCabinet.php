@@ -41,7 +41,7 @@ class FilingCabinet
         }
         if($dirs == "*"){
             // ensure that all directories are created
-            foreach( self::$raDirectories as $k=>$v ) {
+            foreach( array_keys(self::$raDirectories) as $k ) {
                 self::EnsureDirectory($k,$silent);
             }
             self::EnsureDirectory("pending",$silent);
@@ -103,7 +103,7 @@ $bVideos = false;
         /* This is a temporary measure to make sure that a ResourceRecord exists for every file in the Filing Cabinet, except for "pending"
          * Remove this method when ResourceRecords are naturally created for all files.
          */
-        foreach( self::$raDirectories as $dir=>$raD ) {
+        foreach( array_keys(self::$raDirectories) as $dir ) {
 
             $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.$dir);
             foreach( $dirIterator as $fileinfo ) {
@@ -352,7 +352,7 @@ class ResourceRecord {
     private const ORDER_KEY = 'order';
 
     // Cutoff for resources to be considered "new"
-    private const NEWNESS_CUTOFF = 60;
+    private const NEWNESS_CUTOFF = 30;
     // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
     private const NEWNESS_GROUPS = 4;
 
@@ -472,7 +472,7 @@ class ResourceRecord {
             return false; // The Tag already exists in the list dont add it again
         }
         $this->committed = false; //Assume the tag did not exist before
-        $this->tags += [$tag];
+        array_push($this->tags,$tag);
         return true;
     }
 
@@ -719,6 +719,15 @@ class ResourceRecord {
         return $result1 && $result2;
     }
 
+    public function containsTag(String $tag){
+        foreach($this->tags as $v){
+            if(strrpos($v, $tag) !== false){
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public function getID()           : int    { return $this->id; }
     public function getCreated()               { return $this->created; }
     public function getStatus()       : int    { return $this->status; }
@@ -779,7 +788,7 @@ class ResourceRecord {
             $acctDB = new SEEDSessionAccountDBRead($this->oApp->kfdb);
             $result = $acctDB->GetUserInfo($this->created_by,false,true);
             if(!$result[0]){
-                $result[1] = ['realname' => 'Anonymous'];
+                $result[1] = ['realname' => 'Unknown'];
             }
             else if($result[0] == $this->oApp->sess->getUID()){
                 $result[1]['realname'] = 'Self';
@@ -805,7 +814,7 @@ class ResourceRecord {
     public function isNewResource():bool{
         return $this->newness >= 0;
     }
-
+    
     /**
      * Get if this file is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
@@ -816,6 +825,35 @@ class ResourceRecord {
         return pathinfo($this->file,PATHINFO_EXTENSION) == "docx";
     }
 
+    /**
+     * Merge one record into this one.
+     * The merged record will be deleted
+     * NOTE: The Record IS SAVED TO THE DATABASE
+     * @param ResourceRecord $oRR - Record to merge into
+     * @return boolean - true if saving and deleting was sucessful
+     */
+    public function merge(ResourceRecord $oRR){
+        if($oRR->description){
+            $this->description = $oRR->description;
+        }
+        if($oRR->containsTag("Created By: ")){
+            foreach($this->getTags() as $tag){
+                if(strrpos($tag, "Created By: ") !== false){
+                    $this->removeTag($tag);
+                }
+            }
+        }
+        foreach($oRR->getTags() as $tag){
+            $this->addTag($tag);
+        }
+        if($oRR->created > $this->created){
+            $this->created = $oRR->created;
+            $this->created_by = $oRR->created_by;
+        }
+        
+        return $oRR->DeleteRecord() && $this->StoreRecord();
+    }
+    
     /**
      * Join a condition to the end of a condition.
      * Will add AND/OR between the conditons if nessesary
