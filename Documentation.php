@@ -72,17 +72,63 @@ viewDoc;
 class Placeholders{
     
     private const DIR = CATSDIR_IMG."placeholders/";
+    private const fileid = "fileToCheck";
+    
+    private const COMPARE_NONE = 0;
+    private const COMPARE_EMPTY = 1;
+    private const COMPARE_INVALID = 2;
+    private const COMPARE_INVALID_ZIP = 3;
+    private const COMPARE_INVALID_TYPE = 4;
+    private const COMPARE_VALID = 5;
+    private const COMPARE_VALID_ZIP = 6;
+    
+    private $compareState = self::COMPARE_NONE;
     
     public function drawPlaceholderList(){
         $this->handleCommands();
-        $s = "<h3>System Placeholder Images</h3>";
         $dir = new DirectoryIterator(self::DIR);
+        $s = "";
         if(iterator_count($dir) == 2){
-            $s .= "<h2> No files in directory</h2>";
+            $s .= "<h2>No Placeholder images in the system</h2>";
             return $s;
         }
         
-        $s .= "<form onsubmit=\"return $('div.checkbox-group.required :checkbox:checked').length > 0\">"
+        $s .= "<div style='float:right;border:black 1px solid;padding: 5px'><h4>Validate Placeholders</h4>";
+        switch($this->compareState){
+            case self::COMPARE_NONE:
+                $s .= "<form method='post' enctype='multipart/form-data'>
+                    <input type='hidden' name='cmd' value='validate' />
+                    Select Placeholder(s) to validate:
+                    <input type='file' name='".self::fileid."' accept='.png,.jpg,.zip' required /><br />"
+                  ."<input type='submit' value='Validate'>
+                    Max Upload size:".ini_get('upload_max_filesize')."b
+                </form>";
+                break;
+            case self::COMPARE_EMPTY:
+                $s .= "<div class='alert alert-info'>Sorry, we couldn't validate your placeholder(s) because nothing was uploaded.</div>";
+                break;
+            case self::COMPARE_INVALID:
+                $s .= "<div class='alert alert-danger'>Sorry, but that placeholder is invalid and will not be replaced by our system.</div>";
+                break;
+            case self::COMPARE_INVALID_ZIP:
+                $s .= "<div class='alert alert-danger'>Sorry, but one or more of the placeholders are invalid and will not be replaced by our system.</div>";
+                break;
+            case self::COMPARE_INVALID_TYPE:
+                $s .= "<div class='alert alert-warning'>Sorry, that file type is unsupported. Upload the png or jpg image you wish to validate or upload a zip to validate multiple at once.</div>";
+                break;
+            case self::COMPARE_VALID:
+                $s .= "<div class='alert alert-success'>That placeholder is valid and will be replaced by our system.</div>";
+                break;
+            case self::COMPARE_VALID_ZIP:
+                $s .= "<div class='alert alert-success'>Those placeholders are valid and will be replaced by our system.</div>";
+                break;
+            default:
+                $s .= "<div class='alert alert-danger'>An unknown error occured (Error:{$this->compareState}</div>";
+                break;
+        }
+        $s .= "</div>";
+        
+        $s .= "<h4>Download Placeholders</h4><form onsubmit=\"return $('div.checkbox-group.required :checkbox:checked').length > 0\">"
              ."<input type='hidden' name='cmd' value='download' />";
         
         foreach ($dir as $fileinfo) {
@@ -136,6 +182,40 @@ class Placeholders{
                     unlink(self::DIR."placeholders.zip");
                 }
                 exit;
+                break;
+            case "validate":
+                if( !$_FILES[self::fileid]["name"] || !$_FILES[self::fileid]['size'] ) {
+                    // Nothing uploaded
+                    $this->compareState = self::COMPARE_EMPTY;
+                    break;
+                }
+                $documentFileType = strtolower(pathinfo(basename($_FILES[self::fileid]["name"]),PATHINFO_EXTENSION));
+                $placeholders = array_values(array_diff(scandir(CATSDIR_IMG."placeholders"), [".",".."]));
+                $hashes = array();
+                foreach ($placeholders as $placeholder){
+                    $hashes[] = sha1(file_get_contents(CATSDIR_IMG."placeholders/".$placeholder));
+                }
+                if($documentFileType == "zip"){
+                    // Zip uploaded check the contents
+                    $zip = new ZipArchive();
+                    $this->compareState = $zip->open($_FILES[self::fileid]["tmp_name"])?self::COMPARE_VALID_ZIP:self::COMPARE_INVALID_ZIP;
+                    if($this->compareState == self::COMPARE_VALID_ZIP){
+                        $i = 0;
+                        while($this->compareState == self::COMPARE_VALID_ZIP && $i < $zip->numFiles){
+                            $this->compareState = in_array(sha1($zip->getFromIndex($i)),$hashes)?self::COMPARE_VALID_ZIP:self::COMPARE_INVALID_ZIP;
+                            $i++;
+                        }
+                        $zip->close();
+                    }
+                }
+                else if(in_array($documentFileType, ["png","jpg"])){
+                    // Image uploaded check the hash
+                    $this->compareState = in_array(sha1_file($_FILES[self::fileid]['tmp_name']),$hashes)?self::COMPARE_VALID:self::COMPARE_INVALID;
+                }
+                else{
+                    // Not valid placeholder file
+                    $this->compareState = self::COMPARE_INVALID_TYPE;
+                }
                 break;
         }
         

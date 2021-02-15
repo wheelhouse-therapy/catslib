@@ -396,7 +396,7 @@ $oApp->kfdb->Execute("drop table $db.professionals");
             case "system":
                 $raScreens = array(
                 array( 'system-documentation',     "View Documentation"),
-                array( 'system-placeholders' ,     "Download Placeholder Images"),
+                array( 'system-placeholders' ,     "Placeholder Images"),
                 array( 'system-footergenerator',   "Generate Clinic Footer"),
                 array( 'system-usersettings',      "My Profile")
                 );
@@ -621,6 +621,7 @@ class HomeTutorial extends Tutorial {
             [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '#therapist-filing-cabinet', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => "3".Tutorial::VERSION_FIRST],
             [self::TITLE_KEY => 'Paper Designs', self::CONTENT_KEY => 'Paper designs (aka. different lined papers), are now accessible under the "Filing Cabinet" bubble.', self::ELEMENT_KEY => '#therapist-filing-cabinet', self::PLACEMENT_KEY => Placement::BOTTOM, self::VERSION_KEY => "3".Tutorial::VERSION_UPDATE],
             [self::TITLE_KEY => 'User Settings', self::CONTENT_KEY => 'Your Profile is now available under the "Access System Resources" bubble', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => "4".Tutorial::VERSION_UPDATE],
+            [self::TITLE_KEY => 'Placeholder Validation', self::CONTENT_KEY => 'Placeholder images can now be validated against the images recognised by the system under the "Placeholder Images" bubble in this menu.', self::ELEMENT_KEY => '#system', self::PLACEMENT_KEY => Placement::TOP, self::VERSION_KEY => "5".Tutorial::VERSION_UPDATE],
             [self::TITLE_KEY => 'Additional support', self::CONTENT_KEY => 'If you need additional support, contact your clinic leader or the Development team at developer@catherapyservices.ca']
         );
     }
