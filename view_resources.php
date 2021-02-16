@@ -220,7 +220,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     }
     $s .= "</div>";
     
-    $s .= <<<ContextMenu
+    if($oApp->sess->CanWrite("admin")){
+        $s .= <<<ContextMenu
 <nav id="context-menu" class="context-menu">
     <ul class="context-menu__items">
         <li class="context-menu__item">
@@ -238,6 +239,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
     </ul>
 </nav>
 ContextMenu;
+    }
     
     $s .= "<script src='".CATSDIR_JS."rightClickMenu.js'></script>
             <link rel='stylesheet' href='".CATSDIR_CSS."rightClickMenu.css'>
