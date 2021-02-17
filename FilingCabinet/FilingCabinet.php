@@ -144,10 +144,8 @@ $bVideos = false;
     {
         switch($sCabinet) {
             case 'reports':
-            case 'SOP':     return([]);
-
+            case 'SOP':     return([$sCabinet=>$sCabinet]);
             case 'videos':  return(self::$raDrawersVideos);
-
             case 'general':
             default:        return(self::$raDirectories);
         }
@@ -202,7 +200,7 @@ $bVideos = false;
     {
         switch($sCabinet) {
             case 'reports':
-            case 'SOP':     return([]);
+            case 'SOP':     return([$sCabinet=>$sCabinet]);
 
             case 'videos':  return(self::$raDrawersVideos);
 
@@ -303,7 +301,7 @@ $bVideos = false;
 
     static function checkFileSystem(SEEDAppConsole $oApp)
     {
-        $FileSystemVersion = 2;
+        $FileSystemVersion = 3;
         $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
         $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
         if( $currFileSystemVersion != $FileSystemVersion ) {
@@ -325,6 +323,47 @@ $bVideos = false;
                 }
                 rmdir(realpath(CATSDIR_RESOURCES.$folder));
             }
+        }
+        if ($currFileSystemVersion < 3){
+            $oApp->kfdb->SetDebug(2);
+            $cabinets = $oApp->kfdb->QueryRowsRA("SELECT cabinet FROM resources_files GROUP BY cabinet",KEYFRAMEDB_RESULT_NUM);
+            $cabinets = array_column($cabinets, 0);
+            foreach($cabinets as $sCabinet){
+                $ras = FilingCabinet::GetFilingCabinetDirectories( $sCabinet );
+                foreach( $ras as $k => $ra ) {
+                    if($sCabinet == "videos"){
+                        $raRR = ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $k, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD);
+                        if( is_array($raRR) ) {
+                            $i = 0;
+                            foreach ($raRR as $oRR) {
+                                $oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$i} WHERE _key = {$oRR->getID()}");
+                                $i++;
+                            }
+                        } else if( $raRR ) {
+                            $oRR = $raRR;
+                            $oApp->kfdb->Execute("UPDATE resources_files SET iOrder=0 WHERE _key = {$oRR->getID()}");
+                        }
+                    }
+                    else{
+                        $raRR = ResourceRecord::GetResources($oApp, $sCabinet, $k);
+                        $i = 0;
+                        foreach ($raRR as $oRR) {
+                            $oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$i} WHERE _key = {$oRR->getID()}");
+                            $i++;
+                        }
+                        foreach(FilingCabinet::GetSubFolders($k) as $subfolder) {
+                            if(!file_exists($ra['directory'].$subfolder)) continue;
+                            $raRRSub = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short,$subfolder);
+                            $i = 0;
+                            foreach ($raRRSub as $oRR) {
+                                $oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$i} WHERE _key = {$oRR->getID()}");
+                                $i++;
+                            }
+                        }
+                    }
+                }
+            }
+            $oApp->kfdb->SetDebug(0);
         }
     }
 }
@@ -436,7 +475,8 @@ class ResourceRecord {
 
         $this->preview = @$raParams[self::PREVIEW_KEY]?:'';
         $this->description = @$raParams[self::DESCRIPTION_KEY]?:'';
-        $this->newness = (@$raParams[self::NEWNESS_KEY]?:0);
+        $this->newness = intval(@$raParams[self::NEWNESS_KEY]?:0);
+        $this->order = intval(@$raParams[self::ORDER_KEY]?:0);
     }
 
     /**
@@ -608,30 +648,114 @@ class ResourceRecord {
 
     /**
      * Move the resource toward the top left of the filing cabinet
-     * NOTE: This DOES NOT STORE THE CHANGE
+     * Raises a warning if the number of steps is negative
+     * NOTE: This DOES STORE THE CHANGE
      * @param int $steps - Number of steps to move left. Default: 1
      * @return bool - true if the position has changed, false otherwise
      */
     public function moveLeft(int $steps=1):bool{
-        if($steps != 0){
-            $this->committed = false;
+        if($this->id == 0){
+            // New Record
+            trigger_error("Trying to move new record",E_USER_ERROR);
+            return false;
         }
-        $this->order -= $steps;
-        return !$this->committed;
+        if($steps < 0){
+            // Negative Steps
+            trigger_error("Trying to move left a negative number of steps",E_USER_WARNING);
+            return false;
+        }
+        if($steps == 0){
+            // Not Moving
+            return false;
+        }
+        $dirname = trim($this->dir,'/\\');
+        $subdir = trim($this->subdir,'/\\');
+        $dbCabinet = addslashes($this->cabinet);
+        $dbFolder = addslashes($dirname);
+        $dbSubFolder = addslashes($subdir);
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
+        $raRecords = array_column($raRows, "_key");
+        $position = array_search($this->id, $raRecords);
+        $i = 0;
+        while($this->order != 0 && $i < $steps){
+            $this->order -= 1;
+            $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$this->order} WHERE _key = {$this->id}");
+            $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder=".($this->order+1)." WHERE _key = ".$raRecords[$position-1]);
+            $i++;
+            $position--;
+        }
+        return true;
     }
 
     /**
      * Move the resource toward the bottom right of the filing cabinet
-     * NOTE: This DOES NOT STORE THE CHANGE
+     * Raises a warning if number of steps is negative
+     * NOTE: This DOES STORE THE CHANGE
      * @param int $steps - Number of steps to move right. Default: 1
      * @return bool - true if the position has changed, false otherwise
      */
     public function moveRight(int $steps=1):bool{
-        if($steps != 0){
-            $this->committed = false;
+        if($this->id == 0){
+            // New Record
+            trigger_error("Trying to move new record",E_USER_ERROR);
+            return false;
         }
-        $this->order += $steps;
-        return !$this->committed;
+        if($steps < 0){
+            // Negative Steps
+            trigger_error("Trying to move right a negative number of steps",E_USER_WARNING);
+            return false;
+        }
+        if($steps == 0){
+            // Not Moving
+            return false;
+        }
+        $dirname = trim($this->dir,'/\\');
+        $subdir = trim($this->subdir,'/\\');
+        $dbCabinet = addslashes($this->cabinet);
+        $dbFolder = addslashes($dirname);
+        $dbSubFolder = addslashes($subdir);
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
+        $raRecords = array_column($raRows, "_key");
+        $position = array_search($this->id, $raRecords);
+        if($position===false){
+            // Record from another location
+            return false;
+        }
+        $i = 0;
+        while($this->order != count($raRecords)-1 && $i < $steps){
+            $this->order += 1;
+            $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$this->order} WHERE _key = {$this->id}");
+            $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder=".($this->order-1)." WHERE _key = ".$raRecords[$position+1]);
+            $i++;
+            $position++;
+        }
+        return true;
+    }
+    
+    /**
+     * Move the resource to the bottom right of the filing cabinet
+     * The change IS NOT STORED for NEW records but for EXISTING records it IS STORED
+     * @return bool - true if the position has changed, false otherwise
+     */
+    public function moveToEnd(){
+        $dirname = trim($this->dir,'/\\');
+        $subdir = trim($this->subdir,'/\\');
+        $dbCabinet = addslashes($this->cabinet);
+        $dbFolder = addslashes($dirname);
+        $dbSubFolder = addslashes($subdir);
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
+        $raRecords = array_column($raRows, "_key");
+        if($this->id == 0){
+            $this->order = count($raRecords);
+        }
+        else{
+            if(!$this->moveRight(count($raRecords))){
+                $this->order = count($raRecords);
+            }
+        }
     }
     
     /**
@@ -657,6 +781,7 @@ class ResourceRecord {
     /**
      * Commit any record changes to the database, and update the id if needed.
      * NOTE: To prevent unnessiary db commits, the data is only written to the db if it has been changed by a setter.
+     * NOTE 2: Record is moved to the end if its location has changed
      * @return bool - true if data successfully committed, false otherwise
      */
     public function StoreRecord():bool{
@@ -690,6 +815,15 @@ class ResourceRecord {
             $dbtag = addslashes($tag);
             $tags .= self::TAG_SEPERATOR.$dbtag.self::TAG_SEPERATOR;
         }
+        $ra = $this->oApp->kfdb->QueryRA("SELECT cabinet,folder,subfolder FROM resources_files WHERE _key=".$this->id,KEYFRAMEDB_RESULT_ASSOC);
+        if($ra == NULL){
+            $ra = ["cabinet"=>"","folder"=>"","subdir"=>""];
+        }
+        if($ra['cabinet'] != $this->cabinet || $ra['folder'] != $this->dir || $ra['subfolder'] != $this->subdir){
+            // Location has changed, put at end of document
+            $this->moveToEnd();
+        }
+        
         if($this->id){
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
@@ -710,10 +844,12 @@ class ResourceRecord {
      * NOTE2: once deleted the record is only retrieveable by its ID. As search methods ignore records with non-zero statuses
      * NOTE3: The record can be recovered by setting the status to 0.
      * NOTE4: New records will overwrite deleted records if availible instead of creating new records.
+     * NOTE5: The record will be moved to the end
      * @return bool - True if record was successfully deleted. Note returning false does not mean the record was not deleted.
      * Check the status of the record to ensure it was deleted.
      */
     public function DeleteRecord(){
+        $this->moveToEnd();
         $result1 = $this->setStatus(1);
         $result2 = $this->StoreRecord();
         return $result1 && $result2;
