@@ -73,8 +73,26 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                                     <option selected value=''>Select a Client</option>"
                                 .SEEDCore_ArrayExpandRows($clients, "<option value='[[_key]]'>[[P_first_name]] [[P_last_name]]</option>")
                                 ."</select>
-                                <br /><span id='filename'></span>
-                            </div><div class='col-sm-6'>
+                                <br /><span id='filename'></span>";
+                                if(ClientsAccess::getAccess() == ClientsAccess::OFFICE || ClientsAccess::getAccess() == ClientsAccess::FULL){
+                                    $s .= "<br />Download As: <select name='fk_staff'>";
+                                    $s .= "<option value='{$oApp->sess->GetUID()}' selected>Self ({$oApp->sess->GetRealname()})</option>";
+                                    $users = $oClinics->getUsersInClinic($oClinics->GetCurrentClinic());
+                                    foreach($users as $user){
+                                        if($user['eStatus'] != "ACTIVE"){
+                                            continue;
+                                        }
+                                        if($user['_key'] == 1){
+                                            continue;
+                                        }
+                                        $name = $user['realname'];
+                                        if($user['_key'] != $oApp->sess->GetUID()){
+                                            $s .= "<option value='{$user["_key"]}'>{$name}</option>";
+                                        }
+                                    }
+                                    $s .= "</select>";
+                                }
+    $s .=                  "</div><div class='col-sm-6'>
                                 <div class='filingcabinetdownload_downloadmodeselector' style='font-size:small'>
                                     <p style='margin-left:20px' [[title]] id='emailTitle'><input type='radio' name='resource-mode' namex='fcd_downloadmode' id='email' value='email' onclick='fcd_clientselect_enable(true);' [[disabled]] id='email' onchange='buttonUpdate(\"Email\")' />Substitute client details and email</p>
                                     <p style='margin-left:20px'><input type='radio' name='resource-mode' namex='fcd_downloadmode' value='replace' onclick='fcd_clientselect_enable(true);' checked id='replace' onchange='buttonUpdate(\"default\")' />Substitute client details into document</p>
@@ -556,10 +574,6 @@ viewSOP;
         case "list":
             return $listSOPs;
     }
-
-}
-
-function viewVideos(SEEDAppConsole $oApp){
 
 }
 

@@ -1040,7 +1040,7 @@ class ClientsAccess {
     
     /**
      * User is an office staff and can see all clients in the clinic.
-     * Note: users with this access level have Limited access when viewing clients outside of the therapist-clientlist screen
+     * NOTE: This level unlockes the download as selector in the filing cabinet
      */
     public const OFFICE = 1;
     
@@ -1054,7 +1054,7 @@ class ClientsAccess {
     /**
      * User has access to core and therfore can see all clients
      * Note: This level takes effect everywhere.
-     * Note 2: This level inherits features from Leader access
+     * Note 2: This level inherits features from Leader access and Office access
      */
     public const FULL = 3;
     

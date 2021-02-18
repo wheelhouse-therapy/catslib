@@ -386,7 +386,7 @@ body;
         if($uid){
             $ra = $this->oPeopleDB->GetList(ClientList::INTERNAL_PRO, "P.uid = $uid");
             $kfr = $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
-            if(count($ra) == 0){goto dev;}
+            if(count($ra) == 0){goto done;}
             $kfr->LoadValuesFromRA($ra[0]);
             $clinic = $this->clinics->GetCurrentClinic();
             if($clinic != $ra[0]['clinic']){
@@ -398,7 +398,7 @@ body;
                     }
                 }
             }
-            dev:
+            done:
             return $kfr;
         }
         else{

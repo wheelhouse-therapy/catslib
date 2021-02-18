@@ -379,7 +379,7 @@ class template_filler {
         $clinics = new Clinics($this->oApp);
         $this->kfrClinic = (new ClinicsDB($this->oApp->kfdb))->GetClinic($clinics->GetCurrentClinic());
 
-        $this->kStaff = $this->oApp->sess->GetUID();
+        $this->kStaff = SEEDInput_Int("fk_staff")?:$this->oApp->sess->GetUID();
         $manageUsers = new ManageUsers($this->oApp);
         $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
 
