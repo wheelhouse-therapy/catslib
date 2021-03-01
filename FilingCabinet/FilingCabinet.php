@@ -850,6 +850,7 @@ class ResourceRecord {
      */
     public function DeleteRecord(){
         $this->moveToEnd();
+        $this->order = -1;
         $result1 = $this->setStatus(1);
         $result2 = $this->StoreRecord();
         return $result1 && $result2;
