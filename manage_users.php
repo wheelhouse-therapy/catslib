@@ -542,3 +542,35 @@ body;
     }
 
 }
+
+/**
+ * Constants for the various account types.
+ * For use with the password reset system.
+ * @author Eric
+ *
+ */
+abstract class AccountType {
+    
+    /**
+     * The key in the account metadata that holds the account type.
+     */
+    public const KEY = "accountType";
+    
+    /**
+     * Normal User
+     */
+    public const NORMAL = "normal";
+    
+    /**
+     * Student User
+     * Let them reset their password regardless of username
+     */
+    public const STUDENT = "student";
+    
+    /**
+     * Developer User
+     * Doesn't do anything but probably comes with the administrator permission.
+     */
+    public const DEVELOPER = "dev";
+    
+}

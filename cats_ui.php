@@ -514,11 +514,13 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                 $this->oApp->oC->AddErrMsg("Passwords dont match");
             }
         }
+        $userInfo = $accountDB->GetUserInfo($this->oApp->sess->GetUID());
         @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
         $lname = $lname?:"";
         $email = $this->oApp->sess->GetEmail();
-        $pswd = $accountDB->GetUserInfo($this->oApp->sess->GetUID())[1]["password"];
-        return $pswd=="cats" && strtolower($email) == strtolower(substr($fname, 0,1).$lname);
+        $pswd = $userInfo[1]["password"];
+        $accountType = array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL;
+        return $pswd=="cats" && ($accountType == AccountType::STUDENT || strtolower($email) == strtolower(substr($fname, 0,1).$lname));
     }
 
 }
