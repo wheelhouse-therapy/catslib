@@ -86,7 +86,8 @@ class ManageUsers {
         if((new ScreenManager($this->oApp))->getScreen() != 'system-usersettings'){
             $sSidebar .= "<div style='padding:10px;border:1px solid #888; margin-bottom:5px'><strong>User Settings:</strong><br />";
             if(($uid = $kfr->Value('P_uid'))){
-                $status = $this->oAccountDB->GetUserInfo($uid,false)[1]['eStatus'];
+                $userInfo = $this->oAccountDB->GetUserInfo($uid);
+                $status = $userInfo[1]['eStatus'];
                 $sSidebar .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
                             ."Status : {$status}<br />";
                 if($userStatus){
@@ -118,6 +119,7 @@ class ManageUsers {
                 else{
                     $sSidebar .= "You must wait before adjusting the status of this user";
                 }
+                $sSidebar .= "<br /><span title='Contact Developers to change account type'>Account Type: ".(array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL)."</span>";
             }
             else{
                 $sSidebar .= "Staff must be saved before User Settings are available";
