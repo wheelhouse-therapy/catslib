@@ -10,6 +10,13 @@ class Clinics {
     private const LEADER_ACCESS = 1;
     private const FULL_ACCESS   = 2;
     
+    /**
+     * Metadata key defining a users prefered default clinic
+     * This clinic overrides the existing defaults of Core->Leader->Others if the clinic set is valid.
+     * The set clinic is considered valid if the user has access to it.
+     */
+    private const DEFAULT_KEY = "defaultClinic";
+    
     // Image indexes
     public const LOGO_SQUARE    = 10;
     public const LOGO_WIDE      = 11;
@@ -39,6 +46,7 @@ class Clinics {
      *
      * A user with access to the core clinic will never return NULL through this call.
      * Clinic leaders default to the first clinic they lead.
+     * Users with a default clinic set in their metadata will return that clinic instead of the above defaults if they have access to it.
      */
     function GetCurrentClinic($user = NULL){
 
@@ -53,6 +61,14 @@ class Clinics {
                 return $this->oApp->sess->SmartGPC('clinic');
             }
         }
+        
+        $metadata = (new SEEDSessionAccountDBRead($this->oApp->kfdb))->GetUserMetadata($user);
+        $defaultClinic = @$metadata[self::DEFAULT_KEY]?:0;
+        if(in_array($defaultClinic, array_column($clinicsra, "Clinics__key"))){
+            // User can access their set default clinic so override the existing defaults
+            return $defaultClinic;
+        }
+        
         $k = NULL;
         foreach ($clinicsra as $clinic){
             if($clinic["Clinics_clinic_name"] == "Core"){
@@ -68,6 +84,18 @@ class Clinics {
         return $k;
     }
 
+    /**
+     * Get the default clinic defined in the users metadata.
+     * Returns 0 if no clinic is defined
+     */
+    public function GetDefaultClinic($user=NULL){
+        if(!$user){
+            $user = $this->oApp->sess->GetUID();
+        }
+        $metadata = (new SEEDSessionAccountDBRead($this->oApp->kfdb))->GetUserMetadata($user);
+        return @$metadata[self::DEFAULT_KEY]?:0;
+    }
+    
     /**
      * Returns a list of clinics that the user is part of (accessable)
      *
