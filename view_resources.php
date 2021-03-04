@@ -199,7 +199,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                     $newness = $rr->getNewness();
                 }
             }
-            $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+            $sBadge = $new?"<span class='badge-folder badge{$newness}'> </span>":"";
             $s.= "<div class='folder' style='position:relative;'>{$sBadge}<div class='folder-title' onclick='toggleCollapse(this)' data-folder='$k'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>$k</strong></span></div>";
         }
         else if(count($raOut) > 1 && $v){
@@ -213,7 +213,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                     $newness = $rr->getNewness();
                 }
             }
-            $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
+            $sBadge = $new?"<span class='badge-folder badge{$newness}'> </span>":"";
             $s.= "<div class='folder' style='position:relative;'>{$sBadge}<div class='folder-title' onclick='toggleCollapse(this)' data-folder='other'><i class='far fa-folder-open folder-icon'></i><span class='folder-title-span'><strong>Loose Files</strong></span></div>";
         }
         if($v){
