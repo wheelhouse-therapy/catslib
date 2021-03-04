@@ -29,6 +29,8 @@ if( CATS_DEBUG ) {
 if( !defined("CATSDIR") )     { define( "CATSDIR", "./" ); }            // filesystem location of root dir
 if( !defined("CATSDIR_URL") ) { define( "CATSDIR_URL", CATSDIR ); }     // http link location of root dir
 
+define( "SITE_LOG_ROOT", CATSDIR_LOG); // "Deprecated" but also not
+
 // SEEDROOT has to be configured; seedConfig.php should be able to find everything from there. If not, predefine what it can't find.
 if( !file_exists(SEEDROOT."seedConfig.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );
 require_once SEEDROOT."seedConfig.php";
