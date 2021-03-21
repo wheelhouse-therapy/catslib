@@ -459,7 +459,7 @@ ExistsWarning;
                     {
                         // Create the template filler object with the proper settings (ie data)
                         $filler = new template_filler($this->oApp,[],$chunk);
-                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".$k+1);
+                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".($k+1));
                     }
                     $zip->close();
                     header("Content-type: application/zip");
@@ -895,7 +895,7 @@ ExistsWarning;
         }
         $sUser .= "</div>";
         
-        $account = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]['realname'];
+        $account = ($raUser = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]) ? $raUser['realname'] : "";
         
         return str_replace("[[account]]", ($account?:"No Account"), $sUser);
         
