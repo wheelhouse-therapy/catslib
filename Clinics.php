@@ -154,7 +154,7 @@ class Clinics {
             if($s){
                 $s .=", ";
             }
-            $name = $ra["Clinics_nickname"]?:$ra['Clinics_clinic_name'];
+            $name = @$ra["Clinics_nickname"]?:$ra['Clinics_clinic_name'];
             if($ra['Clinics__key'] == $this->GetCurrentClinic()){
                 $s .= "<span class='selectedClinic'> {$name}</span>";
             }
