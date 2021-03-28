@@ -103,7 +103,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                             </form>
                         </div>
                         <div class='modal-footer'>
-                            <input type='submit' id='submitVal' value='".(CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('reports')['directory'] == $dir_name?"Next":"Download")."' form='client_form' />
+                            <input type='submit' id='submitVal' value='".(($sCabinet=='reports' || (CATSDIR_RESOURCES.FilingCabinet::GetDirInfo('reports')['directory'] == $dir_name))?"Next":"Download")."' form='client_form' />
                         </div>
                     </div>
                 </div>
@@ -128,7 +128,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
 
     $manageUsers = new ManageUsers($oApp);
     $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
-    if($dir_short == 'reports'){
+    if($sCabinet == 'reports' || $dir_short == 'reports'){
         // Disable Email Option on Reports screen
         $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled when printing reports'","disabled"], $s);
     }
@@ -237,7 +237,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         }
     }
     $s .= "</div>";
-    
+
     if($oApp->sess->CanWrite("admin")){
         $s .= <<<ContextMenu
 <nav id="context-menu" class="context-menu">
@@ -258,7 +258,7 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
 </nav>
 ContextMenu;
     }
-    
+
     $s .= "<script src='".CATSDIR_JS."rightClickMenu.js'></script>
             <link rel='stylesheet' href='".CATSDIR_CSS."rightClickMenu.css'>
             <script>

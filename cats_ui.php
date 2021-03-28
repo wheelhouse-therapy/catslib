@@ -210,7 +210,7 @@ ResetPassword;
                 break;
             case 'therapist-reports':
                 $s .= "<h3>Reports</h3>"
-                     .ResourcesDownload( $this->oApp, "reports/" );
+                     .ResourcesDownload( $this->oApp, "reports/", 'reports' );
                 break;
             case "therapist-assessments":
                 $s .= "<h3>Assessments</h3>"
@@ -342,18 +342,11 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
-            case 'administrator-SEEDBasket':
-                include_once( SEEDAPP."basket/basketManager.php" );
-                $s .= SEEDBasketManagerApp( $this->oApp );
-                break;
             case 'administrator':
                     $raScreens = array(
                         array( 'administrator-confirmdrop',    "Drop Tables"    ),
                         array( 'administrator-clinics',        "Manage Clinics" ),
                     );
-                    if( CATS_DEBUG ) {
-                        $raScreens[] = ['developer-SEEDBasket', "Temporary SEEDBasket Development"];
-                    }
                     $s .= $this->drawCircles( $raScreens, "developer" );
                     break;
             default:
