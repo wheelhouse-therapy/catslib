@@ -268,7 +268,7 @@ $bVideos = false;
         'reg'     => ["Psycho Education","Strategies","Social Skills","Zones","Social Thinking"],
         'visual'  => ["Pencil Control","Cutting","Upper case","Lower case","Reversals","Print Correction","Numbers","Drawing"],
         'other'   => ["Hand skills","Gross Motor","Occulomotor"],
-        'anxiety' => ["Dragon","Monster","Behaviour & Exposure"],
+        'anxiety' => ["Dragon","Thought Monster Curriculum","Behaviour & Exposure"],
         'cog'     => ["literacy","writing","problem-solving","organization"],
         'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"],
@@ -301,7 +301,7 @@ $bVideos = false;
 
     static function checkFileSystem(SEEDAppConsole $oApp)
     {
-        $FileSystemVersion = 3;
+        $FileSystemVersion = 4;
         $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
         $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
         if( $currFileSystemVersion != $FileSystemVersion ) {
@@ -364,6 +364,10 @@ $bVideos = false;
                 }
             }
             $oApp->kfdb->SetDebug(0);
+        }
+        if($currFileSystemVersion < 4){
+            rename(CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Monster", CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Thought Monster Curriculum");
+            echo "Renamed Monster Folder<br />";
         }
     }
 }
