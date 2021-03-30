@@ -368,6 +368,7 @@ $bVideos = false;
         if($currFileSystemVersion < 4){
             rename(CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Monster", CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Thought Monster Curriculum");
             echo "Renamed Monster Folder<br />";
+            $oApp->kfdb->Execute("UPDATE resources_files SET subfolder='Thought Monster Curriculum' WHERE subfolder = 'Monster'");
         }
     }
 }
