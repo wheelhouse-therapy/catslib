@@ -695,7 +695,7 @@ ExistsWarning;
             $sUnavailible = <<<Unavailable
                             <div style='text-align:center'>
                                 <i class='fas fa-lock fa-7x'></i><br />
-                                This section is only availible once this client has been saved.
+                                This section is only available once this client has been saved.
                             </div>
 Unavailable;
             $raOut['tabs']['tab2'] = $sUnavailible;
@@ -858,7 +858,7 @@ Unavailable;
              $sUnavailible = <<<Unavailable
                             <div style='text-align:center'>
                                 <i class='fas fa-lock fa-7x'></i><br />
-                                This section is only availible once this [[role]] has been saved.
+                                This section is only available once this [[role]] has been saved.
                             </div>
 Unavailable;
              $sUnavailible = str_replace("[[role]]", $bTherapist?"staff member":"provider", $sUnavailible);
