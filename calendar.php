@@ -251,7 +251,7 @@ class Appointments
                ."Sincerely, %s, %s.";
         $body = sprintf( $body,
                          "Bill Name",
-                         (new ClientsDB($this->oApp))->getClient($kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
+                         (new PeopleDB($this->oApp))->GetKFR(ClientList::CLIENT,$kfrAppt->Value("fk_clients"))->Expand("[[client_first_name]] [[client_last_name]]"),
                          SessionHoursCalc($kfrAppt)['payment'],
                          "Clinic accounts receivable",
                          "Therapist",
@@ -650,7 +650,7 @@ class Calendar
              ."<div class='appt-special'>$sSpecial</div>";
         $sInvoice = "";
         if( $kfrAppt && $kfrAppt->Value('fk_clients') ) {
-            $kfrClient = (new ClientsDB($this->oApp->kfdb))->GetClient($kfrAppt->Value('fk_clients'));
+            $kfrClient = (new PeopleDB($this->oApp))->GetKFR(ClientList::CLIENT,$kfrAppt->Value('fk_clients'));
 
             $clientname = $kfrClient->Expand('[[client_first_name]] [[client_last_name]]'); // fixed, not allowed to change in this form
 
@@ -720,7 +720,7 @@ class Calendar
             ."<form method='post' action='' class='appt-newform'>"
             ."<input type='hidden' id='appt-gid' name='appt-gid' value='".$this->convertGoogleToDB($sCalendarId,$event->id)."'>"
             ."<select id='appt-clientid' name='appt-clientid'>"
-                .SEEDCore_ArrayExpandRows( (new ClientsDB( $this->oApp->kfdb ))->KFRel()->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
+                .SEEDCore_ArrayExpandRows( (new PeopleDB( $this->oApp ))->KFRel(ClientList::CLIENT)->GetRecordSetRA(""), "<option value='[[_key]]'>[[client_first_name]] [[client_last_name]]</option>" )
             ."</select>"
             ."<input type='submit' value='Save' onclick='this.appt().style.height=\"150px\"' />"
             ."</form>";

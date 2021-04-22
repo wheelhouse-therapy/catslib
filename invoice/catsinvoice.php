@@ -58,6 +58,9 @@ class CATSInvoice
             if( !($pdfname = $raParms['filename']) )  goto done;
         }
 
+        $oPeopleDB = new PeopleDB($oApp);
+        $kfrClient = $oPeopleDB->getKFR(ClientList::CLIENT,$client);
+        
         $pdf = new PDF_Invoice( 'P', 'mm', 'letter' );
         $pdf->AddPage();
         $pdf->Image("w/img/CATS.png", 10, 10, 50);
@@ -65,17 +68,14 @@ class CATSInvoice
         $pdf->addSociete( "CATS",
                           "Collaborative Approach Therapy Services\n" .
                           (new ClinicsDB($this->oApp->kfdb))
-                                ->GetClinic((new ClientsDB($this->oApp->kfdb))
-                                ->GetClient($client)->Value('clinic'))
+                                ->GetClinic($kfrClient->Value('clinic'))
                                 ->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->fact_dev( "INVOICE", "" );
         //$pdf->temporaire( "Devis temporaire" );
         $pdf->addDate( date("Y-M-d" ) ); //03/12/2003");
         $pdf->addClient("CL" . $client);
         $pdf->addPageNumber("1");
-        $pdf->addClientAdresse((new ClientsDB($this->oApp->kfdb))
-            ->GetClient($client)
-            ->Expand("[[address]]\n[[city]] [[postal_code]]"));
+        $pdf->addClientAdresse($kfrClient->Expand("[[address]]\n[[city]] [[postal_code]]"));
         $pdf->addRegulations("Payment by cheque");
         $pdf->addDeadline( date( 'Y-M-d', time()/* + 3600*24*30*/) );
         $pdf->addNumTVA( $this->kfrAppt->Key() );
