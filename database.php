@@ -557,7 +557,6 @@ class TagNameResolutionService {
      * @return String - Replacement value or original value if resolution faills
      */
     function resolveTag(String $tag, String $value):String{
-        //TODO Handle Tag Aliases
         $kfr = $this->kfrel->GetRecordFromDB("tag='".addslashes(strtolower($tag))."' AND name='".addslashes(strtolower($value))."'");
 
         if($kfr){
@@ -629,7 +628,7 @@ class TagNameResolutionService {
         //Set up the output templates
         $sOut = "<h1>Manage Tag Name Resolution Service</h1>
                  <h6>This system substitutes other values for defined tag value pairs.
-                 The values which are replaced are called Names and the replacements are Values.</h6>
+                 The database values to be replaced are the Old values and the values to replace them with are the New Values.</h6>
                  <style>
                     td,th {
 	                   text-align: center;
@@ -639,7 +638,7 @@ class TagNameResolutionService {
                     <thead>
                         <tr><th colspan='4'>[[status]]</th></tr>
                         <tr><th colspan='3'><!--Place Holder--></th><th><a href='?cmd=new'><button>Add New</button></a></th></tr>
-                        <tr><th>Tag</th><th>Name</th><th>Value</th><th>Options</th></tr>
+                        <tr><th>Tag</th><th>Old Value</th><th>New Value</th><th>Options</th></tr>
                     </thead>
                     <tbody id='tagTableBody'>
                         [[resolutions]]
@@ -666,7 +665,7 @@ class TagNameResolutionService {
                 $name = SEEDInput_Str("name");
                 $value = SEEDInput_Str("value");
                 if(!$tag || !$name){
-                    $sOut = $this->report($sOut, "danger", "Tag and/or Name cannot be empty");
+                    $sOut = $this->report($sOut, "danger", "Tag and/or Old value cannot be empty");
                     break;
                 }
                 $kfr = $this->kfrel->GetRecordFromDBKey($key);
@@ -718,6 +717,23 @@ class TagNameResolutionService {
             else{
                 $kfr = $this->kfrel->CreateRecord();
             }
+            
+            $sOptions = ($cmd=="new")?"<option selected value=''>-- Select Tag --</option>":"";
+            $bSelected = $cmd=="new";
+            
+            foreach(template_filler::TAGS as $tag){
+                if(strtolower($tag) == strtolower($kfr->Value('tag'))){
+                    $sOptions .= "<option selected value='".strtolower($tag)."'>".strtolower($tag)."</option>";
+                    $bSelected = true;
+                }
+                else{
+                    $sOptions .= "<option value='".strtolower($tag)."'>".strtolower($tag)."</option>";
+                }
+            }
+            if(!$bSelected){
+                $sOptions .= "<option selected value='".strtolower($kfr->Value('tag'))."'>".strtolower($kfr->Value('tag'))."</option>";
+            }
+            
             $form .= "<div class='container'><div class='container-fluid' id='formRoot'>
                       <div class='row' style='justify-content: space-around'><h4>Add a Tag</h4></div>
                       <div class='row'>
@@ -725,9 +741,9 @@ class TagNameResolutionService {
                       <table class='table better-table-striped' style='margin-bottom:0'><form>"
                     ."<input type='hidden' name='key' value=".$kfr->Value("_key")." />"
                     ."<input type='hidden' name='cmd'value='save' />"
-                    ."<tr class='row'><td class='col-md-5'><label for='tag'>Tag:</label></td><td class='col-md-7'><input type='text' id='tag' name='tag' value='".$kfr->Value("tag")."' autofocus required /></td></tr>"
-                    ."<tr class='row'><td class='col-md-5'><label for='name'>Name:</label></td><td class='col-md-7'><input type='text' id='name' name='name' value='".$kfr->Value("name")."' required /></td></tr>"
-                    ."<tr class='row'><td class='col-md-5'><label for='value'>Value:</label></td><td class='col-md-7'><input type='text' id='value' name='value' value='".$kfr->Value("value")."' /></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><label for='tag'>Tag:</label></td><td class='col-md-7'><select name='tag' autofocus required>".$sOptions."</select></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><label for='name'>Old Value:</label></td><td class='col-md-7'><input type='text' id='name' name='name' value='".$kfr->Value("name")."' required /></td></tr>"
+                    ."<tr class='row'><td class='col-md-5'><label for='value'>New Value:</label></td><td class='col-md-7'><input type='text' id='value' name='value' value='".$kfr->Value("value")."' /></td></tr>"
                     ."<tr class='row'><td class='col-md-5'><input type='submit' value='Save' />"
                     ."</form></td></tr></table></div></div></div>";
         }

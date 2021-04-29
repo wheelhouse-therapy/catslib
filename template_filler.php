@@ -315,6 +315,8 @@ class template_filler {
      */
     private $evalDepth = 0;
 
+    private $activeKFR;
+    
     // Constants for dealing with different types of resources
     /**
      * Default resource type
@@ -333,6 +335,66 @@ class template_filler {
      */
     public const RESOURCE_GROUP = 3;
 
+    /**
+     * List of tag aliases.
+     * The alias tag is the key and the value is the real tag.
+     * The alias tag is subbed out then the real tag is resolved and run through the TNRS.
+     */
+    public const ALIASES = [
+        "clinic:ickname" => "clinic:name", // The nickname is only for displaying on screen
+        "staff:fulladdress" => "staff:full_address",
+        "client:fulladdress" => "client:full_address",
+        "pro:fulladdress" => "pro:full_address",
+        "staff:postcode" => "staff:postal_code",
+        "client:postcode" => "client:postal_code",
+        "pro:postcode" => "pro:postal_code",
+        "staff:date_of_birth" => "staff:dob",
+        "client:date_of_birth" => "client:dob",
+        "pro:date_of_birth" => "pro:dob",
+        "staff:phone" => "staff:phone_number",
+        "client:phone" => "client:phone_number",
+        "pro:phone" => "pro:phone_number",
+        "staff:phonenumber" => "staff:phone_number",
+        "client:phonenumber" => "client:phone_number",
+        "pro:phonenumber" => "pro:phone_number",
+        "staff:lastname" => "staff:last_name",
+        "client:lastname" => "client:last_name",
+        "pro:lastname" => "pro:last_name",
+        "staff:firstname" => "staff:first_name",
+        "client:firstname" => "client:first_name",
+        "pro:firstname" => "pro:first_name",
+        "client:parent_name" => "client:parents_name",
+        "client:parentsname" => "client:parents_name",
+        "client:parentname" => "client:parents_name",
+    ];
+    
+    /**
+     * Array of tags supported by TNRS.
+     * This Array is referenced when rendering the TNRS management page.
+     * NOTE: There is no actual restriction in the TNRS itself,
+     *       this "supported" list applies to the management page ONLY
+     */
+    public const TAGS = [
+        "date",
+        "clinic:name", "staff:name", "client:name",
+        "pro:name", "staff:first_name", "client:first_name", "pro:first_name",
+        "staff:last_name", "client:last_name", "pro:last_name",
+        "client:code",
+        "clinic:full_address", "staff:full_address", "client:full_address", "pro:full_address",
+        "clinic:address", "staff:address", "client:address", "pro:address",
+        "clinic:city", "staff:city", "client:city", "pro:city",
+        "clinic:postal_code", "staff:postal_code", "client:postal_code", "pro:postal_code",
+        "staff:province", "client:province", "pro:province",
+        "client:dob",
+        "clinic:phone_number", "staff:phone_number", "client:phone_number", "pro:phone_number",
+        "clinic:email", "staff:email", "client:email", "pro:email",
+        "clinic:fax_number", "staff:fax_number", "pro:fax_number",
+        "clinic:rate", "staff:rate", "pro:rate",
+        "clinic:asscociated_business",
+        "client:parents_name",
+        "client:age",
+    ];
+    
     public function __construct( SEEDAppSessionAccount $oApp, array $assessments = array(), array $data = array() )
     {
         $this->oApp = $oApp;
@@ -345,6 +407,8 @@ class template_filler {
         if(self::$constants == NULL){
             $refl = new ReflectionClass(template_filler::class);
             self::$constants = $refl->getConstants();
+            unset(self::$constants["ALIASES"]);
+            unset(self::$constants["TAGS"]);
         }
 
     }
@@ -392,11 +456,16 @@ class template_filler {
                 $templateProcessor->setValue($tag, $this->encode(""),1);
                 goto next;
             }
-            $v = $this->expandTag($tag);
-            $v = $this->tnrs->resolveTag($tag, ($v?:""));
             if(substr($tag,0,7) == 'section'){
+                $filename = @explode( ':', trim($tag), 2 )[1]?:"";
+                $v = $this->handleSectionTag($filename);
                 $templateProcessor->insertSection($tag, $v);
-            }else{
+            }
+            else{
+                $newTag = @self::ALIASES[trim($tag)]?:$tag;
+                $newTag = $this->resolveActiveKFR($newTag);
+                $v = $this->expandTag($newTag);
+                $v = $this->tnrs->resolveTag($newTag, ($v?:""));
                 $templateProcessor->setValue($tag, $this->encode($v),1);
             }
             next:
@@ -520,7 +589,23 @@ class template_filler {
         cleanup:
         $za->close();
     }
-
+    
+    private function handleSectionTag($filename):String{
+        if(strpos($filename, "/") == 0){
+            if (file_exists(CATSDIR_RESOURCES.substr($filename, 1)) && pathinfo(CATSDIR_RESOURCES.substr($filename, 1),PATHINFO_EXTENSION) == "docx"){
+                // $parms['client'] is necessary because if it is not specified fill_resource() will get it from _REQUEST but it could have been
+                // overridden by the original caller. Given that fill_resource is recursive there should be a cleaner way to pass original arguments to it.
+                // i.e. always explicitly pass the client id to fill_resource() unless it is a recursing call like this.
+                $parms = ['client'=>$this->kClient];
+                return $this->fill_resource(CATSDIR_RESOURCES.substr($filename, 1), $parms, self::RESOURCE_SECTION);
+            }
+        }
+        else if(file_exists(FilingCabinet::GetDirInfo('sections')['directory'].$filename)){
+            $parms = ['client'=>$this->kClient];
+            return $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$filename, $parms, self::RESOURCE_SECTION);
+        }
+    }
+    
     private function encode(String $toEncode):String{
         return str_replace(array("&",'"',"'","<",">"), array("&amp;","&quote;","&apos;","&lt;","&gt;"), $toEncode);
     }
@@ -606,6 +691,59 @@ class template_filler {
         return FALSE;
     }
 
+    private function resolveActiveKFR(String $tag):String{
+        $newTag = $tag;
+        $tag = trim($tag);
+        $raTag = explode( ':', $tag, 2 );
+        $table = "";
+        $col = "";
+        if(count($raTag) == 2){
+            $table = $raTag[0];
+            $col = $raTag[1];
+        }
+        if(preg_match("/data\d+/", $table)){
+            $id = @$this->data[(intval(str_replace("data", "", $table))-1)]?:"C0";
+            if(substr($id, -1) === "p"){
+                $id = substr($id, 0,-1);
+                if(ClientList::parseID($id)[0] == ClientList::CLIENT && $col[0] == "name"){
+                    $newTag = "client:parents_name";
+                }
+            }
+            list($type,$key) = ClientList::parseID($id);
+            $kfr = $this->oPeopleDB->GetKFR($type, $key);
+            if(!$kfr){
+                $this->activeKFR = null;
+            }
+            else{
+                $this->activeKFR = $kfr;
+            }
+            switch($type){
+                case ClientList::CLIENT:
+                    $newTag = "client:".$col;
+                    break;
+                case ClientList::INTERNAL_PRO:
+                    $newTag = "staff:".$col;
+                    break;
+                case ClientList::EXTERNAL_PRO:
+                    $newTag = "pro:".$col;
+                    break;
+            }
+        }
+        else{
+            switch(strtolower($table)){
+                case "client":
+                    $this->activeKFR = $this->kfrClient;
+                    break;
+                case "staff":
+                    $this->activeKFR = $this->kfrStaff;
+                default:
+                    // Single Tag or Clinic Tag. We don't switch KFR's for those
+                    $this->activeKFR = null;
+            }
+        }
+        return $newTag;
+    }
+    
     private function expandTag($tag)
     {
         $tag = trim($tag);
@@ -634,72 +772,53 @@ class template_filler {
                 case 'name':
                     $s = $this->kfrClinic->Value("clinic_name");
                     break;
-                case 'nickname':
-                    // The nickname is only for displaying on screen
-                    $s = $this->kfrClinic->Value("clinic_name");
-                    break;
                 default:
                     $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
 
-        if( $table == 'staff' && $this->kfrStaff ) {
+        if( $table == 'staff' && $this->activeKFR ) {
             // process common fields of People
-            if( ($s = $this->peopleCol( $col, $this->kfrStaff )) ) {
+            if( ($s = $this->peopleCol( $col, $this->activeKFR )) ) {
                 goto done;
             }
             switch( $col[0] ) {
                 case 'role':
-                    $s = $this->kfrStaff->Value( 'pro_role' );
+                    $s = $this->activeKFR->Value( 'pro_role' );
                     break;
                 case 'credentials':
-                    if( ($raStaff = $this->oPeople->GetStaff( $this->kStaff )) ) {
+                    if( ($raStaff = $this->oPeople->GetStaff( $this->activeKFR->Value("_key") )) ) {
                         $s = @$raStaff['P_extra_credentials'];
                     }
                     break;
                 case 'regnumber':
-                    $ra = SEEDCore_ParmsURL2RA( $this->kfrStaff->Value('P_extra') );
+                    $ra = SEEDCore_ParmsURL2RA( $this->activeKFR->Value('P_extra') );
                     $s = $ra['regnumber' ];
                     break;
                 default:
-                    $s = $this->kfrStaff->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+                    $s = $this->activeKFR->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
 
-        if( $table == 'client' && $this->kfrClient ) {
+        if( $table == 'client' && $this->activeKFR ) {
             // process common fields of People
-            if( ($s = $this->peopleCol( $col, $this->kfrClient )) ) {
+            if( ($s = $this->peopleCol( $col, $this->activeKFR )) ) {
                 goto done;
             }
             switch( $col[0] ) {
                 case 'age':
-                    $s = date_diff(date_create($this->kfrClient->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
+                    $s = date_diff(date_create($this->activeKFR->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
                     break;
                 case 'code':
-                    if($this->kClient && $this->kfrClient->Value("P_first_name") && $this->kfrClient->Value("P_last_name")){
-                        $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($this->kClient);
+                    if($this->activeKFR->Value("_key") && $this->activeKFR->Value("P_first_name") && $this->activeKFR->Value("P_last_name")){
+                        $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($this->activeKFR->Value("_key"));
                     }
                     else{
                         $s = "";
                     }
                     break;
                 default:
-                    $s = $this->kfrClient->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
-            }
-        }
-        if($table == 'section'){
-            if(strpos($col[1], "/") == 0){
-                if (file_exists(CATSDIR_RESOURCES.substr($col[1], 1)) && pathinfo(CATSDIR_RESOURCES.substr($col[1], 1),PATHINFO_EXTENSION) == "docx"){
-// $parms['client'] is necessary because if it is not specified fill_resource() will get it from _REQUEST but it could have been
-// overridden by the original caller. Given that fill_resource is recursive there should be a cleaner way to pass original arguments to it.
-// i.e. always explicitly pass the client id to fill_resource() unless it is a recursing call like this.
-                    $parms = ['client'=>$this->kClient];
-                    $s = $this->fill_resource(CATSDIR_RESOURCES.substr($col[1], 1), $parms, self::RESOURCE_SECTION);
-                }
-            }
-            else if(file_exists(FilingCabinet::GetDirInfo('sections')['directory'].$col[1])){
-                $parms = ['client'=>$this->kClient];
-                $s = $this->fill_resource(FilingCabinet::GetDirInfo('sections')['directory'].$col[1], $parms, self::RESOURCE_SECTION);
+                    $s = $this->activeKFR->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
         if(in_array($table, getAssessmentTypes())){
@@ -714,69 +833,19 @@ class template_filler {
                 }
             }
         }
-        if(preg_match("/data\d+/", $table)){
-            $id = @$this->data[(intval(str_replace("data", "", $table))-1)]?:"C0";
-            if(substr($id, -1) === "p"){
-                $id = substr($id, 0,-1);
-                if(ClientList::parseID($id)[0] == ClientList::CLIENT && $col[0] == "name"){
-                    $col[0] = "parents_name";
-                }
-            }
-            list($type,$key) = ClientList::parseID($id);
-            $kfr = $this->oPeopleDB->GetKFR($type, $key);
-            if(!$kfr){
+        if($table == 'pro' && $this->activeKFR){
+            // process common fields of People
+            if( ($s = $this->peopleCol( $col, $this->activeKFR )) ) {
                 goto done;
             }
-            if( ($s = $this->peopleCol( $col, $kfr )) ) {
-                goto done;
-            }
-            switch ($type){
-                case ClientList::CLIENT:
-                    switch( $col[0] ) {
-                        case 'age':
-                            $s = date_diff(date_create($kfr->Value("P_dob")), date_create('now'))->format("%y Years %m Months");
-                            break;
-                        case 'code':
-                            if($kfr && $kfr->Value("P_first_name") && $kfr->Value("P_last_name")){
-                                $s = (new ClientCodeGenerator($this->oApp))->GetClientCode($key);
-                            }
-                            else{
-                                $s = "";
-                            }
-                            break;
-                        default:
-                            $s = $kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
+            switch($col[0]){
+                case 'spec_ed':
+                    if(strtolower($this->activeKFR->Value('role')) == 'school'){
+                        $s = "ATTN: Special Education Teachers";
+                        break;
                     }
-                    break;
-                case ClientList::INTERNAL_PRO:
-                    switch( $col[0] ) {
-                        case 'role':
-                            $s = $kfr->Value( 'pro_role' );
-                            break;
-                        case 'credentials':
-                            if( ($raStaff = $this->oPeople->GetStaff( $key )) ) {
-                                $s = @$raStaff['P_extra_credentials'];
-                            }
-                            break;
-                        case 'regnumber':
-                            $ra = SEEDCore_ParmsURL2RA( $kfr->Value('P_extra') );
-                            $s = $ra['regnumber' ];
-                            break;
-                        default:
-                            $s = $kfr->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
-                    }
-                    break;
-                case ClientList::EXTERNAL_PRO:
-                    switch($col[0]){
-                        case 'spec_ed':
-                            if(strtolower($kfr->Value('role')) == 'school'){
-                                $s = "ATTN: Special Education Teachers";
-                                break;
-                            }
-                        default:
-                            $s = $kfr->Value( $col[0] ) ?: "";
-                    }
-                    break;
+                default:
+                    $s = $this->activeKFR->Value( $col[0] ) ?: "";
             }
         }
 
@@ -801,17 +870,11 @@ class template_filler {
     private function peopleCol( $col, KeyframeRecord $kfr )
     {
         $map = array( 'first_name'    => 'P_first_name',
-                      'firstname'     => 'P_first_name',
                       'last_name'     => 'P_last_name',
-                      'lastname'      => 'P_last_name',
                       'address'       => 'P_address',
                       'city'          => 'P_city',
                       'province'      => 'P_province',
                       'postal_code'   => 'P_postal_code',
-                      'postalcode'    => 'P_postal_code',
-                      'postcode'      => 'P_postal_code',
-                      'phone'         => 'P_phone_number',
-                      'phonenumber'   => 'P_phone_number',
                       'phone_number'  => 'P_phone_number',
                       'email'         => 'P_email',
         );
@@ -826,10 +889,8 @@ class template_filler {
             case 'name':
                 return( $kfr->Expand("[[P_first_name]] [[P_last_name]]") );
             case 'full_address':
-            case 'fulladdress':
                 return( $kfr->Expand("[[P_address]]\n[[P_city]] [[P_province]] [[P_postal_code]]") );
             case 'dob':
-            case 'date_of_birth':
                 return date_format(date_create($kfr->Value("P_dob")), "M d, Y");
         }
         //Process pronoun tags.
