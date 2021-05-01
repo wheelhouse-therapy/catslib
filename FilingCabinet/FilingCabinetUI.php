@@ -121,14 +121,14 @@ class FilingCabinetUI
                 $s .= "<div><h3 style='display:inline;padding-right:50px'>Video Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Videos'></i></div>"
                      .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
                      //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                     ."<a title='{$title}' href='?screen=therapist-viewVideos&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                     ."<a title='{$title}' href='?screen=therapist-viewVideos&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: min(500px,90vw); text-align: center; font-size: 18pt; color: #fff'>"
                         ."Back to Video Filing Cabinet"
                      ."</div></p></a>";
             } else {
                 $s .= "<div><h3 style='display:inline;padding-right:50px'>Filing Cabinet</h3><i style='cursor:pointer' class='fa fa-search' onclick='$(\"#search_dialog\").modal(\"show\")' role='button' title='Search Filing Cabinet'></i></div>"
                      .($dir != 'papers'?"<div style='float:right'><a href='?screen=system-documentation&doc_view=item&doc_item=Template Format Reference'>Template Format Reference</a></div>":"")
                      //."<p><a href='?screen=therapist-filing-cabinet'>Back to Filing Cabinet</a></p>"
-                     ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff'>"
+                     ."<a title='{$title}' href='?screen=therapist-filing-cabinet&dir=main'><p><div style='background-color: ".(array_key_exists("color", $raDirInfo)?$raDirInfo['color']:"grey")."; display: inline-block; min-width: min(500px,90vw); text-align: center; font-size: 18pt; color: #fff'>"
                         ."Back to Filing Cabinet"
                      ."</div></p></a>";
             }
@@ -183,7 +183,7 @@ class FilingCabinetUI
                     }
                 }
                 $sBadge = $new?"<span class='badge badge{$newness}'> </span>":"";
-                $sStyle = "{$bgcolor} display: inline-block; min-width: 500px; text-align: center; font-size: 18pt; color: #fff;".($new?"position:relative":"");
+                $sStyle = "{$bgcolor} display: inline-block; min-width: min(500px,90vw); text-align: center; font-size: 18pt; color: #fff;".($new?"position:relative":"");
                 $s .= "<a href='?dir={$k}' title='{$title}'><p><div style='{$sStyle}'>{$sBadge}"
                         ."{$ra['name']}"
                      ."</div></a></p>";
@@ -245,27 +245,58 @@ SearchDialog;
 
     $s = <<<viewVideo
     <style>
-        html, body {
-          /*  not sure why these were here but they cut off the bottom of the video
-              height: 100vh;
-              overflow:hidden; 
-           */
+        html {
+              width: 100vw;
+              box-sizing: border-box;
+              overflow-x: hidden;
         }
         .videoView {
-            height: 88%;
+            width: 90vw;
+            margin: auto;
+            position: relative;
         }
         .catsToolbar {
             margin-bottom:2px
         }
         .catsVideo {
-            height: 50%;
+            width: 100%;
             margin: auto;
             display: block;
         }
     </style>
-    <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a></div>
+    <script>
+        var isWatched = [[watched]];
+        function autoWatched(event){
+            if(!isWatched && event.currentTime/event.duration >= 0.8){
+                watched([[rrid]]);
+            }
+        }
+        
+        function watched(rrid){
+            isWatched = true;
+            document.getElementById('watchedIcon').innerHTML = "<i class='fas fa-circle-notch fa-spin'></i>";
+            $.ajax({
+                type: "POST",
+                data: {cmd:'therapist--watchedVideo',rrid:[[rrid]]},
+                url: 'jx.php',
+                success: function(data, textStatus, jqXHR) {
+                    var jsData = JSON.parse(data);
+                    if(jsData.bOk){
+                        document.getElementById('watchedIcon').innerHTML = "<i class='far fa-check-circle'></i>";
+                    }
+                    else{
+                        document.getElementById('watchedIcon').innerHTML = "<i class='far fa-times-circle'></i>";
+                    }
+                },
+                error: function(jqXHR, status, error) {
+                    console.log(status + ": " + error);
+                }
+            });
+        }
+    </script>
+    <div class='catsToolbar'><a href='?video_view=list'><button>Back to List</button></a>[[watchedIcon]]</div>
     <div class='videoView'>
-        <video class='catsVideo' controls>
+        <video class='catsVideo' controls ontimeupdate='autoWatched(this)'>
             <source src="[[video]]" type="video/mp4">
             Your browser does not support the video tag.
         </video>
@@ -278,6 +309,14 @@ viewVideo;
         } else {
             // use direct link because hostupon and/or php are buffering output so the download takes a very long time
             $s = str_replace("[[video]]", "./resources/videos/{$oRR->getId()} {$oRR->getFile()}", $s);
+        }
+        $oWatchList = new VideoWatchList($this->oApp, $this->oApp->sess->GetUID());
+        $s = str_replace("[[rrid]]", $oRR->getID(), $s);
+        if($oWatchList->hasWatched($oRR->getID())){
+            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["true","<span id='watchedIcon'><i class='far fa-check-circle'></i></span>"], $s);
+        }
+        else{
+            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["false","<span id='watchedIcon'><i class='far fa-dot-circle'></i></span>"], $s);
         }
     }
 

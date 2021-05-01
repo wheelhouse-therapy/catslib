@@ -373,6 +373,48 @@ $bVideos = false;
     }
 }
 
+class VideoWatchList {
+    
+    private const LIST_SEPARATOR = " | ";
+    private const METADATA_KEY = "watchlist";
+    
+    private $oAccountDB;
+    private $user;
+    private $viewedVideos;
+    
+    public function __construct(SEEDAppConsole $oApp, int $user){
+        $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
+        $this->user = $user;
+        $metaData = @$this->oAccountDB->GetUserMetadata($user)[self::METADATA_KEY]?:"";
+        $this->viewedVideos = array_map('intval', explode(self::LIST_SEPARATOR, $metaData));
+    }
+    
+    public function hasWatched(int $rrid):bool {
+        return in_array($rrid, $this->viewedVideos);
+    }
+    
+    public function markAsWatched(int $rrid):bool {
+        if($rrid <= 0){
+            return false;
+        }
+        if($this->hasWatched($rrid)){
+            return true;
+        }
+        array_push($this->viewedVideos,$rrid);
+        
+        $metaData = "";
+        foreach ($this->viewedVideos as $video){
+            if($metaData){
+                $metaData .= self::METADATA_SEPARATOR;
+            }
+            $metaData .= strval($video);
+        }
+        
+        return $this->oAccountDB->SetUserMetadata($this->user, self::METADATA_KEY, $metaData);
+    }
+    
+}
+
 /**
  * Class Representing a resource in the database.
  * This serves as a communication layer between the database and other files.
