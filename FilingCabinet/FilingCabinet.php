@@ -216,22 +216,26 @@ $bVideos = false;
      */
     static function GetAccessor(ResourceRecord $oRR):String{
         $directory = $oRR->getDirectory();
-        if(array_key_exists($directory, self::GetFilingCabinetDirectories())){
+        $cabinet = $oRR->getCabinet();
+        if($cabinet == 'general' && array_key_exists($directory, self::GetFilingCabinetDirectories('general'))){
             // File is part of the filing cabinet, return the appropiate accessor
             if($oRR->templateFillerSupported()){
                 return "?screen=therapist-filing-cabinet&dir=".$directory."&rr=".$oRR->getID();
             }
             return "?screen=therapist-filing-cabinet&dir=".$directory."&cmd=download&rr={$oRR->getID()}&resource-mode=no_replace";
         }
-        elseif($directory == "reports"){
-            // File is a report,
-            return "?screen=therapist-reports";
+        elseif(array_key_exists($directory, self::GetFilingCabinetDirectories('reports'))){
+            // File is a report
+            if($oRR->templateFillerSupported()){
+                return "?screen=therapist-reports&dir=".$directory."&rr=".$oRR->getID();
+            }
+            return "?screen=therapist-reports&dir=".$directory."&cmd=download&rr={$oRR->getID()}&resource-mode=no_replace";
         }
-        elseif($directory == "SOP"){
+        elseif(array_key_exists($directory, self::GetFilingCabinetDirectories('SOP'))){
             return "?screen=therapist-viewSOPs";
         }
-        elseif($directory == "videos"){
-            return "?screen=therapist-viewVideos";
+        elseif($cabinet == "videos" && array_key_exists($directory, self::GetFilingCabinetDirectories('videos'))){
+            return "?screen=therapist-viewVideos&cmd=viewVideo&rr={$oRR->getID()}";
         }
         return ""; //No accessor for this file
     }
