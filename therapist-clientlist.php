@@ -282,7 +282,7 @@ Sidebar;
                         [[options]]
                     </select>
                 </form>
-                <button onClick='sendCMD(e,"keep")'>Use Original</button>
+                <button onClick='sendCMD(event,"keep")'>Use Original</button>
                 <form style='display:inline' onSubmit='submitForm(event)'><input type='hidden' name='cmd' value='new' /><input type='hidden' name='type' value='[[type]]' /><input type='submit' value='Save as new [[type]]' /></form>
             </div>
         </div>
