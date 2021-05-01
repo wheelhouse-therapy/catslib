@@ -376,8 +376,8 @@ class template_filler {
      */
     public const TAGS = [
         "date",
-        "clinic:name", "staff:name", "client:name",
-        "pro:name", "staff:first_name", "client:first_name", "pro:first_name",
+        "clinic:name", "staff:name", "client:name", "pro:name",
+        "staff:first_name", "client:first_name", "pro:first_name",
         "staff:last_name", "client:last_name", "pro:last_name",
         "client:code",
         "clinic:full_address", "staff:full_address", "client:full_address", "pro:full_address",
@@ -446,7 +446,7 @@ class template_filler {
         $this->kStaff = SEEDInput_Int("fk_staff")?:$this->oApp->sess->GetUID();
         $manageUsers = new ManageUsers($this->oApp);
         $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
-
+        
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         $tags = $templateProcessor->getVariables();
         while(count($tags) > 0){
@@ -481,6 +481,7 @@ class template_filler {
                 // By hard coding this tag in a call to expandTag we are telling the system to get the clients code
                 // This saves us the trouble of duplicating the code to get the client code.
                 // Since the system already has that functionality and we just need to tap into it
+                $this->activeKFR = $this->kfrClient;
                 $code = $this->expandTag("client:code");
                 // Took this from PhpOffice\PhpWord\PhpWord::save()
                 header('Content-Description: File Transfer');
@@ -736,9 +737,11 @@ class template_filler {
                     break;
                 case "staff":
                     $this->activeKFR = $this->kfrStaff;
+                    break;
                 default:
                     // Single Tag or Clinic Tag. We don't switch KFR's for those
                     $this->activeKFR = null;
+                    break;
             }
         }
         return $newTag;
@@ -776,7 +779,6 @@ class template_filler {
                     $s = $this->kfrClinic->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
             }
         }
-
         if( $table == 'staff' && $this->activeKFR ) {
             // process common fields of People
             if( ($s = $this->peopleCol( $col, $this->activeKFR )) ) {
