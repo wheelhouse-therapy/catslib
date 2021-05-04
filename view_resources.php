@@ -441,6 +441,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
               [[BADGE]]
               <a style='' [[LINK]] >
                 <div>
+                    [[WATCHED]]
                     <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                 </div>
                 <div>
@@ -458,7 +459,12 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
         // a preview exists use it instead of the fallback
         $preview = $oRR->getPreview();
     }
-
+    $oWatchList = new VideoWatchList($this->oApp, $this->oApp->sess->GetUID());
+    if($oWatchList->hasWatched($oRR->getID())){
+        $sTempOut = str_replace("[[WATCHED]]", "<img>", $sTemplate);
+    }
+    $sTempOut = str_replace("[[WATCHED]]", "", $sTemplate);
+    
     $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
                                        [$oRR->getID(),
                                         $link,
@@ -467,7 +473,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
                                         $preview,
                                         $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
                                        ],
-                                       $sTemplate);
+                                       $sTempOut);
 
     done:
     return( $raOut );
