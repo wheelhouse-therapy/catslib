@@ -440,7 +440,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
           "<div class='file-preview-container contextable' id='[[ID]]' data-tooltip='".addslashes($oRR->getDescription())."'>
               [[BADGE]]
               <a style='' [[LINK]] >
-                <div>
+                <div style='position:relative'>
                     [[WATCHED]]
                     <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                 </div>
@@ -459,11 +459,12 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
         // a preview exists use it instead of the fallback
         $preview = $oRR->getPreview();
     }
-    $oWatchList = new VideoWatchList($this->oApp, $this->oApp->sess->GetUID());
+    $oWatchList = new VideoWatchList($oApp, $oApp->sess->GetUID());
     if($oWatchList->hasWatched($oRR->getID())){
-        $sTempOut = str_replace("[[WATCHED]]", "<img>", $sTemplate);
+        $sTempOut = str_replace("[[WATCHED]]", "<img src='".CATSDIR_IMG."watched.svg' class='watched-banner'>", $sTemplate);
+    } else {
+        $sTempOut = str_replace("[[WATCHED]]", "", $sTemplate);
     }
-    $sTempOut = str_replace("[[WATCHED]]", "", $sTemplate);
     
     $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
                                        [$oRR->getID(),

@@ -263,6 +263,9 @@ SearchDialog;
             margin: auto;
             display: block;
         }
+        #watchedIcon {
+            margin-left: 20px;
+        }
     </style>
     <script>
         var isWatched = [[watched]];
@@ -274,7 +277,7 @@ SearchDialog;
         
         function watched(rrid){
             isWatched = true;
-            document.getElementById('watchedIcon').innerHTML = "<i class='fas fa-circle-notch fa-spin'></i>";
+            document.getElementById('watchedIcon').innerHTML = "<i title='Processing...' class='fas fa-circle-notch fa-spin'></i>";
             $.ajax({
                 type: "POST",
                 data: {cmd:'therapist--watchedVideo',rrid:[[rrid]]},
@@ -282,10 +285,10 @@ SearchDialog;
                 success: function(data, textStatus, jqXHR) {
                     var jsData = JSON.parse(data);
                     if(jsData.bOk){
-                        document.getElementById('watchedIcon').innerHTML = "<i class='far fa-check-circle'></i>";
+                        document.getElementById('watchedIcon').innerHTML = "<i title='Watched' class='far fa-check-circle'></i>";
                     }
                     else{
-                        document.getElementById('watchedIcon').innerHTML = "<i class='far fa-times-circle'></i>";
+                        document.getElementById('watchedIcon').innerHTML = "<i title='Error' class='far fa-times-circle'></i>";
                     }
                 },
                 error: function(jqXHR, status, error) {
@@ -313,10 +316,10 @@ viewVideo;
         $oWatchList = new VideoWatchList($this->oApp, $this->oApp->sess->GetUID());
         $s = str_replace("[[rrid]]", $oRR->getID(), $s);
         if($oWatchList->hasWatched($oRR->getID())){
-            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["true","<span id='watchedIcon'><i class='far fa-check-circle'></i></span>"], $s);
+            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["true","<span id='watchedIcon'><i title='Watched' class='far fa-check-circle'></i></span>"], $s);
         }
         else{
-            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["false","<span id='watchedIcon'><i class='far fa-dot-circle'></i></span>"], $s);
+            $s = str_replace(["[[watched]]","[[watchedIcon]]"], ["false","<span id='watchedIcon'><i title='Unwatched' class='far fa-dot-circle'></i></span>"], $s);
         }
     }
 
