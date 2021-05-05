@@ -440,6 +440,7 @@ class ResourceRecord {
     private const DESCRIPTION_KEY = 'description';
     private const NEWNESS_KEY = 'newness';
     private const ORDER_KEY = 'order';
+    private const DOWNLOADS_KEY = 'downloads';
 
     // Cutoff for resources to be considered "new"
     private const NEWNESS_CUTOFF = 30;
@@ -493,11 +494,12 @@ class ResourceRecord {
     private $preview = "";
     private $description = "";
     private $newness = 0; // Which newness "group" this resource belongs to
+    private $downloads = 0;
     /**
      * Sort order.
      */
     private $order = 0;
-
+    
     /**
      * Wether or not this record has been committed to the database.
      * Only true if data has not changed since the last store or initial fetch
@@ -528,6 +530,7 @@ class ResourceRecord {
         $this->description = @$raParams[self::DESCRIPTION_KEY]?:'';
         $this->newness = intval(@$raParams[self::NEWNESS_KEY]?:0);
         $this->order = intval(@$raParams[self::ORDER_KEY]?:0);
+        $this->downloads = intval(@$raParams[self::DOWNLOADS_KEY]?:0);
     }
 
     /**
@@ -549,6 +552,7 @@ class ResourceRecord {
             'description' => $this->description,
             'newness' => $this->newness,
             'order' => $this->order,
+            'downloads' => $this->downloads
         ];
     }
 
@@ -879,10 +883,10 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order} WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order},downloads={$this->downloads} WHERE _key = {$this->id}");
         }
         else{
-            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order})"))){
+            if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder,downloads) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order},{$this->downloads})"))){
                 $this->committed = true;
             }
         }
@@ -964,10 +968,9 @@ class ResourceRecord {
     /**
      * Get the user who created the record.
      * NOTE: this user is also considered to be the uploader
-     * NOTE2: a value of 0 represents an unknown/anonynous uploader. Requesting the userdata of a  0 value yields a name of "Anonymous"
-     * NOTE3: this method enforces clinic privacy, and changes the current users name to "Self"
-     * NOTE4: if a user does not have permission to see the user who uploaded a file (ie. dont share a clinic) the users name is replaced with "Anonymous"
-     * NOTE5: NOTE3 only applies when $userdata is true.
+     * NOTE2: a value of 0 represents an unknown uploader. Requesting the userdata of a  0 value yields a name of "Unknown"
+     * NOTE3: changes the current users name to "Self"
+     * NOTE4: NOTE3 only applies when $userdata is true.
      * @param bool $userdata - wether to return the data associated with the uid or the uid itself
      * @return array|int - array of user data if $userdata is true, or the uid of the user who uploaded the indexed resource or 0 if the uploader is unknown
      */
@@ -987,10 +990,14 @@ class ResourceRecord {
         return $this->created_by;
     }
 
-    public function getOrder(){
+    public function getOrder():int{
         return $this->order;
     }
 
+    public function getDownloads():int{
+        return $this->downloads;
+    }
+    
     public function getNewness():int{
         return $this->newness;
     }
@@ -1014,13 +1021,28 @@ class ResourceRecord {
     }
 
     /**
+     * Count a download of the file
+     * @return bool - true if the record was saved false otherwise
+     */
+    public function countDownload():bool{
+        $this->downloads++;
+        $this->committed = false;
+        $result = $this->StoreRecord();
+        if(!$result){
+            // Saving failed, revert the downloads number
+            $this->downloads--;
+        }
+        return $result;
+    }
+    
+    /**
      * Merge one record into this one.
      * The merged record will be deleted
      * NOTE: The Record IS SAVED TO THE DATABASE
      * @param ResourceRecord $oRR - Record to merge into
-     * @return boolean - true if saving and deleting was sucessful
+     * @return bool - true if saving and deleting was sucessful
      */
-    public function merge(ResourceRecord $oRR){
+    public function merge(ResourceRecord $oRR):bool{
         if($oRR->description){
             $this->description = $oRR->description;
         }
@@ -1124,6 +1146,7 @@ class ResourceRecord {
         $raParams += [self::DESCRIPTION_KEY=>$ra['description']];
         $raParams += [self::NEWNESS_KEY=>$ra['newness']];
         $raParams += [self::ORDER_KEY=>$ra['iOrder']];
+        $raParams += [self::DOWNLOADS_KEY=>$ra['downloads']];
         $oRR = new ResourceRecord($oApp, $ra['folder'], $ra['filename'],$raParams);
         $oRR->committed = true; // The data in this record was just pulled from the DB
         return $oRR;

@@ -45,6 +45,7 @@ class FilingCabinetDownload
                     $this->sendByEmail( $oRR );
                     exit;
                 case 'no_replace':
+                    $oRR->countDownload();
                     $this->OutputResource( $rrid, true );
                     // OutputResource() only returns if it can't serve the file
                     return;
@@ -52,6 +53,7 @@ class FilingCabinetDownload
                     $bBlank = true;
                     // fall through
                 default:
+                    $oRR->countDownload();
                     // mode blank is implemented by telling template_filler that client=0
                     $kClient = @$bBlank ? 0 : SEEDInput_Int('client');
                     $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
