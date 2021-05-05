@@ -216,22 +216,26 @@ $bVideos = false;
      */
     static function GetAccessor(ResourceRecord $oRR):String{
         $directory = $oRR->getDirectory();
-        if(array_key_exists($directory, self::GetFilingCabinetDirectories())){
+        $cabinet = $oRR->getCabinet();
+        if($cabinet == 'general' && array_key_exists($directory, self::GetFilingCabinetDirectories('general'))){
             // File is part of the filing cabinet, return the appropiate accessor
             if($oRR->templateFillerSupported()){
                 return "?screen=therapist-filing-cabinet&dir=".$directory."&rr=".$oRR->getID();
             }
             return "?screen=therapist-filing-cabinet&dir=".$directory."&cmd=download&rr={$oRR->getID()}&resource-mode=no_replace";
         }
-        elseif($directory == "reports"){
-            // File is a report,
-            return "?screen=therapist-reports";
+        elseif(array_key_exists($directory, self::GetFilingCabinetDirectories('reports'))){
+            // File is a report
+            if($oRR->templateFillerSupported()){
+                return "?screen=therapist-reports&dir=".$directory."&rr=".$oRR->getID();
+            }
+            return "?screen=therapist-reports&dir=".$directory."&cmd=download&rr={$oRR->getID()}&resource-mode=no_replace";
         }
-        elseif($directory == "SOP"){
+        elseif(array_key_exists($directory, self::GetFilingCabinetDirectories('SOP'))){
             return "?screen=therapist-viewSOPs";
         }
-        elseif($directory == "videos"){
-            return "?screen=therapist-viewVideos";
+        elseif($cabinet == "videos" && array_key_exists($directory, self::GetFilingCabinetDirectories('videos'))){
+            return "?screen=therapist-viewVideos&cmd=viewVideo&rr={$oRR->getID()}";
         }
         return ""; //No accessor for this file
     }
@@ -268,7 +272,7 @@ $bVideos = false;
         'reg'     => ["Psycho Education","Strategies","Social Skills","Zones","Social Thinking"],
         'visual'  => ["Pencil Control","Cutting","Upper case","Lower case","Reversals","Print Correction","Numbers","Drawing"],
         'other'   => ["Hand skills","Gross Motor","Occulomotor"],
-        'anxiety' => ["Dragon","Monster","Behaviour & Exposure"],
+        'anxiety' => ["Dragon","Thought Monster Curriculum","Behaviour & Exposure"],
         'cog'     => ["literacy","writing","problem-solving","organization"],
         'adl'     => ["Feeding","Toiletting","Lifeskills"],
         'assmt'   => ["MOTOR","PERCEPTION","VISUAL & SCANNING","SENSORY","FUNCTIONAL","BEHAV & COMMUNICATION & EMOTIONAL","GENERAL DEVELOPMENTAL"],
@@ -301,7 +305,7 @@ $bVideos = false;
 
     static function checkFileSystem(SEEDAppConsole $oApp)
     {
-        $FileSystemVersion = 3;
+        $FileSystemVersion = 4;
         $oBucket = new SEEDMetaTable_StringBucket( $oApp->kfdb );
         $currFileSystemVersion = intval($oBucket->GetStr( 'cats', 'FileSystemVersion') );
         if( $currFileSystemVersion != $FileSystemVersion ) {
@@ -365,7 +369,54 @@ $bVideos = false;
             }
             $oApp->kfdb->SetDebug(0);
         }
+        if($currFileSystemVersion < 4){
+            rename(CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Monster", CATSDIR_RESOURCES.self::$raDirectories['anxiety']['directory']."Thought Monster Curriculum");
+            echo "Renamed Monster Folder<br />";
+            $oApp->kfdb->Execute("UPDATE resources_files SET subfolder='Thought Monster Curriculum' WHERE subfolder = 'Monster'");
+        }
     }
+}
+
+class VideoWatchList {
+    
+    private const LIST_SEPARATOR = " | ";
+    private const METADATA_KEY = "watchlist";
+    
+    private $oAccountDB;
+    private $user;
+    private $viewedVideos;
+    
+    public function __construct(SEEDAppConsole $oApp, int $user){
+        $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
+        $this->user = $user;
+        $metaData = @$this->oAccountDB->GetUserMetadata($user)[self::METADATA_KEY]?:"";
+        $this->viewedVideos = array_map('intval', explode(self::LIST_SEPARATOR, $metaData));
+    }
+    
+    public function hasWatched(int $rrid):bool {
+        return in_array($rrid, $this->viewedVideos);
+    }
+    
+    public function markAsWatched(int $rrid):bool {
+        if($rrid <= 0){
+            return false;
+        }
+        if($this->hasWatched($rrid)){
+            return true;
+        }
+        array_push($this->viewedVideos,$rrid);
+        
+        $metaData = "";
+        foreach ($this->viewedVideos as $video){
+            if($metaData){
+                $metaData .= self::METADATA_SEPARATOR;
+            }
+            $metaData .= strval($video);
+        }
+        
+        return $this->oAccountDB->SetUserMetadata($this->user, self::METADATA_KEY, $metaData);
+    }
+    
 }
 
 /**
@@ -850,6 +901,7 @@ class ResourceRecord {
      */
     public function DeleteRecord(){
         $this->moveToEnd();
+        $this->order = -1;
         $result1 = $this->setStatus(1);
         $result2 = $this->StoreRecord();
         return $result1 && $result2;

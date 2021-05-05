@@ -282,7 +282,7 @@ Sidebar;
                         [[options]]
                     </select>
                 </form>
-                <button onClick='sendCMD(e,"keep")'>Use Original</button>
+                <button onClick='sendCMD(event,"keep")'>Use Original</button>
                 <form style='display:inline' onSubmit='submitForm(event)'><input type='hidden' name='cmd' value='new' /><input type='hidden' name='type' value='[[type]]' /><input type='submit' value='Save as new [[type]]' /></form>
             </div>
         </div>
@@ -459,7 +459,7 @@ ExistsWarning;
                     {
                         // Create the template filler object with the proper settings (ie data)
                         $filler = new template_filler($this->oApp,[],$chunk);
-                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".$k+1);
+                        $zip->addFile($filler->fill_resource(CATSLIB . "ReportsTemplates/Address Labels Template.docx",[],template_filler::RESOURCE_GROUP),"Address Label #".($k+1));
                     }
                     $zip->close();
                     header("Content-type: application/zip");
@@ -639,7 +639,7 @@ ExistsWarning;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years, %m Months");
         $this->sForm =
-             ($oForm->Value("_status")==0?"<form onSubmit='clinicHack(event);submitSidebarForm(event)'>":"")
+             ($oForm->Value("_status")==0?"<form id='clientForm' onSubmit='clinicHack(event);submitSidebarForm(event)'>":"")
              ."<input type='hidden' name='cmd' value='update_client'/>"
              .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
              .$oForm->HiddenKey()
@@ -679,16 +679,29 @@ ExistsWarning;
 
         $raOut['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
         $raOut['tabs']['tab1'] = $this->sForm;
-        $raOut['tabs']['tab2'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
-        $raOut['tabs']['tab3'] = ($oForm->Value("_key")?"<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>":"")
-                 ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
-                 ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
-                 ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
-                 //."<br />".($oForm->Value('P_email')?"<div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div>":"")
+        if($oForm->Value('_key')){
+            $raOut['tabs']['tab2'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
+            $raOut['tabs']['tab3'] = "<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>"
+                     ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
+                     ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
+                     ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
+                     //."<br />".($oForm->Value('P_email')?"<div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div>":"")
+                     ."</div>"
                  ."</div>"
-             ."</div>"
-             ."</div>";
-         $raOut['tabNames'] = ['Client', 'Providers', 'Assessments'];
+                 ."</div>";
+            $raOut['tabNames'] = ['Client', 'Providers', 'Assessments'];
+        }
+        else{
+            $sUnavailible = <<<Unavailable
+                            <div style='text-align:center'>
+                                <i class='fas fa-lock fa-7x'></i><br />
+                                This section is only available once this client has been saved.
+                            </div>
+Unavailable;
+            $raOut['tabs']['tab2'] = $sUnavailible;
+            $raOut['tabs']['tab3'] = $sUnavailible;
+            $raOut['tabNames'] = ['Client', '<i class="fas fa-lock"></i> Providers', '<i class="fas fa-lock"></i> Assessments'];
+        }
          return( $raOut );
     }
 
@@ -839,8 +852,23 @@ ExistsWarning;
          if($oForm->Value("_key")){
              $raOut['tabs']['tab2'] = $sClients;
              $raOut['tabs']['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
+             $raOut['tabNames'] = ['Provider', 'Clients', 'Linked Account'];
          }
-         $raOut['tabNames'] = ['Provider', 'Clients', 'Linked Account'];
+         else{
+             $sUnavailible = <<<Unavailable
+                            <div style='text-align:center'>
+                                <i class='fas fa-lock fa-7x'></i><br />
+                                This section is only available once this [[role]] has been saved.
+                            </div>
+Unavailable;
+             $sUnavailible = str_replace("[[role]]", $bTherapist?"staff member":"provider", $sUnavailible);
+             $raOut['tabs']['tab2'] = $sUnavailible;
+             $raOut['tabs']['tab3'] = $this->getLinkedUser($oForm,($bTherapist?self::INTERNAL_PRO.$this->therapist_key:self::EXTERNAL_PRO.$this->pro_key));
+             if($raOut['tabs']['tab3']){
+                 $raOut['tabs']['tab3'] = $sUnavailible;
+             }
+             $raOut['tabNames'] = ['Provider', '<i class="fas fa-lock"></i> Clients', '<i class="fas fa-lock"></i> Linked Account'];
+         }
          return( $raOut );
     }
 
@@ -895,7 +923,7 @@ ExistsWarning;
         }
         $sUser .= "</div>";
         
-        $account = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]['realname'];
+        $account = ($raUser = $this->oApp->sess->oDB->GetUserInfo($oForm->Value('P_uid'),false,true)[1]) ? $raUser['realname'] : "";
         
         return str_replace("[[account]]", ($account?:"No Account"), $sUser);
         
