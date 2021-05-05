@@ -31,6 +31,11 @@ if( !defined("CATSDIR_URL") ) { define( "CATSDIR_URL", CATSDIR ); }     // http 
 
 // SEEDROOT has to be configured; seedConfig.php should be able to find everything from there. If not, predefine what it can't find.
 if( !file_exists(SEEDROOT."seedConfig.php") ) die( "SEEDROOT is not correct: ".SEEDROOT );
+
+// SEEDCONFIG_DIR has to be set or seedConfig.php will search in its default locations.
+// This is where google api config is found.
+define( "SEEDCONFIG_DIR", CATSDIR_CONFIG );
+
 require_once SEEDROOT."seedConfig.php";
 
 if( !defined("W_CORE_FPDF") )  define( "W_CORE_FPDF", W_CORE."os/fpdf181/" );
