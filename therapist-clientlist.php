@@ -587,6 +587,9 @@ ExistsWarning;
             $raExtra = array();
             if( $oForm->Value('P_extra_credentials') )  $raExtra['credentials'] = $oForm->Value('P_extra_credentials');
             if( $oForm->Value('P_extra_regnumber') )    $raExtra['regnumber'] = $oForm->Value('P_extra_regnumber');
+            if( $oForm->Value('P_extra_referal') )  $raExtra['referal'] = $oForm->Value('P_extra_referal');
+            if( $oForm->Value('P_extra_challenges') )    $raExtra['challenges'] = $oForm->Value('P_extra_challenges');
+            if( $oForm->Value('P_extra_goals') )    $raExtra['goals'] = $oForm->Value('P_extra_goals');
             if( count($raExtra) )  $kfr->SetValue( 'extra', SEEDCore_ParmsRA2URL( $raExtra ) );
             $kfr->PutDBRow();
             $oForm->SetValue("fk_people", $kfr->Key());
@@ -647,6 +650,11 @@ ExistsWarning;
         $sTherapists .= "</div>";
         $sPros       .= "</div>";
 
+        $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
+        $oForm->SetValue( 'P_extra_referal', @$raExtra['referal'] );
+        $oForm->SetValue( 'P_extra_challenges', @$raExtra['challenges'] );
+        $oForm->SetValue( 'P_extra_goals', @$raExtra['goals'] );
+        
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years, %m Months");
         $this->sForm =
