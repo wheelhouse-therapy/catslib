@@ -699,8 +699,8 @@ ExistsWarning;
         $raOut['header'] = "<h3>Client : ".$oForm->Value('P_first_name')." ".$oForm->Value('P_last_name')."</h3>";
         $raOut['tabs']['tab1'] = $this->sForm;
         if($oForm->Value('_key')){
-            $raOut['tabs']['tab2'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
-            $raOut['tabs']['tab3'] = "<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>"
+            $raOut['tabs']['tab3'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
+            $raOut['tabs']['tab4'] = "<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>"
                      ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
                      ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
                      ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
@@ -708,7 +708,16 @@ ExistsWarning;
                      ."</div>"
                  ."</div>"
                  ."</div>";
-            $raOut['tabNames'] = ['Client', 'Providers', 'Assessments'];
+                 $raOut['tabs']['tab2'] = ($oForm->Value("_status")==0?"<form id='clientForm' onSubmit='clinicHack(event);submitSidebarForm(event)'>":"")
+                                         ."<input type='hidden' name='cmd' value='update_client'/>"
+                                         .($oForm->Value('_key')?"<input type='hidden' name='client_key' id='clientId' value='{$oForm->Value('_key')}'/>":"")
+                                         .$oForm->HiddenKey()
+                                         ."<input type='hidden' name='screen' value='therapist-clientlist'/>"
+                                         ."Reason for Referal:".$oForm->TextArea("P_extra_referal")
+                                         ."Challenges:".$oForm->TextArea("P_extra_challenges")
+                                         ."Goals:".$oForm->TextArea("P_extra_goals")
+                                         ."<input id='save-button' type='submit' value='Save' /></form>";
+                 $raOut['tabNames'] = ['Client','Additional Info', 'Providers', 'Assessments'];
         }
         else{
             $sUnavailible = <<<Unavailable
@@ -719,7 +728,8 @@ ExistsWarning;
 Unavailable;
             $raOut['tabs']['tab2'] = $sUnavailible;
             $raOut['tabs']['tab3'] = $sUnavailible;
-            $raOut['tabNames'] = ['Client', '<i class="fas fa-lock"></i> Providers', '<i class="fas fa-lock"></i> Assessments'];
+            $raOut['tabs']['tab4'] = $sUnavailible;
+            $raOut['tabNames'] = ['Client','<i class="fas fa-lock"></i> Additional Info', '<i class="fas fa-lock"></i> Providers', '<i class="fas fa-lock"></i> Assessments'];
         }
          return( $raOut );
     }
