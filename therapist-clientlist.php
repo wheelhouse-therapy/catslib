@@ -22,6 +22,8 @@ class ClientList
     
     public static $staff_roles_name = array("SLP"=>"SLP", "PT"=>"PT", "OT"=>"OT", "Office_Staff"=>"Office Staff", "Other"=>"Other");
 
+    private static $raTemplate = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>'','tab4'=>''], 'tabNames'=>['tab1', 'tab2', 'tab3','tab4']];
+    
     private $client_key;
     private $therapist_key;
     private $pro_key;
@@ -115,21 +117,30 @@ class ClientList
                  .$this->drawList(self::EXTERNAL_PRO,$condClinic)[0]
              ."</div>"
              ."</div></div>";
-
+             
              $s .= <<<Sidebar
 <div id='sidebar'>
     <div id='sidebar-container'>
         <div class='close-sidebar' onclick='closeSidebar()'><i class='fas fa-times'></i></div>
         <div id='sidebar-header'>Name and stuff goes here.</div>
         <div id='tabs'>
-    		<div id='tab1' class='tab active-tab'>Tab1</div>
-    		<div id='tab2' class='tab'>Tab2</div>
-    		<div id='tab3' class='tab'>Tab3</div>
+    		[[TABS]]
 	   </div><br/>
 	   <div id='tab-content'></div>
     </div>
 </div>
 Sidebar;
+             $sTabs = "";
+             for($i=1;$i<=count(self::$raTemplate['tabs']);$i++){
+                 if($i == 1){
+                     $sTabs .= "<div id='tab{$i}' class='tab active-tab'>Tab{$i}</div>";
+                 }
+                 else{
+                     $sTabs .= "<div id='tab{$i}' class='tab'>Tab{$i}</div>";
+                 }
+             }
+             $s = str_replace("[[TABS]]", $sTabs, $s);
+             
              $s .= "<script>$( document ).ready(function() {";
              if( $this->client_key || $sNew == self::CLIENT) {
                  $s .= "getForm('".self::createID(self::CLIENT, $this->client_key)."');";
@@ -150,7 +161,7 @@ Sidebar;
     }
 
     public function DrawAjaxForm(int $pid, String $type = self::CLIENT):array{
-        $ra = ['header'=>'','tab1'=>'','tab2'=>'','tab3'=>''];
+        $ra = self::$raTemplate;
         $kfr = $this->oPeopleDB->GetKFR($type, $pid );
         if(!$kfr){
             $kfr = $this->oPeopleDB->KFRel($type)->CreateRecord();
@@ -598,12 +609,12 @@ ExistsWarning;
         return(!empty($ra));
     }
     
-    function drawClientForm( KeyframeForm $oForm, $myPros, $raPros )
+    private function drawClientForm( KeyframeForm $oForm, $myPros, $raPros )
     /**************************************************
         The user clicked on a client name so show their form
      */
     {
-        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1','tab2','tab3']];
+        $raOut = self::$raTemplate;
 
         $sTherapists = "<div style='padding:10px;border:1px solid #888'>";
         $sPros       = "<div style='padding:10px;border:1px solid #888'>";
@@ -746,12 +757,12 @@ Unavailable;
         $this->sForm = str_replace(array("[[label]]","[[control]]", "[[style]]"), "", $this->sForm);
     }
     
-    function drawProForm( KeyframeForm $oForm, $myClients, $raClients, $bTherapist )
+    private function drawProForm( KeyframeForm $oForm, $myClients, $raClients, $bTherapist )
     /*******************************************************************************
         The user clicked on a therapist / external provider's name so show their form
      */
     {
-        $raOut = ['header'=>'', 'tabs'=>['tab1'=>'','tab2'=>'','tab3'=>''], 'tabNames'=>['tab1', 'tab2', 'tab3']];
+        $raOut = self::$raTemplate;
         $sClients = "<div style='padding:10px;border:1px solid #888'>Clients:<br/>";
         foreach( $myClients as $ra ) {
             if( $ra['fk_clients2'] && ($kfr = $this->oPeopleDB->GetKFR( self::CLIENT, $ra['fk_clients2'] )) ) {
