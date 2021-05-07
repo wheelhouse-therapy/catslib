@@ -380,11 +380,11 @@ class template_filler {
         "staff:first_name", "client:first_name", "pro:first_name",
         "staff:last_name", "client:last_name", "pro:last_name",
         "client:code",
-        "clinic:full_address", "staff:full_address", "client:full_address", "pro:full_address",
-        "clinic:address", "staff:address", "client:address", "pro:address",
-        "clinic:city", "staff:city", "client:city", "pro:city",
-        "clinic:postal_code", "staff:postal_code", "client:postal_code", "pro:postal_code",
-        "staff:province", "client:province", "pro:province",
+        "clinic:full_address", "staff:full_address", "client:full_address", "client:full_address2", "pro:full_address",
+        "clinic:address", "staff:address", "client:address", "client:address2", "pro:address",
+        "clinic:city", "staff:city", "client:city", "client:city2", "pro:city",
+        "clinic:postal_code", "staff:postal_code", "client:postal_code", "client:postal_code2", "pro:postal_code",
+        "staff:province", "client:province", "client:province2", "pro:province",
         "client:dob",
         "clinic:phone_number", "staff:phone_number", "client:phone_number", "pro:phone_number",
         "clinic:email", "staff:email", "client:email", "pro:email",
@@ -789,13 +789,12 @@ class template_filler {
                     $s = $this->activeKFR->Value( 'pro_role' );
                     break;
                 case 'credentials':
-                    if( ($raStaff = $this->oPeople->GetStaff( $this->activeKFR->Value("_key") )) ) {
-                        $s = @$raStaff['P_extra_credentials'];
-                    }
+                    $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                    $s = @$ra['P_extra_credentials'];
                     break;
                 case 'regnumber':
                     $ra = SEEDCore_ParmsURL2RA( $this->activeKFR->Value('P_extra') );
-                    $s = $ra['regnumber' ];
+                    $s = @$ra['regnumber' ];
                     break;
                 default:
                     $s = $this->activeKFR->Value( $col[0] ) ?: "";  // if col[0] is not defined Value() returns null
@@ -817,6 +816,51 @@ class template_filler {
                     }
                     else{
                         $s = "";
+                    }
+                    break;
+                case 'full_address2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = SEEDCore_ArrayExpand($ra,"[[address]]\n[[city]] [[province]] [[postal_code]]");
+                    }
+                    else{
+                        $s = $this->peopleCol("full_address", $this->activeKFR);
+                    }
+                    break;
+                case 'address2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = @$ra['address'];
+                    }
+                    else{
+                        $s = $this->peopleCol("address", $this->activeKFR);
+                    }
+                    break;
+                case 'city2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = @$ra['city'];
+                    }
+                    else{
+                        $s = $this->peopleCol("city", $this->activeKFR);
+                    }
+                    break;
+                case 'province2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = @$ra['province'];
+                    }
+                    else{
+                        $s = $this->peopleCol("province", $this->activeKFR);
+                    }
+                    break;
+                case 'postal_code2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = @$ra['address'];
+                    }
+                    else{
+                        $s = $this->peopleCol("code_postal", $this->activeKFR);
                     }
                     break;
                 default:
