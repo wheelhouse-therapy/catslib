@@ -745,12 +745,14 @@ Unavailable;
 
     private function parentsSeparateField(SEEDCoreForm $oForm){
         if($oForm->Value("parents_separate")){
-            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}' checked>");
+            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}' id='separateBox' onclick='parentsSeparate()' checked />");
+            $this->beginRowDraw();
+            $this->sForm = str_replace("[[style]]", "id='additionalAddress'", $this->sForm);
         }
         else{
-            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}'>");
+            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}' id='separateBox' onclick='parentsSeparate()' />");
             $this->beginRowDraw();
-            $this->sForm = str_replace("[[style]]", "style='display:none'", $this->sForm);
+            $this->sForm = str_replace("[[style]]", "style='display:none' id='additionalAddress'", $this->sForm);
         }
         $this->drawPartialFormRow( "Address 2", $oForm->Text('P_extra_address',"",array("attrs"=>"placeholder='Address'") ) );
         $this->drawPartialFormRow( "", $oForm->Text('P_extra_city',"",array("attrs"=>"placeholder='City'") ) );
@@ -783,7 +785,7 @@ Unavailable;
         if(strpos($this->sForm, "[[label]]") === false){
             $this->beginRowDraw();
         }
-        else{
+        else if(substr($this->sForm, strpos($this->sForm, "[[label]]")-strlen("<td class='col-md-5'>"),strlen("<td class='col-md-5'>")) != "<td class='col-md-5'>"){
             $this->sForm = str_replace(array("[[label]]","[[control]]"), array("<br />[[label]]","<br />[[control]]"), $this->sForm);
         }
         $this->sForm = str_replace(array("[[label]]","[[control]]"), array($label."[[label]]",$control."[[control]]"), $this->sForm);
@@ -791,7 +793,7 @@ Unavailable;
     
     private function beginRowDraw(){
          $this->sForm .= "<tr class='row' [[style]]>"
-            ."<td class='col-md-5'><span>[[label]]</span></td>"
+            ."<td class='col-md-5'>[[label]]</td>"
             ."<td class='col-md-7'>[[control]]</td>"
             ."</tr>";
     }
