@@ -171,7 +171,7 @@ Sidebar;
         $raPros = $this->oPeopleDB->GetList(self::EXTERNAL_PRO, $condClinic, $this->queryParams);
         switch($type){
             case self::CLIENT:
-                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A");
                 $oForm->SetKFR($kfr);
                 $myPros = ($pid?$this->oPeopleDB->GetList('CX', "fk_clients2='{$pid}'"):array());
                 $ra = $this->drawClientForm($oForm, $myPros, $raPros);
@@ -198,7 +198,7 @@ Sidebar;
     public function proccessCommands(String $cmd){
         $s = "";
         $id = "";
-        $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A", array("fields"=>array("parents_separate"=>array("control"=>"checkbox"))));
+        $oFormClient    = new KeyframeForm( $this->oPeopleDB->KFRel(self::CLIENT), "A");
         $oFormTherapist = new KeyframeForm( $this->oPeopleDB->KFRel(self::INTERNAL_PRO), "A" );
         $oFormPro       = new KeyframeForm( $this->oPeopleDB->KFRel(self::EXTERNAL_PRO), "A" );
         
@@ -318,6 +318,7 @@ ExistsWarning;
                     // Perform regular update
                     $oFormClient->Update();
                     $this->updatePeople( $oFormClient );
+                    $this->oApp->kfdb->Execute("UPDATE clients2 SET parents_separate = b'{$oFormClient->Value('parents_separate')}' WHERE _key={$oFormClient->GetKey()}");
                     $this->client_key = $oFormClient->GetKey();
                     if($oFormClient->Value("P_first_name") && $oFormClient->Value("P_last_name")){
                         // Only create client code once first and last name are set
@@ -678,11 +679,11 @@ ExistsWarning;
              $this->drawPartialFormRow( "", "<span id='name-exists'>A client with this name already exists.</span>" );
              $this->drawFormRow( "Pronouns", $this->getPronounList($oForm));
              $this->drawFormRow( "Parents Name", $oForm->Text('parents_name',"",array("attrs"=>"placeholder='Parents Name'") ) );
-             $this->drawFormRow( "Parents Separate", $oForm->Checkbox('parents_separate') );
              $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
              $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
              $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
              $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+             $this->parentsSeparateField($oForm);
              $this->drawFormRow( "School" , str_replace("[name]", $oForm->Name("school"), $this->schoolField($oForm->Value("school"),$oForm)));
              $this->drawPartialFormRow( "Date Of Birth", $oForm->Date('P_dob',"",array("attrs"=>"style='border:1px solid gray' pattern='\d{4}-((0\d)|(1[0-2]))-(([0-2]\d)|(3[01]))' title='yyyy-mm-dd' placeholder='yyyy-mm-dd' oninput='updateAge(event)'"))."<span class='date-description'>(YYYY-MM-DD)</span>" );
              $this->drawPartialFormRow( "Age", "<span id='age'>".$age."</span>");
@@ -742,6 +743,22 @@ Unavailable;
          return( $raOut );
     }
 
+    private function parentsSeparateField(SEEDCoreForm $oForm){
+        if($oForm->Value("parents_separate")){
+            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}' checked>");
+        }
+        else{
+            $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}'>");
+            $this->beginRowDraw();
+            $this->sForm = str_replace("[[style]]", "style='display:none'", $this->sForm);
+        }
+        $this->drawPartialFormRow( "Address 2", $oForm->Text('P_extra_address',"",array("attrs"=>"placeholder='Address'") ) );
+        $this->drawPartialFormRow( "", $oForm->Text('P_extra_city',"",array("attrs"=>"placeholder='City'") ) );
+        $this->drawPartialFormRow( "", $oForm->Text('P_extra_province',"",array("attrs"=>"placeholder='Province'") ) );
+        $this->drawPartialFormRow( "", $oForm->Text('P_extra_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+        $this->endRowDraw();
+    }
+    
     private function schoolField( $value, $oForm )
     {
         $s = "<input type='checkbox' id='schoolBox' onclick='inSchool()' [[checked]] ".($oForm->Value('_status')==0?'':'disabled').">In School</input>
