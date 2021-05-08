@@ -391,7 +391,7 @@ class template_filler {
         "clinic:fax_number", "staff:fax_number", "pro:fax_number",
         "clinic:rate", "staff:rate", "pro:rate",
         "clinic:asscociated_business",
-        "client:parents_name",
+        "client:parents_name", "client:parents_name2",
         "client:age",
     ];
     
@@ -857,10 +857,19 @@ class template_filler {
                 case 'postal_code2':
                     if($this->activeKFR->Value("parents_separate")){
                         $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
-                        $s = @$ra['address'];
+                        $s = @$ra['postal_code'];
                     }
                     else{
-                        $s = $this->peopleCol("code_postal", $this->activeKFR);
+                        $s = $this->peopleCol("postal_code", $this->activeKFR);
+                    }
+                    break;
+                case 'parents_name2':
+                    if($this->activeKFR->Value("parents_separate")){
+                        $ra = SeedCore_ParmsURL2RA($this->activeKFR->Value("P_extra"));
+                        $s = @$ra['parents_name'];
+                    }
+                    else{
+                        $s = $this->peopleCol("parents_name", $this->activeKFR);
                     }
                     break;
                 default:
