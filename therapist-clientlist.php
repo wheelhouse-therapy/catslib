@@ -595,6 +595,7 @@ ExistsWarning;
             if( $oForm->Value('P_extra_city') )  $raExtra['city'] = $oForm->Value('P_extra_city');
             if( $oForm->Value('P_extra_province') )    $raExtra['province'] = $oForm->Value('P_extra_province');
             if( $oForm->Value('P_extra_postal_code') )    $raExtra['postal_code'] = $oForm->Value('P_extra_postal_code');
+            if( $oForm->Value('P_extra_parents_name') )    $raExtra['parents_name'] = $oForm->Value('P_extra_parents_name');
             if( count($raExtra) )  $kfr->SetValue( 'extra', SEEDCore_ParmsRA2URL( $raExtra ) );
             $kfr->PutDBRow();
             $oForm->SetValue("fk_people", $kfr->Key());
@@ -663,6 +664,7 @@ ExistsWarning;
         $oForm->SetValue( 'P_extra_city', @$raExtra['city'] );
         $oForm->SetValue( 'P_extra_province', @$raExtra['province'] );
         $oForm->SetValue( 'P_extra_postal_code', @$raExtra['postal_code'] );
+        $oForm->SetValue( 'P_extra_parents_name', @$raExtra['parents_name'] );
         
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%',($oForm->Value("_status")==0?"":"disabled")=>"disabled" ) ) );
         $age = date_diff(date_create($oForm->Value("P_dob")), date_create('now'))->format("%y Years, %m Months");
@@ -744,7 +746,7 @@ Unavailable;
     }
 
     private function parentsSeparateField(SEEDCoreForm $oForm){
-        if($oForm->Value("parents_separate")){
+        if($oForm->Value("parents_separate") && $oForm->Value("_key")){
             $this->drawFormRow("Parents Separate", "<input type='hidden' name='{$oForm->Name('parents_separate')}' value='0' /><input type='checkbox' value='1' name='{$oForm->Name('parents_separate')}' id='separateBox' onclick='parentsSeparate()' checked />");
             $this->beginRowDraw();
             $this->sForm = str_replace("[[style]]", "id='additionalAddress'", $this->sForm);
@@ -754,7 +756,8 @@ Unavailable;
             $this->beginRowDraw();
             $this->sForm = str_replace("[[style]]", "style='display:none' id='additionalAddress'", $this->sForm);
         }
-        $this->drawPartialFormRow( "Address 2", $oForm->Text('P_extra_address',"",array("attrs"=>"placeholder='Address'") ) );
+        $this->drawPartialFormRow("Parent 2", $oForm->Text('P_extra_parents_name',"",array("attrs"=>"placeholder='2nd Parents Name'") ));
+        $this->drawPartialFormRow( "", $oForm->Text('P_extra_address',"",array("attrs"=>"placeholder='Address'") ) );
         $this->drawPartialFormRow( "", $oForm->Text('P_extra_city',"",array("attrs"=>"placeholder='City'") ) );
         $this->drawPartialFormRow( "", $oForm->Text('P_extra_province',"",array("attrs"=>"placeholder='Province'") ) );
         $this->drawPartialFormRow( "", $oForm->Text('P_extra_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
