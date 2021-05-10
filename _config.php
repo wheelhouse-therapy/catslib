@@ -68,6 +68,7 @@ require_once "FilingCabinet/FilingCabinetDownload.php";
 require_once "FilingCabinet/FilingCabinetUpload.php";
 require_once "FilingCabinet/FilingCabinetReview.php";
 require_once "FilingCabinet/FilingCabinetTools.php";
+require_once "FilingCabinet/FilingCabinetAnalysis.php";
 
 if( !defined("CATSDIR_IMG") ) { define( "CATSDIR_IMG", CATSDIR."w/img/" ); }
 if( !defined("CATSDIR_JS") ) { define( "CATSDIR_JS", CATSDIR."w/js/" ); }
