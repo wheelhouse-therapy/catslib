@@ -22,7 +22,9 @@ class FilingCabinetAnalysis {
             $name = $this->getName($oRR,$cabinet,$dir,$subdir);
             $raOut[$name] = $oRR->getDownloads();
         }
-        arsort($raOut);
+        arsort($raOut); // Sort the array
+        
+        // Ensure the requested page is avalible, if not find the last avalible page and return that
         while($page > 1 && count(array_slice($raOut, 10*($page-1),self::PAGE_SIZE)) == 0){
             $page -= 1;
         }
@@ -95,12 +97,12 @@ class FilingCabinetAnalysis {
         switch($analysis){
             case 'downloads':
                 $ra = $this->getDownloadAnalysis($cabinet, $dir,$subdir,$page);
-                $s = str_replace(["[[download]]","[[view]]"], ["background-color:#4CAF50;",""], $s);
+                $s = str_replace(["[[download]]","[[view]]"], ["background-color:#8f8;",""], $s);
                 $s .= "<h2>File Downloads Analysis</h2>";
                 break;
             case 'views':
                 $ra = $this->getViewAnalysis($dir,$subdir,$page);
-                $s = str_replace(["[[view]]","[[download]]"], ["background-color:#4CAF50;",""], $s);
+                $s = str_replace(["[[view]]","[[download]]"], ["background-color:#8f8;",""], $s);
                 $s .= "<h2>Video Views Analysis</h2>";
                 break;
             default:
