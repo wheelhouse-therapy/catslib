@@ -98,12 +98,12 @@ class FilingCabinetAnalysis {
             case 'downloads':
                 $ra = $this->getDownloadAnalysis($cabinet, $dir,$subdir,$page);
                 $s = str_replace(["[[download]]","[[view]]"], ["background-color:#8f8;",""], $s);
-                $s .= "<h2>File Downloads Analysis</h2>";
+                $s .= "<br /><h2  style='display:inline-block;'>File Downloads Analysis</h2> from May 2021<br />";
                 break;
             case 'views':
                 $ra = $this->getViewAnalysis($dir,$subdir,$page);
                 $s = str_replace(["[[view]]","[[download]]"], ["background-color:#8f8;",""], $s);
-                $s .= "<h2>Video Views Analysis</h2>";
+                $s .= "<br /><h2 style='display:inline-block;'>Video Views Analysis</h2> from May 2021<br />";
                 break;
             default:
                 $s = str_replace(["[[download]]","[[view]]"], ["",""], $s);
