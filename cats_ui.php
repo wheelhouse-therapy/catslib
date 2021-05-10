@@ -285,11 +285,16 @@ ResetPassword;
                 $tnrs = new TagNameResolutionService($oApp->kfdb);
                 $s .= $tnrs->listResolution();
                 break;
+            case 'admin-analysis':
+                $oFA = new FilingCabinetAnalysis($this->oApp);
+                $s .= $oFA->DrawAnalysisUI();
+                break;
             case "admin":
                 $raScreens = array(
                     array( 'admin-users',            "Manage Users" ),
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-resources',        "Review Resources" ),
+                    array( 'admin-analysis',         "View Resource Analysis"),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
                 $s .= $this->drawCircles( $raScreens, "admin" );
