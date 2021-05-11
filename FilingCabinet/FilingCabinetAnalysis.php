@@ -140,7 +140,7 @@ class FilingCabinetAnalysis {
                     }
                 }
             }
-            $s .= "<select name='cabinet'>";
+            $s .= "<select name='cabinet' id='cabinet' onchange='onCabinetChange()'>";
             foreach(['general'=>"General Cabinet",'videos'=>"Videos Cabinet",'reports'=>"Reports Cabinet",'SOP'=>"SOP Cabinet"] as $c=>$v){
                 if($cabinet == $c){
                     $s .= "<option selected value='$c' />$v";
@@ -171,12 +171,12 @@ class FilingCabinetAnalysis {
                     }
                 }
             }
-            $s .= "<select name='cabinet' disabled><option value='videos' />Videos Cabinet</select>";
+            $s .= "<select name='cabinet' id='cabinet' onchange='onCabinetChange()' disabled><option value='videos' />Videos Cabinet</select>";
         }
         
-        $s .= "<select name='directory'>".$raOptionsDirs[$cabinet]."</select>";
-        $s .= "<select name='subdirectory'>".$raOptionsSubDirs[$cabinet."/".$dir]."</select>";
-        $s .= "<input type='submit' value='Filter' /></form>";
+        $s .= "<select name='directory' id='directory' onchange='onDirChange()' style='margin-left:5px;'>".$raOptionsDirs[$cabinet]."</select>";
+        $s .= "<select name='subdirectory' id='subdirectory' style='margin-left:5px;'>".$raOptionsSubDirs[$cabinet."/".$dir]."</select>";
+        $s .= "<input type='submit' value='Filter' style='margin-left:5px;' /></form>";
         
         if($page > 1){
             $s .= "<a href='?page=".($page-1)."'><button><i class='fas fa-arrow-left'></i></button></a>";
@@ -191,8 +191,8 @@ class FilingCabinetAnalysis {
         else{
             $s .= "<button disabled><i class='fas fa-arrow-right'></i></button>";
         }
-        
-        $s .= "<table class='container-fluid table table-striped table-sm sidebar-table'><tr class='row'><th class='col-md-5'>Filename</th>";
+        $s .= "<div class='container-fluid' style='margin-top:5px;'>";
+        $s .= "<table class='table table-striped table-sm'><tr class='row'><th class='col-md-5'>Filename</th>";
         switch($analysis){
             case 'downloads':
                 $s .= "<th class='col-md-5'>Downloads</th>";
@@ -208,7 +208,23 @@ class FilingCabinetAnalysis {
             $s .= "<td class='col-md-5'>".$v."</td>";
             $s .= "</tr>";
         }
-        $s .= "</table>";
+        $s .= "</table></div>";
+        
+        $s .= "<script>const directories = JSON.parse(`".json_encode($raOptionsDirs)."`);const subdirectories = JSON.parse(`".json_encode($raOptionsSubDirs)."`);";
+        $s .= <<<JavaScript
+            function onCabinetChange(){
+                let cabinet = document.getElementById('cabinet');
+                let dir = document.getElementById('directory');
+                dir.innerHTML = directories[cabinet.value];
+            }
+            function onDirChange(){
+                let cabinet = document.getElementById('cabinet');
+                let dir = document.getElementById('directory');
+                let subdir = document.getElementById('subdirectory');
+                subdir.innerHTML = subdirectories[cabinet.value+"/"+dir.value];
+            }
+            </script>
+JavaScript;
         
         return $s;
     }
