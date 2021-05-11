@@ -94,48 +94,6 @@ $bVideos = false;
         }
     }
 
-    function tmpEnsureResourceRecords()
-    {
-        return;     // should be good now; note the code below does not set the new cabinet field
-
-        $sCabinet = 'not defined';
-
-        /* This is a temporary measure to make sure that a ResourceRecord exists for every file in the Filing Cabinet, except for "pending"
-         * Remove this method when ResourceRecords are naturally created for all files.
-         */
-        foreach( array_keys(self::$raDirectories) as $dir ) {
-
-            $dirIterator = new DirectoryIterator(CATSDIR_RESOURCES.$dir);
-            foreach( $dirIterator as $fileinfo ) {
-                if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-
-                if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $sCabinet, realpath($fileinfo->getPathname()))) ) {
-                    if( CATS_SYSADMIN ) {
-                        echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
-                    }
-                    $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
-                    $oRR->StoreRecord();
-                }
-            }
-
-            foreach( FilingCabinet::GetSubFolders($dir) as $subfolder) {
-                if(!file_exists(CATSDIR_RESOURCES.$dir.'/'.$subfolder))continue;
-                $subdir = new DirectoryIterator(CATSDIR_RESOURCES.$dir.'/'.$subfolder);
-                foreach( $subdir as $fileinfo ) {
-                    if( $fileinfo->isDot() || $fileinfo->isDir() ) continue;
-
-                    if( !($oRR = ResourceRecord::GetRecordFromRealPath($this->oApp, $sCabinet, realpath($fileinfo->getPathname()))) ) {
-                        if( CATS_SYSADMIN ) {
-                            echo "<p>Creating ResourceRecord for: ".$fileinfo->getPathname()."</p>";
-                        }
-                        $oRR = ResourceRecord::CreateFromRealPath($this->oApp, realpath($fileinfo->getPathname()),$sCabinet,0);
-                        $oRR->StoreRecord();
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Get the list of directories in the Resource Subsystem
      * @return array - containing directory information
