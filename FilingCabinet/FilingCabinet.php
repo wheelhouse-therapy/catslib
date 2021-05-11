@@ -158,7 +158,7 @@ $bVideos = false;
     {
         switch($sCabinet) {
             case 'reports':
-            case 'SOP':     return([$sCabinet=>$sCabinet]);
+            case 'SOP':     return(array_intersect_key(self::GetDirectories(), array_flip([$sCabinet])));
 
             case 'videos':  return(self::$raDrawersVideos);
 
