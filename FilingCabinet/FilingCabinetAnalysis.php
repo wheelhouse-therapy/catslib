@@ -87,7 +87,7 @@ class FilingCabinetAnalysis {
             $cabinet = 'videos';
         }
         
-        $dir = $this->oApp->sess->SmartGPC('directory',array_merge([self::WILDCARD],FilingCabinet::GetDirectories($cabinet)));
+        $dir = $this->oApp->sess->SmartGPC('directory',array_merge([self::WILDCARD],array_keys(FilingCabinet::GetFilingCabinetDirectories($cabinet))));
         $subdir = $this->oApp->sess->SmartGPC('subdirectory',[self::WILDCARD]);
         if(!in_array($subdir,FilingCabinet::GetSubFolders($dir,$cabinet))){
             $subdir = self::WILDCARD;
@@ -114,6 +114,70 @@ class FilingCabinetAnalysis {
             $page = $ra['currPage'];
             $this->oApp->sess->VarSet('page', $page);
         }
+        
+        $raOptionsDirs = [];
+        $raOptionsSubDirs = [];
+        $s .= "<form>";
+        if($analysis == 'downloads'){
+            foreach(['general','videos','reports','SOP'] as $c){
+                $raOptionsDirs[$c] = "<option value='".self::WILDCARD."'>All Directories</option>";
+                $raOptionsSubDirs[$c."/".self::WILDCARD] = "<option value='".self::WILDCARD."'>All Sub Directories</option>";
+                foreach(FilingCabinet::GetFilingCabinetDirectories($c) as $d=>$dirInfo){
+                    if($d == $dir){
+                        $raOptionsDirs[$c] .= "<option selected value='{$d}'>{$dirInfo['name']}</option>";
+                    }
+                    else{
+                        $raOptionsDirs[$c] .= "<option value='{$d}'>{$dirInfo['name']}</option>";
+                    }
+                    $raOptionsSubDirs[$c."/".$d] = "<option value='".self::WILDCARD."'>All Sub Directories</option>";
+                    foreach(FilingCabinet::GetSubFolders($d,$c) as $sub){
+                        if($d == $dir && $sub == $subdir){
+                            $raOptionsSubDirs[$c."/".$d] .= "<option selected>{$sub}</option>";
+                        }
+                        else{
+                            $raOptionsSubDirs[$c."/".$d] .= "<option>{$sub}</option>";
+                        }
+                    }
+                }
+            }
+            $s .= "<select name='cabinet'>";
+            foreach(['general'=>"General Cabinet",'videos'=>"Videos Cabinet",'reports'=>"Reports Cabinet",'SOP'=>"SOP Cabinet"] as $c=>$v){
+                if($cabinet == $c){
+                    $s .= "<option selected value='$c' />$v";
+                }
+                else{
+                    $s .= "<option value='$c' />$v";
+                }
+            }
+            $s .= "</select>";
+        }
+        else if($analysis == 'views'){
+            $raOptionsDirs['videos'] = "<option value='".self::WILDCARD."'>All Directories</option>";
+            $raOptionsSubDirs["videos/".self::WILDCARD] = "<option value='".self::WILDCARD."'>All Sub Directories</option>";
+            foreach(FilingCabinet::GetFilingCabinetDirectories('videos') as $d=>$dirInfo){
+                if($d == $dir){
+                    $raOptionsDirs['videos'] .= "<option selected value='{$d}'>{$dirInfo['name']}</option>";
+                }
+                else{
+                    $raOptionsDirs['videos'] .= "<option value='{$d}'>{$dirInfo['name']}</option>";
+                }
+                $raOptionsSubDirs["videos/".$d] = "<option value='".self::WILDCARD."'>All Sub Directories</option>";
+                foreach(FilingCabinet::GetSubFolders($d,"videos") as $sub){
+                    if($d == $dir && $sub == $subdir){
+                        $raOptionsSubDirs["videos/".$d] .= "<option selected>{$sub}</option>";
+                    }
+                    else{
+                        $raOptionsSubDirs["videos/".$d] .= "<option>{$sub}</option>";
+                    }
+                }
+            }
+            $s .= "<select name='cabinet' disabled><option value='videos' />Videos Cabinet</select>";
+        }
+        
+        $s .= "<select name='directory'>".$raOptionsDirs[$cabinet]."</select>";
+        $s .= "<select name='subdirectory'>".$raOptionsSubDirs[$cabinet."/".$dir]."</select>";
+        $s .= "<input type='submit' value='Filter' /></form>";
+        
         if($page > 1){
             $s .= "<a href='?page=".($page-1)."'><button><i class='fas fa-arrow-left'></i></button></a>";
         }
