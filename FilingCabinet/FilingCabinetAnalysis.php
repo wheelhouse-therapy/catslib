@@ -117,7 +117,7 @@ class FilingCabinetAnalysis {
         
         $raOptionsDirs = [];
         $raOptionsSubDirs = [];
-        $s .= "<form>";
+        $s .= "<form style='margin: 5px 0'>";
         if($analysis == 'downloads'){
             foreach(['general','videos','reports','SOP'] as $c){
                 $raOptionsDirs[$c] = "<option value='".self::WILDCARD."'>All Directories</option>";
@@ -191,7 +191,7 @@ class FilingCabinetAnalysis {
         else{
             $s .= "<button disabled><i class='fas fa-arrow-right'></i></button>";
         }
-        $s .= "<div class='container-fluid' style='margin-top:5px;'>";
+        $s .= "<div class='container-fluid' style='margin-top:10px;'>";
         $s .= "<table class='table table-striped table-sm'><tr class='row'><th class='col-md-5'>Filename</th>";
         switch($analysis){
             case 'downloads':
