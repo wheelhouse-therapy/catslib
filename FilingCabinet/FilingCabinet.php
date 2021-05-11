@@ -102,7 +102,7 @@ $bVideos = false;
     {
         switch($sCabinet) {
             case 'reports':
-            case 'SOP':     return([$sCabinet=>$sCabinet]);
+            case 'SOP':     return([$sCabinet=>self::$raDirectories[$sCabinet]]);
             case 'videos':  return(self::$raDrawersVideos);
             case 'general':
             default:        return(self::$raDirectories);
