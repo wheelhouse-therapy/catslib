@@ -294,7 +294,7 @@ ResetPassword;
                     array( 'admin-users',            "Manage Users" ),
                     array( 'admin-manageresources',  "Manage Resources "),
                     array( 'admin-resources',        "Review Resources" ),
-                    (CATS_DEBUG?array( 'admin-analysis',         "View Resource Analysis"):array()),
+                    array( 'admin-analysis',         "View Resource Analysis"),
                     array( 'admin-manageTNRS',       "Manage Tag Name Resolution Service")
                 );
                 $s .= $this->drawCircles( $raScreens, "admin" );
