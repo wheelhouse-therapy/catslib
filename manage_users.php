@@ -545,6 +545,42 @@ body;
 
 }
 
+class ManageUsers2 {
+    
+    private $oApp;
+    private $oAccountDB;
+    
+    public function __construct(SEEDAppConsole $oApp){
+        $this->oApp = $oApp;
+        $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
+    }
+    
+    public function drawList(){
+        
+        // Get list of users
+        // List them like in v1
+        // When user selects a user provide tabs for the different records in each clinic.
+        // If name is changed update account name and ALL of the clinic records with the new name.
+        
+    }
+    
+    private function getUserList():array{
+        $raUsers = [];
+        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM seedsession_groups");
+        foreach($raGroups as $group){
+            if(stripos($this->oApp->kfdb->Query1("SELECT groupname FROM seedsession_groups WHERE _key = $group"),"client") !== false){
+                //Skip the client group
+                continue;
+            }
+            // Get a list of all the users.
+            // A user may be in more than 1 group so we need to make the list unique
+            $raUsers = array_unique(array_merge($raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
+        }
+        return $raUsers;
+    }
+    
+}
+
 /**
  * Constants for the various account types.
  * For use with the password reset system.
