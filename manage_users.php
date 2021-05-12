@@ -549,23 +549,20 @@ class ManageUsers2 {
     
     private $oApp;
     private $oAccountDB;
+    private $oPeopleDB;
+    /**
+     * List of ids of staff user accounts.
+     * Use $this->oAccountDB->GetUserInfo to get the info for a user in this list.
+     */
+    private $raUsers;
     
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
-    }
-    
-    public function drawList(){
+        $this->oPeopleDB = new PeopleDB($oApp);
         
         // Get list of users
-        // List them like in v1
-        // When user selects a user provide tabs for the different records in each clinic.
-        // If name is changed update account name and ALL of the clinic records with the new name.
-        
-    }
-    
-    private function getUserList():array{
-        $raUsers = [];
+        $this->raUsers = [];
         $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM seedsession_groups");
         foreach($raGroups as $group){
             if(stripos($this->oApp->kfdb->Query1("SELECT groupname FROM seedsession_groups WHERE _key = $group"),"client") !== false){
@@ -574,9 +571,34 @@ class ManageUsers2 {
             }
             // Get a list of all the users.
             // A user may be in more than 1 group so we need to make the list unique
-            $raUsers = array_unique(array_merge($raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
+            $this->raUsers = array_unique(array_merge($this->raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
         }
-        return $raUsers;
+    }
+    
+    // When user selects a user provide tabs for the different records in each clinic.
+    // If name is changed update account name and ALL of the clinic records with the new name.
+    
+    public function drawUI():String{
+        
+        $s = "";
+        $s .= "<div class='container-fluid'><div class='row'>"
+            ."<div id='users' class='col-md-4'>";
+        $s .= $this->drawList();
+        $s .= "</div>"
+            ."<div id='form' class='col-md-8'></div></div></div>";
+        return $s;
+    }
+    
+    public function drawList():String{
+        
+        $s = "";
+        // List them like in v1
+        foreach($this->raUsers as $userid){
+            $raUser = $this->oAccountDB->GetUserInfo($userid,false);
+            if(!$raUser[0]){continue;}
+            $s .= "<div style='padding:5px;cursor:pointer'>".$raUser[1]['realname']."</div>";
+        }
+        return $s;
     }
     
 }

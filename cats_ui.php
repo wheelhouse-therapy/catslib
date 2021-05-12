@@ -347,10 +347,15 @@ $oApp->kfdb->Execute("drop table $db.professionals");
                       ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
                       ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
                       break;
+            case 'administrator-users':
+                $manageUsers = new ManageUsers2($this->oApp);
+                $s .= $manageUsers->drawUI();
+                break;
             case 'administrator':
                     $raScreens = array(
                         array( 'administrator-confirmdrop',    "Drop Tables"    ),
                         array( 'administrator-clinics',        "Manage Clinics" ),
+                        array( 'administrator-users',          "Manage Users (v2)"),
                     );
                     $s .= $this->drawCircles( $raScreens, "developer" );
                     break;
