@@ -506,14 +506,17 @@ class Clinics {
                 }
             }
             $s = str_replace("[[Assigned]]","", $s);
-            if($accessType == self::FULL_ACCESS){
+            if($accessType == self::FULL_ACCESS || $this->oApp->sess->CanAdmin('admin')){
+                // User can manage users so show them all the users not assigned to clinics
                 $non_attached_users = $this->getUsersInClinic($clinic_key,true);
                 $s = str_replace("[[unassignedTitle]]", "Users not in Clinic", $s);
                 $s = str_replace("[[Unassigned]]", "<select name='toAdd[]' multiple='multiple' required>".SEEDCore_ArrayExpandRows($non_attached_users, "<option value='[[_key]]'>[[realname]]</option>")."</select>", $s);
             }
             else{
+                // User cannot manage users so show them a box to input usernames.
+                // This is done so non admin clinic leaders don't know who else has an account. (Privacy)
                 $s = str_replace("[[unassignedTitle]]", "Add User to Clinic", $s);
-                $s = str_replace("[[Unassigned]]", "<input id='toAdd' type='text' name='toAdd' />", $s);
+                $s = str_replace("[[Unassigned]]", "<input id='toAdd' type='text' name='toAdd' placeholder='Username of user to add' />", $s);
             }
         }
         else{
