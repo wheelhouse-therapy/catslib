@@ -547,19 +547,60 @@ body;
 
 class ManageUsers2 {
     
+    private const DEFAULT_PROFILE = 'defaultProfile';
+    
     private $oApp;
     private $oAccountDB;
     private $oPeopleDB;
+    private $oClinicsDB;
+    private $oClinics;
     /**
      * List of ids of staff user accounts.
      * Use $this->oAccountDB->GetUserInfo to get the info for a user in this list.
      */
     private $raUsers;
     
+    private const TAB_STYLE = <<<Style
+<style>
+:root {
+	--tab-color: lightgrey;
+	--tab-rounding: 8px;
+}
+.tabs {
+	display: inline-block;
+	box-sizing: border-box;
+	margin-top: 10px;
+	margin-bottom: 20px;
+	width: 100%;
+	min-height: 30px;
+}
+.tab {
+	display: inline-block;
+	min-width: 20%;
+	padding: 5px 10px;
+	height: 100%;
+	background-color: var(--tab-color);
+	vertical-align: middle;
+	text-align: center;
+	border: 1px solid var(--tab-color);
+	border-bottom: none;
+	border-radius: var(--tab-rounding) var(--tab-rounding) 0 0;
+	box-sizing: border-box;
+	cursor: default;
+	user-select: none;
+}
+.tab.active-tab {
+	background-color: white;
+}
+</style>
+Style;
+    
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
         $this->oPeopleDB = new PeopleDB($oApp);
+        $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
+        $this->oClinics = new Clinics($oApp);
         
         // Get list of users
         $this->raUsers = [];
@@ -575,17 +616,17 @@ class ManageUsers2 {
         }
     }
     
-    // When user selects a user provide tabs for the different records in each clinic.
     // If name is changed update account name and ALL of the clinic records with the new name.
     
     public function drawUI():String{
         
         $s = "";
+        $s .= self::TAB_STYLE;
         $s .= "<div class='container-fluid'><div class='row'>"
             ."<div id='users' class='col-md-4'>";
         $s .= $this->drawList();
         $s .= "</div>"
-            ."<div id='form' class='col-md-8'></div></div></div>";
+            ."<div id='form' class='col-md-8'>{$this->drawManageForm(1)}</div></div></div>";
         return $s;
     }
     
@@ -599,6 +640,93 @@ class ManageUsers2 {
             $s .= "<div style='padding:5px;cursor:pointer'>".$raUser[1]['realname']."</div>";
         }
         return $s;
+    }
+    
+    public function processCommands(String $cmd){
+        
+        
+        
+    }
+    
+    public function drawManageForm(int $uid):String{
+        $s = "";
+        $s .= $this->drawProfileForm($uid);
+        return $s;
+    }
+    
+    public function drawProfile():String{
+        
+        $s = "";
+        $s .= self::TAB_STYLE;
+        $s .= $this->drawProfileForm($this->oApp->sess->GetUID);
+        return $s;
+    }
+    
+    public function getClinicProfile(int $uid){
+        return $this->getProfile($uid, 0);
+    }
+    
+    public function getUserProfile(int $clinic){
+        return $this->getProfile(0, $clinic);
+    }
+    
+    public function getProfile(int $uid,int $clinic){
+        if($uid <= 0){
+            $uid = $this->oApp->sess->GetUID();
+        }
+        if($clinic <= 0){
+            $clinic = $this->oClinics->GetCurrentClinic();
+        }
+        $bDefaulted = false;
+        $kfr = $this->oPeopleDB->GetKFRCond(ClientList::INTERNAL_PRO, "P.uid=$uid AND clinic=$clinic");
+        if($kfr == null){
+            $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
+            $bDefaulted = true;
+            if($defaultProfile > 0){
+                $kfr = $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $defaultProfile);
+            }
+            if($kfr == null){
+                //Failed to get the default profile for some reason or one wasn't set
+                $kfr = $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
+            }
+        }
+        return ['kfr'=>$kfr,'defaulted'=>$bDefaulted];
+    }
+    
+    private function drawProfileForm(int $uid):String{
+        
+        // When user selected provide tabs for the different records in each clinic.
+        $s = "<div class='tabs'>";
+        $raClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
+        $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
+        $i = 1;
+        foreach($raClinics as $clinic){
+            $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
+            $raProfile = $this->getProfile($uid, $clinic);
+            $profile = $raProfile['kfr']->ValuesRA();
+            $sDefault = (!$raProfile['defaulted'] && $defaultProfile == $profile['_key']?" (default)":"");
+            if($i == 1){
+                if($defaultProfile == 0){
+                    $sDefault = " (default)";
+                    $this->setDefaultProfile($uid, $profile['_key']);
+                }
+                $s .= "<div id='tab{$i}' class='tab active-tab'>$clinicName$sDefault</div>";
+            }
+            else{
+                $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
+            }
+            $i++;
+        }
+        $s .= "</div><br/><div id='tab-content'></div>";
+        return $s;
+    }
+    
+    private function setDefaultProfile(int $uid, int $profile):bool{
+        if(!in_array($profile, $this->oPeopleDB->Get1List(ClientList::INTERNAL_PRO, "_key", "P.uid=".$uid))){
+            return false;
+        }
+        $this->oAccountDB->SetUserMetadata($uid, self::DEFAULT_PROFILE, $profile);
+        return true;
     }
     
 }
