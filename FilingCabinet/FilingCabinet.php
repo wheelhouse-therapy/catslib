@@ -899,13 +899,14 @@ class ResourceRecord {
                 ? (CATSDIR_RESOURCES."videos/{$this->id} {$this->file}")
                 : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : "").$this->file);
     }
+    
+    /**
+     * Gets the file path to the directory the resource is stored in.
+     * Similar to getPath(), but does not include the filename.
+     * @return String - path to the directory containing the resource.
+     */
     public function getPathToDir() : String
     {
-        /**
-         * Gets the file path to the directory the resource is stored in.
-         * Similar to getPath(), but does not include the filename.
-         * @return String - path to the directory containing the resource.
-         */
         return $this->cabinet == 'videos'
             ? (CATSDIR_RESOURCES."videos/")
             : (CATSDIR_RESOURCES.$this->dir.DIRECTORY_SEPARATOR.($this->subdir ? ($this->subdir.DIRECTORY_SEPARATOR) : ""));
@@ -978,6 +979,15 @@ class ResourceRecord {
         return pathinfo($this->file,PATHINFO_EXTENSION) == "docx";
     }
 
+    /**
+     * Get if this file is a video and can be used in the video tag.
+     * NOTE: Only mp4 files are considered valid videos.
+     * @return bool - true if its a video false otherwise
+     */
+    public function isVideo():bool{
+        return pathinfo($this->file,PATHINFO_EXTENSION) == "mp4";
+    }
+    
     /**
      * Count a download of the file
      * @return bool - true if the record was saved false otherwise
