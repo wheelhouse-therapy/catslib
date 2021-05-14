@@ -238,7 +238,7 @@ function disable(rrid,event){
 
     private function cmdDownload()
     {
-
+        ob_implicit_flush();
         $oFCD = new FilingCabinetDownload( $this->oApp );
         $oFCD->OutputResource( SEEDInput_Int('rrID'), false );
         // OutputResource only returns if it can't serve the file
