@@ -616,7 +616,7 @@ Style;
         }
     }
     
-    // If name is changed update account name and ALL of the clinic records with the new name.
+    
     
     public function drawUI():String{
         
@@ -626,7 +626,7 @@ Style;
             ."<div id='users' class='col-md-4'>";
         $s .= $this->drawList();
         $s .= "</div>"
-            ."<div id='form' class='col-md-8'>{$this->drawManageForm(1)}</div></div></div>";
+            ."<div id='form' class='col-md-8'></div></div></div>";
         return $s;
     }
     
@@ -644,6 +644,10 @@ Style;
     
     public function processCommands(String $cmd){
         
+        // If name is changed update account name and ALL of the clinic records with the new name.
+        
+        //Valid Commands: newProfile, updateProfile
+        $cmd = SEEDInput_Str("cmd");
         
         
     }
@@ -699,25 +703,114 @@ Style;
         $s = "<div class='tabs'>";
         $raClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
+        if($defaultProfile == 0){
+            $this->setDefaultProfile($uid, $this->getProfile($uid, $raClinics[0])['kfr']->Value("_key"));
+            echo "Default Profile set to Clinic #{$raClinics[0]}<br />";
+        }
+        $raForms = [];
         $i = 1;
+        $activeTab = 1;
         foreach($raClinics as $clinic){
             $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
             $raProfile = $this->getProfile($uid, $clinic);
             $profile = $raProfile['kfr']->ValuesRA();
             $sDefault = (!$raProfile['defaulted'] && $defaultProfile == $profile['_key']?" (default)":"");
-            if($i == 1){
-                if($defaultProfile == 0){
-                    $sDefault = " (default)";
-                    $this->setDefaultProfile($uid, $profile['_key']);
-                }
+            if($sDefault){
                 $s .= "<div id='tab{$i}' class='tab active-tab'>$clinicName$sDefault</div>";
+                $activeTab = $i;
             }
             else{
                 $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
             }
+            $raForms["tab$i"] = $this->drawInternalProfileForm($uid, $clinic);
             $i++;
         }
-        $s .= "</div><br/><div id='tab-content'></div>";
+        $s .= "</div><br/><div id='tab-content'>".$raForms["tab$activeTab"]."</div>";
+        return $s;
+    }
+    
+    private function drawInternalProfileForm(int $uid, int $clinic, String $cmd = "updateProfile"):String{
+        
+        $s = "";
+        $raProfile = $this->getProfile($uid, $clinic);
+        $kfr = $raProfile['kfr'];
+        
+        if($raProfile['defaulted']){
+            return "<div style='text-align:center'>This Clinic uses the information from the default profile.<wbr>You can create a clinic specific one here."
+                  ."<a href='?cmd=newProfile&uid=$uid&clinicId=$clinic'><button>Create Clinic Profile</button></a>"
+                  ."</div>";
+        }
+        
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+        $oForm->SetKFR($kfr);
+        $roles = ClientList::$staff_roles_name;
+        $myRole = $oForm->Value('pro_role');
+        $myRoleIsNormal = in_array($myRole, $roles);
+        $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
+        foreach ($roles as $role) {
+            if( $role == $myRole || ($role == "Other" && !$myRoleIsNormal)) {
+                $selRoles .= "<option selected />".$role;
+            } else{
+                $selRoles .= "<option />".$role;
+            }
+        }
+        $selRoles .= "</select>"
+                    ."<input type='text' ".($myRoleIsNormal?"style='display:none' disabled ":"")
+                    ."required id='other' name='".$oForm->Name('pro_role')."' maxlength='200' "
+                    ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
+        $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
+        $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
+        $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
+        
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
+        $s .= "<form>"
+             ."<input type='hidden' name='cmd' value='$cmd' />"
+             ."<input type='hidden' name='uid' value='$uid' />"
+             .$oForm->HiddenKey()
+             ."<table class='container-fluid table table-striped table-sm'>";
+        
+        $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) );
+        $s .= $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+        $s .= $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
+        $s .= $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
+        $s .= $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
+        $s .= $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+        $s .= $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
+        $s .= $this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) );
+        $s .= $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
+        $s .= $this->drawFormRow( "Pronouns", $this->getPronounList($oForm) );
+        $s .= $this->drawFormRow( "Role", $selRoles );
+        $s .= $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
+        $s .= $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
+        $s .= $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+        $s .= $this->drawFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' /><br /><input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+        $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' /></tr>";
+        
+        $s .= "</table></form>";
+        return $s;
+    }
+    
+    private function drawFormRow( $label, $control ) {
+        return( "<tr class='row'>"
+            ."<td class='col-md-5'><p>$label</p></td>"
+            ."<td class='col-md-7'>$control</td>"
+            ."</tr>" );
+    }
+    
+    private function getPronounList(KeyframeForm $oForm){
+        
+        $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
+        $s = "<select name='".$oForm->Name("P_pronouns")."' required ".($oForm->Value('_status')==0?"":"disabled").">";
+        $s .= "<option value=''>Select Pronouns</option>";
+        foreach($pronouns as $key => $name){
+            if($oForm->Value("P_pronouns") == $key){
+                $s .= "<option value='$key' selected >$name</option>";
+            }
+            else{
+                $s .= "<option value='$key' >$name</option>";
+            }
+        }
+        $s .= "</select>";
         return $s;
     }
     
