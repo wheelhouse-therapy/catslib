@@ -628,7 +628,7 @@ Style;
             ."<div id='users' class='col-md-4'>";
         $s .= $this->drawList();
         $s .= "</div>"
-            ."<div id='form' class='col-md-8'></div></div></div>";
+            ."<div id='form' class='col-md-8'>{$this->drawManageForm(0)}</div></div></div>";
         return $s;
     }
     
@@ -669,7 +669,17 @@ Style;
     public function drawManageForm(int $uid):String{
         
         $s = "";
+        if($uid <= 0){
+            $uid = $this->oApp->sess->GetUID();
+        }
+        $s .= "<div class='tabs'>";
+        $s .= "<div id='profile-Tab' class='tab active-tab'>Profile</div>";
+        $s .= "<div id='account-Tab' class='tab'>Account</div>";
+        $s .= "</div><br/><div id='outerTab-content'>";
         $s .= $this->drawProfileForm($uid);
+        $s .= "</div>";
+        $s .= "<script>const profile = JSON.parse(`".json_encode($this->drawProfileForm($uid))."`);";
+        $s .= "const account = JSON.parse(`".json_encode($this->drawAccountForm($uid))."`);</script>";
         return $s;
     }
     
@@ -837,6 +847,18 @@ Style;
         $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' /></tr>";
         
         $s .= "</table></form>";
+        return $s;
+    }
+    
+    /**
+     * Draw the account information form for a user
+     * @param int $uid - user to draw the form for
+     * @return String
+     */
+    private function drawAccountForm(int $uid):String{
+        
+        $s = "";
+        //TODO Draw User Form
         return $s;
     }
     
