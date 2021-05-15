@@ -616,8 +616,10 @@ Style;
         }
     }
     
-    
-    
+    /**
+     * Draw the manage users UI
+     * @return String
+     */
     public function drawUI():String{
         
         $s = "";
@@ -630,6 +632,10 @@ Style;
         return $s;
     }
     
+    /**
+     * Draw the list of users.
+     * @return String
+     */
     public function drawList():String{
         
         $s = "";
@@ -652,29 +658,60 @@ Style;
         
     }
     
+    /**
+     * Draw the manage users form for a user.
+     * This form allows admins to manage the profiles and account settings of a user.
+     * It differs from drawProfile() in that there is a tab for the profile form and a tab for account settings.
+     * The account settings are not availible to regular users and so the these higher level tabs are not rendered when a user is viewing their profile though they My Profile bubble.
+     * @param int $uid - user id of the user to draw the form for.
+     * @return String
+     */
     public function drawManageForm(int $uid):String{
+        
         $s = "";
         $s .= $this->drawProfileForm($uid);
         return $s;
     }
     
+    
+    /**
+     * Draw the profile form for the current user.
+     * This allows the user to edit their own profiles.
+     * @return String
+     */
     public function drawProfile():String{
         
         $s = "";
         $s .= self::TAB_STYLE;
-        $s .= $this->drawProfileForm($this->oApp->sess->GetUID);
+        $s .= $this->drawProfileForm($this->oApp->sess->GetUID());
         return $s;
     }
     
-    public function getClinicProfile(int $uid){
+    /**
+     * Get a users profile for the current clinic.
+     * @param int $uid - user id of the user.
+     * @return array of size 2 - $ra['kfr'] = KeyframeRecord of the profile, $ra['defaulted'] = true if the profile returned is the users default profile and not the clinic profile
+     */
+    public function getClinicProfile(int $uid):array{
         return $this->getProfile($uid, 0);
     }
     
-    public function getUserProfile(int $clinic){
+    /**
+     * Get the current users profile for a specific clinic.
+     * @param int $clinic - clinic to get the user's profile for.
+     * @return array of size 2 - $ra['kfr'] = KeyframeRecord of the profile, $ra['defaulted'] = true if the profile returned is the users default profile and not the clinic profile
+     */
+    public function getUserProfile(int $clinic):array{
         return $this->getProfile(0, $clinic);
     }
     
-    public function getProfile(int $uid,int $clinic){
+    /**
+     * Get a users profile for a specific clinic.
+     * @param int $uid - user id of the user.
+     * @param int $clinic - clinic to get the user's profile for.
+     * @return array of size 2 - $ra['kfr'] = KeyframeRecord of the profile, $ra['defaulted'] = true if the profile returned is the users default profile and not the clinic profile
+     */
+    public function getProfile(int $uid,int $clinic):array{
         if($uid <= 0){
             $uid = $this->oApp->sess->GetUID();
         }
@@ -697,6 +734,11 @@ Style;
         return ['kfr'=>$kfr,'defaulted'=>$bDefaulted];
     }
     
+    /**
+     * Draw a tab for each clinic the user is in and render the form for each of the tabs.
+     * @param int $uid - user to render the entire profile form for.
+     * @return String - The complete profile form.
+     */
     private function drawProfileForm(int $uid):String{
         
         // When user selected provide tabs for the different records in each clinic.
@@ -726,9 +768,17 @@ Style;
             $i++;
         }
         $s .= "</div><br/><div id='tab-content'>".$raForms["tab$activeTab"]."</div>";
+        $s .= "<script>const forms = JSON.parse(`".json_encode($raForms)."`);</script>"; // Pass the tab contents to JS
         return $s;
     }
     
+    /**
+     * Draw the form within the users profile tabs.
+     * @param int $uid - user id of the user to draw the form of.
+     * @param int $clinic - clinic of the profile to draw
+     * @param String $cmd - command of the form
+     * @return String - The form displaying the users profile or a message stating the clinic uses the default profile and an option to create a clinic profile.
+     */
     private function drawInternalProfileForm(int $uid, int $clinic, String $cmd = "updateProfile"):String{
         
         $s = "";
