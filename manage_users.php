@@ -858,7 +858,47 @@ Style;
     private function drawAccountForm(int $uid):String{
         
         $s = "";
-        //TODO Draw User Form
+        
+        $userInfo = $this->oAccountDB->GetUserInfo($uid);
+        $status = $userInfo[1]['eStatus'];
+        $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
+        if(($kfrKey = array_key_exists(self::DEFAULT_PROFILE, $userInfo[2])?$userInfo[2][self::DEFAULT_PROFILE]:0)){
+            $kfr = $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $kfrKey);
+        }
+        else{
+            $kfr1 = $this->oPeopleDB->GetKFRCond(ClientList::INTERNAL_PRO, "P.uid={$uid}");
+            if($kfr1){
+                $kfr = $kfr1;
+            }
+        }
+        $s .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
+        ."Status : {$status}<br />";
+        switch($status){
+            case "PENDING":
+                //User has been created but credentials have not been issued
+                if($kfr->Value('P_email')){
+                    $s .= "<button>Issue Credentials</button>";
+                }
+                else{
+                    $s .= "A valid Email must be entered for this staff before this user can be activated";
+                }
+                break;
+            case "ACTIVE":
+                //User has been created and credentials have been issued
+                $s .= "<button>Deactivate</button>";
+                break;
+            case "INACTIVE":
+                //User has been created but has been deactivated
+                //Reactivation should reissue credentials
+                if($kfr->Value('P_email')){
+                    $s .= "<button>Reactivate</button>";
+                }
+                else{
+                    $s .= "A valid Email must be entered for this staff before this user can be reactivated";
+                }
+        }
+        $s .= "<br /><span title='Contact Developers to change account type'>Account Type: ".(array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL)."</span>";
+        
         return $s;
     }
     
