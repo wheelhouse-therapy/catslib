@@ -592,6 +592,12 @@ class ManageUsers2 {
 .tab.active-tab {
 	background-color: white;
 }
+.tab-content {
+    display:none;
+}
+.tab-content.active-tab {
+    display:block;
+}
 </style>
 Style;
     
@@ -622,13 +628,15 @@ Style;
      */
     public function drawUI():String{
         
+        $uid = $this->oApp->sess->SmartGPC("uid");
+        
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= "<div class='container-fluid'><div class='row'>"
             ."<div id='users' class='col-md-4'>";
         $s .= $this->drawList();
         $s .= "</div>"
-            ."<div id='form' class='col-md-8'>{$this->drawManageForm(0)}</div></div></div>";
+            ."<div id='form' class='col-md-8'>".($uid?$this->drawManageForm($uid):"")."</div></div></div>";
         return $s;
     }
     
@@ -643,7 +651,7 @@ Style;
         foreach($this->raUsers as $userid){
             $raUser = $this->oAccountDB->GetUserInfo($userid,false);
             if(!$raUser[0]){continue;}
-            $s .= "<div style='padding:5px;cursor:pointer'>".$raUser[1]['realname']."</div>";
+            $s .= "<a href='?uid=$userid' style='text-decoration:none;color:black;'><div style='padding:5px;cursor:pointer'>".$raUser[1]['realname']."</div></a>";
         }
         return $s;
     }
@@ -653,7 +661,7 @@ Style;
         // If name is changed update account name and ALL of the clinic records with the new name.
         
         //Valid Commands: newProfile, updateProfile
-        $cmd = SEEDInput_Str("cmd");
+        
         
         
     }
@@ -675,11 +683,10 @@ Style;
         $s .= "<div class='tabs'>";
         $s .= "<div id='profile-Tab' class='tab active-tab'>Profile</div>";
         $s .= "<div id='account-Tab' class='tab'>Account</div>";
-        $s .= "</div><br/><div id='outerTab-content'>";
+        $s .= "</div><br/><div class='tab-content active-tab'>";
         $s .= $this->drawProfileForm($uid);
         $s .= "</div>";
-        $s .= "<script>const profile = JSON.parse(`".json_encode($this->drawProfileForm($uid))."`);";
-        $s .= "const account = JSON.parse(`".json_encode($this->drawAccountForm($uid))."`);</script>";
+        $s .= "<div class='tab-content'>".$this->drawAccountForm($uid)."</div>";
         return $s;
     }
     
@@ -754,6 +761,9 @@ Style;
         // When user selected provide tabs for the different records in each clinic.
         $s = "<div class='tabs'>";
         $raClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
+        if(count($raClinics) == 0){
+            return "User needs to be added to a clinic first";
+        }
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
         if($defaultProfile == 0){
             $this->setDefaultProfile($uid, $this->getProfile($uid, $raClinics[0])['kfr']->Value("_key"));
@@ -774,11 +784,20 @@ Style;
             else{
                 $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
             }
-            $raForms["tab$i"] = $this->drawInternalProfileForm($uid, $clinic);
+            $raForms["div$i"] = $this->drawInternalProfileForm($uid, $clinic);
             $i++;
         }
-        $s .= "</div><br/><div id='tab-content'>".$raForms["tab$activeTab"]."</div>";
-        $s .= "<script>const forms = JSON.parse(`".json_encode($raForms)."`);</script>"; // Pass the tab contents to JS
+        $s .= "</div><br/>";
+        foreach($raForms as $id=>$data){
+            if($id == "div$activeTab"){
+                $s .= "<div id='$id' class='tab-content active-tab'>";
+            }
+            else{
+                $s .= "<div id='$id' class='tab-content'>";
+            }
+            $s .= $data;
+            $s .= "</div>";
+        }
         return $s;
     }
     
