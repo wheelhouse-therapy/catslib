@@ -613,7 +613,6 @@ function changeTab(e) {
 	let target = e.currentTarget;
     let active = document.querySelectorAll(".active-tab:not(.outer-tab,.outer-content)");
     for(let i = 0; i < active.length; i++){
-        console.log(active[i]);
         active[i].classList.remove("active-tab");
     }
 	target.classList.add("active-tab");
@@ -638,7 +637,6 @@ function changeOuterTab(e) {
 	let target = e.currentTarget;
     let active = document.querySelectorAll(".active-tab.outer-tab,.active-tab.outer-content");
     for(let i = 0; i < active.length; i++){
-        console.log(active[i]);
         active[i].classList.remove("active-tab");
     }
 	target.classList.add("active-tab");
@@ -682,6 +680,8 @@ Script;
     public function drawUI():String{
         
         $uid = $this->oApp->sess->SmartGPC("uid");
+        $this->processCommands(SEEDInput_Str("cmd"));
+        
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
@@ -718,6 +718,11 @@ Script;
         
         switch(strtolower($cmd)){
             case "setdefault":
+                $uid = SEEDInput_Int("uid"); // User Id.
+                $pid = SEEDInput_Int("pid"); // Profile Id.
+                if($uid && $pid){
+                    $this->setDefaultProfile($uid, $pid);
+                }
                 break;
             case "newprofile":
                 break;
@@ -924,8 +929,19 @@ Script;
         $s .= $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
         $s .= $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
         $s .= $this->drawFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' /><br /><input type=\"file\" name=\"new_signature\" accept='.jpg' />");
-        $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' /></tr>";
-        
+        $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' />";
+        if($oForm->Value("_key")){
+            $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
+            $s .= "<span style='margin-left:5px'>";
+            if($defaultProfile != $oForm->Value("_key")){
+                $s .= "<button onclick='event.preventDefault();location.href=`?cmd=setDefault&uid=$uid&pid={$oForm->Value("_key")}`'>Set as default profile</button>";
+            }
+            else{
+                $s .= "This profile is set as the default profile";
+            }
+            $s .= "</span>";
+        }
+        $s .= "</tr>";
         $s .= "</table></form>";
         return $s;
     }
