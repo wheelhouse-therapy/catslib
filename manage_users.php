@@ -589,6 +589,9 @@ class ManageUsers2 {
 	cursor: default;
 	user-select: none;
 }
+.outer-tab {
+    width:50%;
+}
 .tab.active-tab {
 	background-color: white;
 }
@@ -600,6 +603,56 @@ class ManageUsers2 {
 }
 </style>
 Style;
+    
+    /**
+     * Script inserted when accessing from the "Manage Users" or "My Profile" screens
+     */
+    private const PROFILE_SCRIPT = <<<Script
+<script>
+function changeTab(e) {
+	let target = e.currentTarget;
+    let active = document.querySelectorAll(".active-tab:not(.outer-tab,.outer-content)");
+    for(let i = 0; i < active.length; i++){
+        console.log(active[i]);
+        active[i].classList.remove("active-tab");
+    }
+	target.classList.add("active-tab");
+    document.getElementById("content"+target.id.substring(3)).classList.add("active-tab");
+}
+
+window.addEventListener("DOMContentLoaded", function() {
+	let tabs = document.querySelectorAll(".tab:not(.outer-tab)");
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].addEventListener("click", changeTab);
+    }
+});
+</script>
+Script;
+    
+    /**
+     * Script inserted when accessing from the "Manage Users" screen.
+     */
+    private const MANAGE_SCRIPT = <<<Script
+<script>
+function changeOuterTab(e) {
+	let target = e.currentTarget;
+    let active = document.querySelectorAll(".active-tab.outer-tab,.active-tab.outer-content");
+    for(let i = 0; i < active.length; i++){
+        console.log(active[i]);
+        active[i].classList.remove("active-tab");
+    }
+	target.classList.add("active-tab");
+    document.getElementById("content"+target.id.substring(3)).classList.add("active-tab");
+}
+
+window.addEventListener("DOMContentLoaded", function() {
+	let tabs = document.querySelectorAll(".tab.outer-tab");
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].addEventListener("click", changeOuterTab);
+    }
+});
+</script>
+Script;
     
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
@@ -629,9 +682,10 @@ Style;
     public function drawUI():String{
         
         $uid = $this->oApp->sess->SmartGPC("uid");
-        
         $s = "";
         $s .= self::TAB_STYLE;
+        $s .= self::PROFILE_SCRIPT;
+        $s .= self::MANAGE_SCRIPT;
         $s .= "<div class='container-fluid'><div class='row'>"
             ."<div id='users' class='col-md-4'>";
         $s .= $this->drawList();
@@ -660,9 +714,16 @@ Style;
         
         // If name is changed update account name and ALL of the clinic records with the new name.
         
-        //Valid Commands: newProfile, updateProfile
+        //Valid Commands: newProfile, updateProfile, setDefault
         
-        
+        switch(strtolower($cmd)){
+            case "setdefault":
+                break;
+            case "newprofile":
+                break;
+            case "updateprofile":
+                break;
+        }
         
     }
     
@@ -681,12 +742,12 @@ Style;
             $uid = $this->oApp->sess->GetUID();
         }
         $s .= "<div class='tabs'>";
-        $s .= "<div id='profile-Tab' class='tab active-tab'>Profile</div>";
-        $s .= "<div id='account-Tab' class='tab'>Account</div>";
-        $s .= "</div><br/><div class='tab-content active-tab'>";
+        $s .= "<div id='tabProfile' class='tab outer-tab active-tab'>Profile</div>";
+        $s .= "<div id='tabAccount' class='tab outer-tab'>Account</div>";
+        $s .= "</div><br/><div id='contentProfile' class='tab-content outer-content container-fluid active-tab'>";
         $s .= $this->drawProfileForm($uid);
         $s .= "</div>";
-        $s .= "<div class='tab-content'>".$this->drawAccountForm($uid)."</div>";
+        $s .= "<div id='contentAccount' class='tab-content outer-content container-fluid'>".$this->drawAccountForm($uid)."</div>";
         return $s;
     }
     
@@ -700,6 +761,7 @@ Style;
         
         $s = "";
         $s .= self::TAB_STYLE;
+        $s .= self::PROFILE_SCRIPT;
         $s .= $this->drawProfileForm($this->oApp->sess->GetUID());
         return $s;
     }
@@ -767,7 +829,6 @@ Style;
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
         if($defaultProfile == 0){
             $this->setDefaultProfile($uid, $this->getProfile($uid, $raClinics[0])['kfr']->Value("_key"));
-            echo "Default Profile set to Clinic #{$raClinics[0]}<br />";
         }
         $raForms = [];
         $i = 1;
@@ -784,12 +845,12 @@ Style;
             else{
                 $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
             }
-            $raForms["div$i"] = $this->drawInternalProfileForm($uid, $clinic);
+            $raForms["content$i"] = $this->drawInternalProfileForm($uid, $clinic);
             $i++;
         }
         $s .= "</div><br/>";
         foreach($raForms as $id=>$data){
-            if($id == "div$activeTab"){
+            if($id == "content$activeTab"){
                 $s .= "<div id='$id' class='tab-content active-tab'>";
             }
             else{
