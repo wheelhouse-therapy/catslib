@@ -733,11 +733,11 @@ Script;
                 }
                 break;
             case "newprofile":
+                $uid = SEEDInput_Int("uid"); // User Id.
+                $cid = SEEDInput_Int("clinicId"); // Clinic Id.
                 if(!in_array($cid, array_column($this->oClinics->GetUserClinics($uid),"Clinics__key"))){
                     break;
                 }
-                $uid = SEEDInput_Int("uid"); // User Id.
-                $cid = SEEDInput_Int("clinicId"); // Clinic Id.
                 $defaultKFR = $this->getDefaultProfile($uid);
                 $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
                 $kfrPeople = $this->oPeopleDB->KFRel("P")->CreateRecord();
