@@ -1024,6 +1024,14 @@ Script;
         return $s;
     }
     
+    private function getDefaultProfile(int $uid){
+        $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
+        if($defaultProfile){
+            return $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $defaultProfile);
+        }
+        return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
+    }
+    
     private function setDefaultProfile(int $uid, int $profile):bool{
         if(!in_array($profile, $this->oPeopleDB->Get1List(ClientList::INTERNAL_PRO, "_key", "P.uid=".$uid))){
             return false;
