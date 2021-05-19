@@ -619,6 +619,14 @@ function changeTab(e) {
     document.getElementById("content"+target.id.substring(3)).classList.add("active-tab");
 }
 
+function submitForm(e){
+    let a = document.querySelectorAll(".tab-content>form");
+    let data = [];
+    for(let i=0;i<a.length;i++){
+        data = data.concat($(a[i]).serializeArray());
+    }
+}
+
 window.addEventListener("DOMContentLoaded", function() {
 	let tabs = document.querySelectorAll(".tab:not(.outer-tab)");
     for (let i = 0; i < tabs.length; i++) {
@@ -725,6 +733,31 @@ Script;
                 }
                 break;
             case "newprofile":
+                if(!in_array($cid, array_column($this->oClinics->GetUserClinics($uid),"Clinics__key"))){
+                    break;
+                }
+                $uid = SEEDInput_Int("uid"); // User Id.
+                $cid = SEEDInput_Int("clinicId"); // Clinic Id.
+                $defaultKFR = $this->getDefaultProfile($uid);
+                $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
+                $kfrPeople = $this->oPeopleDB->KFRel("P")->CreateRecord();
+                foreach($defaultKFR->ValuesRA() as $k=>$v){
+                    if(substr($k, 0,2) == "P_"){
+                        $kfrPeople->SetValue(substr($k, 2), $v);
+                    }
+                    else{
+                        $kfr->SetValue($k, $v);
+                    }
+                }
+                $kfrPeople->SetValue("uid", $uid);
+                $kfr->SetValue("clinic", $cid);
+                $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
+                list($fname,$lname) = explode(" ", $accountName,2);
+                $kfrPeople->SetValue("first_name", $fname);
+                $kfrPeople->SetValue("last_name", $lname);
+                $kfrPeople->PutDBRow();
+                $kfr->SetValue("fk_people", $kfrPeople->Key());
+                $kfr->PutDBRow();
                 break;
             case "updateprofile":
                 break;
@@ -827,8 +860,19 @@ Script;
      */
     private function drawProfileForm(int $uid):String{
         
+        $s = "";
+        $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
+        list($fname,$lname) = explode(" ", $accountName,2);
+        
+        $s .= "<form>";
+        $s .= "<input type='hidden' name='uid' value='$uid' />";
+        $s .= "<input type='text' name='first_name' id='first_name' value='$fname' required placeholder='First Name' maxlength='200'>";
+        $s .= "<input type='text' name='last_name' id='last_name' value='$lname' required placeholder='Last Name' maxlength='200'>";
+        $s .= "<input type='hidden' name='cmd' value='updateprofile' />";
+        $s .= "</form>";
+        
         // When user selected provide tabs for the different records in each clinic.
-        $s = "<div class='tabs'>";
+        $s .= "<div class='tabs'>";
         $raClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
         if(count($raClinics) == 0){
             return "User needs to be added to a clinic first";
@@ -873,10 +917,9 @@ Script;
      * Draw the form within the users profile tabs.
      * @param int $uid - user id of the user to draw the form of.
      * @param int $clinic - clinic of the profile to draw
-     * @param String $cmd - command of the form
      * @return String - The form displaying the users profile or a message stating the clinic uses the default profile and an option to create a clinic profile.
      */
-    private function drawInternalProfileForm(int $uid, int $clinic, String $cmd = "updateProfile"):String{
+    private function drawInternalProfileForm(int $uid, int $clinic):String{
         
         $s = "";
         $raProfile = $this->getProfile($uid, $clinic);
@@ -888,7 +931,7 @@ Script;
                   ."</div>";
         }
         
-        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A$clinic" );
         $oForm->SetKFR($kfr);
         $roles = ClientList::$staff_roles_name;
         $myRole = $oForm->Value('pro_role');
@@ -911,13 +954,9 @@ Script;
         
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $s .= "<form>"
-             ."<input type='hidden' name='cmd' value='$cmd' />"
-             ."<input type='hidden' name='uid' value='$uid' />"
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>";
         
-        $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name'") ) );
-        $s .= $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
         $s .= $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
         $s .= $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
         $s .= $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
@@ -1024,7 +1063,7 @@ Script;
         return $s;
     }
     
-    private function getDefaultProfile(int $uid){
+    private function getDefaultProfile(int $uid):KeyframeRecord{
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
         if($defaultProfile){
             return $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $defaultProfile);
