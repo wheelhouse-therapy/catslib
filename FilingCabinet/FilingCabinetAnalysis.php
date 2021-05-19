@@ -39,7 +39,7 @@ class FilingCabinetAnalysis {
         $raRR = ResourceRecord::GetResources($this->oApp, 'videos', $dir,$subdir);
         $raUsers = [];
         // Get all groups to ensure all watchlists are included in the count
-        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM seedsession_groups");
+        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
         foreach($raGroups as $group){
             // Get a list of all the users.
             // A user may be in more than 1 group so we need to make the list unique

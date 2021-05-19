@@ -669,9 +669,9 @@ Script;
         
         // Get list of users
         $this->raUsers = [];
-        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM seedsession_groups");
+        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
         foreach($raGroups as $group){
-            if(stripos($this->oApp->kfdb->Query1("SELECT groupname FROM seedsession_groups WHERE _key = $group"),"client") !== false){
+            if(stripos($this->oApp->kfdb->Query1("SELECT groupname FROM SEEDSession_Groups WHERE _key = $group"),"client") !== false){
                 //Skip the client group
                 continue;
             }
