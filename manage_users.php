@@ -752,7 +752,9 @@ Script;
                 $kfrPeople->SetValue("uid", $uid);
                 $kfr->SetValue("clinic", $cid);
                 $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
-                list($fname,$lname) = explode(" ", $accountName,2);
+                $raName = explode(" ", $accountName,2);
+                $fname = @$raName[0]?:"";
+                $lname = @$raName[1]?:"";
                 $kfrPeople->SetValue("first_name", $fname);
                 $kfrPeople->SetValue("last_name", $lname);
                 $kfrPeople->PutDBRow();
@@ -862,7 +864,9 @@ Script;
         
         $s = "";
         $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
-        list($fname,$lname) = explode(" ", $accountName,2);
+        $raName = explode(" ", $accountName,2);
+        $fname = @$raName[0]?:"";
+        $lname = @$raName[1]?:"";
         
         $s .= "<form>";
         $s .= "<input type='hidden' name='uid' value='$uid' />";
