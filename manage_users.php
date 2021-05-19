@@ -764,6 +764,8 @@ Script;
      */
     public function drawProfile():String{
         
+        $this->processCommands(SEEDInput_Str("cmd"));
+        
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
