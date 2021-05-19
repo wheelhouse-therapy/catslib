@@ -176,6 +176,8 @@ ResetPassword;
             $this->oApp->sess->VarSet("client_key", 0);
             // Unset the drawer of the filing cabinet.
             $this->oApp->sess->VarUnSet("dir");
+            // Unset the user of manage users
+            $this->oApp->sess->VarUnSet("uid");
 
         return( $s );
     }
