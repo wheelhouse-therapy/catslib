@@ -888,6 +888,8 @@ Script;
         $raForms = [];
         $i = 1;
         $activeTab = 1;
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+        $oForm->SetRowNum(1);
         foreach($raClinics as $clinic){
             $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
             $raProfile = $this->getProfile($uid, $clinic);
@@ -900,7 +902,8 @@ Script;
             else{
                 $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
             }
-            $raForms["content$i"] = $this->drawInternalProfileForm($uid, $clinic);
+            $raForms["content$i"] = $this->drawInternalProfileForm($uid, $clinic,$oForm);
+            $oForm->IncRowNum();
             $i++;
         }
         $s .= "</div><br/>";
@@ -923,7 +926,7 @@ Script;
      * @param int $clinic - clinic of the profile to draw
      * @return String - The form displaying the users profile or a message stating the clinic uses the default profile and an option to create a clinic profile.
      */
-    private function drawInternalProfileForm(int $uid, int $clinic):String{
+    private function drawInternalProfileForm(int $uid, int $clinic,KeyframeForm $oForm):String{
         
         $s = "";
         $raProfile = $this->getProfile($uid, $clinic);
@@ -935,7 +938,6 @@ Script;
                   ."</div>";
         }
         
-        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A$clinic" );
         $oForm->SetKFR($kfr);
         $roles = ClientList::$staff_roles_name;
         $myRole = $oForm->Value('pro_role');
