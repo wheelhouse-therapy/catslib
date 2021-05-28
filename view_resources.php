@@ -364,7 +364,7 @@ ContextMenu;
     return( $s );
 }
 
-function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
+function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut,SEEDAppConsole $oApp, $dir_short, $kSubfolder,FilingCabinetDownload $oFCD, $sCabinet )
 {
 
         if( $sFilter ) {
@@ -391,7 +391,7 @@ function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_s
                         <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                     </div>
                     <div>
-                        [[FILENAME]]
+                        [[FILENAME]] [[VISIBILITY]]
                     </div>
                 </a>
                 <div data-id='".$oRR->getID()."'>
@@ -407,13 +407,19 @@ function addFileToSubfolder(ResourceRecord $oRR, $sFilter, $raOut, $oApp, $dir_s
 
         $filename = SEEDCore_HSC($oRR->getFile());
 
-        $raOut[$kSubfolder] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+        $visibility = "";
+        if($oApp->sess->CanWrite("admin") && $oRR->isHidden()){
+            $visibility = '<i style="color:gray;" class="fas fa-low-vision" title="This resource is hidden from some users."></i>';
+        }
+        
+        $raOut[$kSubfolder] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]","[[VISIBILITY]]"],
                                            [$oRR->getID(),
                                             $link,
                                             $filename,
                                             $oFCD->oResourcesFiles->DrawTags($oRR),
                                             $preview,
-                                            $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                            $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":"",
+                                            $visibility,
                                            ],
                                            $sTemplate);
 
@@ -445,7 +451,7 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
                     <img src='data:image/jpg;base64,[[PREVIEW]]' style='width:100%;max-width:200px;padding-bottom:2px' />
                 </div>
                 <div>
-                    [[FILENAME]]
+                    [[FILENAME]] [[VISIBILITY]]
                 </div>
             </a>
             <div data-id='".$oRR->getID()."'>
@@ -466,13 +472,19 @@ function addFileToSubfolderVideos( SEEDAppConsole $oApp, ResourceRecord $oRR, $s
         $sTempOut = str_replace("[[WATCHED]]", "", $sTemplate);
     }
     
-    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]"],
+    $visibility = "";
+    if($oApp->sess->CanWrite("admin") && $oRR->isHidden()){
+        $visibility = '<i style="color:gray;" class="fas fa-low-vision" title="This resource is hidden from some users."></i>';
+    }
+    
+    $raOut[$oRR->getSubDirectory()] .= str_replace( ["[[ID]]","[[LINK]]","[[FILENAME]]","[[TAGS]]","[[PREVIEW]]","[[BADGE]]","[[VISIBILITY]]"],
                                        [$oRR->getID(),
                                         $link,
                                         SEEDCore_HSC($oRR->getFile()),
                                         $oFCD->oResourcesFiles->DrawTags($oRR),
                                         $preview,
-                                        $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":""
+                                        $oRR->isNewResource()?"<span class='badge badge{$oRR->getNewness()}'> </span>":"",
+                                        $visibility,
                                        ],
                                        $sTempOut);
 

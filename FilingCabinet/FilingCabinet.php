@@ -401,12 +401,20 @@ class ResourceRecord {
     private const ORDER_KEY = 'order';
     private const DOWNLOADS_KEY = 'downloads';
 
-    // Cutoff for resources to be considered "new"
+    /**
+     *  Cutoff for resources to be considered "new"
+     */
     private const NEWNESS_CUTOFF = 30;
-    // How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
+    /**
+     * How many "groups" of "new" resources there are, depicted by different "badges" in the filing cabinet
+     */
     private const NEWNESS_GROUPS = 4;
 
     private const TAG_SEPERATOR = "\t";
+    
+    public const STATUS_NORMAL = 0;
+    public const STATUS_DELETED = 1;
+    public const STATUS_HIDDEN = 2;
 
 
     //search constants
@@ -442,7 +450,7 @@ class ResourceRecord {
      * value of 0 is the default value and represents a "normal" record
      * any other value may be ignored by search methods
      */
-    private $status = 0;
+    private $status = self::STATUS_NORMAL;
 
     // File info
     private $cabinet;
@@ -475,7 +483,7 @@ class ResourceRecord {
         $this->id = intval(@$raParams[self::ID_KEY]?:0);
         $this->created = @$raParams[self::CREATED_KEY]?:0;
         $this->created_by = intval(isset($raParams[self::CREATED_BY_KEY])?$raParams[self::CREATED_BY_KEY]:$oApp->sess->getUID());
-        $this->status = intval(@$raParams[self::STATUS_KEY]?:0);
+        $this->status = intval(@$raParams[self::STATUS_KEY]?:self::STATUS_NORMAL);
         $this->subdir = @$raParams[self::SUBDIRECTORY_KEY]?:'';
         if(is_string(@$raParams[self::TAGS_KEY])){
             $this->tags = explode(self::TAG_SEPERATOR, @$raParams[self::TAGS_KEY]);
@@ -615,8 +623,9 @@ class ResourceRecord {
      * Set the status of the record
      * 0 for normal.
      * 1 for deleted.
+     * 2 for hidden.
      * NOTE: This DOES NOT STORE THE CHANGE
-     * NOTE 2: Record Searches MAY IGNORE records which have a status other than 0
+     * NOTE 2: Record Searches MAY IGNORE records which have a status other than 0.
      * NOTE 3: Create Methods MAY OVERWRITE records which have a status of 1.
      * @param int $status - status to set
      * @return bool - true if status has changed, false otherwise
@@ -687,7 +696,7 @@ class ResourceRecord {
         $dbCabinet = addslashes($this->cabinet);
         $dbFolder = addslashes($dirname);
         $dbSubFolder = addslashes($subdir);
-        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status != ".self::STATUS_DELETED;
         $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
         $raRecords = array_column($raRows, "_key");
         $position = array_search($this->id, $raRecords);
@@ -729,7 +738,7 @@ class ResourceRecord {
         $dbCabinet = addslashes($this->cabinet);
         $dbFolder = addslashes($dirname);
         $dbSubFolder = addslashes($subdir);
-        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status != ".self::STATUS_DELETED;
         $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
         $raRecords = array_column($raRows, "_key");
         $position = array_search($this->id, $raRecords);
@@ -759,7 +768,7 @@ class ResourceRecord {
         $dbCabinet = addslashes($this->cabinet);
         $dbFolder = addslashes($dirname);
         $dbSubFolder = addslashes($subdir);
-        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status=0";
+        $cond = "cabinet='$dbCabinet' AND folder='$dbFolder' AND subfolder='$dbSubFolder' AND _status != ".self::STATUS_DELETED;
         $raRows = $this->oApp->kfdb->QueryRowsRA("SELECT _key FROM resources_files WHERE {$cond} ORDER BY iOrder",KEYFRAMEDB_RESULT_ASSOC);
         $raRecords = array_column($raRows, "_key");
         if($this->id == 0){
@@ -817,7 +826,7 @@ class ResourceRecord {
         }
         if($this->id == 0){
             // Could not find an existing record, overwrite a deleted record
-            $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE _status=1" )?:0;
+            $this->id = @$this->oApp->kfdb->Query1( "SELECT _key FROM resources_files WHERE _status=".self::STATUS_DELETED )?:0;
             if($this->id){
                 $this->status = 0;
                 $this->created = 'NOW()';
@@ -842,7 +851,8 @@ class ResourceRecord {
             if($this->created != "NOW()"){
                 $this->created = "'$this->created'";
             }
-            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,_status={$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order},downloads={$this->downloads} WHERE _key = {$this->id}");
+            $this->committed = $this->oApp->kfdb->Execute("UPDATE resources_files SET _created={$this->created},_updated=NOW(),_updated_by=$uid,
+{$this->status},cabinet='$dbCabinet',folder='$dbFolder',filename='$dbFilename',tags='$tags',subfolder='$dbSubFolder',preview='$dbPreview',description='$dbDescription',iOrder={$this->order},downloads={$this->downloads} WHERE _key = {$this->id}");
         }
         else{
             if(($this->id = $this->oApp->kfdb->InsertAutoInc("INSERT INTO resources_files (_created, _created_by, _updated, _updated_by, _status, cabinet, folder, filename, tags, subfolder,preview,description,iOrder,downloads) VALUES (NOW(),{$this->created_by},NOW(),$uid,{$this->status},'$dbCabinet','$dbFolder','$dbFilename','$tags','$dbSubFolder','$dbPreview','$dbDescription',{$this->order},{$this->downloads})"))){
@@ -865,7 +875,7 @@ class ResourceRecord {
     public function DeleteRecord(){
         $this->moveToEnd();
         $this->order = -1;
-        $result1 = $this->setStatus(1);
+        $result1 = $this->setStatus(self::STATUS_DELETED);
         $result2 = $this->StoreRecord();
         return $result1 && $result2;
     }
@@ -971,7 +981,7 @@ class ResourceRecord {
     }
     
     /**
-     * Get if this file is supported by the template filler subsystem.
+     * Get if this resource is supported by the template filler subsystem.
      * NOTE: Only docx files are supported at this time.
      * NOTE2: if this method returns true it is safe to pass the file to the template filler subsystem
      * @return bool - true if its supported false otherwise
@@ -981,12 +991,21 @@ class ResourceRecord {
     }
 
     /**
-     * Get if this file is a video and can be used in the video tag.
+     * Get if this resource is a video and can be used in the video tag.
      * NOTE: Only mp4 files are considered valid videos.
      * @return bool - true if its a video false otherwise
      */
     public function isVideo():bool{
         return pathinfo($this->file,PATHINFO_EXTENSION) == "mp4";
+    }
+    
+    /**
+     * Get if this resource is hidden from some users.
+     * NOTE: Only records with a status of 2 are considered hidden at this time.
+     * @return bool - true if the resource is hidden from users, false otherwise
+     */
+    public function isHidden():bool{
+        return $this->status == self::STATUS_HIDDEN;
     }
     
     /**
@@ -1071,7 +1090,11 @@ class ResourceRecord {
             $query = substr($query, 0,strpos($query,$orderBy));
         }
         if(strripos($query, "_status") === FALSE){
-            $query = self::joinCondition($query, "_status=0");
+            $query = self::joinCondition($query, "_status=".self::STATUS_NORMAL);
+            $raMeta = (new SEEDSessionAccountDBRead($oApp->kfdb))->GetUserMetadata($oApp->sess->GetUID());
+            if((array_key_exists(AccountType::KEY, $raMeta)?$raMeta[AccountType::KEY]:AccountType::NORMAL) !== AccountType::STUDENT){
+                $query = self::joinCondition($query, "_status=".self::STATUS_HIDDEN,true);
+            }
         }
         $query .= $orderBy;
         $ra = $oApp->kfdb->QueryRowsRA1($query,KEYFRAMEDB_RESULT_NUM);
@@ -1265,7 +1288,6 @@ class ResourceRecord {
             $dbSubFolder = addslashes($subdir);
             $cond = self::joinCondition($cond,"subfolder='$dbSubFolder'");
         }
-        $cond = self::joinCondition($cond, "_status=0");
         $query = "SELECT _key FROM resources_files WHERE $cond ORDER BY iOrder";
         $raRec = self::getFromQuery($oApp, $query);
         // always return an array to keep it simple
