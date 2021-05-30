@@ -679,6 +679,7 @@ Script;
             // A user may be in more than 1 group so we need to make the list unique
             $this->raUsers = array_unique(array_merge($this->raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
         }
+        $this->raUsers = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Users WHERE _key IN (".implode(',',$this->raUsers).") ORDER BY eStatus,realname ASC");
     }
     
     /**
@@ -713,7 +714,23 @@ Script;
         foreach($this->raUsers as $userid){
             $raUser = $this->oAccountDB->GetUserInfo($userid,false);
             if(!$raUser[0]){continue;}
-            $s .= "<a href='?uid=$userid' style='text-decoration:none;color:black;'><div style='padding:5px;cursor:pointer'>".$raUser[1]['realname']."</div></a>";
+            $sStatus = "";
+            switch($raUser[1]["eStatus"]){
+                case "ACTIVE":
+                    $sStatus = '<i class="fas fa-check-circle" style="color:green" title="Active"></i> ';
+                    break;
+                case "INACTIVE":
+                    $sStatus = '<i class="fas fa-minus-circle" style="color:red" title="Inactive"></i> ';
+                    break;
+                case "PENDING":
+                    $sStatus = '<i class="fas fa-pause-circle" style="color:gray" title="Pending"></i> ';
+                    break;
+            }
+            $raClinics = array_column($this->oClinics->GetUserClinics($userid),"Clinics__key");
+            if(count($raClinics) == 0){
+                $sStatus = '<i class="fas fa-exclamation-circle" title="User isn\'t in a clinic"></i> ';
+            }
+            $s .= "<a href='?uid=$userid' style='text-decoration:none;color:black;'><div style='padding:5px;cursor:pointer'>$sStatus".$raUser[1]['realname']."</div></a>";
         }
         return $s;
     }
