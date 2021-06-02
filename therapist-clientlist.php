@@ -712,7 +712,8 @@ ExistsWarning;
         if($oForm->Value('_key')){
             $raOut['tabs']['tab3'] = $sTherapists.$sPros.($oForm->Value('_key')?drawModalButton($oForm->Value('_key')).drawStaffModalButton($oForm->Value('_key')):"");
             $raOut['tabs']['tab4'] = "<form onSubmit='event.preventDefault()'><input type='hidden' name='client_key' value='".$oForm->Value("_key")."' /><input type='hidden' name='cmd' value='".($oForm->Value("_status")==0?"discharge":"admit")."_client' /><button onclick='clientDischargeToggle();submitForm(event);'>".($oForm->Value("_status")==0?"Discharge":"Admit")." Client</button></form>"
-                     ."<br />".($oForm->Value("_status")!=0?"Client Discharged @ ".$oForm->Value("_updated"):"")
+                     .($oForm->Value("_status")!=0?"<br />Client Discharged @ ".$oForm->Value("_updated"):"")
+                     ."<br /><a href='".CATSDIR."therapist-dr?client_key=".$oForm->Value("_key")."'><button>Doctors Letter</button></a>"
                      ."<br /><button onclick='loadAsmtList(".$oForm->Value("_key").")'>Assessment Results</button>"
                      ."<br />".$this->getLinkedUser($oForm, self::createID(self::CLIENT,$oForm->Value('_key')))
                      //."<br />".($oForm->Value('P_email')?"<div id='credsDiv'><button onclick='sendcreds(event)'>Send Credentials</button></div>":"")

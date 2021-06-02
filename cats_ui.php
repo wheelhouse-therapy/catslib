@@ -237,6 +237,9 @@ ResetPassword;
 //                $s .= "<h3>Clinic Resources</h3>"
 //                    .ResourcesDownload( $this->oApp, "clinic/", "n" );
                 break;
+            case 'therapist-dr':
+                $s .= DoctorsLetterUI::DrawUI($this->oApp);
+                break;
             case "therapist-viewSOPs":
                 $s .= viewSOPs($this->oApp);
                 break;
