@@ -454,7 +454,7 @@ ResetPassword;
                     $badge = "<span class='badge'>$badgeCount</span>";
                 }
             } else {
-                $href = "?screen=".$ra[0];
+                $href = CATSDIR.$ra[0];
             }
             if(@$ra[2]){
                 // The optional title has been set

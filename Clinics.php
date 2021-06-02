@@ -657,11 +657,11 @@ class Clinics {
                 .$this->drawFormRow( "Clinic Leader", $this->getLeaderOptions($clinic_key,$ra['fk_leader'],$ra['clinic_name'] == 'Core'))
                 ."<tr>"
                 ."<td class='col-md-12'><input type='submit' value='Save' style='margin:auto' /></td></table></form>";
-            $images = "<h4>Square Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:200px' id='slogo'></iframe><br />"
+            $images = "<h4>Square Logo:</h4><iframe src='".CATSDIR."clinicImage&imageID=".self::LOGO_SQUARE."&clinic=".$clinic_key."' style='width:200px;height:200px' id='slogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"slogo\")'>Change</button>"
-                     ."<h4>Wide Logo:</h4><iframe src='?screen=clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px' id='wlogo'></iframe><br />"
+                     ."<h4>Wide Logo:</h4><iframe src='".CATSDIR."clinicImage&imageID=".self::LOGO_WIDE."&clinic=".$clinic_key."' style='width:400px;height:100px' id='wlogo'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"wlogo\")'>Change</button>"
-                     ."<h4>Footer:</h4><iframe src='?screen=clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."' style='width:400px;height:100px' id='footer'></iframe><br />"
+                     ."<h4>Footer:</h4><iframe src='".CATSDIR."clinicImage&imageID=".self::FOOTER."&clinic=".$clinic_key."' style='width:400px;height:100px' id='footer'></iframe><br />"
                      ."<button style='margin-top:3px' onclick='showModal(\"footer\")'>Change</button>";
             $s .= "<div><div style='width:60%;display:inline-block;float:left'>".$sForm."</div><div style='width:40%;display:inline-block;float:left'>".$images."</div></div>"
                  ."<style>.col-md-6{max-width:100%;flex:0 0 100%}iframe{border:none}</style>"

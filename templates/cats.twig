@@ -11,17 +11,17 @@
 
 # Make a link back to the home screen, if we aren't already there
 {% if screen_name != 'home' %}
-    {% set buttonhome = "<a href='" ~ CATSDIR ~ "?screen=home' style='margin-left:5px'><button>Home</button></a>" %}
+    {% set buttonhome = "<a href='" ~ CATSDIR ~ "home' style='margin-left:5px'><button>Home</button></a>" %}
 {% endif %}
 {% set buttonback = "<a id='backButton' href='" ~ CATSDIR ~ "?screen=goBack'><i style='color:grey; width: 20px; height: 20px' class='fas fa-arrow-left'></i></a>" %}
 <div class='cats_header' style='text-align:center'>
 	<div style='float:left; position:relative;'>
 	    <div style='position: absolute; top: 30%; margin-right: 20px; float:left'>{{ buttonback|raw }}</div>
-    	<a href='?screen=home'><img src='data:image/png;base64,{{img_cats_logo}}' style='max-width:300px;max-height:120px;margin-left:20px;float:left;'/></a>
+    	<a href='{{ CATSDIR }}home'><img src='data:image/png;base64,{{img_cats_logo}}' style='max-width:300px;max-height:120px;margin-left:20px;float:left;'/></a>
     </div>
     <div id='clinics' style='float:none;top: 5px;position: relative;display: inline-block;margin: 0 auto;text-align: center'>{{clinics|raw}}</div>
     <div style='float:right;top: 5px;position: relative;display:inline-flex;align-items:center'>
-        Welcome {{user_name|raw}} <button id='supportButton' style="background: url({{CATSDIR_IMG}}Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; cursor: help; margin-left:5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}?screen=logout' style='margin-left: 5px'><button>Logout</button></a>
+        Welcome {{user_name|raw}} <button id='supportButton' style="background: url({{CATSDIR_IMG}}Support.png) 0px/24px no-repeat; width: 24px; height: 24px;border:  none; -moz-outline:0 none; outline:0 none; position: relative; cursor: help; margin-left:5px;" data-tooltip='Get Support' data-toggle="modal" data-target="#support_dialog"></button> {{buttonhome|raw}} <a href='{{CATSDIR}}logout' style='margin-left: 5px'><button>Logout</button></a>
     </div>
 </div>
 {% if ConsoleUserMsg %}

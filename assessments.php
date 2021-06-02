@@ -416,7 +416,7 @@ class AssessmentsCommon
         if(!$client_key && !CATS_SYSADMIN){
             //The user is not loading from a clients record and is not a System Admin, show this message instead of assessment results
             //System Admins can see a list of all the assessmtents while everyone else must use therapist-clientlist to access assessment results
-            return "<strong>To view a client's results, open their profile and click the \"Assessment Results\" button.</strong><br /><a href='?screen=therapist-clientlist'>Go to your client list</a>";
+            return "<strong>To view a client's results, open their profile and click the \"Assessment Results\" button.</strong><br /><a href='".CATSDIR."therapist-clientlist'>Go to your client list</a>";
         }
         $s = "";
 
@@ -440,7 +440,7 @@ class AssessmentsCommon
         }
         $s .= "</table>";
 
-        $s .= "<a href='".CATSDIR."?screen=therapist-reports'><button>Print Reports</button></a>";
+        $s .= "<a href='".CATSDIR."therapist-reports'><button>Print Reports</button></a>";
         
         return( $s );
     }

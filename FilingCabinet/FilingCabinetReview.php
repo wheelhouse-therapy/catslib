@@ -141,7 +141,7 @@ function disable(rrid,event){
 ";
 
         footer:
-        $s .= "<a href='".CATSDIR."?screen=admin-manageresources'><- Go To manage resources</a>";
+        $s .= "<a href='".CATSDIR."admin-manageresources'><- Go To manage resources</a>";
 
         return( $s );
     }

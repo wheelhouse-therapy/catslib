@@ -105,7 +105,7 @@ Modal;
         if (file_exists($target_file)) {
             $s .= "Sorry, file is already awaiting review";
             if($this->oApp->sess->CanWrite("admin")){
-                $s .= "<br /><a href='?screen=admin-resources'><button>Review Now</button></a>";
+                $s .= "<br /><a href='".CATSDIR."admin-resources'><button>Review Now</button></a>";
             }
             goto done;
         }
@@ -125,7 +125,7 @@ Modal;
             $s .= "The file ". basename( $_FILES[self::fileid]["name"]). " has been uploaded and is awaiting review.";
             if($stored){$s .= "<br /><button id='details_button' onclick='addDetails()'>Add Details</button>";}
             if($this->oApp->sess->CanWrite("admin")){
-                $s .= "<a style='margin-left:5px' href='?screen=admin-resources'><button>Review Now</button></a>";
+                $s .= "<a style='margin-left:5px' href='".CATSDIR."admin-resources'><button>Review Now</button></a>";
             }
             if($stored){
                 $s .= str_replace("[[id]]", $oRR->getID(), self::modal);

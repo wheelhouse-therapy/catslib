@@ -500,7 +500,7 @@ ExistsWarning;
         }
         else if(SEEDInput_Str("action") == "Save and Print Consent forms"){
             $id = "";
-            header("Location: ".CATSDIR."?screen=therapist-filing-cabinet&dir=clinic");
+            header("Location: ".CATSDIR."therapist-filing-cabinet?dir=clinic");
             header("HTTP/1.0 205 Reset Content");
             exit;
         }
