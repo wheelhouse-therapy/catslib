@@ -61,6 +61,7 @@ require_once "documents.php";
 require_once "people.php";
 require_once 'therapist-clientlist.php';
 require_once 'manage_users.php';
+require_once 'doctors_letter.php';
 
 require_once "FilingCabinet/FilingCabinet.php";
 require_once "FilingCabinet/FilingCabinetUI.php";

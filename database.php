@@ -362,6 +362,7 @@ function createTables( KeyframeDatabase $kfdb )
 
     ensureTable( $kfdb, "assessments_scores" );
     ensureTable( $kfdb, "resources_files" );
+    ensureTable( $kfdb, "doctors_letters" );
     if(!tableExists( $kfdb, DBNAME.".tag_name_resolution")){
         echo "Creating the TNRS Resolution table";
 
@@ -477,6 +478,9 @@ class CATSBaseDB extends Keyframe_NamedRelations
         // Assessment tables
         $this->t['A']  = array( "Table" => DBNAME.".assessments_scores", "Fields" => 'Auto' );
 
+        // Dr's Letter tables
+        $this->t['D']  = array( "Table" => DBNAME.".doctors_letters", "Fields" => 'Auto' );
+        
         // set up $this->t first because KeyFrame_NamedRelations calls initKfrel which needs that
         parent::__construct( $oApp->kfdb, $oApp->sess->GetUID(), $oApp->logdir );
     }
@@ -529,6 +533,25 @@ class AssessmentsDB extends CATSBaseDB
         $raKfrel['A']     = $this->newKfrel( $kfdb, $uid, array( 'A' => $this->t['A'] ), $sLogfile );
         $raKfrel['AxCxP'] = $this->newKfrel( $kfdb, $uid, array( 'A' => $this->t['A'], 'C' => $this->t['C'], 'P' => $this->t['P'] ), $sLogfile );
 
+        return( $raKfrel );
+    }
+}
+
+class DoctorsLettersDB extends CATSBaseDB
+{
+    function __construct( SEEDAppSession $oApp, $raConfig = array() )
+    {
+        parent::__construct( $oApp, $raConfig );
+    }
+    
+    protected function initKfrel( KeyframeDatabase $kfdb, $uid, $logdir )
+    {
+        $raKfrel = array();
+        $sLogfile = $logdir ? "$logdir/drLetters.log" : "";
+        
+        $raKfrel['D']     = $this->newKfrel( $kfdb, $uid, array( 'D' => $this->t['D'] ), $sLogfile );
+        $raKfrel['DxCxP'] = $this->newKfrel( $kfdb, $uid, array( 'D' => $this->t['D'], 'C' => $this->t['C'], 'P' => $this->t['P'] ), $sLogfile );
+        
         return( $raKfrel );
     }
 }
@@ -921,6 +944,21 @@ const tag_name_resolution_create =
         name                    TEXT NOT NULL, -- value to be replaced
         value                   TEXT NOT NULL) -- value to replace with
     ";
+
+const doctors_letters_create =
+"CREATE TABLE ".DBNAME.".doctors_letters (
+        _key        INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        _created    DATETIME,
+        _created_by INTEGER,
+        _updated    DATETIME,
+        _updated_by INTEGER,
+        _status     INTEGER DEFAULT 0,
+
+        fk_clients2       INTEGER NOT NULL DEFAULT 0,
+        content           TEXT,
+        attachments       TEXT)
+    ";
+
 }
 
 ?>
