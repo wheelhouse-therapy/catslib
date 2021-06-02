@@ -1061,15 +1061,33 @@ class ResourceRecord {
      * @return String - joined Conditions
      */
     private static function joinCondition(String $cond,String $add,bool $disJuctive = false):String{
+        $addedBracket = false;
         if($cond){
             if($disJuctive){
-                $cond .= " OR ";
+                // Try to find the last condition joined by AND
+                $lastCond = strripos($cond, "AND ");
+                if($lastCond === false){
+                    // Try to find the last OR
+                    $lastCond = strripos($cond, "OR ");
+                    if($lastCond !== false){
+                        $cond = substr($cond, 0,$lastCond)."OR (".substr($cond, $lastCond+3);
+                        $addedBracket = true;
+                    }
+                }
+                else{
+                    $cond = substr($cond, 0,$lastCond)."AND (".substr($cond, $lastCond+4);
+                    $addedBracket = true;
+                }$cond .= " OR ";
+                
             }
             else{
                 $cond .= " AND ";
             }
         }
         $cond .= $add;
+        if($addedBracket){
+            $cond .= ")";
+        }
         return $cond;
     }
 
