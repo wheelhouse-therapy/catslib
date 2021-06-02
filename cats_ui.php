@@ -269,13 +269,13 @@ ResetPassword;
                 require_once 'manage_users.php';
                 $manageUsers = new ManageUsers($this->oApp);
                 if(CATS_SYSADMIN){
-                    $s .= "<div style='float:right'><a href='".CATSDIR."?screen=admin-users-advanced'>advanced mode ></a></div>";
+                    $s .= "<div style='float:right'><a href='".CATSDIR."admin-users-advanced'>advanced mode ></a></div>";
                 }
                 $s .= $manageUsers->drawList();
                 break;
             case 'admin-users-advanced':
                 if(CATS_SYSADMIN){
-                    $s .= "<div><a href='".CATSDIR."?screen=admin-users'>< basic mode</a></div><br />";
+                    $s .= "<div><a href='".CATSDIR."admin-users'>< basic mode</a></div><br />";
                 }
                 $s .= $this->drawAdminUsers();
                 break;
@@ -320,45 +320,15 @@ ResetPassword;
     function DrawDeveloper(){
         $s = "";
         switch($this->oHistory->getScreen()){
-            case 'administrator-droptable':
-                global $config_KFDB;
-                $db = $config_KFDB['cats']['kfdbDatabase'];
-                $oApp = $this->oApp;
-                $oApp->kfdb->Execute("drop table $db.clients2");
-                $oApp->kfdb->Execute("drop table $db.pros_internal");
-                $oApp->kfdb->Execute("drop table $db.pros_external");
-                $oApp->kfdb->Execute("drop table $db.clientsxpros");
-// TODO remove soon
-$oApp->kfdb->Execute("drop table $db.clients");
-$oApp->kfdb->Execute("drop table $db.clients_pros");
-$oApp->kfdb->Execute("drop table $db.professionals");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_Users");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersMetadata");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_Groups");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_GroupsMetadata");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_UsersXGroups");
-                $oApp->kfdb->Execute("drop table $db.SEEDSession_Perms");
-                $oApp->kfdb->Execute("drop table $db.cats_appointments");
-                $oApp->kfdb->Execute("drop table $db.clinics");
-                $oApp->kfdb->Execute("drop table $db.users_clinics");
-                $s .= "<div class='alert alert-success'>Oops I miss placed your data</div>";
-                break;
             case 'administrator-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
-            case 'administrator-confirmdrop':
-                $s .= "<h3>Are you sure you want to drop the tables?</h3>"
-                      ."<br /><h1>THIS CANNOT BE UNDONE</h1>"
-                      ."<br /><a href='?screen=developer-droptable'><button>Yes</button></a>"
-                      ."&nbsp&nbsp&nbsp&nbsp&nbsp<a href='?screen=home'><button>No</button></a>";
-                      break;
             case 'administrator-users':
                 $manageUsers = new ManageUsers2($this->oApp);
                 $s .= $manageUsers->drawUI();
                 break;
             case 'administrator':
                     $raScreens = array(
-                        array( 'administrator-confirmdrop',    "Drop Tables"    ),
                         array( 'administrator-clinics',        "Manage Clinics" ),
                         array( 'administrator-users',          "Manage Users (v2)"),
                     );
