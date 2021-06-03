@@ -84,6 +84,14 @@ class DoctorsLetter {
         return $this->key == 0;
     }
     
+    public function getContent():String{
+        return SEEDCore_ArrayExpandSeries($this->content, "[[v]],",true,["sTemplateLast"=>"and [[v]]"]);
+    }
+    
+    public function getAttachments():String{
+        return SEEDCore_ArrayExpandSeries($this->attachments, "[[v]],",true,["sTemplateLast"=>"and [[v]]"]);
+    }
+    
     /**
      * Get a clients doctors letter
      * @param SEEDAppConsole $oApp - db connection to use

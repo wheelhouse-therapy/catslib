@@ -888,6 +888,18 @@ class template_filler {
                 }
             }
         }
+        if($table == 'dr' && $this->kfrClient){
+            //Only the client's doctors letter can be used
+            $oDL = DoctorsLetter::getDoctorsLetter($this->oApp, $this->kClient);
+            switch($col[0]){
+                case 'content':
+                    $s = $oDL->getContent();
+                    break;
+                case "attachments":
+                    $s = $oDL->getAttachments();
+                    break;
+            }
+        }
         if($table == 'pro' && $this->activeKFR){
             // process common fields of People
             if( ($s = $this->peopleCol( $col, $this->activeKFR )) ) {
