@@ -33,9 +33,6 @@ class FilingCabinetReview
             case 'download':  $s .= $this->cmdDownload(); break;
         }
 
-        //TODO Remove once papers files are accessable
-        $s .= "<div class='alert alert-warning'>Files in the Papers directory are currently <strong>NOT ACCESSABLE</strong> thru the CATS platform</div>";
-
         /* Show pending files
          */
         $dir = new DirectoryIterator($this->dirPending);
@@ -63,43 +60,33 @@ class FilingCabinetReview
                    <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
             $excluded = [];
             $options = "<option selected value=''>Select a directory</option>";
-            foreach(FilingCabinet::GetDirectories('general') as $k => $v){
-                if( $k == 'videos' ) continue;  // videos handled below
-
-                if(!in_array($fileinfo->getExtension(), $v['extensions'])){
+            foreach(['general','videos','reports','SOP'] as $cabinet){
+                if(!in_array($fileinfo->getExtension(), FilingCabinet::GetSupportedExtensions($cabinet))){
+                    // Skip cabinets that don't support the file
                     continue;
                 }
-                if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-                    array_push($excluded, $k);
-                }
-                $options .= "<option value='general/".$k."'>".$v['name']."</option>";
-                if(FilingCabinet::GetSubFolders($k)){
-                    foreach(FilingCabinet::GetSubFolders($k,'general') as $folder){
-                        if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
-                            array_push($excluded, $k."/".$folder);
+                $options .= "<optgroup label='".ucfirst($cabinet)."'>";
+                foreach(FilingCabinet::GetFilingCabinetDirectories($cabinet) as $dir=>$dirInfo){
+                    if($dir=="papers"){
+                        //TODO Remove once papers files are accessable
+                        continue;
+                    }
+                    if(!in_array($fileinfo->getExtension(), $dirInfo['extensions'])){
+                        // Skip folders that don't support the file
+                        continue;
+                    }
+                    if(ResourceRecord::GetRecordFromPath($this->oApp, $cabinet, $dir, $fileinfo->getFilename())){
+                        array_push($excluded,"$cabinet/$dir");
+                    }
+                    $options .= "<option value='$cabinet/$dir'>{$dirInfo['name']}</option>";
+                    foreach(FilingCabinet::GetSubFolders($dir,$cabinet) as $subdir){
+                        if(ResourceRecord::GetRecordFromPath($this->oApp, $cabinet, $dir, $fileinfo->getFilename(),$subdir)){
+                            array_push($excluded,"$cabinet/$dir/$subdir");
                         }
-                        $options .= "<option value='general/".$k."/".$folder."'>".$v['name']."/".$folder."</option>";
+                        $options .= "<option value='$cabinet/$dir/$subdir'>{$dirInfo['name']}/$subdir</option>";
                     }
                 }
-            }
-            foreach(FilingCabinet::GetDirectories('videos') as $k => $v){
-                if(!in_array($fileinfo->getExtension(), $v['extensions'])){
-                    continue;
-                }
-// not how videos work anymore - instead determine existence using ResourceRecord::GetFromPath
-if(file_exists(CATSDIR_RESOURCES.$v['directory'] . basename($fileinfo->getFilename()))){
-    array_push($excluded, $k);
-}
-                $options .= "<option value='videos/".$k."'>Videos/".$v['name']."</option>";
-                if(FilingCabinet::GetSubFolders($k,'videos')){
-                    foreach(FilingCabinet::GetSubFolders($k,'videos') as $folder){
-// not how videos work anymore
-if(file_exists(CATSDIR_RESOURCES.$v['directory'].$folder.'/' . basename($fileinfo->getFilename()))){
-    array_push($excluded, $k."/".$folder);
-}
-                        $options .= "<option value='videos/".$k."/".$folder."'>Videos/".$v['name']."/".$folder."</option>";
-                    }
-                }
+                $options .= "</optgroup>";
             }
             $s .= "<select name='dir' onchange='".$this->js($excluded)."' required>".$options."</select>
                    </form>

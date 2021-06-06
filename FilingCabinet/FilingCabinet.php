@@ -1046,9 +1046,12 @@ class ResourceRecord {
         if($oRR->created > $this->created){
             $this->created = $oRR->created;
             $this->created_by = $oRR->created_by;
+            $this->committed = false;
         }
-        
-        return $oRR->DeleteRecord() && $this->StoreRecord();
+        $r1 = $oRR->DeleteRecord();
+        $r2 = $this->StoreRecord();
+        var_dump($r1,$r2);
+        return $r1 && $r2;
     }
     
     /**
