@@ -144,7 +144,7 @@ $bVideos = false;
     static function GetSupportedExtensions( $sCabinet = 'general' )
     {
         $exts = [];
-        foreach(self::GetDirectories($sCabinet) as $ra) {
+        foreach(self::GetFilingCabinetDirectories($sCabinet) as $ra) {
             $exts = array_merge($exts,$ra['extensions']);
         }
         return( array_unique($exts) );
