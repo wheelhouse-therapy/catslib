@@ -739,7 +739,7 @@ Script;
         
         // If name is changed update account name and ALL of the clinic records with the new name.
         
-        //Valid Commands: newProfile, updateProfile, setDefault
+        //Valid Commands: newProfile, updateProfile, setDefault, updateAccount, createNewUser, updateStatus
         
         switch(strtolower($cmd)){
             case "setdefault":
@@ -779,6 +779,34 @@ Script;
                 $kfr->PutDBRow();
                 break;
             case "updateprofile":
+                break;
+            case "updateaccount":
+                $refl = new ReflectionClass(AccountType::class);
+                $constants = $refl->getConstants();
+                unset($constants["KEY"]);
+                
+                $uid = SEEDInput_Int('uid');
+                if($uid <= 0){
+                    break;
+                }
+                $newType = SEEDInput_Str("accountType");
+                $metadata = $this->oAccountDB->GetUserMetadata($uid);
+                $accountType = array_key_exists(AccountType::KEY, $metadata)?$metadata[AccountType::KEY]:AccountType::NORMAL;
+                if(!in_array($newType, $constants)){
+                    // Not a valid type
+                    break;
+                }
+                if($newType == AccountType::DEVELOPER && !CATS_SYSADMIN){
+                    // Doesn't have permission to create dev accounts
+                    break;
+                }
+                if($accountType == AccountType::DEVELOPER && !CATS_SYSADMIN){
+                    // Doesn't have permission to remove dev accounts
+                    break;
+                }
+                $this->oAccountDB->SetUserMetadata($uid, AccountType::KEY, $newType);
+                break;
+            case "updateStatus":
                 break;
         }
         
@@ -878,6 +906,10 @@ Script;
      * @return String - The complete profile form.
      */
     private function drawProfileForm(int $uid):String{
+        
+        if($uid <= 0){
+            return $this->drawNewUserForm();
+        }
         
         $s = "";
         $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
@@ -1057,8 +1089,70 @@ Script;
                     $s .= "A valid Email must be entered for this staff before this user can be reactivated";
                 }
         }
-        $s .= "<br /><span title='Contact Developers to change account type'>Account Type: ".(array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL)."</span>";
+        $accountType = array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL;
+        if($accountType != AccountType::DEVELOPER || CATS_SYSADMIN){
+            $s .= "<form><input type='hidden' name='cmd' value='updateAccount'><input type='hidden' name='uid' value='$uid'>";
+        }
+        else{
+            $s .= "<br />";
+        }
+        $s .= "Account Type: ".$this->getAccountList($accountType);
+        if($accountType != AccountType::DEVELOPER || CATS_SYSADMIN){
+            $s .= "<input type='submit' value='Change'></form>";
+        }
         
+        return $s;
+    }
+    
+    private function drawNewUserForm():String{
+        $s = "";
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+        $oForm->SetKFR($this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord());
+        
+        $roles = ClientList::$staff_roles_name;
+        $myRole = $oForm->Value('pro_role');
+        $myRoleIsNormal = in_array($myRole, $roles);
+        $selRoles = "<select name='".$oForm->Name('pro_role')."' id='mySelect' onchange='doUpdateForm();'>";
+        foreach ($roles as $role) {
+            if( $role == $myRole || ($role == "Other" && !$myRoleIsNormal)) {
+                $selRoles .= "<option selected />".$role;
+            } else{
+                $selRoles .= "<option />".$role;
+            }
+        }
+        $selRoles .= "</select>"
+            ."<input type='text' ".($myRoleIsNormal?"style='display:none' disabled ":"")
+            ."required id='other' name='".$oForm->Name('pro_role')."' maxlength='200' "
+                ."value='".($myRoleIsNormal?"":SEEDCore_HSC($myRole))."' placeholder='Role' />";
+        $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
+        $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
+        $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
+        
+        $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
+        $s .= "<form>"
+            .$oForm->HiddenKey()
+            ."<input type='hidden' name='cmd' value='createNewUser'/>"
+            ."<table class='container-fluid table table-striped table-sm'>";
+            
+        $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
+        $s .= $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
+        $s .= $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
+        $s .= $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
+        $s .= $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
+        $s .= $this->drawFormRow( "Postal Code", $oForm->Text('P_postal_code',"",array("attrs"=>"placeholder='Postal Code' pattern='^[a-zA-Z]\d[a-zA-Z](\s+)?\d[a-zA-Z]\d$'") ) );
+        $s .= $this->drawFormRow( "Phone Number", $oForm->Text('P_phone_number', "", array("attrs"=>"placeholder='Phone Number' maxlength='200'") ) );
+        $s .= $this->drawFormRow( "Fax Number", $oForm->Text('fax_number', "", array("attrs"=>"placeholder='Fax Number' pattern='^(\d{3}[-\s]?){2}\d{4}$'") ) );
+        $s .= $this->drawFormRow( "Email", $oForm->Email('P_email',"",array("attrs"=>"placeholder='Email'") ) );
+        $s .= $this->drawFormRow( "Pronouns", $this->getPronounList($oForm) );
+        $s .= $this->drawFormRow( "Role", $selRoles );
+        $s .= $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
+        $s .= $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
+        $s .= $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
+        $s .= $this->drawFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' /><br /><input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+        $s .= $this->drawFormRow("Clinic", $this->getClinicList($oForm));
+        $s .= $this->drawFormRow("Account Type ", $this->getAccountList());
+        $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' /></tr>";
+        $s .= "</table></form>";
         return $s;
     }
     
@@ -1067,6 +1161,70 @@ Script;
             ."<td class='col-md-5'><p>$label</p></td>"
             ."<td class='col-md-7'>$control</td>"
             ."</tr>" );
+    }
+    
+    private function getClinicList( $oForm)
+    {
+        $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' required>";
+        $s .= "<option value=''>Assign Clinic</option>";
+        $raClinics = $this->oClinicsDB->KFRel()->GetRecordSetRA("");
+        foreach($raClinics as $clinic){
+            $s .= "<option value='{$clinic['_key']}'>{$clinic['clinic_name']}</option>";
+        }
+        $s .= "</select>";
+        return $s;
+    }
+    
+    private function getAccountList(String $accountType = AccountType::NORMAL):String{
+        $refl = new ReflectionClass(AccountType::class);
+        $constants = $refl->getConstants();
+        unset($constants["KEY"]);
+        
+        if(!in_array($accountType, $constants)){
+            $accountType = AccountType::NORMAL;
+        }
+        
+        $s = "<select id='accountType' name='accountType' required>";
+        if($accountType == AccountType::DEVELOPER && !CATS_SYSADMIN){
+            $s = "<select disabled id='accountType' required title='Only other developers can change the account from a Developer account'>";
+        }
+        foreach($constants as $type){
+            if($type == AccountType::DEVELOPER && !CATS_SYSADMIN){
+                if($accountType == AccountType::DEVELOPER){
+                    $s .= "<option selected disabled value='' title='Only other developers can make the account a Developer account'>Developer</option>";
+                }
+                else{
+                    $s .= "<option disabled value='' title='Only other developers can make the account a Developer account'>Developer</option>";
+                }
+            }
+            else{
+                $sType = ucfirst($type);
+                if($type==AccountType::DEVELOPER){
+                    $sType = "Developer";
+                }
+                $sDescription = "";
+                switch($type){
+                    case AccountType::DEVELOPER:
+                        $sDescription = "A special account for the developers.";
+                        break;
+                    case AccountType::STUDENT:
+                        $sDescription = "An account with permissions specifically designed for use with students on placement.";
+                        break;
+                    case AccountType::NORMAL:
+                        $sDescription = "Just an ordinary account, nothing special about it.";
+                        break;
+                }
+                if($type == $accountType){
+                    $s .= "<option selected value='$type' title='$sDescription'>$sType</option>";
+                }
+                else{
+                    $s .= "<option value='$type' title='$sDescription'>$sType</option>";
+                }
+            }
+        }
+        
+        return $s;
+        
     }
     
     private function getPronounList(KeyframeForm $oForm){
