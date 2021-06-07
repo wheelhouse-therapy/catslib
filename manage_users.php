@@ -554,6 +554,7 @@ class ManageUsers2 {
     private $oPeopleDB;
     private $oClinicsDB;
     private $oClinics;
+    private $oHistory;
     /**
      * List of ids of staff user accounts.
      * Use $this->oAccountDB->GetUserInfo to get the info for a user in this list.
@@ -666,6 +667,7 @@ Script;
         $this->oPeopleDB = new PeopleDB($oApp);
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
         $this->oClinics = new Clinics($oApp);
+        $this->oHistory = new ScreenManager($oApp);
         
         // Get list of users
         $this->raUsers = [];
@@ -743,14 +745,26 @@ Script;
         
         switch(strtolower($cmd)){
             case "setdefault":
-                $uid = SEEDInput_Int("uid"); // User Id.
+                $uid = 0; // User Id.
+                if($this->oApp->sess->CanRead('admin') && $this->oHistory->getScreen() != 'system-usersettings'){
+                    $uid = SEEDInput_Int("uid"); // Get from url
+                }
+                else{
+                    $uid = $this->oApp->sess->GetUID();
+                }
                 $pid = SEEDInput_Int("pid"); // Profile Id.
                 if($uid && $pid){
                     $this->setDefaultProfile($uid, $pid);
                 }
                 break;
             case "newprofile":
-                $uid = SEEDInput_Int("uid"); // User Id.
+                $uid = 0; // User Id.
+                if($this->oApp->sess->CanRead('admin') && $this->oHistory->getScreen() != 'system-usersettings'){
+                    $uid = SEEDInput_Int("uid"); // Get from url
+                }
+                else{
+                    $uid = $this->oApp->sess->GetUID();
+                }
                 $cid = SEEDInput_Int("clinicId"); // Clinic Id.
                 if(!in_array($cid, array_column($this->oClinics->GetUserClinics($uid),"Clinics__key"))){
                     break;
@@ -779,8 +793,19 @@ Script;
                 $kfr->PutDBRow();
                 break;
             case "updateprofile":
+                $uid = 0; // User Id.
+                if($this->oApp->sess->CanRead('admin') && $this->oHistory->getScreen() != 'system-usersettings'){
+                    $uid = SEEDInput_Int("uid"); // Get from url
+                }
+                else{
+                    $uid = $this->oApp->sess->GetUID();
+                }
                 break;
             case "updateaccount":
+                if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
+                    // No Permission
+                    break;
+                }
                 $refl = new ReflectionClass(AccountType::class);
                 $constants = $refl->getConstants();
                 unset($constants["KEY"]);
@@ -807,6 +832,80 @@ Script;
                 $this->oAccountDB->SetUserMetadata($uid, AccountType::KEY, $newType);
                 break;
             case "updateStatus":
+                if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
+                    // No Permission
+                    break;
+                }
+                $uid = SEEDInput_Int('uid');
+                if($uid <= 0){
+                    break;
+                }
+                $userInfo = $this->oAccountDB->GetUserInfo($uid,false)[1];
+                $status = $userInfo['eStatus'];
+                $email = $this->getEmail($uid);
+                switch($status){
+                    case 'PENDING':
+                        if(!$email){
+                            // No email set
+                            break;
+                        }
+                        $body = <<<body
+Hi [[name]],
+
+We are writing to let you know that an account for you has been setup on the backend of the CATS site (catherapyservices.ca/cats). We call the part of the site that requires an account to access the backend, and the part of the site that is available to the public the frontend.
+
+To access your account:
+1.	Go to catherapyservices.ca/cats
+2.	Login with:
+Username: [[username]]
+Password: cats
+3.	You will then be prompted to change your password. You will not be able to get off this screen until you change your password from cats. Other than that there are no requirements for your password.
+
+Please let us know if you don't have permission to do something that you should have permission to do.
+
+Welcome to the CATS Team
+
+CATS Development Team
+
+Should you require assistance the development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
+
+body;
+                        $body = str_replace(['[[name]]','[[username]]'], [$userInfo['realname'],$userInfo['email']], $body);
+                        SEEDEmailSend("developer@catherapyservices.ca", $email, "CATS Backend Account", $body);
+                        $this->oAccountDB->ActivateUser($uid);
+                        break;
+                    case 'ACTIVE':
+                        $this->oApp->kfdb->Execute("UPDATE `seedsession_users` SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},eStatus='INACTIVE' WHERE _key = $uid");
+                        break;
+                    case 'INACTIVE':
+                        if(!$email){
+                            // No email set
+                            break;
+                        }
+                        $body = <<<body
+Hi [[name]],
+
+We are writing to let you know that your account on the backend of the CATS site (catherapyservices.ca/cats) has been reactivated.
+
+As a reminder, to access your account:
+1.	Go to catherapyservices.ca/cats
+2.	Login with:
+Username: [[username]]
+Password: Same as before (use the reset password link on the login page if you don't remember it)
+
+Please let us know if you don't have permission to do something that you should have permission to do.
+
+Welcome back to the CATS Team
+
+CATS Development Team
+
+Reminder should you require assistance the development team can be reached at developer@catherapyservices.ca or through the support button (Next to the home and logout button, looks like a question mark).
+body;
+                        $body = str_replace(['[[name]]','[[username]]'], [$userInfo['realname'],$userInfo['email']], $body);
+                        SEEDEmailSend("developer@catherapyservices.ca", $email, "CATS Backend Account", $body);
+                        $this->oAccountDB->ActivateUser($uid);
+                        break;
+                }
                 break;
         }
         
@@ -898,6 +997,18 @@ Script;
             }
         }
         return ['kfr'=>$kfr,'defaulted'=>$bDefaulted];
+    }
+    
+    public function getEmail(int $uid):?String{
+        $email = $this->getClinicProfile($uid)['kfr']->Value("P_email");
+        if(!$email){
+            $raRecords = $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->GetRecordSetRA("P.uid=$uid");
+            $raEmails = array_filter(array_column($raRecords, "P_email"), function($k){
+                return filter_var($k, FILTER_VALIDATE_EMAIL);
+            });
+            $email = @$raEmails[0];
+        }
+        return $email?:null;
     }
     
     /**
@@ -1053,22 +1164,13 @@ Script;
         
         $userInfo = $this->oAccountDB->GetUserInfo($uid);
         $status = $userInfo[1]['eStatus'];
-        $kfr = $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO)->CreateRecord();
-        if(($kfrKey = array_key_exists(self::DEFAULT_PROFILE, $userInfo[2])?$userInfo[2][self::DEFAULT_PROFILE]:0)){
-            $kfr = $this->oPeopleDB->GetKFR(ClientList::INTERNAL_PRO, $kfrKey);
-        }
-        else{
-            $kfr1 = $this->oPeopleDB->GetKFRCond(ClientList::INTERNAL_PRO, "P.uid={$uid}");
-            if($kfr1){
-                $kfr = $kfr1;
-            }
-        }
+        $email = $this->getEmail($uid);
         $s .= "Username: {$this->oAccountDB->GetEmail($uid)}<br />"
         ."Status : {$status}<br />";
         switch($status){
             case "PENDING":
                 //User has been created but credentials have not been issued
-                if($kfr->Value('P_email')){
+                if($email){
                     $s .= "<button>Issue Credentials</button>";
                 }
                 else{
@@ -1082,7 +1184,7 @@ Script;
             case "INACTIVE":
                 //User has been created but has been deactivated
                 //Reactivation should reissue credentials
-                if($kfr->Value('P_email')){
+                if($email){
                     $s .= "<button>Reactivate</button>";
                 }
                 else{
