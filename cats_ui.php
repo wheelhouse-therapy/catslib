@@ -40,8 +40,13 @@ class CATS_UI
             exit;
         }
 
+        if($this->pswdIsTemporary() && $this->oHistory->getScreen() != "password-change"){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."password-change");
+            exit();
+        }
         $body .= TutorialManager::runTutorial($this->oApp, $this->oHistory->getScreen());
-
+        
         $body .=
             "<script> SEEDCore_CleanBrowserAddress(); </script>"
              .($this->oHistory->getScreen()=="home"?"<script> run(); </script>":"");
@@ -69,6 +74,17 @@ class CATS_UI
         return( $s );
     }
 
+    private function pswdIsTemporary(){
+        $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
+        $userInfo = $accountDB->GetUserInfo($this->oApp->sess->GetUID());
+        @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
+        $lname = $lname?:"";
+        $email = $this->oApp->sess->GetEmail();
+        $pswd = $userInfo[1]["password"];
+        $accountType = array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL;
+        return $pswd=="cats" && ($accountType == AccountType::STUDENT || strtolower($email) == strtolower(substr($fname, 0,1).$lname));
+    }
+    
 }
 
 
@@ -98,7 +114,33 @@ class CATS_MainUI extends CATS_UI
         $clinics = new Clinics($this->oApp);
         if( $screen == "logout" ) {     // put this one first so you can logout if you have no clinics defined (so you get stuck in the next case)
             $s .= $this->DrawLogout();
-        } else if($clinics->GetCurrentClinic() == NULL){
+        } 
+        else if($screen == "password-change"){ // Force the user to change their password if its temporary.
+            $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
+            if(($newPswd = @$_POST['new_pswd']) && ($confirmPswd = @$_POST['confirm_pswd'])){
+                if($newPswd === $confirmPswd){
+                    $accountDB->ChangeUserPassword($this->oApp->sess->GetUID(), $newPswd);
+                    header("HTTP/1.1 303 SEE OTHER");
+                    header("Location: ".CATSDIR."home");
+                    exit();
+                }
+                else{
+                    $this->oApp->oC->AddErrMsg("Passwords dont match");
+                }
+            }
+            $s .= <<<ResetPassword
+<form style='margin:auto;border:1px solid gray; width:33%; padding: 10px; padding-top: 0px; border-radius:10px; margin-top:10em;' method='post'>
+         You used a temporary password to login.<br />Please enter a new password to continue.
+         <br />We recommend using a strong password that will also be easy for you to remember.
+         <br /><br />
+         <input type='password' placeholder='Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='new_pswd' />
+         <br />
+         <input type='password' placeholder='Confirm Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='confirm_pswd' />
+         <br />
+         <input type='submit' value='Change Password' style='border-style: inset outset outset inset; font-family: \"Lato\", sans-serif; font-weight: 400; border-radius:5px; display:block; margin:auto;' />
+         </form>"
+ResetPassword;
+        }else if($clinics->GetCurrentClinic() == NULL){
             $s .= "<div style='margin:auto; width:33%; padding: 10px; padding-top: 0px; margin-top:10em;'><h2>Please Select a clinic to continue</h2>"
                  .$clinics->displayUserClinics(true)
                  ."</div>";
@@ -125,20 +167,6 @@ class CATS_MainUI extends CATS_UI
             $this->oHistory->restoreScreen();
             (new Clinics($this->oApp))->renderImage(SEEDInput_Int("imageID"),@$_REQUEST['clinic']);
         }
-        else if($this->pswdIsTemporary()){
-            $s .= <<<ResetPassword
-<form style='margin:auto;border:1px solid gray; width:33%; padding: 10px; padding-top: 0px; border-radius:10px; margin-top:10em;' method='post'>
-         You used a temporary password to login.<br />Please enter a new password to continue.
-         <br />We recommend using a strong password that will also be easy for you to remember.
-         <br /><br />
-         <input type='password' placeholder='Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='new_pswd' />
-         <br />
-         <input type='password' placeholder='Confirm Password' style='display:block; font-family: \"Lato\", sans-serif; font-weight: 400; margin:auto; border-radius:5px; border-style: inset outset outset inset;' name='confirm_pswd' />
-         <br />
-         <input type='submit' value='Change Password' style='border-style: inset outset outset inset; font-family: \"Lato\", sans-serif; font-weight: 400; border-radius:5px; display:block; margin:auto;' />
-         </form>"
-ResetPassword;
-        }
         else {
             $s .= $this->DrawHome();
         };
@@ -155,7 +183,7 @@ ResetPassword;
             .($this->oApp->sess->CanRead('administrator') ? $this->DrawDeveloper() : "")
             // This Section allows Clinic Leaders to manage clinic specific settings
             .(!CATS_SYSADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead())? $this->DrawLeader() : "")
-            .$this->DrawSystem()
+            .($this->oApp->sess->CanRead('system') ? $this->DrawSystem() : "")
             ."</div>";
             $s .= "
         <!-- the div that represents the modal dialog -->
@@ -184,6 +212,11 @@ ResetPassword;
 
     function DrawTherapist()
     {
+        if(!$this->oApp->sess->CanRead('therapist')){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."home");
+            exit();
+        }
         //Unimplemented Bubbles have been commented out to clean up display
         $raTherapistScreens = array(
             array( 'therapist-clientlist',      "Client list / External Provider list" ),
@@ -264,6 +297,11 @@ ResetPassword;
         $s = "";
 
         $oApp = $this->oApp;
+        if(!$this->oApp->sess->CanRead('admin')){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."home");
+            exit();
+        }
         switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
                 require_once 'manage_users.php';
@@ -319,6 +357,11 @@ ResetPassword;
 
     function DrawDeveloper(){
         $s = "";
+        if(!$this->oApp->sess->CanRead('administrator')){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."home");
+            exit();
+        }
         switch($this->oHistory->getScreen()){
             case 'administrator-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
@@ -344,6 +387,11 @@ ResetPassword;
 
     public function drawLeader(){
         $s = "";
+        if(!(!CATS_SYSADMIN && in_array((new Clinics($this->oApp))->GetCurrentClinic(),(new Clinics($this->oApp))->getClinicsILead()))){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."home");
+            exit();
+        }
         switch ($this->oHistory->getScreen()){
             case "leader-clinic":
                 $s .= (new Clinics($this->oApp))->manageClinics();
@@ -360,6 +408,11 @@ ResetPassword;
 
     public function drawSystem(){
         $s = "";
+        if(!$this->oApp->sess->CanRead('system')){
+            header("HTTP/1.1 303 SEE OTHER");
+            header("Location: ".CATSDIR."home");
+            exit();
+        }
         switch ($this->oHistory->getScreen()){
             case "system-documentation":
                 require_once 'Documentation.php';
@@ -479,26 +532,6 @@ ResetPassword;
     {
         $o = new UsersGroupsPermsUI( $this->oApp );
         return( $o->DrawUI() );
-    }
-
-    private function pswdIsTemporary(){
-        $accountDB = new SEEDSessionAccountDB($this->oApp->kfdb,$this->oApp->sess->GetUID());
-        if(($newPswd = @$_POST['new_pswd']) && ($confirmPswd = @$_POST['confirm_pswd'])){
-            if($newPswd === $confirmPswd){
-                $accountDB->ChangeUserPassword($this->oApp->sess->GetUID(), $newPswd);
-                $this->oApp->oC->AddUserMsg("Password Changed");
-            }
-            else{
-                $this->oApp->oC->AddErrMsg("Passwords dont match");
-            }
-        }
-        $userInfo = $accountDB->GetUserInfo($this->oApp->sess->GetUID());
-        @list($fname,$lname) = explode(" ", $this->oApp->sess->GetName());
-        $lname = $lname?:"";
-        $email = $this->oApp->sess->GetEmail();
-        $pswd = $userInfo[1]["password"];
-        $accountType = array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL;
-        return $pswd=="cats" && ($accountType == AccountType::STUDENT || strtolower($email) == strtolower(substr($fname, 0,1).$lname));
     }
 
 }
