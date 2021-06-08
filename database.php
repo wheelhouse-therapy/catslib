@@ -429,8 +429,8 @@ function createTables( KeyframeDatabase $kfdb )
                         array('catsappt',       'RW',   'NULL',       4),
                         array('Calendar',       'RW',   'NULL',       5),
                         array('Calendar',       'A',    'NULL',       4),
-                        array('system',         'RW',   'NULL',       4),
-                        array('system',         'A',    'NULL',       1),
+                        array('system',         'R',   'NULL',       4),
+                        array('system',         'WA',    'NULL',       1),
                       ) as $ra )
         {
             $kfdb->Execute( "INSERT INTO SEEDSession_Perms (_key,_created,_updated,perm,modes,uid,gid) "
