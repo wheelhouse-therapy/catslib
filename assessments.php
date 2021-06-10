@@ -1525,7 +1525,7 @@ function getAssessmentTags(Assessments $oAsmt){
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Avalible Tags for [[type]] Assessments</h4>
+                <h4 class="modal-title">Available Tags for [[type]] Assessments</h4>
             </div>
             <div class="modal-body">
                 <strong>Assessment Specific Tags:</strong><br />
@@ -1548,7 +1548,7 @@ TEMPLATE;
         $tags .= "\${{$oAsmt->GetAsmtCode()}:$tag}";
     }
     if(!$tags){
-        $tags = "No Tags Avalible for this Assessment Type";
+        $tags = "No Tags Available for this Assessment Type";
     }
     
     $global = "";

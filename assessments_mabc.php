@@ -472,7 +472,8 @@ class Assessment_MABC extends Assessments
             "ac_percentile",
             "bal_percentile",
             "total_percentile",
-            "zone"
+            "zone",
+            "zone_interpretation"
         );
     }
 
@@ -488,6 +489,17 @@ class Assessment_MABC extends Assessments
 
             case "zone":
                 return Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2];
+            case "zone_interpretation":
+                switch(Assessment_MABC_Scores::GetTotalScore( $this->oData->ComputeScore('total_score') )[2]){
+                    case "red":
+                        return "denotes a significant movement difficulty compared to age peers";
+                    case "amber":
+                        return "suggests the child is 'at risk' of having a movement difficulty, and monitoring is required";
+                    case "green":
+                        return "means that no movement difficulty was detected";
+                    default:
+                        return "";
+                }
         }
     }
 
@@ -915,8 +927,8 @@ static private $raTestTotals = array(
     ['total'=>"78-81",   'std'=>10, 'pct'=>50,   'zone'=>"green" ],
     ['total'=>"73-77",   'std'=>9,  'pct'=>37,   'zone'=>"green" ],
     ['total'=>"68-72",   'std'=>8,  'pct'=>25,   'zone'=>"green" ],
-    ['total'=>"63-67",   'std'=>7,  'pct'=>16,   'zone'=>"yellow" ],
-    ['total'=>"57-62",   'std'=>6,  'pct'=>9,    'zone'=>"yellow" ],
+    ['total'=>"63-67",   'std'=>7,  'pct'=>16,   'zone'=>"amber" ],
+    ['total'=>"57-62",   'std'=>6,  'pct'=>9,    'zone'=>"amber" ],
     ['total'=>"50-56",   'std'=>5,  'pct'=>5,    'zone'=>"red" ],
     ['total'=>"44-49",   'std'=>4,  'pct'=>2,    'zone'=>"red" ],
     ['total'=>"38-43",   'std'=>3,  'pct'=>1,    'zone'=>"red" ],
