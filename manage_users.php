@@ -652,6 +652,10 @@ function changeOuterTab(e) {
     document.getElementById("content"+target.id.substring(3)).classList.add("active-tab");
 }
 
+function addSync(element){
+	element.innerHTML = "<i class='fa fa-sync-alt fa-spin'></i>"+element.innerHTML;
+}
+
 window.addEventListener("DOMContentLoaded", function() {
 	let tabs = document.querySelectorAll(".tab.outer-tab");
     for (let i = 0; i < tabs.length; i++) {
@@ -831,7 +835,7 @@ Script;
                 }
                 $this->oAccountDB->SetUserMetadata($uid, AccountType::KEY, $newType);
                 break;
-            case "updateStatus":
+            case "updatestatus":
                 if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
                     // No Permission
                     break;
@@ -1171,7 +1175,7 @@ body;
             case "PENDING":
                 //User has been created but credentials have not been issued
                 if($email){
-                    $s .= "<button>Issue Credentials</button>";
+                    $s .= "<button onclick='addSync(this);window.location.href=\"".CATSDIR."?uid=$uid&cmd=updateStatus\"'>Issue Credentials</button>";
                 }
                 else{
                     $s .= "A valid Email must be entered for this staff before this user can be activated";
@@ -1179,13 +1183,13 @@ body;
                 break;
             case "ACTIVE":
                 //User has been created and credentials have been issued
-                $s .= "<button>Deactivate</button>";
+                $s .= "<button onclick='addSync(this);window.location.href=\"".CATSDIR."?uid=$uid&cmd=updateStatus\"'>Deactivate</button>";
                 break;
             case "INACTIVE":
                 //User has been created but has been deactivated
                 //Reactivation should reissue credentials
                 if($email){
-                    $s .= "<button>Reactivate</button>";
+                    $s .= "<button onclick='addSync(this);window.location.href=\"".CATSDIR."?uid=$uid&cmd=updateStatus\"'>Reactivate</button>";
                 }
                 else{
                     $s .= "A valid Email must be entered for this staff before this user can be reactivated";
