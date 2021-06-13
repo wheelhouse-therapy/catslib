@@ -439,9 +439,8 @@ ResetPassword;
                 break;
             case "system-usersettings":
                 $s .= "<h2>My Profile</h2>";
-                $clone = SEEDInput_Str("clone")?true:false;
-                $manageUsers = new ManageUsers($this->oApp);
-                $s .= $manageUsers->userSettings($this->oApp->sess->getUID(),$clone);
+                $manageUsers = new ManageUsers2($this->oApp);
+                $s .= $manageUsers->drawProfile();
                 break;
             default:
                 $s .= $this->drawCircles([['menu:system',"Access System Resources"]], "system");
