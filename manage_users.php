@@ -621,11 +621,33 @@ function changeTab(e) {
 }
 
 function submitForm(e){
-    let a = document.querySelectorAll(".tab-content>form");
-    let data = [];
+    let a = document.querySelectorAll(".profile-form");
+    let formData = [];
     for(let i=0;i<a.length;i++){
-        data = data.concat($(a[i]).serializeArray());
+        formData = formData.concat($(a[i]).serializeArray());
     }
+    $.ajax({
+        type: "POST",
+        url: "jx.php",
+        data: formData,
+        cache       : false,
+        success: function(data, textStatus, jqXHR) {
+        	jsData = JSON.parse(data);
+            if(jsData.bOk){
+                document.getElementById('alertBox').innerHTML = "<div class='alert alert-success alert-dismissible'><i class='fas fa-check-circle'></i> Saved</div>";
+            }
+            else{
+                document.getElementById('alertBox').innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> Failed to Save</div>";
+            }
+            hideAlerts();
+        },
+        error: function(jqXHR, status, error) {
+            console.log(status + ": " + error);
+            document.getElementById('alertBox').innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> We ran into a problem while saving</div>";
+            hideAlerts();
+        }
+    });
+    e.preventDefault();
 }
 
 window.addEventListener("DOMContentLoaded", function() {
@@ -714,7 +736,6 @@ Script;
      * @return String
      */
     public function drawList():String{
-        
         $s = "";
         // List them like in v1
         foreach($this->raUsers as $userid){
@@ -804,6 +825,23 @@ Script;
                 else{
                     $uid = $this->oApp->sess->GetUID();
                 }
+                $fname = SEEDInput_Str("first_name");
+                $lname = SEEDInput_Str("last_name");
+                $profileCount = SEEDInput_Int("profileCount");
+                //Set Name
+                $realname = $fname." ".$lname;
+                $this->oApp->kfdb->Execute("UPDATE SEEDSESSION_Users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
+                
+                for($i=0;$i<$profileCount;$i++){
+                    $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), $this->getName($i+1) );
+                    $oForm->Update();
+                    $this->updatePeople($oForm,$fname,$lname);
+                    //Handle Signature Upload
+                    if(@$_FILES["new_signature"]["tmp_name".($i+1)]){
+                        $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name".($i+1)]))."' WHERE pros_internal._key = ".$oForm->GetKey());
+                    }
+                }
+                
                 break;
             case "updateaccount":
                 if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
@@ -933,7 +971,7 @@ body;
         $s .= "<div id='tabProfile' class='tab outer-tab active-tab'>Profile</div>";
         $s .= "<div id='tabAccount' class='tab outer-tab'>Account</div>";
         $s .= "</div><br/><div id='contentProfile' class='tab-content outer-content container-fluid active-tab'>";
-        $s .= $this->drawProfileForm($uid);
+        $s .= $this->drawProfileForm($uid,"admin-updateprofile");
         $s .= "</div>";
         $s .= "<div id='contentAccount' class='tab-content outer-content container-fluid'>".$this->drawAccountForm($uid)."</div>";
         return $s;
@@ -952,7 +990,7 @@ body;
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
-        $s .= $this->drawProfileForm($this->oApp->sess->GetUID());
+        $s .= $this->drawProfileForm($this->oApp->sess->GetUID(),"system-updateprofile");
         return $s;
     }
     
@@ -1016,27 +1054,60 @@ body;
     }
     
     /**
+     * Check if the clinic profile for the given user is valid.
+     * A valid profile should not be limited in functionality
+     * A profile is considered valid if the following fields are filled out:
+     * First Name
+     * Last Name
+     * Email
+     *
+     * @param int $uid - uid of user to check
+     * @return bool - true if the profile is filled out where all features are unlocked. False otherwise
+     */
+    public function profileValid(int $uid):bool{
+        $valid = true;
+        $kfr = $this->getClinicRecord($uid);
+        if(!$kfr){
+            $valid = false;
+        }
+        else if(!$kfr->Value("P_first_name")){
+            $valid = false;
+        }
+        else if(!$kfr->Value("P_last_name")){
+            $valid = false;
+        }
+        else if(!$this->getEmail($uid)){
+            $valid = false;
+        }
+        else if(!$kfr->Value("pro_role")){
+            $valid = false;
+        }
+        return $valid;
+    }
+    
+    /**
      * Draw a tab for each clinic the user is in and render the form for each of the tabs.
      * @param int $uid - user to render the entire profile form for.
      * @return String - The complete profile form.
      */
-    private function drawProfileForm(int $uid):String{
+    private function drawProfileForm(int $uid,String $cmd):String{
         
         if($uid <= 0){
             return $this->drawNewUserForm();
         }
         
-        $s = "";
+        $s = "<div id='alertBox'></div>";
         $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
         $raName = explode(" ", $accountName,2);
         $fname = @$raName[0]?:"";
         $lname = @$raName[1]?:"";
         
-        $s .= "<form>";
+        $s .= "<form class='profile-form'>";
         $s .= "<input type='hidden' name='uid' value='$uid' />";
         $s .= "<input type='text' name='first_name' id='first_name' value='$fname' required placeholder='First Name' maxlength='200'>";
         $s .= "<input type='text' name='last_name' id='last_name' value='$lname' required placeholder='Last Name' maxlength='200'>";
-        $s .= "<input type='hidden' name='cmd' value='updateprofile' />";
+        $s .= "<input type='hidden' name='cmd' value='$cmd' />";
+        $s .= "<input type='hidden' name='profileCount' value='[[count]]' />";
         $s .= "</form>";
         
         // When user selected provide tabs for the different records in each clinic.
@@ -1052,8 +1123,6 @@ body;
         $raForms = [];
         $i = 1;
         $activeTab = 1;
-        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
-        $oForm->SetRowNum(1);
         foreach($raClinics as $clinic){
             $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
             $raProfile = $this->getProfile($uid, $clinic);
@@ -1066,10 +1135,10 @@ body;
             else{
                 $s .= "<div id='tab{$i}' class='tab'>$clinicName$sDefault</div>";
             }
-            $raForms["content$i"] = $this->drawInternalProfileForm($uid, $clinic,$oForm);
-            $oForm->IncRowNum();
+            $raForms["content$i"] = $this->drawInternalProfileForm($uid, $clinic,$i);
             $i++;
         }
+        $s = str_replace("[[count]]", --$i, $s);
         $s .= "</div><br/>";
         foreach($raForms as $id=>$data){
             if($id == "content$activeTab"){
@@ -1088,10 +1157,14 @@ body;
      * Draw the form within the users profile tabs.
      * @param int $uid - user id of the user to draw the form of.
      * @param int $clinic - clinic of the profile to draw
+     * @param int $i - the tab index of the form
      * @return String - The form displaying the users profile or a message stating the clinic uses the default profile and an option to create a clinic profile.
      */
-    private function drawInternalProfileForm(int $uid, int $clinic,KeyframeForm $oForm):String{
+    private function drawInternalProfileForm(int $uid, int $clinic,int $i = 1):String{
         
+        if($i <= 0){
+            $i = 1;
+        }
         $s = "";
         $raProfile = $this->getProfile($uid, $clinic);
         $kfr = $raProfile['kfr'];
@@ -1102,6 +1175,7 @@ body;
                   ."</div>";
         }
         
+        $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), $this->getName($i) );
         $oForm->SetKFR($kfr);
         $roles = ClientList::$staff_roles_name;
         $myRole = $oForm->Value('pro_role');
@@ -1123,7 +1197,7 @@ body;
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
         
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
-        $s .= "<form>"
+        $s .= "<form class='profile-form' onsubmit='submitForm(event);'>"
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>";
         
@@ -1139,7 +1213,7 @@ body;
         $s .= $this->drawFormRow( "Credentials", $oForm->Text('P_extra_credentials',"",array("attrs"=>"placeholder='To be shown after name'")));
         $s .= $this->drawFormRow( "Registration number", $oForm->Text('P_extra_regnumber',"",array("attrs"=>"placeholder='Registration number'")));
         $s .= $this->drawFormRow( "Rate","<input type='number' name='".$oForm->Name('rate')."' value='".$oForm->ValueEnt('rate')."' placeholder='Hourly rate' step='1' min='0' />" );
-        $s .= $this->drawFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' /><br /><input type=\"file\" name=\"new_signature\" accept='.jpg' />");
+        $s .= $this->drawFormRow("Signature", "<img src='data:image/jpg;base64,".base64_encode($oForm->Value("signature"))."' style='width:100%;padding-bottom:2px' /><br /><input type=\"file\" name=\"new_signature$i\" accept='.jpg' />");
         $s .= "<tr class='row'><td class='col-md-12'><input id='save-button' type='submit' value='Save' />";
         if($oForm->Value("_key")){
             $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
@@ -1197,7 +1271,7 @@ body;
         }
         $accountType = array_key_exists(AccountType::KEY, $userInfo[2])?$userInfo[2][AccountType::KEY]:AccountType::NORMAL;
         if($accountType != AccountType::DEVELOPER || CATS_SYSADMIN){
-            $s .= "<form><input type='hidden' name='cmd' value='updateAccount'><input type='hidden' name='uid' value='$uid'>";
+            $s .= "<form class='account-form'><input type='hidden' name='cmd' value='updateAccount'><input type='hidden' name='uid' value='$uid'>";
         }
         else{
             $s .= "<br />";
@@ -1237,7 +1311,7 @@ body;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $s .= "<form>"
             .$oForm->HiddenKey()
-            ."<input type='hidden' name='cmd' value='createNewUser'/>"
+            ."<input type='hidden' name='cmd' value='admin-createNewUser' />"
             ."<table class='container-fluid table table-striped table-sm'>";
             
         $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
@@ -1350,6 +1424,43 @@ body;
         return $s;
     }
     
+    private function updatePeople( SEEDCoreForm $oForm, String $first_name, String $last_name )
+    /***************************************************
+     The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
+     */
+    {
+        $peopleFields = array('pronouns','address','city','province','postal_code','dob','phone_number','email' );
+        
+        $kP = $oForm->Value('P__key');
+        if(!$kP){
+            $sCond = "";
+            foreach($peopleFields as $field){
+                if($sCond){
+                    $sCond .= " AND ";
+                }
+                $sCond .= $field." = '".$oForm->Value("P_".$field)."'";
+            }
+            if(($kfr = $this->oPeopleDB->GetKFRCond("P",$sCond))){
+                $kP = $kfr->Key();
+            }
+        }
+        if(($kfr = ($kP?$this->oPeopleDB->GetKFR('P', $kP):$this->oPeopleDB->KFRel("P")->CreateRecord())) ) {
+            foreach( $peopleFields as $v ) {
+                $kfr->SetValue( $v, $oForm->Value("P_$v") );
+            }
+            $kfr->SetValue("first_name", $first_name);
+            $kfr->SetValue("last_name", $last_name);
+            $raExtra = array();
+            if( $oForm->Value('P_extra_credentials') )  $raExtra['credentials'] = $oForm->Value('P_extra_credentials');
+            if( $oForm->Value('P_extra_regnumber') )    $raExtra['regnumber'] = $oForm->Value('P_extra_regnumber');
+            if( count($raExtra) )  $kfr->SetValue( 'extra', SEEDCore_ParmsRA2URL( $raExtra ) );
+            if( $oForm->Value('P_uid')) $kfr->SetValue('uid',$oForm->Value("P_uid"));
+            $kfr->PutDBRow();
+            $oForm->SetValue("fk_people", $kfr->Key());
+            $oForm->Store();
+        }
+    }
+    
     private function getDefaultProfile(int $uid):KeyframeRecord{
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
         if($defaultProfile){
@@ -1364,6 +1475,21 @@ body;
         }
         $this->oAccountDB->SetUserMetadata($uid, self::DEFAULT_PROFILE, $profile);
         return true;
+    }
+    
+    /**
+     * Convert a number to its Excel column name
+     * @param int $i - number to convert
+     * @return String - Excel row name, or "" if i <= 0
+     */
+    private function getName(int $i):String{
+        $name = "";
+        while($i > 0){
+            $temp = ($i - 1) % 26;
+            $name = chr($temp + 65) .$name;
+            $i = floor(($i - 1) / 26);
+        }
+        return $name;
     }
     
 }
