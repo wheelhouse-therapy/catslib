@@ -633,17 +633,21 @@ function submitForm(e){
         cache       : false,
         success: function(data, textStatus, jqXHR) {
         	jsData = JSON.parse(data);
+            let alertBox = document.getElementById('alertBox');
             if(jsData.bOk){
-                document.getElementById('alertBox').innerHTML = "<div class='alert alert-success alert-dismissible'><i class='fas fa-check-circle'></i> Saved</div>";
+                alertBox.innerHTML = "<div class='alert alert-success alert-dismissible'><i class='fas fa-check-circle'></i> Saved</div>";
             }
             else{
-                document.getElementById('alertBox').innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> Failed to Save</div>";
+                alertBox.innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> Failed to Save</div>";
             }
+            document.getElementById("form").scrollTop = alertBox.offsetTop;
             hideAlerts();
         },
         error: function(jqXHR, status, error) {
             console.log(status + ": " + error);
-            document.getElementById('alertBox').innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> We ran into a problem while saving</div>";
+            let alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = "<div class='alert alert-danger alert-dismissible'><i class='fas fa-times-circle'></i> We ran into a problem while saving</div>";
+            document.getElementById("form").scrollTop = alertBox.offsetTop;
             hideAlerts();
         }
     });
@@ -724,10 +728,10 @@ Script;
         $s .= self::PROFILE_SCRIPT;
         $s .= self::MANAGE_SCRIPT;
         $s .= "<div class='container-fluid'><div class='row'>"
-            ."<div id='users' class='col-md-4'>";
+            ."<div id='users' class='col-md-4' style='overflow:hidden;overflow-y:auto;height:90vh;'>";
         $s .= $this->drawList();
         $s .= "</div>"
-            ."<div id='form' class='col-md-8'>".($uid?$this->drawManageForm($uid):"")."</div></div></div>";
+            ."<div id='form' class='col-md-8' style='overflow:hidden;overflow-y:auto;height:90vh;'>".($uid?$this->drawManageForm($uid):"")."</div></div></div>";
         return $s;
     }
     
@@ -990,7 +994,9 @@ body;
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
+        $s .= "<div id='form'>";
         $s .= $this->drawProfileForm($this->oApp->sess->GetUID(),"system-updateprofile");
+        $s .= "</div>";
         return $s;
     }
     
