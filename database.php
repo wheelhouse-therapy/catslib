@@ -49,7 +49,7 @@ class ClinicsDB
         $this->kfrel = new KeyFrame_Relation( $kfdb, $this->kfreldef, $uid, array('logfile'=>CATSDIR_LOG."clinics.log") );
     }
 
-    function GetClinic( $key )
+    function GetClinic( $key ):KeyframeRecord
     {
         return( $this->kfrel->GetRecordFromDBKey( $key ) );
     }
