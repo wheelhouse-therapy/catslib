@@ -845,7 +845,36 @@ Script;
                         $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name".($i+1)]))."' WHERE pros_internal._key = ".$oForm->GetKey());
                     }
                 }
+                break;
+            case "createnewaccount":
+                if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
+                    // No Permission
+                    break;
+                }
+                $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
+                $oForm->Update(array("bNoStore" => TRUE));
+                $username = strtolower(str_replace(" ","",substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name')));
+                $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
+                if($this->oAccountDB->GetKUserFromEmail($email)){
+                    // User Exists
+                    $this->oApp->oC->AddErrMsg("A user with this name already exists");
+                    break;
+                }
                 
+                $oForm->Update();
+                $this->updatePeople($oForm,$fname,$lname);
+                //Handle Signature Upload
+                if(@$_FILES["new_signature"]["tmp_name".($i+1)]){
+                    $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name".($i+1)]))."' WHERE pros_internal._key = ".$oForm->GetKey());
+                }
+                $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
+                $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('fk_people'));
+                
+                $this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),{$this->oApp->getUID()},NOW(),{$this->oApp->getUID()},0,$uid,{$oForm->Value("clinic")})");
+                
+                header("HTTP/1.1 303 SEE OTHER");
+                header("Location: ?uid=$uid");
+                exit();
                 break;
             case "updateaccount":
                 if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
