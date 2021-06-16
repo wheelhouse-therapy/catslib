@@ -1273,7 +1273,7 @@ body;
         $kfr = $raProfile['kfr'];
         
         if($raProfile['defaulted']){
-            return "<div style='text-align:center'>This Clinic uses the information from the default profile.<wbr>You can create a clinic specific one here."
+            return "<div style='text-align:center'>This Clinic uses the information from the default profile.<wbr>You can create a clinic specific one here.<br />"
                   ."<a href='?cmd=newProfile&uid=$uid&clinicId=$clinic'><button>Create Clinic Profile</button></a>"
                   ."</div>";
         }
