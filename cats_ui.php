@@ -366,14 +366,9 @@ ResetPassword;
             case 'administrator-clinics':
                 $s .= (new Clinics($this->oApp))->manageClinics();
                 break;
-            case 'administrator-users':
-                $manageUsers = new ManageUsers2($this->oApp);
-                $s .= $manageUsers->drawUI();
-                break;
             case 'administrator':
                     $raScreens = array(
                         array( 'administrator-clinics',        "Manage Clinics" ),
-                        array( 'administrator-users',          "Manage Users (v2)"),
                     );
                     $s .= $this->drawCircles( $raScreens, "developer" );
                     break;
