@@ -19,7 +19,7 @@ class ManageUsers {
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
     }
-
+    
     public function manageUser(int $staff_key, bool $userStatus = true, int $cloneID = 0, bool $bShowSaved = false){
         $kfr = $this->getRecord($staff_key);    // gets empty record if staff_key is 0
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
@@ -654,6 +654,17 @@ function submitForm(e){
     e.preventDefault();
 }
 
+function doUpdateForm() {
+    var sel = document.getElementById('mySelect').value;
+    if( sel == 'Other' ) {
+        document.getElementById('other').style.display = 'inline';
+        document.getElementById('other').disabled = false;
+    } else {
+        document.getElementById('other').style.display = 'none';
+        document.getElementById('other').disabled = true;
+    }
+}
+
 window.addEventListener("DOMContentLoaded", function() {
 	let tabs = document.querySelectorAll(".tab:not(.outer-tab)");
     for (let i = 0; i < tabs.length; i++) {
@@ -730,8 +741,16 @@ Script;
         $s .= "<div class='container-fluid'><div class='row'>"
             ."<div id='users' class='col-md-4' style='overflow:hidden;overflow-y:auto;height:90vh;'>";
         $s .= $this->drawList();
-        $s .= "</div>"
-            ."<div id='form' class='col-md-8' style='overflow:hidden;overflow-y:auto;height:90vh;'>".($uid?$this->drawManageForm($uid):"")."</div></div></div>";
+        $s .= "</div>";
+        $s .= "<div id='form' class='col-md-8' style='overflow:hidden;overflow-y:auto;height:90vh;'>";
+        if($uid > 0){
+            $s .= $this->drawManageForm($uid);
+        }
+        else if($uid == -1){
+            $this->oApp->sess->VarUnSet("uid");
+            $s .= $this->drawNewUserForm();
+        }
+        $s .= "</div></div></div>";
         return $s;
     }
     
@@ -742,6 +761,7 @@ Script;
     public function drawList():String{
         $s = "";
         // List them like in v1
+        $s .= "<a href='?uid=-1'><button>New User</button></a>";
         foreach($this->raUsers as $userid){
             $raUser = $this->oAccountDB->GetUserInfo($userid,false);
             if(!$raUser[0]){continue;}
@@ -770,7 +790,7 @@ Script;
         
         // If name is changed update account name and ALL of the clinic records with the new name.
         
-        //Valid Commands: newProfile, updateProfile, setDefault, updateAccount, createNewUser, updateStatus
+        //Valid Commands: newProfile, updateProfile, setDefault, updateAccount, createNewUser, updateStatus, addClinic, removeClinic
         
         switch(strtolower($cmd)){
             case "setdefault":
@@ -839,14 +859,16 @@ Script;
                 for($i=0;$i<$profileCount;$i++){
                     $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), $this->getName($i+1) );
                     $oForm->Update();
-                    $this->updatePeople($oForm,$fname,$lname);
+                    $oForm->SetValue("P_first_name", $fname);
+                    $oForm->SetValue("P_last_name", $lname);
+                    $this->updatePeople($oForm);
                     //Handle Signature Upload
                     if(@$_FILES["new_signature"]["tmp_name".($i+1)]){
                         $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name".($i+1)]))."' WHERE pros_internal._key = ".$oForm->GetKey());
                     }
                 }
                 break;
-            case "createnewaccount":
+            case "createnewuser":
                 if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
                     // No Permission
                     break;
@@ -855,14 +877,14 @@ Script;
                 $oForm->Update(array("bNoStore" => TRUE));
                 $username = strtolower(str_replace(" ","",substr($oForm->Value('P_first_name'), 0,1).$oForm->Value('P_last_name')));
                 $realname = $oForm->Value('P_first_name')." ".$oForm->Value('P_last_name');
-                if($this->oAccountDB->GetKUserFromEmail($email)){
+                if($this->oAccountDB->GetKUserFromEmail($username)){
                     // User Exists
                     $this->oApp->oC->AddErrMsg("A user with this name already exists");
                     break;
                 }
                 
                 $oForm->Update();
-                $this->updatePeople($oForm,$fname,$lname);
+                $this->updatePeople($oForm);
                 //Handle Signature Upload
                 if(@$_FILES["new_signature"]["tmp_name".($i+1)]){
                     $this->oApp->kfdb->Execute("UPDATE pros_internal SET signature = '".addslashes(file_get_contents($_FILES["new_signature"]["tmp_name".($i+1)]))."' WHERE pros_internal._key = ".$oForm->GetKey());
@@ -870,7 +892,10 @@ Script;
                 $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
                 $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('fk_people'));
                 
-                $this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),{$this->oApp->getUID()},NOW(),{$this->oApp->getUID()},0,$uid,{$oForm->Value("clinic")})");
+                // Add to clinic
+                $this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),{$this->oApp->sess->getUID()},NOW(),{$this->oApp->sess->getUID()},0,$uid,{$oForm->Value("clinic")})");
+                
+                $this->setDefaultProfile($uid, $oForm->Value("_key"));
                 
                 header("HTTP/1.1 303 SEE OTHER");
                 header("Location: ?uid=$uid");
@@ -980,6 +1005,49 @@ body;
                         SEEDEmailSend("developer@catherapyservices.ca", $email, "CATS Backend Account", $body);
                         $this->oAccountDB->ActivateUser($uid);
                         break;
+                }
+                break;
+            case "addclinic":
+                if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
+                    // No Permission
+                    break;
+                }
+                $uid = SEEDInput_Int("uid");
+                if($uid <= 0){
+                    break;
+                }
+                $toAdd = $_REQUEST['toAdd'];
+                $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_Users WHERE _key = $uid;");
+                foreach($toAdd as $clinic){
+                    $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
+                    if($this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),{$this->oApp->sess->GetUID()},NOW(),{$this->oApp->sess->GetUID()},0,$uid,$clinic);")){
+                        $this->oApp->oC->AddUserMsg("Added $userName to the $clinicName clinic<br />");
+                    }
+                    else{
+                        $this->oApp->oC->AddErrMsg("Could Not add $userName to the $clinicName clinic<br />");
+                    }
+                }
+                break;
+            case "removeclinic":
+                if(!$this->oApp->sess->CanRead('admin') || $this->oHistory->getScreen() == 'system-usersettings'){
+                    // No Permission
+                    break;
+                }
+                $uid = SEEDInput_Int("uid");
+                if($uid <= 0){
+                    break;
+                }
+                $toRemove = $_REQUEST['toRemove'];
+                $userName = $this->oApp->kfdb->Query1("SELECT realname FROM SEEDSession_Users WHERE _key = $uid;");
+                foreach($toRemove as $clinic){
+                    $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
+                    $key = $this->oApp->kfdb->Query1("SELECT _key FROM users_clinics WHERE fk_SEEDSession_Users = $uid AND fk_clinics = $clinic;");
+                    if($this->oApp->kfdb->Execute("DELETE FROM `users_clinics` WHERE `users_clinics`.`_key` = $key;")){
+                        $this->oApp->oC->AddUserMsg("Removed $userName from the $clinicName clinic<br />");
+                    }
+                    else{
+                        $this->oApp->oC->AddErrMsg("Could Not remove $userName from the $clinicName clinic<br />");
+                    }
                 }
                 break;
         }
@@ -1315,12 +1383,14 @@ body;
         if($accountType != AccountType::DEVELOPER || CATS_SYSADMIN){
             $s .= "<input type='submit' value='Change'></form>";
         }
+        $s .= "<br /><br />";
+        $s .= $this->getClinicAssigner($uid);
         
         return $s;
     }
     
     private function drawNewUserForm():String{
-        $s = "";
+        $s = "<h3>New User</h3>";
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
         $oForm->SetKFR($this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord());
         
@@ -1346,7 +1416,7 @@ body;
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $s .= "<form>"
             .$oForm->HiddenKey()
-            ."<input type='hidden' name='cmd' value='admin-createNewUser' />"
+            ."<input type='hidden' name='cmd' value='createNewUser' />"
             ."<table class='container-fluid table table-striped table-sm'>";
             
         $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
@@ -1459,12 +1529,12 @@ body;
         return $s;
     }
     
-    private function updatePeople( SEEDCoreForm $oForm, String $first_name, String $last_name )
+    private function updatePeople( SEEDCoreForm $oForm )
     /***************************************************
      The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
-        $peopleFields = array('pronouns','address','city','province','postal_code','dob','phone_number','email' );
+        $peopleFields = array('first_name','last_name','pronouns','address','city','province','postal_code','dob','phone_number','email' );
         
         $kP = $oForm->Value('P__key');
         if(!$kP){
@@ -1483,8 +1553,6 @@ body;
             foreach( $peopleFields as $v ) {
                 $kfr->SetValue( $v, $oForm->Value("P_$v") );
             }
-            $kfr->SetValue("first_name", $first_name);
-            $kfr->SetValue("last_name", $last_name);
             $raExtra = array();
             if( $oForm->Value('P_extra_credentials') )  $raExtra['credentials'] = $oForm->Value('P_extra_credentials');
             if( $oForm->Value('P_extra_regnumber') )    $raExtra['regnumber'] = $oForm->Value('P_extra_regnumber');
@@ -1494,6 +1562,36 @@ body;
             $oForm->SetValue("fk_people", $kfr->Key());
             $oForm->Store();
         }
+    }
+    
+    private function getClinicAssigner($uid):String{
+        $raClinics = array_column($this->oClinicsDB->KFRel()->GetRecordSetRA(""),"_key");
+        $raUserClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
+        $unassignedOptions = "";
+        $assignedOptions = "";
+        foreach($raClinics as $clinic){
+            $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
+            if(in_array($clinic, $raUserClinics)){
+                $assignedOptions .= "<option value='$clinic'>$clinicName</option>";
+            }
+            else{
+                $unassignedOptions .= "<option value='$clinic'>$clinicName</option>";
+            }
+        }
+        if(!$assignedOptions){
+            $assignedOptions = "<option disabled value=''>User isn't apart of any clinics yet</option>";
+        }
+        if(!$unassignedOptions){
+            $unassignedOptions = "<option disabled value=''>User is apart of every clinic</option>";
+        }
+        return "<table>
+                <tr><th style='text-align:center'>Clinics user isn't apart of:</th><th style='text-align:center'>Action</th><th style='text-align:center'>Clinics user is apart of:</th></tr>
+                <tr>
+                    <td><form id='add_clinic'><input type='hidden' name='cmd' value='addClinic'><input type='hidden' name='uid' value='$uid'><select name='toAdd[]' multiple='multiple' required>$unassignedOptions</select></form></td>
+                    <td style='text-align:center;padding-left:10px;padding-right:10px'><input type='submit' value='Add' form='add_clinic' /><br /><input type='submit' value='Remove' form='remove_clinic' /></td>
+                    <td><form id='remove_clinic'><input type='hidden' name='cmd' value='removeClinic'><input type='hidden' name='uid' value='$uid'><select name='toRemove[]' multiple='multiple' required>$assignedOptions</select></form></div>
+                </tr>
+              </table>";
     }
     
     private function getDefaultProfile(int $uid):KeyframeRecord{
