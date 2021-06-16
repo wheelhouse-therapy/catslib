@@ -141,8 +141,16 @@ $bVideos = false;
      * NOTE: the extensions do not contain dots
      * @return array - array of supported extensions
      */
-    static function GetSupportedExtensions( $sCabinet = 'general' )
+    static function GetSupportedExtensions( $sCabinet = '*' )
     {
+        if($sCabinet == "*"){
+            $exts = [];
+            foreach(["general","videos","reports","SOP"] as $cabinet) {
+                $exts = array_merge($exts,self::GetSupportedExtensions($cabinet));
+            }
+            return( array_unique($exts) );
+        }
+        
         $exts = [];
         foreach(self::GetFilingCabinetDirectories($sCabinet) as $ra) {
             $exts = array_merge($exts,$ra['extensions']);
@@ -368,7 +376,7 @@ class VideoWatchList {
         $metaData = "";
         foreach ($this->viewedVideos as $video){
             if($metaData){
-                $metaData .= self::METADATA_SEPARATOR;
+                $metaData .= self::LIST_SEPARATOR;
             }
             $metaData .= strval($video);
         }
