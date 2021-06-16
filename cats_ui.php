@@ -305,11 +305,11 @@ ResetPassword;
         switch( $this->oHistory->getScreen() ) {
             case 'admin-users':
                 require_once 'manage_users.php';
-                $manageUsers = new ManageUsers($this->oApp);
+                $manageUsers = new ManageUsers2($this->oApp);
                 if(CATS_SYSADMIN){
                     $s .= "<div style='float:right'><a href='".CATSDIR."admin-users-advanced'>advanced mode ></a></div>";
                 }
-                $s .= $manageUsers->drawList();
+                $s .= $manageUsers->drawUI();
                 break;
             case 'admin-users-advanced':
                 if(CATS_SYSADMIN){
