@@ -1273,7 +1273,7 @@ body;
         $kfr = $raProfile['kfr'];
         
         if($raProfile['defaulted']){
-            $clinicName = ($this->oClinicsDB->GetClinic($clinic)->Value('nickname')?:$this->oClinicsDB->GetClinic($clinic)->Value('clinic_name'));
+            $clinicName = ($this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('nickname')?:$this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('clinic_name'));
             return "<div style='text-align:center'>This Clinic uses the information from the default profile ($clinicName).<wbr>You can create a clinic specific one here: "
                   ."<a href='?cmd=newProfile&uid=$uid&clinicId=$clinic'><button>Create Clinic Profile</button></a>"
                   ."</div>";
