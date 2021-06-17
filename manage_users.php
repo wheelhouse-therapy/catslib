@@ -1169,7 +1169,7 @@ body;
      */
     public function profileValid(int $uid):bool{
         $valid = true;
-        $kfr = $this->getClinicRecord($uid);
+        $kfr = $this->getClinicProfile($uid)['kfr'];
         if(!$kfr){
             $valid = false;
         }
