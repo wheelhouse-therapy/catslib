@@ -99,11 +99,11 @@ class FilingCabinetDownload
     private function sendByEmail( ResourceRecord $oRR )
     {
         $oPeopleDB = new PeopleDB($this->oApp);
-        $manageUsers = new ManageUsers($this->oApp);
+        $manageUsers = new ManageUsers2($this->oApp);
 
         if( !($kClient = SEEDInput_Int('client')) ||
             !($kfr = $oPeopleDB->GetKFR(ClientList::CLIENT, $kClient)) ||
-            !($user = $manageUsers->getClinicRecord($this->oApp->sess->GetUID()))
+            !($user = $manageUsers->getClinicProfile($this->oApp->sess->GetUID())['kfr'])
           )  goto done;
 
         $to = $kfr->Value('P_email');

@@ -463,7 +463,7 @@ ResetPassword;
             case 'leader':
                 return [];
             case 'system':
-                $manageUsers = new ManageUsers($this->oApp);
+                $manageUsers = new ManageUsers2($this->oApp);
                 return ['system-usersettings' => $manageUsers->profileValid($this->oApp->sess->GetUID())?"":"!"];
             default:
                 return [];
