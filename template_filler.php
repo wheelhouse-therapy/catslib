@@ -445,7 +445,7 @@ class template_filler {
 
         $this->kStaff = SEEDInput_Int("fk_staff")?:$this->oApp->sess->GetUID();
         $manageUsers = new ManageUsers2($this->oApp);
-        $this->kfrStaff = $manageUsers->getClinicRecord($this->kStaff);
+        $this->kfrStaff = $manageUsers->getClinicProfile($this->kStaff)['kfr'];
         
         $templateProcessor = new MyPhpWordTemplateProcessor($resourcename);
         $tags = $templateProcessor->getVariables();

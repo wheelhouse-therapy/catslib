@@ -126,8 +126,8 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
                 </div>
             </div>";
 
-    $manageUsers = new ManageUsers($oApp);
-    $kfr = $manageUsers->getClinicRecord($oApp->sess->GetUID());
+    $manageUsers = new ManageUsers2($oApp);
+    $kfr = $manageUsers->getClinicProfile($oApp->sess->GetUID())['kfr'];
     if($sCabinet == 'reports' || $dir_short == 'reports'){
         // Disable Email Option on Reports screen
         $s = str_replace(["[[title]]","[[disabled]]"], ["title='Option disabled when printing reports'","disabled"], $s);

@@ -1153,7 +1153,7 @@ class ClientsAccess {
         global $oApp;
         self::init();
         $clinics = new Clinics($oApp);
-        $manageUsers = new ManageUsers($oApp);
+        $manageUsers = new ManageUsers2($oApp);
         $access = self::LIMITED;
         if(in_array(Clinics::CORE, array_column($clinics->GetUserClinics(),'Clinics__key'))){
             // User can see Core, give them full access
@@ -1162,7 +1162,7 @@ class ClientsAccess {
         else if(in_array($clinics->GetCurrentClinic(), $clinics->getClinicsILead())){
             $access = self::LEADER;
         }
-        else if($manageUsers->getClinicRecord($oApp->sess->GetUID())->Value('pro_role') == ClientList::$staff_roles_name['Office_Staff']){
+        else if($manageUsers->getClinicProfile($oApp->sess->GetUID())['kfr']->Value('pro_role') == ClientList::$staff_roles_name['Office_Staff']){
             $access = self::OFFICE;
         }
         return $access;
