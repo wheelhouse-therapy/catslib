@@ -975,7 +975,7 @@ body;
                         $this->oAccountDB->ActivateUser($uid);
                         break;
                     case 'ACTIVE':
-                        $this->oApp->kfdb->Execute("UPDATE `seedsession_users` SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},eStatus='INACTIVE' WHERE _key = $uid");
+                        $this->oApp->kfdb->Execute("UPDATE `SEEDSession_Users` SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},eStatus='INACTIVE' WHERE _key = $uid");
                         break;
                     case 'INACTIVE':
                         if(!$email){
