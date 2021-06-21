@@ -14,7 +14,7 @@ class AssessmentData_MABC extends AssessmentData
     {
         parent::__construct( $oA, $oAsmt, $kAsmt );
     }
-
+    
     function GetAgeInfo()   { return( [$this->age, $this->ageBand] ); }
 
     function SetAgeBand( $age, $ageBand )
@@ -149,6 +149,8 @@ class AssessmentData_MABC extends AssessmentData
         Map raw -> score for basic items
      */
     {
+        $this->raRaws[$item] = intval($raw);
+        
         $score = 0;
 
         return( $score );
