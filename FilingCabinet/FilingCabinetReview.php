@@ -60,7 +60,7 @@ class FilingCabinetReview
                    <input type='hidden' name='rrID' value='{$oRR->getID()}' />";
             $excluded = [];
             $options = "<option selected value=''>Select a directory</option>";
-            foreach(['general','videos','reports','SOP'] as $cabinet){
+            foreach(FilingCabinet::GetCabinets() as $cabinet){
                 if(!in_array($fileinfo->getExtension(), FilingCabinet::GetSupportedExtensions($cabinet))){
                     // Skip cabinets that don't support the file
                     continue;

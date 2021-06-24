@@ -206,6 +206,14 @@ $bVideos = false;
         return ""; //No accessor for this file
     }
 
+    /**
+     * Returns an array of the current cabinets.
+     * @return array
+     */
+    public static function GetCabinets():array {
+        return ['general','videos','reports','SOP'];
+    }
+    
     private static $raDirectories = [
         // Array of arrays containing directory information of resource folders
         // The key of the first array defines the internal key for the directory
@@ -709,7 +717,7 @@ class ResourceRecord {
         $raRecords = array_column($raRows, "_key");
         $position = array_search($this->id, $raRecords);
         $i = 0;
-        while($this->order != 0 && $i < $steps){
+        while($this->order > 0 && $i < $steps){
             $this->order -= 1;
             $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$this->order} WHERE _key = {$this->id}");
             $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder=".($this->order+1)." WHERE _key = ".$raRecords[$position-1]);
@@ -755,7 +763,7 @@ class ResourceRecord {
             return false;
         }
         $i = 0;
-        while($this->order != count($raRecords)-1 && $i < $steps){
+        while($this->order < count($raRecords)-1 && $i < $steps){
             $this->order += 1;
             $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder={$this->order} WHERE _key = {$this->id}");
             $this->oApp->kfdb->Execute("UPDATE resources_files SET iOrder=".($this->order-1)." WHERE _key = ".$raRecords[$position+1]);

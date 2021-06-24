@@ -81,7 +81,7 @@ class FilingCabinetAnalysis {
         $analysis = $this->oApp->sess->SmartGPC('analysis',['downloads','views']);
         $page = $this->oApp->sess->SmartGPC('page',[1]);
         
-        $cabinet = $this->oApp->sess->SmartGPC('cabinet',['general','videos','reports','SOP']);
+        $cabinet = $this->oApp->sess->SmartGPC('cabinet',FilingCabinet::GetCabinets());
         if($analysis == 'views'){
             // Can only check views on the video cabinet
             $cabinet = 'videos';
@@ -119,7 +119,7 @@ class FilingCabinetAnalysis {
         $raOptionsSubDirs = [];
         $s .= "<form style='margin: 5px 0'>";
         if($analysis == 'downloads'){
-            foreach(['general','videos','reports','SOP'] as $c){
+            foreach(FilingCabinet::GetCabinets() as $c){
                 $raOptionsDirs[$c] = "<option value='".self::WILDCARD."'>All Directories</option>";
                 $raOptionsSubDirs[$c."/".self::WILDCARD] = "<option value='".self::WILDCARD."'>All Sub Directories</option>";
                 foreach(FilingCabinet::GetFilingCabinetDirectories($c) as $d=>$dirInfo){
