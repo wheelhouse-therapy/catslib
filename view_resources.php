@@ -163,25 +163,33 @@ function ResourcesDownload( SEEDAppConsole $oApp, $dir_name, $sCabinet = 'genera
         $raRR = ResourceRecord::GetRecordFromPath($oApp, $sCabinet, $dir_short, ResourceRecord::WILDCARD, ResourceRecord::WILDCARD);
         if( is_array($raRR) ) {
             foreach( $raRR as $oRR ) {
-                $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+                if(file_exists($oRR->getPath())){
+                    $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+                }
             }
         } else if( $raRR ) {
             $oRR = $raRR;
-            $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+            if(file_exists($oRR->getPath())){
+                $raOut = addFileToSubfolderVideos( $oApp, $oRR, $sFilter, $raOut, $oFCD, $sCabinet );
+            }
         }
 
     } else {
         // non-videos are stored as a filesystem
         $raRR = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short);
         foreach ($raRR as $oRR) {
-            $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
+            if(file_exists($oRR->getPath())){
+                $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short, "", $oFCD, $sCabinet );
+            }
         }
 
         foreach(FilingCabinet::GetSubFolders($dir_short) as $subfolder) {
             if(!file_exists($dir_name.$subfolder)) continue;
             $raRRSub = ResourceRecord::GetResources($oApp, $sCabinet, $dir_short,$subfolder);
             foreach( $raRRSub as $oRR ) {
-                $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+                if(file_exists($oRR->getPath())){
+                    $raOut = addFileToSubfolder( $oRR, $sFilter, $raOut, $oApp, $dir_short.'/'.$subfolder, $subfolder, $oFCD, $sCabinet );
+                }
             }
         }
     }
