@@ -23,9 +23,11 @@ class FilingCabinetTools
 
     /* Manage the open-closed status of trees in the Manage Resources screen
      */
-    function TreeListGet()
+    function TreeListGet():array
     {
-        return( $this->oApp->sess->VarGet("open") );
+        $raTrees = $this->oApp->sess->VarGet("open");
+        if( !$raTrees || !is_array($raTrees) ) $raTrees = [];
+        return $raTrees;
     }
 
     function TreeListSet( $p )
