@@ -203,6 +203,9 @@ class ResourceManager {
                 break;
             case "adjustvisibility":
                 $newStatus = SEEDInput_Int("status");
+                if($newStatus < 0){
+                    $newStatus = 0;
+                }
                 $oldStatus = $oRR->getStatus();
                 if($newStatus == ResourceRecord::STATUS_DELETED){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>Sorry, this command can't be used to delete resources. Use the delete command instead</div>";
@@ -246,7 +249,7 @@ class ResourceManager {
                     $raRRSub = ResourceRecord::GetResources($this->oApp, $cabinet, $directory,$subdirectory);
                     foreach( $raRRSub as $oRR ) {
                         $fileID = $this->getID($cabinet, $directory,$subdirectory,$oRR->getID());
-                        $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$fileID')\"><i class='far fa-file'></i> {$oRR->getFile()}</a><br />";
+                        $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$fileID')\"><i class='far fa-file'></i> {$oRR->getFile()}".($oRR->getStatus() == ResourceRecord::STATUS_HIDDEN?" <i class='fas fa-low-vision' title='Resource is hidden from some users'></i>":"")."</a><br />";
                         $s .= "<div class='cats_docform' id='$fileID' style='".(in_array($fileID, $this->oFCT->TreeListGet())?"":"display:none;")." width: 50%;'>";
                         $s .= $this->drawCommands($oRR);
                         $s .= "</div>";
@@ -264,7 +267,7 @@ class ResourceManager {
                 $dirCount += count($raRR);
                 foreach ($raRR as $oRR) {
                     $fileID = $this->getID($cabinet, $directory,"",$oRR->getID());
-                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$fileID')\"><i class='fas fa-file'></i> {$oRR->getFile()}".($oRR->getStatus() == ResourceRecord::STATUS_HIDDEN?" <i class='fas fa-low-vision'></i>":"")."</a><br />";
+                    $s .= "<a href='javascript:void(0)' onclick=\"toggleDisplay('$fileID')\"><i class='fas fa-file'></i> {$oRR->getFile()}".($oRR->getStatus() == ResourceRecord::STATUS_HIDDEN?" <i class='fas fa-low-vision' title='Resource is hidden from some users'></i>":"")."</a><br />";
                     $s .= "<div class='cats_docform' id='$fileID' style='".(in_array($fileID, $this->oFCT->TreeListGet())?"":"display:none;")." width: 50%;'>";
                     $s .= $this->drawCommands($oRR);
                     $s .= "</div>";
@@ -332,10 +335,10 @@ class ResourceManager {
             
         $rename = "<a href='javascript:void(0)' onclick=\"setContents('".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_command','".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_rename')\">rename</a>";
         $rename .= "<div id=\"".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_rename\" style='display:none'>"
-                ."<br /><form>"
-                    ."<input type='hidden' name='cmd' value='rename' />"
-                        ."<input type='hidden' name='id' value='".$oRR->getID()."' />"
-                            ."<input type='text' class='cats_form' name='name' required value='".explode(".",$oRR->getFile())[0]."' />.";
+                  ."<br /><form>"
+                  ."<input type='hidden' name='cmd' value='rename' />"
+                  ."<input type='hidden' name='id' value='".$oRR->getID()."' />"
+                  ."<input type='text' class='cats_form' name='name' required value='".explode(".",$oRR->getFile())[0]."' />.";
         $dir_key = "old";
         foreach (FilingCabinet::GetDirectories() as $k=>$v){
             if($k == $oRR->getDirectory()){
@@ -359,7 +362,27 @@ class ResourceManager {
         
         $delete = "<a href='?cmd=delete&id=".$oRR->getID()."' data-tooltip='Delete Resource'><img src='".CATSDIR_IMG."delete-resource.png'/></a>";
         
-        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download."</div><div id='".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_command' style='display:none'></div>";
+        $visibility = "<a href='javascript:void(0)' data-tooltip='".($oRR->getStatus() == ResourceRecord::STATUS_HIDDEN?"Adjust Visibility. Currently hidden from some users.":"Adjust Visibility. Currently visible to all users.")."' onclick=\"setContents('".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_command','".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_visibility')\">".($oRR->getStatus() == ResourceRecord::STATUS_HIDDEN?"<i class='fas fa-low-vision'></i>":"<i class='fas fa-eye'></i>")."</a>";
+        $visibility .= "<div id=\"".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_visibility\" style='display:none'>"
+                      ."<br /><form>"
+                      ."<input type='hidden' name='cmd' value='adjustvisibility' />"
+                      ."<input type='hidden' name='id' value='".$oRR->getID()."' />";
+        $visibility .= "<select name='status'>";
+        
+        foreach([0=>"Everyone",2=>"Everyone but students"] as $status=>$name){
+            if($status == $oRR->getStatus()){
+                $visibility .= "<option selected value='$status'>$name</option>";
+            }
+            else{
+                $visibility .= "<option value='$status'>$name</option>";
+            }
+        }
+        
+        $visibility .= "</select>&nbsp&nbsp<input type='submit' value='Change visibility' />"
+                      ."</form>"
+                      ."</div>";
+        
+        $s = "<div style='display: flex;justify-content: space-around;'>".$move.$rename.$delete.$download.$visibility."</div><div id='".$this->getID($oRR->getCabinet(), $oRR->getDirectory(),$oRR->getSubDirectory(),$oRR->getID())."_command' style='display:none'></div>";
         return $s;
     }
     
