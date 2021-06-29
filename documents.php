@@ -131,7 +131,7 @@ class ResourceManager {
                 $ra = explode("/",SEEDInput_Str('folder'));
                 $cabinet = $ra[0];
                 $dir = $ra[1];
-                $subdir = @$ra[2]? "{$ra[2]}/" : "";
+                $subdir = @$ra[2]? "{$ra[2]}" : "";
                 if(!in_array($cabinet, FilingCabinet::GetCabinets())){
                     $_SESSION['ResourceCMDResult'] = "<div class='alert alert-danger alert-dismissible'>The $cabinet cabinet does not exist. File was <strong>NOT</strong> moved.</div>";
                     break;
