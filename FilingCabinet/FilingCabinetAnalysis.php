@@ -98,7 +98,7 @@ class FilingCabinetAnalysis {
             case 'downloads':
                 $ra = $this->getDownloadAnalysis($cabinet, $dir,$subdir,$page);
                 $s = str_replace(["[[download]]","[[view]]"], ["background-color:#8f8;",""], $s);
-                $s .= "<br /><h2  style='display:inline-block;'>File Downloads Analysis</h2> from May 2021<br />";
+                $s .= "<br /><h2  style='display:inline-block;'>File Downloads Analysis</h2> from July 2021<br />";
                 break;
             case 'views':
                 $ra = $this->getViewAnalysis($dir,$subdir,$page);

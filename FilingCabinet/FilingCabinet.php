@@ -368,6 +368,16 @@ class VideoWatchList {
         $this->viewedVideos = array_map('intval', explode(self::LIST_SEPARATOR, $metaData));
     }
     
+    /**
+     * Print all properties except the account db to clean up the screen when printing object
+     */
+    public function __debugInfo():array {
+        return [
+            'user'=>$this->user,
+            'viewedVideos'=>$this->viewedVideos
+        ];
+    }
+    
     public function hasWatched(int $rrid):bool {
         return in_array($rrid, $this->viewedVideos);
     }
@@ -387,6 +397,66 @@ class VideoWatchList {
                 $metaData .= self::LIST_SEPARATOR;
             }
             $metaData .= strval($video);
+        }
+        
+        return $this->oAccountDB->SetUserMetadata($this->user, self::METADATA_KEY, $metaData);
+    }
+    
+}
+
+class FileDownloadsList {
+    
+    private const LIST_SEPARATOR = "&";
+    private const COUNT_SEPARATOR = "|";
+    private const METADATA_KEY = "downloads";
+    
+    private $oAccountDB;
+    private $user;
+    private $downloadedResources;
+    
+    public function __construct(SEEDAppConsole $oApp, int $user){
+        $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
+        $this->user = $user;
+        $metaData = @$this->oAccountDB->GetUserMetadata($user)[self::METADATA_KEY]?:"";
+        $this->downloadedResources = [];
+        foreach(explode(self::LIST_SEPARATOR, $metaData) as $data){
+            $ra = explode(self::COUNT_SEPARATOR, $data,2);
+            $rrid = intval($ra[0]);
+            $count = @$ra[1]? intval($ra[1]) : 1;
+            $this->downloadedResources += [$rrid=>$count];
+        }
+    }
+    
+    /**
+     * Print all properties except the account db to clean up the screen when printing object
+     */
+    public function __debugInfo():array {
+        return [
+            'user'=>$this->user,
+            'downloadedResources'=>$this->downloadedResources
+        ];
+    }
+    
+    public function countDownload(int $rrid){
+        if(!@$this->downloadedResources[$rrid]){
+            $this->downloadedResources[$rrid] = 0;
+        }
+        $this->downloadedResources[$rrid]++;
+        $result =  $this->store();
+        if(!$result){
+            // Store failed decrement the number
+            $this->downloadedResources[$rrid]--;
+        }
+        return $result;
+    }
+    
+    public function store(){
+        $metaData = "";
+        foreach ($this->downloadedResources as $rrid=>$count){
+            if($metaData){
+                $metaData .= self::LIST_SEPARATOR;
+            }
+            $metaData .= strval($rrid).self::COUNT_SEPARATOR.strval($count);
         }
         
         return $this->oAccountDB->SetUserMetadata($this->user, self::METADATA_KEY, $metaData);

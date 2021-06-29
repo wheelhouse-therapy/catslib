@@ -46,6 +46,7 @@ class FilingCabinetDownload
                     exit;
                 case 'no_replace':
                     $oRR->countDownload();
+                    (new FileDownloadsList($this->oApp, $this->oApp->sess->GetUID()))->countDownload($oRR->getID());
                     $this->OutputResource( $rrid, true );
                     // OutputResource() only returns if it can't serve the file
                     return;
@@ -54,6 +55,7 @@ class FilingCabinetDownload
                     // fall through
                 default:
                     $oRR->countDownload();
+                    (new FileDownloadsList($this->oApp, $this->oApp->sess->GetUID()))->countDownload($oRR->getID());
                     // mode blank is implemented by telling template_filler that client=0
                     $kClient = @$bBlank ? 0 : SEEDInput_Int('client');
                     $filler = new template_filler($this->oApp, @$_REQUEST['assessments']?:[]);
