@@ -177,6 +177,7 @@ ResetPassword;
 
     function DrawHome()
     {
+        
         $s = "<div id='bubbles' class='container-fluid'>"
             .($this->oApp->sess->CanRead('therapist')     ? $this->DrawTherapist() : "")
             .($this->oApp->sess->CanRead('admin')         ? $this->DrawAdmin()     : "")
@@ -242,6 +243,28 @@ ResetPassword;
             case 'therapist-filing-cabinet':
                 $oFC = new FilingCabinetUI( $this->oApp, 'general' );
                 $s .= $oFC->DrawFilingCabinet();
+                break;
+            case 'therapist-filing-cabinet-handout':
+                if(!CATS_SYSADMIN){
+                    header("HTTP/1.1 303 SEE OTHER");
+                    header("Location: ".CATSDIR."home");
+                    exit();
+                }
+                $rrid = SEEDInput_Int("rr");
+                if($rrid > 0){
+                    $oRR = ResourceRecord::GetRecordByID($this->oApp, $rrid);
+                    if($oRR){
+                        $oHandout = new FilingCabinetHandout($this->oApp, $oRR);
+                        echo $oHandout->renderHandout(1);
+                        exit;
+                    }
+                    else{
+                        $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
+                    }
+                }
+                else{
+                    $s .= "No resource selected";
+                }
                 break;
             case 'therapist-reports':
                 $s .= "<h3>Reports</h3>"

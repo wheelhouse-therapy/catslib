@@ -237,3 +237,122 @@ DownloadMode;
 
 
 }
+
+class FilingCabinetHandout {
+    
+    private $oApp;
+    private $oRR;
+    private $oPeopleDB;
+    private $oClinics;
+    
+    public function __construct(SEEDAppConsole $oApp, ResourceRecord $oRR){
+        $this->oApp = $oApp;
+        $this->oRR = $oRR;
+        $this->oPeopleDB = new PeopleDB($oApp);
+        $this->oClinics = new Clinics($oApp);
+    }
+    
+    public function renderHandout(int $client_key,bool $blank = false):string{
+        if(!($file = $this->oRR->getPath()) ||
+            !(file_exists($file)) )
+        {
+            $this->oApp->oC->AddErrMsg( "Could not retrieve file $rrid" );
+            return "";
+        }
+        if(!in_array(strtolower(pathinfo($this->oRR->getPath(),PATHINFO_EXTENSION)),["png","jpg","gif"])){
+            return "Not a handout";
+        }
+        
+        if($blank){
+            $kfr = $this->oPeopleDB->GetKfrel(ClientList::CLIENT)->CreateRecord();
+        }
+        else{
+            $kfr = $this->oPeopleDB->GetKFR(ClientList::CLIENT, $client_key);
+        }
+        
+        if(!$kfr){
+            $this->oApp->oC->AddErrMsg( "Could not retrieve record for client $client_key" );
+            return "";
+        }
+        
+        require_once CATSLIB.'handle_images.php';
+        $header = $this->oClinics->getImage(Clinics::LOGO_WIDE);
+        $footer = $this->oClinics->getImage(Clinics::FOOTER);
+        $s = "";
+        
+        $s .= "<div id='headerBox' >";
+        if($header !== FALSE){
+            switch(strtolower(pathinfo($header,PATHINFO_EXTENSION))){
+                case "png":
+                    $imageType = IMAGETYPE_PNG;
+                    break;
+                case "jpg":
+                    $imageType = IMAGETYPE_JPEG;
+                    break;
+                case "gif":
+                    $imageType = IMAGETYPE_GIF;
+                    break;
+                default:
+                    $s .= "Could Not Render Header Image";
+                    goto main;
+            }
+            $i = getImageData($header, $imageType);
+            $s .= "<div id='headerImg' style='text-align:center'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+        }
+        main:
+        $name = $kfr->Value("P_first_name")." ".$kfr->Value("P_last_name");
+        $date = "";
+        if(!$blank){
+            $date = date("M d, Y");
+        }
+        $s .= "<div style='display:flex;justify-content: space-between;'><div>$name</div><div>$date</div></div>";
+        $s .= "</div>"; // End header Box
+        $img = null;
+        switch(strtolower(pathinfo($this->oRR->getPath(),PATHINFO_EXTENSION))){
+            case "png":
+                $imageType = IMAGETYPE_PNG;
+                $img = imagecreatefrompng($this->oRR->getPath());
+                break;
+            case "jpg":
+                $imageType = IMAGETYPE_JPEG;
+                $img = imagecreatefromjpeg($this->oRR->getPath());
+                break;
+            case "gif":
+                $imageType = IMAGETYPE_GIF;
+                $img = imagecreatefromgif($this->oRR->getPath());
+                break;
+            default:
+                $s .= "Could Not Render Main Image";
+                goto footer;
+        }
+        $im = imagecropauto($img);
+        if($im){
+           $img = $im; 
+        }
+        $i = getImageData($img, $imageType,true);
+        $s .= "<div id='main' style='text-align:center'><img style='max-width:95vw' src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+        footer:
+        if($footer === FALSE){
+            goto done;
+        }
+        switch(strtolower(pathinfo($footer,PATHINFO_EXTENSION))){
+            case "png":
+                $imageType = IMAGETYPE_PNG;
+                break;
+            case "jpg":
+                $imageType = IMAGETYPE_JPEG;
+                break;
+            case "gif":
+                $imageType = IMAGETYPE_GIF;
+                break;
+            default:
+                $s .= "Could Not Render Footer Image";
+                goto done;
+        }
+        $i = getImageData($footer, $imageType);
+        $s .= "<div id='footer' style='text-align:center'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+        done:
+        return $s;
+    }
+    
+}
