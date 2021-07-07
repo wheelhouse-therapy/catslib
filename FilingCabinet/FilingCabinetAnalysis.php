@@ -17,25 +17,53 @@ class FilingCabinetAnalysis {
             $page = 1;
         }
         $raRR = ResourceRecord::GetResources($this->oApp, $cabinet, $dir,$subdir);
-        $raOut = [];
+        
+        $raUsers = [];
+        // Get all groups to ensure all watchlists are included in the count
+        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
+        foreach($raGroups as $group){
+            // Get a list of all the users.
+            // A user may be in more than 1 group so we need to make the list unique
+            $raUsers = array_unique(array_merge($raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
+        }
+        
+        $raData = [];
+        $raDownloadData = [];
         foreach($raRR as $oRR){
             $name = $this->getName($oRR,$cabinet,$dir,$subdir);
-            $raOut[$name] = $oRR->getDownloads();
+            $raData[$name] = $oRR->getDownloads();
+            foreach($raUsers as $user){
+                $oFDL = new FileDownloadsList($this->oApp, $user);
+                $info = $this->oAccountDB->GetUserInfo($user,false,true)[1];
+                $username = @$info['realname']?:"User #$user";
+                if($oFDL->hasDownloaded($oRR->getID())){
+                    if(!isset($raDownloadData[$name])){
+                        $raDownloadData[$name] = [];
+                    }
+                    $raDownloadData[$name][$username] = $oFDL->downloadCount($oRR->getID());
+                }
+            }
         }
-        arsort($raOut); // Sort the array
+        arsort($raData); // Sort the array
         
         // Ensure the requested page is avalible, if not find the last avalible page and return that
-        while($page > 1 && count(array_slice($raOut, 10*($page-1),self::PAGE_SIZE)) == 0){
+        while($page > 1 && count(array_slice($raData, 10*($page-1),self::PAGE_SIZE)) == 0){
             $page -= 1;
         }
-        return ['data' => array_slice($raOut, 10*($page-1),self::PAGE_SIZE),'currPage' => $page,'hasNext' => count(array_slice($raOut, 10*($page),self::PAGE_SIZE)) > 0];
+        $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
+        $raDownloadDataOut = [];
+        foreach(array_keys($raDataOut) as $k){
+            $raDownloadDataOut[$k] = @$raDownloadData[$k]?:["No one"=>0];
+        }
+        return ['data' => $raDataOut, 'userData' => $raDownloadDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
     
     public function getViewAnalysis(String $dir,String $subdir = self::WILDCARD,int $page=1):array{
         if($page < 1){
             $page = 1;
         }
-        $raOut = [];
+        $raData = [];
+        $raWatchData = [];
         $raRR = ResourceRecord::GetResources($this->oApp, 'videos', $dir,$subdir);
         $raUsers = [];
         // Get all groups to ensure all watchlists are included in the count
@@ -47,22 +75,33 @@ class FilingCabinetAnalysis {
         }
         foreach($raUsers as $user){
             $oWatchlist = new VideoWatchList($this->oApp, $user);
+            $info = $this->oAccountDB->GetUserInfo($user,false,true)[1];
+            $username = @$info['realname']?:"User #$user";
             foreach($raRR as $oRR){
-                if(!isset($raOut[$this->getName($oRR,"videos",$dir,$subdir)])){
-                    $raOut[$this->getName($oRR,"videos",$dir,$subdir)] = 0;
+                if(!isset($raData[$this->getName($oRR,"videos",$dir,$subdir)])){
+                    $raData[$this->getName($oRR,"videos",$dir,$subdir)] = 0;
+                }
+                if(!isset($raWatchData[$this->getName($oRR,"videos",$dir,$subdir)])){
+                    $raWatchData[$this->getName($oRR,"videos",$dir,$subdir)] = [];
                 }
                 if($oWatchlist->hasWatched($oRR->getID())){
-                    $raOut[$this->getName($oRR,"videos",$dir,$subdir)] += 1;
+                    $raData[$this->getName($oRR,"videos",$dir,$subdir)] += 1;
+                    $raWatchData[$this->getName($oRR,"videos",$dir,$subdir)][$username] = 1;
                 }
             }
         }
-        arsort($raOut); // Sort the array
+        arsort($raData); // Sort the array
         
         // Ensure the requested page is avalible, if not find the last avalible page and return that
-        while($page > 1 && count(array_slice($raOut, 10*($page-1),self::PAGE_SIZE)) == 0){
+        while($page > 1 && count(array_slice($raData, 10*($page-1),self::PAGE_SIZE)) == 0){
             $page -= 1;
         }
-        return ['data' => array_slice($raOut, 10*($page-1),self::PAGE_SIZE),'currPage' => $page,'hasNext' => count(array_slice($raOut, 10*($page),self::PAGE_SIZE)) > 0];
+        $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
+        $raWatchDataOut = [];
+        foreach(array_keys($raDataOut) as $k){
+            $raWatchDataOut[$k] = @$raWatchData[$k]?:["No one"=>0];
+        }
+        return ['data' => $raDataOut, 'userData' => $raWatchDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
     
     private function getName(ResourceRecord $oRR,String $cabinet,String $dir,String $subdir){
@@ -93,7 +132,7 @@ class FilingCabinetAnalysis {
             $subdir = self::WILDCARD;
         }
         
-        $ra = ['data'=>[],'currPage'=>1,'hasNext'=>false];
+        $ra = ['data'=>[],'userData'=>[],'currPage'=>1,'hasNext'=>false];
         switch($analysis){
             case 'downloads':
                 $ra = $this->getDownloadAnalysis($cabinet, $dir,$subdir,$page);
@@ -195,17 +234,30 @@ class FilingCabinetAnalysis {
         $s .= "<table class='table table-striped table-sm'><tr class='row'><th class='col-md-5'>Filename</th>";
         switch($analysis){
             case 'downloads':
-                $s .= "<th class='col-md-5'>Downloads</th>";
+                $s .= "<th class='col-md-2'>Downloads</th>";
+                $s .= "<th class='col-md-5'>Downloaded By:</th>";
                 break;
             case 'views':
-                $s .= "<th class='col-md-5'>Views</th>";
+                $s .= "<th class='col-md-2'>Views</th>";
+                $s .= "<th class='col-md-5'>Viewed By:</th>";
                 break;
         }
         $s .= "</tr>";
         foreach($ra['data'] as $k=>$v){
             $s .= "<tr class='row'>";
             $s .= "<td class='col-md-5'>".str_replace("/", "/<wbr>", $k)."</td>";
-            $s .= "<td class='col-md-5'>".$v."</td>";
+            $s .= "<td class='col-md-2'>".$v."</td>";
+            $s .= "<td class='col-md-5'>";
+            $raOut = [];
+            foreach($ra['userData'][$k] as $username => $count){
+                $sCount = "";
+                if($count > 1){
+                    $sCount = " x$count";
+                }
+                array_push($raOut,"$username$sCount");
+            }
+            $s .= SEEDCore_ArrayExpandSeries($raOut, ", [[]]",true,["sTemplateFirst"=>"[[]]","sTemplateLast"=>", and [[]]"]);
+            $s .= "</td>";
             $s .= "</tr>";
         }
         $s .= "</table></div>";
