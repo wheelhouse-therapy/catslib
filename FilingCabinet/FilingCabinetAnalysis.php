@@ -3,13 +3,30 @@ class FilingCabinetAnalysis {
     
     public const WILDCARD = ResourceRecord::WILDCARD;
     private const PAGE_SIZE = 10;
+    private const NOONE = ["No one"=>0];
     
     private $oApp;
-    private $oAccountDB;
+    /**
+     * Mapping between userid and username
+     */
+    private $raUsers;
     
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
-        $this->oAccountDB = new SEEDSessionAccountDBRead($oApp->kfdb);
+        $oAccountDB = new SEEDSessionAccountDBRead($oApp->kfdb);
+        $raUsers = [];
+        // Get all groups to ensure all watchlists are included in the count
+        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
+        foreach($raGroups as $group){
+            // Get a list of all the users.
+            // A user may be in more than 1 group so we need to make the list unique
+            $raUsers = array_unique(array_merge($raUsers,$oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
+        }
+        foreach ($raUsers as $user){
+            $info = $oAccountDB->GetUserInfo($user,false,true)[1];
+            $username = @$info['realname']?:"User #$user";
+            $this->raUsers[$user] = $username;
+        }
     }
     
     public function getDownloadAnalysis(String $cabinet, String $dir,String $subdir = self::WILDCARD,int $page=1):array{
@@ -18,24 +35,13 @@ class FilingCabinetAnalysis {
         }
         $raRR = ResourceRecord::GetResources($this->oApp, $cabinet, $dir,$subdir);
         
-        $raUsers = [];
-        // Get all groups to ensure all watchlists are included in the count
-        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
-        foreach($raGroups as $group){
-            // Get a list of all the users.
-            // A user may be in more than 1 group so we need to make the list unique
-            $raUsers = array_unique(array_merge($raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
-        }
-        
         $raData = [];
         $raDownloadData = [];
         foreach($raRR as $oRR){
             $name = $this->getName($oRR,$cabinet,$dir,$subdir);
             $raData[$name] = $oRR->getDownloads();
-            foreach($raUsers as $user){
+            foreach($this->raUsers as $user->$username){
                 $oFDL = new FileDownloadsList($this->oApp, $user);
-                $info = $this->oAccountDB->GetUserInfo($user,false,true)[1];
-                $username = @$info['realname']?:"User #$user";
                 if($oFDL->hasDownloaded($oRR->getID())){
                     if(!isset($raDownloadData[$name])){
                         $raDownloadData[$name] = [];
@@ -53,7 +59,7 @@ class FilingCabinetAnalysis {
         $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
         $raDownloadDataOut = [];
         foreach(array_keys($raDataOut) as $k){
-            $raDownloadDataOut[$k] = @$raDownloadData[$k]?:["No one"=>0];
+            $raDownloadDataOut[$k] = @$raDownloadData[$k]?:[self::NOONE];
         }
         return ['data' => $raDataOut, 'userData' => $raDownloadDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
@@ -65,18 +71,8 @@ class FilingCabinetAnalysis {
         $raData = [];
         $raWatchData = [];
         $raRR = ResourceRecord::GetResources($this->oApp, 'videos', $dir,$subdir);
-        $raUsers = [];
-        // Get all groups to ensure all watchlists are included in the count
-        $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
-        foreach($raGroups as $group){
-            // Get a list of all the users.
-            // A user may be in more than 1 group so we need to make the list unique
-            $raUsers = array_unique(array_merge($raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
-        }
-        foreach($raUsers as $user){
+        foreach($this->raUsers as $user->$username){
             $oWatchlist = new VideoWatchList($this->oApp, $user);
-            $info = $this->oAccountDB->GetUserInfo($user,false,true)[1];
-            $username = @$info['realname']?:"User #$user";
             foreach($raRR as $oRR){
                 if(!isset($raData[$this->getName($oRR,"videos",$dir,$subdir)])){
                     $raData[$this->getName($oRR,"videos",$dir,$subdir)] = 0;
@@ -99,7 +95,7 @@ class FilingCabinetAnalysis {
         $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
         $raWatchDataOut = [];
         foreach(array_keys($raDataOut) as $k){
-            $raWatchDataOut[$k] = @$raWatchData[$k]?:["No one"=>0];
+            $raWatchDataOut[$k] = @$raWatchData[$k]?:[self::NOONE];
         }
         return ['data' => $raDataOut, 'userData' => $raWatchDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
@@ -239,7 +235,7 @@ class FilingCabinetAnalysis {
                 break;
             case 'views':
                 $s .= "<th class='col-md-2'>Views</th>";
-                $s .= "<th class='col-md-5'>Viewed By:</th>";
+                $s .= "<th class='col-md-5'>Watched By:</th>";
                 break;
         }
         $s .= "</tr>";
