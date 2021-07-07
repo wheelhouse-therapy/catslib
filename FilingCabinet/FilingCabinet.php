@@ -437,6 +437,14 @@ class FileDownloadsList {
         ];
     }
     
+    public function hasDownloaded(int $rrid):bool {
+        return array_key_exists($rrid, $this->downloadedResources);
+    }
+    
+    public function downloadCount(int $rrid):int {
+        return @$this->downloadedResources[$rrid]?:0;
+    }
+    
     public function countDownload(int $rrid){
         if(!@$this->downloadedResources[$rrid]){
             $this->downloadedResources[$rrid] = 0;
