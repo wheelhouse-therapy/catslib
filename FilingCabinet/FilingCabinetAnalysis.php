@@ -40,7 +40,7 @@ class FilingCabinetAnalysis {
         foreach($raRR as $oRR){
             $name = $this->getName($oRR,$cabinet,$dir,$subdir);
             $raData[$name] = $oRR->getDownloads();
-            foreach($this->raUsers as $user->$username){
+            foreach($this->raUsers as $user=>$username){
                 $oFDL = new FileDownloadsList($this->oApp, $user);
                 if($oFDL->hasDownloaded($oRR->getID())){
                     if(!isset($raDownloadData[$name])){
@@ -59,7 +59,7 @@ class FilingCabinetAnalysis {
         $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
         $raDownloadDataOut = [];
         foreach(array_keys($raDataOut) as $k){
-            $raDownloadDataOut[$k] = @$raDownloadData[$k]?:[self::NOONE];
+            $raDownloadDataOut[$k] = @$raDownloadData[$k]?:self::NOONE;
         }
         return ['data' => $raDataOut, 'userData' => $raDownloadDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
@@ -71,7 +71,7 @@ class FilingCabinetAnalysis {
         $raData = [];
         $raWatchData = [];
         $raRR = ResourceRecord::GetResources($this->oApp, 'videos', $dir,$subdir);
-        foreach($this->raUsers as $user->$username){
+        foreach($this->raUsers as $user=>$username){
             $oWatchlist = new VideoWatchList($this->oApp, $user);
             foreach($raRR as $oRR){
                 if(!isset($raData[$this->getName($oRR,"videos",$dir,$subdir)])){
@@ -95,7 +95,7 @@ class FilingCabinetAnalysis {
         $raDataOut = array_slice($raData, 10*($page-1),self::PAGE_SIZE);
         $raWatchDataOut = [];
         foreach(array_keys($raDataOut) as $k){
-            $raWatchDataOut[$k] = @$raWatchData[$k]?:[self::NOONE];
+            $raWatchDataOut[$k] = @$raWatchData[$k]?:self::NOONE;
         }
         return ['data' => $raDataOut, 'userData' => $raWatchDataOut,'currPage' => $page,'hasNext' => count(array_slice($raData, 10*($page),self::PAGE_SIZE)) > 0];
     }
