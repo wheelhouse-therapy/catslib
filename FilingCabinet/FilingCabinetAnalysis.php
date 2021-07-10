@@ -37,11 +37,11 @@ class FilingCabinetAnalysis {
         
         $raData = [];
         $raDownloadData = [];
-        foreach($raRR as $oRR){
-            $name = $this->getName($oRR,$cabinet,$dir,$subdir);
-            $raData[$name] = $oRR->getDownloads();
-            foreach($this->raUsers as $user=>$username){
-                $oFDL = new FileDownloadsList($this->oApp, $user);
+        foreach($this->raUsers as $user=>$username){
+            $oFDL = new FileDownloadsList($this->oApp, $user);
+            foreach($raRR as $oRR){
+                $name = $this->getName($oRR,$cabinet,$dir,$subdir);
+                $raData[$name] = $oRR->getDownloads();
                 if($oFDL->hasDownloaded($oRR->getID())){
                     if(!isset($raDownloadData[$name])){
                         $raDownloadData[$name] = [];
