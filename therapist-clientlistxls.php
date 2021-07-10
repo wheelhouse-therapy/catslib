@@ -78,12 +78,14 @@ class Therapist_ClientListSpreadsheet
          */
         $raPros = $this->oPeopleDB->GetList(ClientList::EXTERNAL_PRO, $condClinic);
         $raProsCols = $raPeople + array(
-            '_key'         => "Provider number",
-            'fk_people'    => "P key",
-            'pro_role'     => "Role",
-            'fax_number'   => "Fax Number",
-            'rate'         => "Rate",
-            'clinic'       => 'Clinic'
+            '_key'           => "Provider number",
+            'fk_people'      => "P key",
+            'pro_role'       => "Role",
+            'fax_number'     => "Fax Number",
+            'rate'           => "Rate",
+            'clinic'         => 'Clinic',
+            'organization'   => 'Organization',
+            'contact_status' => 'Contact Status'
         );
         $this->storeSheet( $oXls, 2, "Providers", $raPros, $raProsCols );
 
