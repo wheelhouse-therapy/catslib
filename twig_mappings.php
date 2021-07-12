@@ -20,5 +20,6 @@ $mappings = array(
     "therapist-filing-cabinet" => "filing-cabinet",
     "therapist-reports" => "reports",
     "therapist-viewVideos" => "filing-cabinet",
+    "admin-analysis" => "filing-cabinet-analysis"
 );
 $mappings;

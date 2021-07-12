@@ -10,6 +10,10 @@ class FilingCabinetAnalysis {
      * Mapping between userid and username
      */
     private $raUsers;
+    /**
+     * Mapping of users who's data will be listed (for filtering)
+     */
+    private $raQueryUsers;
     
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
@@ -17,7 +21,7 @@ class FilingCabinetAnalysis {
         $raUsers = [];
         // Get all groups to ensure all watchlists are included in the count
         $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
-        foreach($raGroups as $group){
+        foreach ($raGroups as $group){
             // Get a list of all the users.
             // A user may be in more than 1 group so we need to make the list unique
             $raUsers = array_unique(array_merge($raUsers,$oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
@@ -27,23 +31,38 @@ class FilingCabinetAnalysis {
             $username = @$info['realname']?:"User #$user";
             $this->raUsers[$user] = $username;
         }
+        
+        if (isset($_REQUEST['uids'])){
+            $_SESSION['analysis_uids'] = $_REQUEST['uids'];
+        }
+        else if (isset($_REQUEST['filter'])){
+            unset($_SESSION['analysis_uids']);
+        }
+        
+        if (isset($_SESSION['analysis_uids'])){
+            $this->raQueryUsers = array_intersect_key($this->raUsers, array_flip($_SESSION['analysis_uids']));
+        }
+        else {
+            $this->raQueryUsers = $this->raUsers;
+        }
+        
     }
     
     public function getDownloadAnalysis(String $cabinet, String $dir,String $subdir = self::WILDCARD,int $page=1):array{
-        if($page < 1){
+        if ($page < 1){
             $page = 1;
         }
         $raRR = ResourceRecord::GetResources($this->oApp, $cabinet, $dir,$subdir);
         
         $raData = [];
         $raDownloadData = [];
-        foreach($this->raUsers as $user=>$username){
+        foreach ($this->raQueryUsers as $user=>$username){
             $oFDL = new FileDownloadsList($this->oApp, $user);
             foreach($raRR as $oRR){
                 $name = $this->getName($oRR,$cabinet,$dir,$subdir);
                 $raData[$name] = $oRR->getDownloads();
-                if($oFDL->hasDownloaded($oRR->getID())){
-                    if(!isset($raDownloadData[$name])){
+                if ($oFDL->hasDownloaded($oRR->getID())){
+                    if (!isset($raDownloadData[$name])){
                         $raDownloadData[$name] = [];
                     }
                     $raDownloadData[$name][$username] = $oFDL->downloadCount($oRR->getID());
@@ -71,7 +90,7 @@ class FilingCabinetAnalysis {
         $raData = [];
         $raWatchData = [];
         $raRR = ResourceRecord::GetResources($this->oApp, 'videos', $dir,$subdir);
-        foreach($this->raUsers as $user=>$username){
+        foreach($this->raQueryUsers as $user=>$username){
             $oWatchlist = new VideoWatchList($this->oApp, $user);
             foreach($raRR as $oRR){
                 if(!isset($raData[$this->getName($oRR,"videos",$dir,$subdir)])){
@@ -210,8 +229,17 @@ class FilingCabinetAnalysis {
         }
         
         $s .= "<select name='directory' id='directory' onchange='onDirChange()' style='margin-left:5px;'>".$raOptionsDirs[$cabinet]."</select>";
-        $s .= "<select name='subdirectory' id='subdirectory' style='margin-left:5px;'>".$raOptionsSubDirs[$cabinet."/".$dir]."</select>";
-        $s .= "<input type='submit' value='Filter' style='margin-left:5px;' /></form>";
+        $s .= "<select name='subdirectory' id='subdirectory' style='margin-left:5px;margin-right:5px;'>".$raOptionsSubDirs[$cabinet."/".$dir]."</select>";
+        $s .= "<select name='uids[]' id='userSelect' multiple>";
+        foreach($this->raUsers as $uid=>$username){
+            if(in_array($uid, array_keys($this->raQueryUsers)) && $this->raQueryUsers != $this->raUsers){
+                $s .= "<option selected value='$uid'>$username</option>";
+            }
+            else{
+                $s .= "<option value='$uid'>$username</option>";
+            }
+        }
+        $s .= "<input type='submit' name='filter' value='Filter' style='margin-left:5px;vertical-align:middle;' /></form>";
         
         if($page > 1){
             $s .= "<a href='?page=".($page-1)."'><button><i class='fas fa-arrow-left'></i></button></a>";
@@ -271,7 +299,20 @@ class FilingCabinetAnalysis {
                 let subdir = document.getElementById('subdirectory');
                 subdir.innerHTML = subdirectories[cabinet.value+"/"+dir.value];
             }
+            $(document).ready(function() {
+                $('#userSelect').select2({
+                    placeholder: "All Users"
+                });
+                $('#subdirectory').select2();
+                $('#directory').select2();
+                $('#cabinet').select2();
+            });
             </script>
+            <style>
+                .select2-container{
+                    margin-left: 5px;
+                }
+            </style>
 JavaScript;
         
         return $s;
