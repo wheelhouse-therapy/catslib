@@ -18,11 +18,11 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
              });
              foreach ($pro_roles_name as $k => $role){
                  if($k == "Other"){
-                     $s .= "$role <select class='searchable' name='$k'><option selected value='0'>Select Provider"
+                     $s .= "$role <select class='searchable' name='$k'><option></option>"
                      .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel(ClientList::EXTERNAL_PRO)->GetRecordSetRA("pro_role NOT IN (".SEEDCore_ArrayExpandSeries($otherless, ",'[[]]'",TRUE,array("sTemplateFirst"=>"'[[]]'")).")"), "<option value='[[_key]]' />[[P_first_name]] [[P_last_name]] ([[pro_role]])")
                      ."</select>";
                  }else {
-                     $s .= "$role <select class='searchable' name='$k'><option selected value='0'>Select Provider"
+                     $s .= "$role <select class='searchable' name='$k'><option></option>"
                      .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel(ClientList::EXTERNAL_PRO)->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[P_first_name]] [[P_last_name]]")
                      ."</select>";
                  }
@@ -80,7 +80,7 @@ function drawStaffModal($ra, $oPeopleDB, SEEDAppConsole $oApp){
                         <form id=\"staff_form\" action=\"jx.php\" method=\"POST\">
                             <input type='hidden' name='cmd' value='therapist--clientlist-link' id='cmd' />
                             <input type='hidden' name='add_client_key' value='{$ra['_key']}' />";
-                    $s .= "<select class='searchable' name='add_internal_key'><option selected value='0'>Select Staff"
+                    $s .= "<select class='searchable' name='add_internal_key'><option></option>"
                         .SEEDCore_ArrayExpandRows($raStaff,"<option value='[[_key]]' />[[P_first_name]] [[P_last_name]] ([[pro_role]])[[clinic]]")
                         ."</select>";
                     $s .= "</form>

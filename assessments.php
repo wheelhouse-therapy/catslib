@@ -498,11 +498,11 @@ class AssessmentsCommon
         $clinics->GetCurrentClinic();
         $clientlist = new ClientList($this->oApp);
         $raClients = $clientlist->getMyClients();
-        $raParams = array("attrs"=>"required");
+        $raParams = array("attrs"=>"required style='max-width:100%'");
         if($this->oApp->sess->SmartGPC('client_key')){
             $raParams = array_merge($raParams,['selected'=>$this->oApp->sess->SmartGPC('client_key')]);
         }
-        $opts = array( '--- Choose Client ---' => '' );
+        $opts = array( '' => '' );
         foreach( $raClients as $ra ) {
             $opts["{$ra['P_first_name']} {$ra['P_last_name']} (".(new ClientCodeGenerator($this->oApp))->getClientCode($ra['_key']).")".($clinics->isCoreClinic() || CATS_SYSADMIN?" ({$ra['_key']})":"")] = $ra['_key'];
         }
@@ -1300,13 +1300,13 @@ function AssessmentsScore( SEEDAppConsole $oApp )
              */
             $oForm = new SEEDCoreForm( 'Plain' );
             $sControl =
-                  "<script>$(document).ready(function (){\$('select').selectize({sortField: 'text'});});</script>"
+                  "<script>$(document).ready(function (){\$('#fk_clients2').select2({placeholder:'--- Choose Client ---',allowClear:true});\$('#sAsmtType').select2({width:'resolve'});});</script>"
                  ."<style>.asmt_controlform { width:97%; margin:20px; padding:5%; border:1px solid #aaa; background-color:#eee; border-radius:3px; }</style>"
                  ."<div class='asmt_controlform'>"
                  ."<form method='post' id='assmtForm'>"
                  ."<h4>New Assessment</h4>"
                  .$oAC->GetClientSelect( $oForm )
-                 ."<select name='sAsmtType' required>"
+                 ."<select name='sAsmtType' id='sAsmtType' style='max-width:100%' required>"
                  .SEEDCore_ArrayExpandRows( $oAC->raAssessments, "<option value='[[code]]'>[[title]]</option>" )
                  ."</select>"
                  ."<input type='date' name='date' max='".date("Y-m-d")."' value='".date("Y-m-d")."' required>"
