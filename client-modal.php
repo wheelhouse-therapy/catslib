@@ -24,10 +24,10 @@ function drawModal($ra, $oPeopleDB, $pro_roles_name){
                  }else {
                      $s .= "$role <select class='searchable' name='$k'><option></option>"
                      .SEEDCore_ArrayExpandRows($oPeopleDB->KFRel(ClientList::EXTERNAL_PRO)->GetRecordSetRA("pro_role='$role'"), "<option value='[[_key]]' />[[P_first_name]] [[P_last_name]]")
-                     ."</select>";
+                     ."</select><br />";
                  }
               }
-              $s .= "</form>
+              $s .= "</form><br />
                      <form onsubmit='event.preventDefault()'>
                         <input type='hidden' name='cmd' value='linkNew' />
                         <input type='hidden' name='client_key' value='{$ra['_key']}' />
