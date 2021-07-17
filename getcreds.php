@@ -4,6 +4,7 @@
 
 require_once "_config.php" ;
 
+include( SEEDAPP."setup/cli_googleAPISetup.php" );
 include( SEEDROOT."seedlib/SEEDGoogleService.php" );
 
 
