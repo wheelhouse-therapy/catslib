@@ -239,19 +239,19 @@ DownloadMode;
 }
 
 class FilingCabinetHandout {
-    
+
     private $oApp;
     private $oRR;
     private $oPeopleDB;
     private $oClinics;
-    
+
     public function __construct(SEEDAppConsole $oApp, ResourceRecord $oRR){
         $this->oApp = $oApp;
         $this->oRR = $oRR;
         $this->oPeopleDB = new PeopleDB($oApp);
         $this->oClinics = new Clinics($oApp);
     }
-    
+
     public function renderHandout(int $client_key,bool $blank = false):string{
         if(!($file = $this->oRR->getPath()) ||
             !(file_exists($file)) )
@@ -262,24 +262,40 @@ class FilingCabinetHandout {
         if(!in_array(strtolower(pathinfo($this->oRR->getPath(),PATHINFO_EXTENSION)),["png","jpg","gif"])){
             return "Not a handout";
         }
-        
+
         if($blank){
             $kfr = $this->oPeopleDB->GetKfrel(ClientList::CLIENT)->CreateRecord();
         }
         else{
             $kfr = $this->oPeopleDB->GetKFR(ClientList::CLIENT, $client_key);
         }
-        
+
         if(!$kfr){
             $this->oApp->oC->AddErrMsg( "Could not retrieve record for client $client_key" );
             return "";
         }
-        
+
         require_once CATSLIB.'handle_images.php';
         $header = $this->oClinics->getImage(Clinics::LOGO_WIDE);
         $footer = $this->oClinics->getImage(Clinics::FOOTER);
-        $s = "";
-        
+        $s = "<style>
+              /* The whole handout is in a rectangle 8x10.5 inches with a 0.25 margin around it (total size is 8.5x11)
+               * Inner divs can be absolute-positioned relative to this rect.
+               */
+              #pagerect      { position:relative; width:8in; height:10.5in; margin:0.25in }
+
+              #headerImg     { text-align: center }
+              #headerImg img { max-width:100% }
+
+              #mainImg       { text-align: center }
+              #mainImg img   { max-width:95vw; max-height:7.25in }
+
+              /* the footer is glued to the bottom of the pagerect
+               */
+              #footerImg     { text-align: center; position:absolute; bottom:0px }
+              #footerImg img { max-width:100% }
+              </style>";
+
         $s .= "<div id='headerBox' >";
         if($header !== FALSE){
             switch(strtolower(pathinfo($header,PATHINFO_EXTENSION))){
@@ -297,7 +313,7 @@ class FilingCabinetHandout {
                     goto main;
             }
             $i = getImageData($header, $imageType);
-            $s .= "<div id='headerImg' style='text-align:center'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+            $s .= "<div id='headerImg'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
         }
         main:
         $name = $kfr->Value("P_first_name")." ".$kfr->Value("P_last_name");
@@ -327,10 +343,10 @@ class FilingCabinetHandout {
         }
         $im = imagecropauto($img);
         if($im){
-           $img = $im; 
+           $img = $im;
         }
         $i = getImageData($img, $imageType,true);
-        $s .= "<div id='main' style='text-align:center'><img style='max-width:95vw' src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+        $s .= "<div id='mainImg'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
         footer:
         if($footer === FALSE){
             goto done;
@@ -350,9 +366,12 @@ class FilingCabinetHandout {
                 goto done;
         }
         $i = getImageData($footer, $imageType);
-        $s .= "<div id='footer' style='text-align:center'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
+        $s .= "<div id='footerImg'><img src='data:".image_type_to_mime_type($imageType).";base64," . base64_encode( $i )."'></div>";
         done:
+
+        // the whole handout is in a relative-positioned rect that fills a letter-size page and allows inner parts to be absolute positioned
+        $s = "<div id='pagerect'>$s</div>";
         return $s;
     }
-    
+
 }
