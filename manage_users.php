@@ -19,7 +19,7 @@ class ManageUsers {
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
     }
-    
+
     public function manageUser(int $staff_key, bool $userStatus = true, int $cloneID = 0, bool $bShowSaved = false){
         $kfr = $this->getRecord($staff_key);    // gets empty record if staff_key is 0
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
@@ -131,7 +131,7 @@ class ManageUsers {
             $sSidebar = str_replace("[[onClick]]", "onclick='cloneRecord(event,$uid)'", $sSidebar);
         }
         $s = str_replace("[[Sidebar]]", $sSidebar, $s);
-        
+
         return $s;
     }
 
@@ -546,9 +546,9 @@ body;
 }
 
 class ManageUsers2 {
-    
+
     private const DEFAULT_PROFILE = 'defaultProfile';
-    
+
     private $oApp;
     private $oAccountDB;
     private $oPeopleDB;
@@ -560,7 +560,7 @@ class ManageUsers2 {
      * Use $this->oAccountDB->GetUserInfo to get the info for a user in this list.
      */
     private $raUsers;
-    
+
     private const TAB_STYLE = <<<Style
 <style>
 :root {
@@ -604,7 +604,7 @@ class ManageUsers2 {
 }
 </style>
 Style;
-    
+
     /**
      * Script inserted when accessing from the "Manage Users" or "My Profile" screens
      */
@@ -673,7 +673,7 @@ window.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 Script;
-    
+
     /**
      * Script inserted when accessing from the "Manage Users" screen.
      */
@@ -701,7 +701,7 @@ window.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 Script;
-    
+
     public function __construct(SEEDAppConsole $oApp){
         $this->oApp = $oApp;
         $this->oAccountDB = new SEEDSessionAccountDB($oApp->kfdb, $oApp->sess->GetUID());
@@ -709,7 +709,7 @@ Script;
         $this->oClinicsDB = new ClinicsDB($oApp->kfdb);
         $this->oClinics = new Clinics($oApp);
         $this->oHistory = new ScreenManager($oApp);
-        
+
         // Get list of users
         $this->raUsers = [];
         $raGroups = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Groups");
@@ -722,18 +722,20 @@ Script;
             // A user may be in more than 1 group so we need to make the list unique
             $this->raUsers = array_unique(array_merge($this->raUsers,$this->oAccountDB->GetUsersFromGroup($group,['eStatus' => "'ACTIVE','INACTIVE','PENDING'",'bDetail' => false])));
         }
-        $this->raUsers = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Users WHERE _key IN (".implode(',',$this->raUsers).") ORDER BY eStatus,realname ASC");
+        if( count($this->raUsers) ) {
+            $this->raUsers = $this->oApp->kfdb->QueryRowsRA1("SELECT _key FROM SEEDSession_Users WHERE _key IN (".implode(',',$this->raUsers).") ORDER BY eStatus,realname ASC");
+        }
     }
-    
+
     /**
      * Draw the manage users UI
      * @return String
      */
     public function drawUI():String{
-        
+
         $uid = $this->oApp->sess->SmartGPC("uid");
         $this->processCommands(SEEDInput_Str("cmd"));
-        
+
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
@@ -753,7 +755,7 @@ Script;
         $s .= "</div></div></div>";
         return $s;
     }
-    
+
     /**
      * Draw the list of users.
      * @return String
@@ -785,13 +787,13 @@ Script;
         }
         return $s;
     }
-    
+
     public function processCommands(String $cmd){
-        
+
         // If name is changed update account name and ALL of the clinic records with the new name.
-        
+
         //Valid Commands: newProfile, updateProfile, setDefault, updateAccount, createNewUser, updateStatus, addClinic, removeClinic
-        
+
         switch(strtolower($cmd)){
             case "setdefault":
                 $uid = 0; // User Id.
@@ -855,7 +857,7 @@ Script;
                 //Set Name
                 $realname = $fname." ".$lname;
                 $this->oApp->kfdb->Execute("UPDATE SEEDSESSION_Users SET _updated=NOW(),_updated_by={$this->oApp->sess->GetUID()},realname='$realname' WHERE seedsession_users._key = $uid");
-                
+
                 for($i=0;$i<$profileCount;$i++){
                     $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), $this->getName($i+1) );
                     $oForm->Update();
@@ -882,7 +884,7 @@ Script;
                     $this->oApp->oC->AddErrMsg("A user with this name already exists");
                     break;
                 }
-                
+
                 $oForm->Update();
                 $this->updatePeople($oForm);
                 //Handle Signature Upload
@@ -891,12 +893,12 @@ Script;
                 }
                 $uid = $this->oAccountDB->CreateUser($username, 'cats',['realname'=>$realname,'gid1'=>4]);
                 $this->oApp->kfdb->Execute("UPDATE people SET uid = $uid WHERE people._key = ".$oForm->ValueInt('fk_people'));
-                
+
                 // Add to clinic
                 $this->oApp->kfdb->Execute("INSERT INTO `users_clinics`(`_key`, `_created`, `_created_by`, `_updated`, `_updated_by`, `_status`, `fk_SEEDSession_Users`, `fk_clinics`) VALUES (0,NOW(),{$this->oApp->sess->getUID()},NOW(),{$this->oApp->sess->getUID()},0,$uid,{$oForm->Value("clinic")})");
-                
+
                 $this->setDefaultProfile($uid, $oForm->Value("_key"));
-                
+
                 header("HTTP/1.1 303 SEE OTHER");
                 header("Location: ?uid=$uid");
                 exit();
@@ -909,7 +911,7 @@ Script;
                 $refl = new ReflectionClass(AccountType::class);
                 $constants = $refl->getConstants();
                 unset($constants["KEY"]);
-                
+
                 $uid = SEEDInput_Int('uid');
                 if($uid <= 0){
                     break;
@@ -1051,9 +1053,9 @@ body;
                 }
                 break;
         }
-        
+
     }
-    
+
     /**
      * Draw the manage users form for a user.
      * This form allows admins to manage the profiles and account settings of a user.
@@ -1063,7 +1065,7 @@ body;
      * @return String
      */
     public function drawManageForm(int $uid):String{
-        
+
         $s = "";
         if($uid <= 0){
             $uid = $this->oApp->sess->GetUID();
@@ -1077,17 +1079,17 @@ body;
         $s .= "<div id='contentAccount' class='tab-content outer-content container-fluid'>".$this->drawAccountForm($uid)."</div>";
         return $s;
     }
-    
-    
+
+
     /**
      * Draw the profile form for the current user.
      * This allows the user to edit their own profiles.
      * @return String
      */
     public function drawProfile():String{
-        
+
         $this->processCommands(SEEDInput_Str("cmd"));
-        
+
         $s = "";
         $s .= self::TAB_STYLE;
         $s .= self::PROFILE_SCRIPT;
@@ -1096,7 +1098,7 @@ body;
         $s .= "</div>";
         return $s;
     }
-    
+
     /**
      * Get a users profile for the current clinic.
      * @param int $uid - user id of the user.
@@ -1105,7 +1107,7 @@ body;
     public function getClinicProfile(int $uid):array{
         return $this->getProfile($uid, 0);
     }
-    
+
     /**
      * Get the current users profile for a specific clinic.
      * @param int $clinic - clinic to get the user's profile for.
@@ -1114,7 +1116,7 @@ body;
     public function getUserProfile(int $clinic):array{
         return $this->getProfile(0, $clinic);
     }
-    
+
     /**
      * Get a users profile for a specific clinic.
      * @param int $uid - user id of the user.
@@ -1143,7 +1145,7 @@ body;
         }
         return ['kfr'=>$kfr,'defaulted'=>$bDefaulted];
     }
-    
+
     public function getEmail(int $uid):?String{
         $email = $this->getClinicProfile($uid)['kfr']->Value("P_email");
         if(!$email){
@@ -1155,7 +1157,7 @@ body;
         }
         return $email?:null;
     }
-    
+
     /**
      * Check if the clinic profile for the given user is valid.
      * A valid profile should not be limited in functionality
@@ -1187,24 +1189,24 @@ body;
         }
         return $valid;
     }
-    
+
     /**
      * Draw a tab for each clinic the user is in and render the form for each of the tabs.
      * @param int $uid - user to render the entire profile form for.
      * @return String - The complete profile form.
      */
     private function drawProfileForm(int $uid,String $cmd):String{
-        
+
         if($uid <= 0){
             return $this->drawNewUserForm();
         }
-        
+
         $s = "<div id='alertBox'></div>";
         $accountName = $this->oAccountDB->GetUserInfo($uid,false)[1]['realname'];
         $raName = explode(" ", $accountName,2);
         $fname = @$raName[0]?:"";
         $lname = @$raName[1]?:"";
-        
+
         $s .= "<form class='profile-form'>";
         $s .= "<input type='hidden' name='uid' value='$uid' />";
         $s .= "<input type='text' name='first_name' id='first_name' value='$fname' required placeholder='First Name' maxlength='200'>";
@@ -1212,7 +1214,7 @@ body;
         $s .= "<input type='hidden' name='cmd' value='$cmd' />";
         $s .= "<input type='hidden' name='profileCount' value='[[count]]' />";
         $s .= "</form>";
-        
+
         // When user selected provide tabs for the different records in each clinic.
         $s .= "<div class='tabs'>";
         $raClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
@@ -1255,7 +1257,7 @@ body;
         }
         return $s;
     }
-    
+
     /**
      * Draw the form within the users profile tabs.
      * @param int $uid - user id of the user to draw the form of.
@@ -1264,21 +1266,21 @@ body;
      * @return String - The form displaying the users profile or a message stating the clinic uses the default profile and an option to create a clinic profile.
      */
     private function drawInternalProfileForm(int $uid, int $clinic,int $i = 1):String{
-        
+
         if($i <= 0){
             $i = 1;
         }
         $s = "";
         $raProfile = $this->getProfile($uid, $clinic);
         $kfr = $raProfile['kfr'];
-        
+
         if($raProfile['defaulted']){
             $clinicName = ($this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('nickname')?:$this->oClinicsDB->GetClinic($kfr->Value("clinic"))->Value('clinic_name'));
             return "<div style='text-align:center'>This Clinic uses the information from the default profile ($clinicName).<wbr>You can create a clinic specific one here: "
                   ."<a href='?cmd=newProfile&uid=$uid&clinicId=$clinic'><button>Create Clinic Profile</button></a>"
                   ."</div>";
         }
-        
+
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), $this->getName($i) );
         $oForm->SetKFR($kfr);
         $roles = ClientList::$staff_roles_name;
@@ -1299,12 +1301,12 @@ body;
         $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
         $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
-        
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $s .= "<form class='profile-form' onsubmit='submitForm(event);'>"
              .$oForm->HiddenKey()
              ."<table class='container-fluid table table-striped table-sm'>";
-        
+
         $s .= $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
         $s .= $this->drawFormRow( "City", $oForm->Text('P_city',"",array("attrs"=>"placeholder='City'") ) );
         $s .= $this->drawFormRow( "Province", $oForm->Text('P_province',"",array("attrs"=>"placeholder='Province'") ) );
@@ -1334,16 +1336,16 @@ body;
         $s .= "</table></form>";
         return $s;
     }
-    
+
     /**
      * Draw the account information form for a user
      * @param int $uid - user to draw the form for
      * @return String
      */
     private function drawAccountForm(int $uid):String{
-        
+
         $s = "";
-        
+
         $userInfo = $this->oAccountDB->GetUserInfo($uid);
         $status = $userInfo[1]['eStatus'];
         $email = $this->getEmail($uid);
@@ -1386,15 +1388,15 @@ body;
         }
         $s .= "<br /><br />";
         $s .= $this->getClinicAssigner($uid);
-        
+
         return $s;
     }
-    
+
     private function drawNewUserForm():String{
         $s = "<h3>New User</h3>";
         $oForm = new KeyframeForm( $this->oPeopleDB->KFRel(ClientList::INTERNAL_PRO), "A" );
         $oForm->SetKFR($this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord());
-        
+
         $roles = ClientList::$staff_roles_name;
         $myRole = $oForm->Value('pro_role');
         $myRoleIsNormal = in_array($myRole, $roles);
@@ -1413,13 +1415,13 @@ body;
         $raExtra = SEEDCore_ParmsURL2RA( $oForm->Value('P_extra') );
         $oForm->SetValue( 'P_extra_credentials', @$raExtra['credentials'] );
         $oForm->SetValue( 'P_extra_regnumber', @$raExtra['regnumber'] );
-        
+
         $oForm->SetStickyParms( array( 'raAttrs' => array( 'maxlength'=>'200', 'style'=>'width:100%' ) ) );
         $s .= "<form>"
             .$oForm->HiddenKey()
             ."<input type='hidden' name='cmd' value='createNewUser' />"
             ."<table class='container-fluid table table-striped table-sm'>";
-            
+
         $s .= $this->drawFormRow( "First Name", $oForm->Text('P_first_name',"",array("attrs"=>"required placeholder='First Name' autofocus") ) );
         $s .= $this->drawFormRow( "Last Name", $oForm->Text('P_last_name',"",array("attrs"=>"required placeholder='Last Name'") ) );
         $s .= $this->drawFormRow( "Address", $oForm->Text('P_address',"",array("attrs"=>"placeholder='Address'") ) );
@@ -1441,14 +1443,14 @@ body;
         $s .= "</table></form>";
         return $s;
     }
-    
+
     private function drawFormRow( $label, $control ) {
         return( "<tr class='row'>"
             ."<td class='col-md-5'><p>$label</p></td>"
             ."<td class='col-md-7'>$control</td>"
             ."</tr>" );
     }
-    
+
     private function getClinicList( $oForm)
     {
         $s = "<select id='".$oForm->Name('clinic')."' name='".$oForm->Name('clinic')."' required>";
@@ -1460,16 +1462,16 @@ body;
         $s .= "</select>";
         return $s;
     }
-    
+
     private function getAccountList(String $accountType = AccountType::NORMAL):String{
         $refl = new ReflectionClass(AccountType::class);
         $constants = $refl->getConstants();
         unset($constants["KEY"]);
-        
+
         if(!in_array($accountType, $constants)){
             $accountType = AccountType::NORMAL;
         }
-        
+
         $s = "<select id='accountType' name='accountType' required>";
         if($accountType == AccountType::DEVELOPER && !CATS_SYSADMIN){
             $s = "<select disabled id='accountType' required title='Only other developers can change the account from a Developer account'>";
@@ -1508,13 +1510,13 @@ body;
                 }
             }
         }
-        
+
         return $s;
-        
+
     }
-    
+
     private function getPronounList(KeyframeForm $oForm){
-        
+
         $pronouns = array("M" => "He/Him/His", "F" => "She/Her/Her", "O" => "They/Them/Their");
         $s = "<select name='".$oForm->Name("P_pronouns")."' required ".($oForm->Value('_status')==0?"":"disabled").">";
         $s .= "<option value=''>Select Pronouns</option>";
@@ -1529,14 +1531,14 @@ body;
         $s .= "</select>";
         return $s;
     }
-    
+
     private function updatePeople( SEEDCoreForm $oForm )
     /***************************************************
      The relations C, PI, and PE join with P. When those are updated, the P_* fields have to be copied to table 'people'
      */
     {
         $peopleFields = array('first_name','last_name','pronouns','address','city','province','postal_code','dob','phone_number','email' );
-        
+
         $kP = $oForm->Value('P__key');
         if(!$kP){
             $sCond = "";
@@ -1564,7 +1566,7 @@ body;
             $oForm->Store();
         }
     }
-    
+
     private function getClinicAssigner($uid):String{
         $raClinics = array_column($this->oClinicsDB->KFRel()->GetRecordSetRA(""),"_key");
         $raUserClinics = array_column($this->oClinics->GetUserClinics($uid),"Clinics__key");
@@ -1594,7 +1596,7 @@ body;
                 </tr>
               </table>";
     }
-    
+
     private function getDefaultProfile(int $uid):KeyframeRecord{
         $defaultProfile = @$this->oAccountDB->GetUserMetadata($uid)[self::DEFAULT_PROFILE]?:0;
         if($defaultProfile){
@@ -1602,7 +1604,7 @@ body;
         }
         return $this->oPeopleDB->GetKfrel(ClientList::INTERNAL_PRO)->CreateRecord();
     }
-    
+
     private function setDefaultProfile(int $uid, int $profile):bool{
         if(!in_array($profile, $this->oPeopleDB->Get1List(ClientList::INTERNAL_PRO, "_key", "P.uid=".$uid))){
             return false;
@@ -1610,7 +1612,7 @@ body;
         $this->oAccountDB->SetUserMetadata($uid, self::DEFAULT_PROFILE, $profile);
         return true;
     }
-    
+
     /**
      * Convert a number to its Excel column name
      * @param int $i - number to convert
@@ -1625,7 +1627,7 @@ body;
         }
         return $name;
     }
-    
+
 }
 
 /**
@@ -1635,27 +1637,27 @@ body;
  *
  */
 abstract class AccountType {
-    
+
     /**
      * The key in the account metadata that holds the account type.
      */
     public const KEY = "accountType";
-    
+
     /**
      * Normal User
      */
     public const NORMAL = "normal";
-    
+
     /**
      * Student User
      * Let them reset their password regardless of username
      */
     public const STUDENT = "student";
-    
+
     /**
      * Developer User
      * Doesn't do anything but probably comes with the administrator permission.
      */
     public const DEVELOPER = "dev";
-    
+
 }
